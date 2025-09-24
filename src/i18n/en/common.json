@@ -1,0 +1,17 @@
+{
+  "nav": {
+    "aiAssistant": "AI Assistant",
+    "urbanAnalysis": "Urban Analysis", 
+    "projectAnalysis": "Project Analysis",
+    "projectDesign": "Project Design",
+    "projectOverview": "Project Overview",
+    "user": "User"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "close": "Close",
+    "save": "Save",
+    "cancel": "Cancel"
+  }
+}

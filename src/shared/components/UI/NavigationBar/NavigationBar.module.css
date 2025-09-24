@@ -1,0 +1,194 @@
+/* src/shared/components/UI/NavigationBar/NavigationBar.module.css */
+
+.navigationBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 64px;
+  background-color: var(--nav-background, #ffffff);
+  border-bottom: 2px solid var(--nav-border, #e2e8f0);
+  padding: 0 24px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  position: relative;
+  z-index: 1000;
+}
+
+/* Brand/Logo Section */
+.brandSection {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--nav-brand-color, #1e40af);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.logo:hover {
+  color: var(--nav-brand-hover, #1d4ed8);
+}
+
+.appTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--nav-title-color, #1f2937);
+  margin: 0;
+}
+
+/* Navigation Items */
+.navItems {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  justify-content: center;
+  max-width: 800px;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--nav-item-color, #4b5563);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  position: relative;
+}
+
+.navItem:hover {
+  background-color: var(--nav-item-hover-bg, #f3f4f6);
+  color: var(--nav-item-hover-color, #1f2937);
+  transform: translateY(-1px);
+}
+
+.navItemActive {
+  background-color: var(--nav-item-active-bg, #dbeafe);
+  color: var(--nav-item-active-color, #1e40af);
+  font-weight: 600;
+}
+
+.navItemActive::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 3px;
+  background-color: var(--nav-item-active-color, #1e40af);
+  border-radius: 2px;
+}
+
+.navIcon {
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.navLabel {
+  line-height: 1;
+}
+
+/* Utility Section (Language, User, etc.) */
+.utilitySection {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.languageSelector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background-color: var(--nav-utility-bg, #f8fafc);
+  border: 1px solid var(--nav-utility-border, #e2e8f0);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--nav-utility-color, #64748b);
+}
+
+.languageSelector:hover {
+  background-color: var(--nav-utility-hover-bg, #f1f5f9);
+  border-color: var(--nav-utility-hover-border, #cbd5e1);
+}
+
+.languageFlag {
+  font-size: 14px;
+}
+
+.languageCode {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Responsive adjustments for desktop */
+@media (min-width: 1200px) {
+  .navigationBar {
+    padding: 0 32px;
+  }
+  
+  .navItems {
+    gap: 12px;
+  }
+  
+  .navItem {
+    padding: 12px 20px;
+    font-size: 15px;
+  }
+}
+
+/* Compact mode for smaller desktop screens */
+@media (max-width: 1024px) {
+  .navItem {
+    padding: 8px 12px;
+  }
+  
+  .navLabel {
+    display: none;
+  }
+  
+  .navIcon {
+    font-size: 18px;
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* CSS Custom Properties */
+:root {
+  --nav-background: #ffffff;
+  --nav-border: #e2e8f0;
+  --nav-brand-color: #1e40af;
+  --nav-brand-hover: #1d4ed8;
+  --nav-title-color: #1f2937;
+  
+  --nav-item-color: #4b5563;
+  --nav-item-hover-bg: #f3f4f6;
+  --nav-item-hover-color: #1f2937;
+  --nav-item-active-bg: #dbeafe;
+  --nav-item-active-color: #1e40af;
+  
+  --nav-utility-bg: #f8fafc;
+  --nav-utility-border: #e2e8f0;
+  --nav-utility-hover-bg: #f1f5f9;
+  --nav-utility-hover-border: #cbd5e1;
+  --nav-utility-color: #64748b;
+}
