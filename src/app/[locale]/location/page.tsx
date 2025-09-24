@@ -1,4 +1,4 @@
-// src/app/[locale]/location/page.tsx (Tailwind v4 version)
+// src/app/[locale]/location/page.tsx (Tailwind v4 version - Fixed for Next.js 15)
 "use client";
 
 import React, { JSX, useState } from 'react';
@@ -21,18 +21,26 @@ const TABS = [
 type TabName = typeof TABS[number];
 
 interface LocationPageProps {
-  params: { locale: Locale };
+  params: Promise<{ locale: Locale }>;
 }
 
 /**
  * Location Analysis Page with Tailwind v4
  * Clean, modern design using Tailwind utilities
  */
-const LocationPage: React.FC<LocationPageProps> = ({ params: { locale } }): JSX.Element => {
+const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   const [activeTab, setActiveTab] = useState<TabName>('Doelgroepen');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [searchAddress, setSearchAddress] = useState<string>('');
   const [showRightMenu, setShowRightMenu] = useState<boolean>(false);
+  const [locale, setLocale] = useState<Locale>('nl'); // Default value
+
+  // Resolve params on mount
+  React.useEffect(() => {
+    params.then(({ locale: resolvedLocale }) => {
+      setLocale(resolvedLocale);
+    });
+  }, [params]);
 
   const handleTabChange = (tab: TabName): void => {
     setActiveTab(tab);

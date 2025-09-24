@@ -8,13 +8,16 @@ const inter = Inter({ subsets: ['latin'] });
 
 interface RootLayoutProps {
   children: React.ReactNode;
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
-  params: { locale },
+  params,
 }: RootLayoutProps) {
+  // Await params before using its properties
+  const { locale } = await params;
+  
   // Validate locale
   if (!isValidLocale(locale)) {
     notFound();
@@ -35,10 +38,12 @@ export function generateStaticParams() {
 }
 
 // Generate metadata
-export function generateMetadata({ params }: { params: { locale: Locale } }) {
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  
   return {
     title: 'Location Analysis App',
     description: 'Comprehensive location data analysis with CBS data',
-    language: params.locale,
+    language: locale,
   };
 }
