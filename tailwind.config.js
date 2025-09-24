@@ -1,10 +1,9 @@
-// tailwind.config.ts (Tailwind v4 configuration)
-import type { Config } from 'tailwindcss'
-
-export default {
+/** @type {import('tailwindcss').Config} */
+module.exports = {
   content: [
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
     './src/features/**/*.{js,ts,jsx,tsx,mdx}',
     './src/shared/**/*.{js,ts,jsx,tsx,mdx}',
   ],
@@ -42,11 +41,19 @@ export default {
         '70': '17.5rem',  // For right menu width
         '80': '20rem',    // For sidebar width
       },
+      width: {
+        '70': '17.5rem',
+      },
+      height: {
+        '15': '3.75rem',
+      },
       borderWidth: {
         '3': '3px',
+        '4': '4px',
       },
       ringWidth: {
         '3': '3px',
+        '4': '4px',
       },
       zIndex: {
         '60': '60',
@@ -54,4 +61,4 @@ export default {
     },
   },
   plugins: [],
-} satisfies Config
+}

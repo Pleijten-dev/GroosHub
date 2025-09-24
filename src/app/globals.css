@@ -1,5 +1,7 @@
-/* src/app/globals.css - Tailwind v4 setup */
-@import "tailwindcss";
+/* src/app/globals.css - Tailwind v3 setup */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* Custom CSS variables for your design system */
 :root {
