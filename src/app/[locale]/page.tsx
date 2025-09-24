@@ -1,26 +1,46 @@
 // src/app/[locale]/page.tsx
-'use client';
-
 import React from 'react';
 import Link from 'next/link';
-import { Locale } from '../../lib/i18n/config';
-import { useTranslation } from '../../shared/hooks/useTranslation';
+import { Locale, isValidLocale } from '../../lib/i18n/config';
+import { notFound } from 'next/navigation';
 
 interface HomePageProps {
   params: Promise<{ locale: string }>; // Next.js 15 change: params is now a Promise
 }
 
-const HomePage: React.FC<HomePageProps> = ({ params }) => {
-  const [locale, setLocale] = React.useState<Locale>('nl');
+// Make this a Server Component by removing 'use client' and using async
+const HomePage: React.FC<HomePageProps> = async ({ params }) => {
+  // Await params before using its properties
+  const { locale: localeParam } = await params;
   
-  // Handle the Promise params in client component
-  React.useEffect(() => {
-    params.then(({ locale: localeParam }) => {
-      setLocale(localeParam as Locale);
-    });
-  }, [params]);
+  // Validate locale
+  if (!isValidLocale(localeParam)) {
+    notFound();
+  }
+  
+  const locale = localeParam as Locale;
 
-  const { t } = useTranslation(locale);
+  // Translation function (simplified for server component)
+  const t = (key: string) => {
+    const translations = {
+      nl: {
+        'nav.aiAssistant': 'AI Assistent',
+        'nav.urbanAnalysis': 'Stedelijke Analyse',
+        'nav.projectAnalysis': 'Project Analyse',
+        'nav.projectDesign': 'Project Ontwerp',
+        'nav.projectOverview': 'Project Overzicht',
+      },
+      en: {
+        'nav.aiAssistant': 'AI Assistant',
+        'nav.urbanAnalysis': 'Urban Analysis',
+        'nav.projectAnalysis': 'Project Analysis',
+        'nav.projectDesign': 'Project Design',
+        'nav.projectOverview': 'Project Overview',
+      },
+    };
+    
+    return translations[locale][key as keyof typeof translations[typeof locale]] || key;
+  };
 
   const features = [
     {
@@ -61,7 +81,7 @@ const HomePage: React.FC<HomePageProps> = ({ params }) => {
     {
       id: 'location',
       icon: '📍',
-      titleKey: 'home.locationAnalysis',
+      title: locale === 'nl' ? 'Locatie Analyse' : 'Location Analysis',
       href: '/location',
       color: 'bg-red-50 hover:bg-red-100 border-red-200'
     }
@@ -102,7 +122,7 @@ const HomePage: React.FC<HomePageProps> = ({ params }) => {
               <div className="text-center">
                 <div className="text-4xl mb-4">{feature.icon}</div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                  {feature.titleKey.startsWith('nav.') ? t(feature.titleKey) : getFeatureTitle(feature.id, locale)}
+                  {'titleKey' in feature ? t(feature.titleKey) : feature.title}
                 </h3>
                 <p className="text-gray-600 text-sm leading-relaxed">
                   {getFeatureDescription(feature.id, locale)}
@@ -166,20 +186,6 @@ const HomePage: React.FC<HomePageProps> = ({ params }) => {
     </div>
   );
 };
-
-// Helper function for feature titles (for non-nav items)
-function getFeatureTitle(featureId: string, locale: Locale): string {
-  const titles = {
-    nl: {
-      'location': 'Locatie Analyse'
-    },
-    en: {
-      'location': 'Location Analysis'
-    }
-  };
-
-  return titles[locale][featureId as keyof typeof titles[typeof locale]] || '';
-}
 
 // Helper function for feature descriptions with proper typing
 function getFeatureDescription(featureId: string, locale: Locale): string {

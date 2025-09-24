@@ -8,13 +8,16 @@ const inter = Inter({ subsets: ['latin'] });
 
 interface LocaleLayoutProps {
   children: React.ReactNode;
-  params: { locale: string };
+  params: Promise<{ locale: string }>; // Next.js 15: params is now a Promise
 }
 
-export default function LocaleLayout({
+export default async function LocaleLayout({
   children,
-  params: { locale },
+  params,
 }: LocaleLayoutProps) {
+  // Await params before using its properties
+  const { locale } = await params;
+
   // Validate locale
   if (!isValidLocale(locale)) {
     notFound();
@@ -41,8 +44,18 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
 
-// Generate metadata
-export function generateMetadata({ params }: { params: { locale: Locale } }) {
+// Generate metadata - also needs to await params
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  
+  // Validate locale for metadata
+  if (!isValidLocale(locale)) {
+    return {
+      title: 'GroosHub - Urban Development Platform',
+      description: 'Comprehensive urban development and project analysis platform',
+    };
+  }
+
   const titles = {
     nl: 'GroosHub - Stedelijke Ontwikkeling Platform',
     en: 'GroosHub - Urban Development Platform'
@@ -54,10 +67,10 @@ export function generateMetadata({ params }: { params: { locale: Locale } }) {
   };
 
   return {
-    title: titles[params.locale],
-    description: descriptions[params.locale],
+    title: titles[locale as Locale],
+    description: descriptions[locale as Locale],
     other: {
-      'language': params.locale,
+      'language': locale,
     },
   };
 }
