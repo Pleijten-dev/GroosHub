@@ -1,0 +1,57 @@
+/* src/app/globals.css - Tailwind v4 setup */
+@import "tailwindcss";
+
+/* Custom CSS variables for your design system */
+:root {
+  /* Colors */
+  --background-primary: #ffffff;
+  --background-secondary: #f8f9fa;
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --primary-color: #007bff;
+  --primary-color-hover: #0056b3;
+  --primary-color-alpha: rgba(0, 123, 255, 0.1);
+  
+  /* Borders */
+  --border-light: #e0e0e0;
+  --border-medium: #d0d0d0;
+  
+  /* Component specific */
+  --sidebar-background: #f8f9fa;
+  --sidebar-header-background: #ffffff;
+  --content-background: #ffffff;
+  --tab-nav-background: #f8f9fa;
+  --right-menu-background: #f8f9fa;
+  --info-background: #f8f9fa;
+  --placeholder-background: #f5f5f5;
+  --input-background: #ffffff;
+  
+  /* Interactive states */
+  --button-hover-background: #f0f0f0;
+  --tab-text-inactive: #666666;
+  --tab-text-hover: #333333;
+  --tab-hover-background: rgba(0, 123, 255, 0.05);
+  --tab-active-background: rgba(0, 123, 255, 0.1);
+}
+
+/* Custom styles that work alongside Tailwind */
+.location-container {
+  /* You can still use custom CSS for complex layouts */
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Smooth transitions */
+* {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Focus styles for accessibility */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+}

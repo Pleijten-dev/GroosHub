@@ -1,0 +1,469 @@
+/* src/app/[locale]/location/LocationPage.module.css */
+/* Robust, future-proof styling for Location Analysis page */
+
+/* =============================================================================
+   MAIN CONTAINER
+   ============================================================================= */
+
+.locationContainer {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  position: relative;
+  background-color: var(--background-primary, #ffffff);
+  color: var(--text-primary, #333333);
+}
+
+/* =============================================================================
+   SIDEBAR COMPONENT AREA
+   ============================================================================= */
+
+.sidebar {
+  background-color: var(--sidebar-background, #f8f9fa);
+  border-right: 1px solid var(--border-light, #e0e0e0);
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease-in-out;
+  z-index: 100;
+  position: relative;
+}
+
+.sidebarExpanded {
+  width: 320px;
+  min-width: 320px;
+}
+
+.sidebarCollapsed {
+  width: 60px;
+  min-width: 60px;
+}
+
+/* Sidebar Header */
+.sidebarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background-color: var(--sidebar-header-background, #ffffff);
+  border-bottom: 1px solid var(--border-light, #e0e0e0);
+  min-height: 70px;
+}
+
+.toggleButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.toggleButton:hover {
+  background-color: var(--button-hover-background, #f0f0f0);
+}
+
+.searchIconButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.searchIconButton:hover {
+  background-color: var(--button-hover-background, #f0f0f0);
+}
+
+/* Sidebar Content */
+.sidebarContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.searchSection {
+  padding: 20px 16px;
+  border-bottom: 1px solid var(--border-light, #e0e0e0);
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: var(--text-primary, #333333);
+}
+
+.sectionDescription {
+  font-size: 14px;
+  color: var(--text-secondary, #666666);
+  margin: 0 0 16px 0;
+  line-height: 1.4;
+}
+
+.searchContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid var(--border-medium, #d0d0d0);
+  border-radius: 8px;
+  font-size: 14px;
+  background-color: var(--input-background, #ffffff);
+  color: var(--text-primary, #333333);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--primary-color, #007bff);
+  box-shadow: 0 0 0 3px var(--primary-color-alpha, rgba(0, 123, 255, 0.1));
+}
+
+.searchButton {
+  padding: 12px 24px;
+  background-color: var(--primary-color, #007bff);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.searchButton:hover {
+  background-color: var(--primary-color-hover, #0056b3);
+  transform: translateY(-1px);
+}
+
+.searchButton:active {
+  transform: translateY(0);
+}
+
+/* Controls Section */
+.controlsSection {
+  padding: 20px 16px;
+  flex: 1;
+}
+
+.placeholder {
+  background-color: var(--placeholder-background, #f5f5f5);
+  border: 2px dashed var(--border-light, #d0d0d0);
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+}
+
+.placeholder p {
+  margin: 0 0 12px 0;
+  font-weight: 600;
+  color: var(--text-secondary, #666666);
+}
+
+.placeholder ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary, #666666);
+}
+
+.placeholder li {
+  margin: 4px 0;
+}
+
+/* =============================================================================
+   MAIN CONTENT AREA
+   ============================================================================= */
+
+.mainContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: var(--content-background, #ffffff);
+}
+
+/* Tab Navigation */
+.tabNavigation {
+  background-color: var(--tab-nav-background, #f8f9fa);
+  border-bottom: 2px solid var(--border-medium, #d0d0d0);
+  padding: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+}
+
+.tabContainer {
+  display: inline-flex;
+  align-items: center;
+  min-width: 100%;
+  padding: 0 16px;
+}
+
+.tabButton {
+  background: none;
+  border: none;
+  padding: 16px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tab-text-inactive, #666666);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tabButton:hover {
+  color: var(--tab-text-hover, #333333);
+  background-color: var(--tab-hover-background, rgba(0, 123, 255, 0.05));
+}
+
+.tabButtonActive {
+  color: var(--primary-color, #007bff);
+  border-bottom-color: var(--primary-color, #007bff);
+  background-color: var(--tab-active-background, rgba(0, 123, 255, 0.1));
+}
+
+/* Content Area */
+.contentArea {
+  flex: 1;
+  overflow: auto;
+  padding: 0;
+  background-color: var(--content-background, #ffffff);
+}
+
+.contentPlaceholder {
+  padding: 40px;
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.contentTitle {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-primary, #333333);
+  margin: 0 0 24px 0;
+}
+
+.componentInfo {
+  background-color: var(--info-background, #f8f9fa);
+  border: 1px solid var(--border-light, #e0e0e0);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: left;
+  margin: 24px auto 0;
+  max-width: 600px;
+}
+
+.componentInfo p {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.componentInfo p:last-child {
+  margin-bottom: 0;
+}
+
+.componentInfo strong {
+  color: var(--primary-color, #007bff);
+  font-weight: 600;
+}
+
+/* =============================================================================
+   RIGHT MENU COMPONENT AREA
+   ============================================================================= */
+
+.rightMenu {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  background-color: var(--right-menu-background, #f8f9fa);
+  border-left: 1px solid var(--border-light, #e0e0e0);
+  transition: transform 0.3s ease-in-out;
+  width: 280px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+}
+
+.rightMenu:not(.rightMenuOpen) {
+  transform: translateX(calc(100% - 40px));
+}
+
+.rightMenuOpen {
+  transform: translateX(0);
+}
+
+.rightMenuToggle {
+  position: absolute;
+  left: -40px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: var(--primary-color, #007bff);
+  color: white;
+  border: none;
+  width: 40px;
+  height: 60px;
+  border-radius: 8px 0 0 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  transition: background-color 0.2s ease;
+  z-index: 51;
+}
+
+.rightMenuToggle:hover {
+  background-color: var(--primary-color-hover, #0056b3);
+}
+
+.rightMenuContent {
+  padding: 20px;
+  overflow-y: auto;
+  height: 100%;
+}
+
+.rightMenuContent h3 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  color: var(--text-primary, #333333);
+}
+
+.rightMenuContent p {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  color: var(--text-secondary, #666666);
+}
+
+.rightMenuContent ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.rightMenuContent li {
+  padding: 8px 0;
+  color: var(--text-secondary, #666666);
+  border-bottom: 1px solid var(--border-light, #e0e0e0);
+}
+
+.rightMenuContent li:last-child {
+  border-bottom: none;
+}
+
+/* =============================================================================
+   RESPONSIVE DESIGN
+   ============================================================================= */
+
+@media (max-width: 1024px) {
+  .sidebarExpanded {
+    width: 280px;
+    min-width: 280px;
+  }
+  
+  .rightMenu {
+    width: 240px;
+  }
+}
+
+@media (max-width: 768px) {
+  .locationContainer {
+    flex-direction: column;
+    height: 100vh;
+  }
+  
+  .sidebar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    z-index: 200;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .sidebarCollapsed {
+    transform: translateX(-100%);
+  }
+  
+  .sidebarExpanded {
+    width: 90vw;
+    max-width: 320px;
+  }
+  
+  .tabContainer {
+    padding: 0 8px;
+  }
+  
+  .tabButton {
+    padding: 14px 16px;
+    font-size: 13px;
+  }
+  
+  .contentPlaceholder {
+    padding: 20px;
+  }
+  
+  .contentTitle {
+    font-size: 24px;
+  }
+  
+  .rightMenu {
+    width: 90vw;
+    max-width: 280px;
+  }
+}
+
+/* =============================================================================
+   CSS CUSTOM PROPERTIES (DESIGN TOKENS)
+   ============================================================================= */
+
+:root {
+  /* Colors */
+  --background-primary: #ffffff;
+  --background-secondary: #f8f9fa;
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --primary-color: #007bff;
+  --primary-color-hover: #0056b3;
+  --primary-color-alpha: rgba(0, 123, 255, 0.1);
+  
+  /* Borders */
+  --border-light: #e0e0e0;
+  --border-medium: #d0d0d0;
+  
+  /* Component specific */
+  --sidebar-background: #f8f9fa;
+  --sidebar-header-background: #ffffff;
+  --content-background: #ffffff;
+  --tab-nav-background: #f8f9fa;
+  --right-menu-background: #f8f9fa;
+  --info-background: #f8f9fa;
+  --placeholder-background: #f5f5f5;
+  --input-background: #ffffff;
+  
+  /* Interactive states */
+  --button-hover-background: #f0f0f0;
+  --tab-text-inactive: #666666;
+  --tab-text-hover: #333333;
+  --tab-hover-background: rgba(0, 123, 255, 0.05);
+  --tab-active-background: rgba(0, 123, 255, 0.1);
+}
