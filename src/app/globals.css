@@ -522,3 +522,54 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Additional CSS utilities to add to src/app/globals.css */
+
+@layer utilities {
+  /* Navbar positioning utilities */
+  .top-navbar {
+    top: var(--navbar-height);
+  }
+  
+  .h-navbar {
+    height: var(--navbar-height);
+  }
+  
+  /* Content spacing utilities for pages with sidebar */
+  .content-with-sidebar {
+    margin-left: var(--sidebar-width);
+    transition: margin-left var(--duration-normal) ease-in-out;
+  }
+  
+  .content-with-sidebar-collapsed {
+    margin-left: var(--sidebar-collapsed-width);
+    transition: margin-left var(--duration-normal) ease-in-out;
+  }
+  
+  /* Sidebar positioning utilities */
+  .sidebar-left {
+    left: 0;
+    top: var(--navbar-height);
+    height: calc(100vh - var(--navbar-height));
+  }
+  
+  .sidebar-right {
+    right: 0;
+    top: var(--navbar-height);
+    height: calc(100vh - var(--navbar-height));
+  }
+}
+
+/* Ensure consistent z-index for layout components */
+@layer base {
+  .sidebar-container {
+    z-index: var(--z-fixed);
+  }
+  
+  .main-content {
+    z-index: var(--z-base);
+  }
+  
+  .right-menu {
+    z-index: var(--z-elevated);
+  }
+}

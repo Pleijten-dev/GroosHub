@@ -1,8 +1,10 @@
-// src/app/[locale]/location/page.tsx - Fixed Navigation Issues
+// src/app/[locale]/location/page.tsx - Updated with Reusable Sidebar
 "use client";
 
 import React, { JSX, useState } from 'react';
 import { Locale } from '../../../lib/i18n/config';
+import { Sidebar, useSidebar } from '../../../shared/components/UI/Sidebar';
+import { useLocationSidebarSections } from '../../../features/location/components/LocationSidebar';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -30,16 +32,20 @@ interface LocationPageProps {
 }
 
 /**
- * Location Analysis Page - Clean wireframe with fixed navigation
- * Uses glass background for sidebar matching main NavigationBar
+ * Location Analysis Page - Using reusable Sidebar component
  */
 const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   const [activeTab, setActiveTab] = useState<TabName>('doelgroepen');
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
-  const [searchAddress, setSearchAddress] = useState<string>('');
-  const [showRightMenu, setShowRightMenu] = useState<boolean>(false);
   const [locale, setLocale] = useState<Locale>('nl');
-  const [isScoreExpanded, setIsScoreExpanded] = useState<boolean>(false);
+  const [showRightMenu, setShowRightMenu] = useState<boolean>(false);
+
+  // Use sidebar hook for state management
+  const { isCollapsed, toggle } = useSidebar({
+    defaultCollapsed: false,
+    persistState: true,
+    storageKey: 'location-sidebar-collapsed',
+    autoCollapseMobile: true,
+  });
 
   // Resolve params on mount
   React.useEffect(() => {
@@ -53,174 +59,42 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     console.log(`Tab changed to: ${tab} (locale: ${locale})`);
   };
 
-  const handleScoreToggle = (): void => {
-    setIsScoreExpanded(!isScoreExpanded);
-    if (!isScoreExpanded) {
-      setActiveTab('score');
-    }
-  };
-
-  // Helper function to get section text by locale
-  const getSectionText = (section: typeof MAIN_SECTIONS[number] | typeof SCORE_SUBSECTIONS[number]): string => {
-    return section[locale];
-  };
-
-  // Helper function to check if a subsection is active
-  const isSubsectionActive = (subsectionId: SectionId): boolean => {
-    return SCORE_SUBSECTIONS.some(sub => sub.id === subsectionId) && activeTab === subsectionId;
-  };
-
-  const handleSidebarToggle = (): void => {
-    setIsSidebarCollapsed(!isSidebarCollapsed);
-  };
-
-  const handleAddressSearch = (): void => {
-    console.log(`Searching for address: ${searchAddress} (locale: ${locale})`);
-  };
-
   const handleRightMenuToggle = (): void => {
     setShowRightMenu(!showRightMenu);
   };
 
+  // Get sidebar sections from useLocationSidebarSections hook
+  const sidebarSections = useLocationSidebarSections({
+    locale,
+    activeTab,
+    onTabChange: handleTabChange,
+  });
+
+  // Calculate main content margin based on sidebar state
+  const mainContentMargin = isCollapsed ? 'ml-[60px]' : 'ml-[320px]';
+
   return (
     <div className="flex h-screen w-screen overflow-hidden relative bg-white">
       
-      {/* SIDEBAR - Fixed position with glass background */}
-      <aside className={`
-        fixed left-0 top-16 h-[calc(100vh-4rem)] z-50
-        bg-white/80 backdrop-blur-md border-r border-gray-200/50 
-        flex flex-col transition-all duration-300 shadow-lg
-        ${isSidebarCollapsed ? 'w-16 min-w-16' : 'w-80 min-w-80'}
-      `}>
-        
-        {/* Sidebar Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200/30 min-h-[70px] bg-white/50">
-          <button
-            type="button"
-            onClick={handleSidebarToggle}
-            className="p-2 rounded-md hover:bg-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all"
-            aria-label={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-          >
-            <span className="text-xl font-semibold text-gray-700">
-              {isSidebarCollapsed ? '→' : '←'}
-            </span>
-          </button>
-          
-          {!isSidebarCollapsed && (
-            <button
-              type="button"
-              className="p-2 rounded-md hover:bg-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all"
-              aria-label="Search Options"
-            >
-              <span className="text-xl">🔍</span>
-            </button>
-          )}
-        </div>
-
-        {/* Sidebar Content - Scrollable */}
-        {!isSidebarCollapsed && (
-          <div className="flex-1 overflow-y-auto">
-            
-            {/* Search Input - No sections, just content */}
-            <div className="p-5">
-              <h2 className="text-lg font-semibold mb-2 text-gray-900">
-                {locale === 'nl' ? 'Locatie Analyse' : 'Location Analysis'}
-              </h2>
-              <p className="text-sm text-gray-600 mb-4 leading-relaxed">
-                {locale === 'nl' 
-                  ? 'Voer een adres in om locatiegegevens te analyseren.'
-                  : 'Enter an address to analyze location data.'
-                }
-              </p>
-              
-              <div className="space-y-3">
-                <input
-                  type="text"
-                  value={searchAddress}
-                  onChange={(e) => setSearchAddress(e.target.value)}
-                  placeholder={locale === 'nl' ? 'Voer adres in...' : 'Enter address...'}
-                  className="w-full px-4 py-3 border-2 border-gray-300/60 rounded-lg text-sm bg-white/70 text-gray-900 focus:border-blue-500 focus:ring-3 focus:ring-blue-100 focus:outline-none transition-all backdrop-blur-sm"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddressSearch}
-                  className="w-full px-6 py-3 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 focus:outline-none focus:ring-3 focus:ring-blue-100 active:transform active:scale-95 transition-all"
-                >
-                  {locale === 'nl' ? 'Haal Gegevens Op' : 'Get Data'}
-                </button>
-              </div>
-            </div>
-
-            {/* Tab Selection */}
-            <div className="p-5 border-t border-gray-200/30">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">
-                {locale === 'nl' ? 'Analyse Categorieën' : 'Analysis Categories'}
-              </h3>
-              <div className="space-y-1">
-                {MAIN_SECTIONS.map((section) => (
-                  <div key={section.id}>
-                    {/* Main Section Button */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (section.id === 'score') {
-                          handleScoreToggle();
-                        } else {
-                          handleTabChange(section.id);
-                        }
-                      }}
-                      className={`
-                        w-full px-3 py-2 text-sm font-medium rounded-md transition-all text-left flex items-center justify-between
-                        ${activeTab === section.id || (section.id === 'score' && SCORE_SUBSECTIONS.some(sub => sub.id === activeTab))
-                          ? 'bg-blue-100 text-blue-700 border border-blue-200' 
-                          : 'text-gray-600 hover:bg-gray-100/60 hover:text-gray-900'
-                        }
-                      `}
-                    >
-                      <span>{getSectionText(section)}</span>
-                      {section.id === 'score' && (
-                        <span className={`transition-transform text-xs ${isScoreExpanded ? 'rotate-90' : ''}`}>
-                          ▶
-                        </span>
-                      )}
-                    </button>
-                    
-                    {/* Score Subsections */}
-                    {section.id === 'score' && isScoreExpanded && (
-                      <div className="mt-1 ml-4 space-y-1">
-                        {SCORE_SUBSECTIONS.map((subsection) => (
-                          <button
-                            key={subsection.id}
-                            type="button"
-                            onClick={() => handleTabChange(subsection.id)}
-                            className={`
-                              w-full px-3 py-1.5 text-xs font-medium rounded-md transition-all text-left
-                              ${activeTab === subsection.id 
-                                ? 'bg-blue-50 text-blue-600 border border-blue-100' 
-                                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
-                              }
-                            `}
-                          >
-                            {getSectionText(subsection)}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </aside>
+      {/* SIDEBAR - Using reusable component */}
+      <Sidebar
+        isCollapsed={isCollapsed}
+        onToggle={toggle}
+        sections={sidebarSections}
+        title={locale === 'nl' ? 'Locatie Analyse' : 'Location Analysis'}
+        subtitle={locale === 'nl' ? 'Adres & Data Analyse' : 'Address & Data Analysis'}
+        position="left"
+        expandedWidth="320px"
+        collapsedWidth="60px"
+      />
 
       {/* MAIN CONTENT - Adjusted margins */}
       <main className={`
         flex-1 flex flex-col overflow-hidden bg-white transition-all duration-300
-        ${isSidebarCollapsed ? 'ml-16' : 'ml-80'}
+        ${mainContentMargin}
       `}>
 
-        {/* Content Area - No tab navigation here */}
+        {/* Content Area */}
         <div className="flex-1 overflow-auto bg-white">
           <div className="p-10 text-center max-w-4xl mx-auto">
             <h1 className="text-4xl font-bold text-gray-900 mb-6">
@@ -280,7 +154,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
       {/* RIGHT MENU - Fixed in proper position */}
       <aside className={`
-        fixed right-0 top-16 h-[calc(100vh-4rem)] z-40
+        fixed right-0 top-navbar h-[calc(100vh-var(--navbar-height))] z-40
         bg-white/80 backdrop-blur-md border-l border-gray-200/50 
         transition-transform duration-300 w-70 flex flex-col shadow-lg
         ${showRightMenu ? 'translate-x-0' : 'translate-x-full'}
@@ -294,20 +168,20 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         </button>
         
         {showRightMenu && (
-          <div className="p-5 overflow-y-auto h-full">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900">
+          <div className="p-lg overflow-y-auto h-full">
+            <h3 className="text-lg font-semibold mb-base text-gray-900">
               {locale === 'nl' ? 'Analyse Tools' : 'Analysis Tools'}
             </h3>
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-gray-600 mb-base">
               {locale === 'nl' 
                 ? 'Snelle toegang tot analyse-opties en instellingen.'
                 : 'Quick access to analysis options and settings.'
               }
             </p>
             
-            <div className="space-y-4">
-              <div className="bg-white/60 rounded-lg p-4 border border-gray-200/50">
-                <h4 className="font-medium text-gray-900 mb-2">
+            <div className="space-y-base">
+              <div className="bg-white/60 rounded-lg p-base border border-gray-200/50">
+                <h4 className="font-medium text-gray-900 mb-sm">
                   {locale === 'nl' ? 'Export Opties' : 'Export Options'}
                 </h4>
                 <ul className="space-y-1 text-sm text-gray-600">
@@ -317,8 +191,8 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                 </ul>
               </div>
               
-              <div className="bg-white/60 rounded-lg p-4 border border-gray-200/50">
-                <h4 className="font-medium text-gray-900 mb-2">
+              <div className="bg-white/60 rounded-lg p-base border border-gray-200/50">
+                <h4 className="font-medium text-gray-900 mb-sm">
                   {locale === 'nl' ? 'Weergave Instellingen' : 'View Settings'}
                 </h4>
                 <ul className="space-y-1 text-sm text-gray-600">
@@ -328,8 +202,8 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                 </ul>
               </div>
               
-              <div className="bg-white/60 rounded-lg p-4 border border-gray-200/50">
-                <h4 className="font-medium text-gray-900 mb-2">
+              <div className="bg-white/60 rounded-lg p-base border border-gray-200/50">
+                <h4 className="font-medium text-gray-900 mb-sm">
                   {locale === 'nl' ? 'Help & Ondersteuning' : 'Help & Support'}
                 </h4>
                 <ul className="space-y-1 text-sm text-gray-600">
