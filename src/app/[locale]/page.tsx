@@ -1,6 +1,5 @@
 // src/app/[locale]/page.tsx
 import React from 'react';
-import Link from 'next/link';
 import { Locale, isValidLocale } from '../../lib/i18n/config';
 import { notFound } from 'next/navigation';
 
