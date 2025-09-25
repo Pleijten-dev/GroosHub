@@ -1,141 +1,524 @@
-/* src/app/globals.css - Tailwind v3 setup with glass effects */
+/* src/app/globals.css - Complete Design System Implementation */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Custom CSS variables for your design system */
 :root {
-  /* Colors */
-  --background-primary: #ffffff;
-  --background-secondary: #f8f9fa;
-  --text-primary: #333333;
-  --text-secondary: #666666;
-  --primary-color: #007bff;
-  --primary-color-hover: #0056b3;
-  --primary-color-alpha: rgba(0, 123, 255, 0.1);
+  /* ========== SPACING SYSTEM ========== */
   
-  /* Borders */
-  --border-light: #e0e0e0;
-  --border-medium: #d0d0d0;
+  /* Base spacing unit */
+  --space-unit: 0.25rem; /* 4px base unit */
   
-  /* Component specific */
-  --sidebar-background: #f8f9fa;
-  --sidebar-header-background: #ffffff;
-  --content-background: #ffffff;
-  --tab-nav-background: #f8f9fa;
-  --right-menu-background: #f8f9fa;
-  --info-background: #f8f9fa;
-  --placeholder-background: #f5f5f5;
-  --input-background: #ffffff;
+  /* Consistent spacing scale */
+  --space-xs: calc(var(--space-unit) * 1);     /* 0.25rem = 4px */
+  --space-sm: calc(var(--space-unit) * 2);     /* 0.5rem = 8px */
+  --space-md: calc(var(--space-unit) * 3);     /* 0.75rem = 12px */
+  --space-base: calc(var(--space-unit) * 4);   /* 1rem = 16px */
+  --space-lg: calc(var(--space-unit) * 5);     /* 1.25rem = 20px */
+  --space-xl: calc(var(--space-unit) * 6);     /* 1.5rem = 24px */
+  --space-2xl: calc(var(--space-unit) * 8);    /* 2rem = 32px */
+  --space-3xl: calc(var(--space-unit) * 12);   /* 3rem = 48px */
+  --space-4xl: calc(var(--space-unit) * 16);   /* 4rem = 64px */
   
-  /* Interactive states */
-  --button-hover-background: #f0f0f0;
-  --tab-text-inactive: #666666;
-  --tab-text-hover: #333333;
-  --tab-hover-background: rgba(0, 123, 255, 0.05);
-  --tab-active-background: rgba(0, 123, 255, 0.1);
+  /* Component-specific spacing */
+  --padding-button: var(--space-sm) var(--space-base);
+  --padding-card: var(--space-base);
+  --padding-modal: var(--space-xl);
+  --padding-input: var(--space-sm);
+  --padding-container: var(--space-base);
+  
+  /* Margin presets */
+  --margin-section: var(--space-2xl);
+  --margin-element: var(--space-base);
+  --margin-tight: var(--space-sm);
+  
+  /* Gap presets for flexbox/grid */
+  --gap-tight: var(--space-xs);
+  --gap-normal: var(--space-base);
+  --gap-loose: var(--space-xl);
+  
+  /* ========== BORDER SYSTEM ========== */
+  
+  /* Border widths */
+  --border-width-thin: 0.5px;
+  --border-width-normal: 1px;
+  --border-width-thick: 2px;
+  --border-width-heavy: 4px;
+  
+  /* Border radius scale */
+  --radius-none: 0;
+  --radius-sm: 3px;
+  --radius-base: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 1rem;
+  --radius-round: 50%;
+  --radius-full: 9999px;
+  
+  /* ========== SHADOW SYSTEM ========== */
+  
+  /* Shadow levels */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-base: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 4px 8px 0 rgba(0, 0, 0, 0.15);
+  --shadow-xl: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-2xl: 0 10px 25px 0 rgba(0, 0, 0, 0.2);
+  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+  
+  /* Glass/backdrop effects */
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --backdrop-blur: 12px;
+  
+  /* ========== TYPOGRAPHY SYSTEM ========== */
+  
+  /* Font size scale */
+  --text-xs: 0.75rem;    /* 12px */
+  --text-sm: 0.875rem;   /* 14px */
+  --text-base: 1rem;     /* 16px */
+  --text-lg: 1.125rem;   /* 18px */
+  --text-xl: 1.25rem;    /* 20px */
+  --text-2xl: 1.5rem;    /* 24px */
+  --text-3xl: 1.875rem;  /* 30px */
+  --text-4xl: 2.25rem;   /* 36px */
+  
+  /* Font weights */
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  
+  /* Line heights */
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+  
+  /* ========== COLOR SYSTEM ========== */
+  
+  /* Base colors (your existing palette) */
+  --background: #f0f0f0;
+  --element-background: #ffffff;
+  --foreground: #292929;
+  --foreground-hover: #d4d4d4;
+  --border-color: #d4d4d4;
+  --border-color-hover: #292929;
+  --background-hover: #e5e7eb;
+  --background-selected: #dbeafe;
+  --text-grey: #6b7280;
+  --text-color: #292929;
+  
+  /* Extended gray palette */
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+  
+  /* Brand colors */
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2563eb;
+  --color-primary-light: #dbeafe;
+  --color-secondary: #6b7280;
+  --color-secondary-hover: #4b5563;
+  
+  /* Status colors */
+  --color-success: #10b981;
+  --color-success-hover: #059669;
+  --color-success-light: #d1fae5;
+  --color-warning: #f59e0b;
+  --color-warning-hover: #d97706;
+  --color-warning-light: #fef3c7;
+  --color-error: #ef4444;
+  --color-error-hover: #dc2626;
+  --color-error-light: #fee2e2;
+  --color-info: #06b6d4;
+  --color-info-hover: #0891b2;
+  --color-info-light: #cffafe;
+  
+  /* Support colors (your existing) */
+  --support-blue: #B2C3B8;
+  --support-red: #F59D94;
+  --support-brown: #B39059;
+  --support-green: #97B269;
+  --support-yellow: #E5BC72;
+  
+  /* Semantic text colors */
+  --text-primary: var(--gray-900);
+  --text-secondary: var(--gray-600);
+  --text-muted: var(--gray-500);
+  --text-placeholder: var(--gray-400);
+  --text-inverse: #ffffff;
+  
+  /* Semantic background colors */
+  --bg-primary: #ffffff;
+  --bg-secondary: var(--gray-50);
+  --bg-muted: var(--gray-100);
+  --bg-accent: var(--gray-200);
+  --bg-overlay: rgba(0, 0, 0, 0.5);
+  
+  /* ========== LAYOUT SYSTEM ========== */
+  
+  /* Container sizes */
+  --container-xs: 480px;
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1280px;
+  --container-2xl: 1536px;
+  
+  /* Project-specific layout */
+  --navbar-height: 64px;
+  --sidebar-width: 320px;
+  --sidebar-collapsed-width: 60px;
+  --right-menu-width: 280px;
+  
+  /* Z-index scale */
+  --z-base: 1;
+  --z-elevated: 10;
+  --z-sticky: 100;
+  --z-fixed: 1000;
+  --z-modal: 10000;
+  --z-popover: 20000;
+  --z-tooltip: 30000;
+  
+  /* ========== TRANSITION SYSTEM ========== */
+  
+  /* Timing functions */
+  --ease-linear: linear;
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Durations */
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+  
+  /* Common transitions */
+  --transition-base: all var(--duration-fast) var(--ease-out);
+  --transition-colors: color var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
+  --transition-transform: transform var(--duration-fast) var(--ease-out);
+  --transition-opacity: opacity var(--duration-fast) var(--ease-out);
+  
+  /* ========== COMPONENT PRESETS ========== */
+  
+  /* Button system */
+  --button-height-sm: 2rem;
+  --button-height-base: 2.5rem;
+  --button-height-lg: 3rem;
+  --button-padding-x: var(--space-base);
+  --button-padding-y: var(--space-sm);
+  --button-radius: var(--radius-md);
+  
+  /* Input system */
+  --input-height: 2.5rem;
+  --input-padding-x: var(--space-md);
+  --input-padding-y: var(--space-sm);
+  --input-border: var(--border-width-normal) solid var(--border-color);
+  --input-border-focus: var(--border-width-thick) solid var(--color-primary);
+  --input-radius: var(--radius-md);
+  
+  /* Card system */
+  --card-padding: var(--space-lg);
+  --card-radius: var(--radius-lg);
+  --card-shadow: var(--shadow-base);
+  --card-border: var(--border-width-thin) solid var(--border-color);
+  
+  /* Modal system */
+  --modal-padding: var(--space-2xl);
+  --modal-radius: var(--radius-xl);
+  --modal-shadow: var(--shadow-2xl);
+  --modal-backdrop: var(--bg-overlay);
+  
+  /* Navigation system */
+  --nav-item-padding: var(--space-sm) var(--space-base);
+  --nav-item-radius: var(--radius-md);
+  --nav-height: var(--navbar-height);
 }
 
-/* Glass effect utilities */
-.glass-nav {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+/* ========== UTILITY CLASSES ========== */
+
+@layer utilities {
+  /* Glass effects */
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--backdrop-blur));
+    -webkit-backdrop-filter: blur(var(--backdrop-blur));
+    border: var(--border-width-thin) solid var(--glass-border);
+  }
+  
+  .glass-strong {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  
+  /* Focus ring utility */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  }
+  
+  /* Scrollbar styling */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--gray-400) transparent;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: var(--gray-300);
+    border-radius: var(--radius-full);
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: var(--gray-400);
+  }
+  
+  /* Text utilities */
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  /* Layout utilities */
+  .container-custom {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: var(--space-base);
+    padding-right: var(--space-base);
+  }
+  
+  @media (min-width: 640px) {
+    .container-custom {
+      max-width: var(--container-sm);
+    }
+  }
+  
+  @media (min-width: 768px) {
+    .container-custom {
+      max-width: var(--container-md);
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .container-custom {
+      max-width: var(--container-lg);
+    }
+  }
+  
+  @media (min-width: 1280px) {
+    .container-custom {
+      max-width: var(--container-xl);
+    }
+  }
 }
 
-.glass-sidebar {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+/* ========== COMPONENT CLASSES ========== */
+
+@layer components {
+  /* Button system */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: var(--font-weight-medium);
+    font-size: var(--text-sm);
+    line-height: 1;
+    border-radius: var(--button-radius);
+    transition: var(--transition-colors);
+    cursor: pointer;
+    border: var(--border-width-normal) solid transparent;
+    text-decoration: none;
+  }
+  
+  .btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  .btn-sm {
+    height: var(--button-height-sm);
+    padding: 0 var(--space-md);
+    font-size: var(--text-xs);
+  }
+  
+  .btn-base {
+    height: var(--button-height-base);
+    padding: 0 var(--button-padding-x);
+  }
+  
+  .btn-lg {
+    height: var(--button-height-lg);
+    padding: 0 var(--space-lg);
+    font-size: var(--text-base);
+  }
+  
+  .btn-primary {
+    background-color: var(--color-primary);
+    color: var(--text-inverse);
+  }
+  
+  .btn-primary:hover:not(:disabled) {
+    background-color: var(--color-primary-hover);
+  }
+  
+  .btn-secondary {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+  }
+  
+  .btn-secondary:hover:not(:disabled) {
+    background-color: var(--background-hover);
+    border-color: var(--border-color-hover);
+  }
+  
+  .btn-ghost {
+    background-color: transparent;
+    color: var(--text-primary);
+  }
+  
+  .btn-ghost:hover:not(:disabled) {
+    background-color: var(--background-hover);
+  }
+  
+  /* Input system */
+  .input {
+    width: 100%;
+    height: var(--input-height);
+    padding: var(--input-padding-y) var(--input-padding-x);
+    font-size: var(--text-sm);
+    line-height: var(--line-height-normal);
+    color: var(--text-primary);
+    background-color: var(--bg-primary);
+    border: var(--input-border);
+    border-radius: var(--input-radius);
+    transition: var(--transition-colors);
+  }
+  
+  .input:focus {
+    outline: none;
+    border: var(--input-border-focus);
+    box-shadow: 0 0 0 3px var(--color-primary-light);
+  }
+  
+  .input::placeholder {
+    color: var(--text-placeholder);
+  }
+  
+  /* Card system */
+  .card {
+    background-color: var(--bg-primary);
+    border: var(--card-border);
+    border-radius: var(--card-radius);
+    box-shadow: var(--card-shadow);
+    padding: var(--card-padding);
+  }
+  
+  .card-hover {
+    transition: var(--transition-base);
+  }
+  
+  .card-hover:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-1px);
+  }
+  
+  /* Navigation item */
+  .nav-item {
+    display: flex;
+    align-items: center;
+    padding: var(--nav-item-padding);
+    border-radius: var(--nav-item-radius);
+    text-decoration: none;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+    transition: var(--transition-colors);
+    border: var(--border-width-thin) solid transparent;
+  }
+  
+  .nav-item:hover {
+    background-color: var(--background-hover);
+    color: var(--text-primary);
+  }
+  
+  .nav-item-active {
+    background-color: var(--color-primary-light);
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+  
+  /* Glass panels */
+  .glass-panel {
+    @apply glass;
+    box-shadow: var(--shadow-lg);
+  }
+  
+  .glass-nav {
+    @apply glass-strong;
+    box-shadow: var(--shadow-md);
+  }
+  
+  /* Status indicators */
+  .status-success {
+    background-color: var(--color-success-light);
+    color: var(--color-success);
+    border-color: var(--color-success);
+  }
+  
+  .status-warning {
+    background-color: var(--color-warning-light);
+    color: var(--color-warning);
+    border-color: var(--color-warning);
+  }
+  
+  .status-error {
+    background-color: var(--color-error-light);
+    color: var(--color-error);
+    border-color: var(--color-error);
+  }
+  
+  .status-info {
+    background-color: var(--color-info-light);
+    color: var(--color-info);
+    border-color: var(--color-info);
+  }
 }
 
-.glass-panel {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
+/* ========== BASE STYLES ========== */
 
-/* Custom styles that work alongside Tailwind */
-.location-container {
-  /* You can still use custom CSS for complex layouts */
-  display: flex;
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
-  position: relative;
-}
-
-/* Smooth transitions */
 * {
-  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
-  transition-duration: 150ms;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
 }
 
-/* Focus styles for accessibility */
-.focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
-}
-
-/* Scrollbar styling for webkit browsers */
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(156, 163, 175, 0.5);
-  border-radius: 3px;
-  border: 1px solid transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(156, 163, 175, 0.7);
-}
-
-/* Prevent horizontal overflow */
 html, body {
   overflow-x: hidden;
+  scroll-behavior: smooth;
 }
 
-/* Ensure proper spacing for fixed navigation */
 body {
-  padding-top: 0;
+  font-family: var(--font-family-sans);
+  line-height: var(--line-height-normal);
+  color: var(--text-primary);
+  background-color: var(--bg-secondary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Animation for sidebar transitions */
-.sidebar-transition {
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Glass effect hover states */
-.glass-hover:hover {
-  background: rgba(255, 255, 255, 0.9);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-/* Button with glass effect */
-.glass-button {
-  background: rgba(59, 130, 246, 0.9);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-}
-
-.glass-button:hover {
-  background: rgba(37, 99, 235, 0.95);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
