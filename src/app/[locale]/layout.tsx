@@ -8,17 +8,15 @@ const inter = Inter({ subsets: ['latin'] });
 
 interface LocaleLayoutProps {
   children: React.ReactNode;
-  params: Promise<{ locale: string }>; // Next.js 15: params is now a Promise
+  params: Promise<{ locale: string }>;
 }
 
 export default async function LocaleLayout({
   children,
   params,
 }: LocaleLayoutProps) {
-  // Await params before using its properties
   const { locale } = await params;
 
-  // Validate locale
   if (!isValidLocale(locale)) {
     notFound();
   }
@@ -31,7 +29,7 @@ export default async function LocaleLayout({
         currentPath={`/${locale}`}
       />
       
-      {/* Main content area */}
+      {/* Main content area with proper padding for fixed navbar */}
       <main className="min-h-screen bg-white" style={{ paddingTop: '64px' }}>
         {children}
       </main>
@@ -39,16 +37,13 @@ export default async function LocaleLayout({
   );
 }
 
-// Generate static params for all locales
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
 
-// Generate metadata - also needs to await params
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   
-  // Validate locale for metadata
   if (!isValidLocale(locale)) {
     return {
       title: 'GroosHub - Urban Development Platform',

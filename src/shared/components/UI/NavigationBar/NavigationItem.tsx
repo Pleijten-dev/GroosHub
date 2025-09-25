@@ -25,10 +25,8 @@ export const NavigationItem: React.FC<NavigationItemProps> = ({
       href={href}
       className={`${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
       onClick={handleClick}
+      role="menuitem"
     >
-      <span className={styles.navIcon} role="img" aria-hidden="true">
-        {item.icon}
-      </span>
       <span className={styles.navLabel}>
         {t(item.labelKey)}
       </span>

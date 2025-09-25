@@ -4,7 +4,7 @@ export const locales = ['nl', 'en'] as const;
 
 export type Locale = (typeof locales)[number];
 
-// Locale configuration
+// Locale configuration with proper flags
 export const localeConfig = {
   nl: {
     name: 'Nederlands',
