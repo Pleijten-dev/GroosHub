@@ -11,7 +11,7 @@ export type FetchedData = Record<string, unknown>;
 
 export interface GeographicLevel {
   code: string;
-  type: 'municipality';
+  type: 'national' | 'municipality';
   name: string;
 }
 
@@ -19,6 +19,11 @@ export interface CBSLivabilityResponse {
   level: GeographicLevel;
   data: FetchedData;
   fetchedAt: Date;
+}
+
+export interface CBSLivabilityMultiLevelResponse {
+  national: CBSLivabilityResponse | null;
+  municipality: CBSLivabilityResponse | null;
 }
 
 export class CBSLivabilityClient {
@@ -70,6 +75,7 @@ export class CBSLivabilityClient {
 
   /**
    * Fetch livability data for municipality level
+   * @deprecated Use fetchMultiLevel instead
    */
   async fetchMunicipality(
     municipalityCode: string,
@@ -89,6 +95,57 @@ export class CBSLivabilityClient {
       },
       data: municipalityData,
       fetchedAt: new Date(),
+    };
+  }
+
+  /**
+   * Fetch livability data for multiple geographic levels
+   * Note: Will try both NL00 and NL01 for national level
+   */
+  async fetchMultiLevel(
+    municipalityCode: string,
+    period: string = this.defaultPeriod
+  ): Promise<CBSLivabilityMultiLevelResponse> {
+    // Try both NL00 and NL01 for national level
+    const [nationalDataNL00, nationalDataNL01, municipalityData] =
+      await Promise.all([
+        this.fetchByCode('NL00', period),
+        this.fetchByCode('NL01', period),
+        this.fetchByCode(municipalityCode, period),
+      ]);
+
+    const now = new Date();
+
+    // Use NL01 if NL00 is empty
+    const nationalData = Object.keys(nationalDataNL00).length > 0
+      ? { code: 'NL00', data: nationalDataNL00 }
+      : Object.keys(nationalDataNL01).length > 0
+      ? { code: 'NL01', data: nationalDataNL01 }
+      : null;
+
+    return {
+      national: nationalData
+        ? {
+            level: {
+              code: nationalData.code,
+              type: 'national',
+              name: 'Nederland',
+            },
+            data: nationalData.data,
+            fetchedAt: now,
+          }
+        : null,
+      municipality: Object.keys(municipalityData).length > 0
+        ? {
+            level: {
+              code: municipalityCode,
+              type: 'municipality',
+              name: municipalityCode,
+            },
+            data: municipalityData,
+            fetchedAt: now,
+          }
+        : null,
     };
   }
 

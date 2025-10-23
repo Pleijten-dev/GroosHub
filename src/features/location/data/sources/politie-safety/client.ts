@@ -18,7 +18,7 @@ export type SafetyDataRemapped = Record<string, number>;
 
 export interface GeographicLevel {
   code: string;
-  type: 'district' | 'neighborhood';
+  type: 'national' | 'municipality' | 'district' | 'neighborhood';
   name: string;
 }
 
@@ -29,6 +29,8 @@ export interface PolitieSafetyResponse {
 }
 
 export interface PolitieSafetyMultiLevelResponse {
+  national: PolitieSafetyResponse | null;
+  municipality: PolitieSafetyResponse | null;
   district: PolitieSafetyResponse | null;
   neighborhood: PolitieSafetyResponse | null;
 }
@@ -104,21 +106,56 @@ export class PolitieSafetyClient {
 
   /**
    * Fetch safety data for multiple geographic levels
+   * Note: Will try both NL00 and NL01 for national level
    */
   async fetchMultiLevel(
+    municipalityCode: string,
     districtCode: string | null,
     neighborhoodCode: string | null,
     period: string = this.defaultPeriod
   ): Promise<PolitieSafetyMultiLevelResponse> {
-    // Fetch available levels in parallel
-    const [districtData, neighborhoodData] = await Promise.all([
-      districtCode ? this.fetchByCode(districtCode, period) : Promise.resolve({}),
-      neighborhoodCode ? this.fetchByCode(neighborhoodCode, period) : Promise.resolve({}),
-    ]);
+    // Try both NL00 and NL01 for national level
+    const [nationalDataNL00, nationalDataNL01, municipalityData, districtData, neighborhoodData] =
+      await Promise.all([
+        this.fetchByCode('NL00', period),
+        this.fetchByCode('NL01', period),
+        this.fetchByCode(municipalityCode, period),
+        districtCode ? this.fetchByCode(districtCode, period) : Promise.resolve({}),
+        neighborhoodCode ? this.fetchByCode(neighborhoodCode, period) : Promise.resolve({}),
+      ]);
 
     const now = new Date();
 
+    // Use NL01 if NL00 is empty
+    const nationalData = Object.keys(nationalDataNL00).length > 0
+      ? { code: 'NL00', data: nationalDataNL00 }
+      : Object.keys(nationalDataNL01).length > 0
+      ? { code: 'NL01', data: nationalDataNL01 }
+      : null;
+
     return {
+      national: nationalData
+        ? {
+            level: {
+              code: nationalData.code,
+              type: 'national',
+              name: 'Nederland',
+            },
+            data: nationalData.data,
+            fetchedAt: now,
+          }
+        : null,
+      municipality: Object.keys(municipalityData).length > 0
+        ? {
+            level: {
+              code: municipalityCode,
+              type: 'municipality',
+              name: municipalityCode,
+            },
+            data: municipalityData,
+            fetchedAt: now,
+          }
+        : null,
       district:
         districtCode && Object.keys(districtData).length > 0
           ? {

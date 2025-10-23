@@ -3,7 +3,7 @@
 import type { LocationData } from '../services/locationGeocoder';
 import type { CBSDemographicsMultiLevelResponse } from '../sources/cbs-demographics/client';
 import type { RIVMHealthMultiLevelResponse } from '../sources/rivm-health/client';
-import type { CBSLivabilityResponse } from '../sources/cbs-livability/client';
+import type { CBSLivabilityMultiLevelResponse } from '../sources/cbs-livability/client';
 import type { PolitieSafetyMultiLevelResponse } from '../sources/politie-safety/client';
 
 /**
@@ -31,13 +31,18 @@ export interface UnifiedLocationData {
     neighborhood: UnifiedDataRow[];
   };
   health: {
+    national: UnifiedDataRow[];
+    municipality: UnifiedDataRow[];
     district: UnifiedDataRow[];
     neighborhood: UnifiedDataRow[];
   };
   livability: {
+    national: UnifiedDataRow[];
     municipality: UnifiedDataRow[];
   };
   safety: {
+    national: UnifiedDataRow[];
+    municipality: UnifiedDataRow[];
     district: UnifiedDataRow[];
     neighborhood: UnifiedDataRow[];
   };
@@ -56,7 +61,7 @@ export class MultiLevelAggregator {
     locationData: LocationData,
     demographics: CBSDemographicsMultiLevelResponse,
     health: RIVMHealthMultiLevelResponse,
-    livability: CBSLivabilityResponse | null,
+    livability: CBSLivabilityMultiLevelResponse,
     safety: PolitieSafetyMultiLevelResponse
   ): UnifiedLocationData {
     return {
@@ -100,6 +105,24 @@ export class MultiLevelAggregator {
           : [],
       },
       health: {
+        national: health.national
+          ? this.convertToRows(
+              health.national.data,
+              'health',
+              'national',
+              health.national.level.code,
+              'Nederland'
+            )
+          : [],
+        municipality: health.municipality
+          ? this.convertToRows(
+              health.municipality.data,
+              'health',
+              'municipality',
+              health.municipality.level.code,
+              locationData.municipality.statnaam
+            )
+          : [],
         district: health.district
           ? this.convertToRows(
               health.district.data,
@@ -120,17 +143,42 @@ export class MultiLevelAggregator {
           : [],
       },
       livability: {
-        municipality: livability
+        national: livability.national
           ? this.convertToRows(
-              livability.data,
+              livability.national.data,
+              'livability',
+              'national',
+              livability.national.level.code,
+              'Nederland'
+            )
+          : [],
+        municipality: livability.municipality
+          ? this.convertToRows(
+              livability.municipality.data,
               'livability',
               'municipality',
-              livability.level.code,
+              livability.municipality.level.code,
               locationData.municipality.statnaam
             )
           : [],
       },
       safety: {
+        national: safety.national
+          ? this.convertSafetyToRows(
+              safety.national.data,
+              'national',
+              safety.national.level.code,
+              'Nederland'
+            )
+          : [],
+        municipality: safety.municipality
+          ? this.convertSafetyToRows(
+              safety.municipality.data,
+              'municipality',
+              safety.municipality.level.code,
+              locationData.municipality.statnaam
+            )
+          : [],
         district: safety.district
           ? this.convertSafetyToRows(
               safety.district.data,
@@ -258,20 +306,14 @@ export class MultiLevelAggregator {
       case 'demographics':
         return data.demographics[level] || [];
       case 'health':
-        if (level === 'district' || level === 'neighborhood') {
-          return data.health[level] || [];
-        }
-        return [];
+        return data.health[level] || [];
       case 'livability':
-        if (level === 'municipality') {
-          return data.livability.municipality || [];
+        if (level === 'national' || level === 'municipality') {
+          return data.livability[level] || [];
         }
         return [];
       case 'safety':
-        if (level === 'district' || level === 'neighborhood') {
-          return data.safety[level] || [];
-        }
-        return [];
+        return data.safety[level] || [];
       default:
         return [];
     }
@@ -288,11 +330,16 @@ export class MultiLevelAggregator {
 
     if (level === 'national') {
       rows.push(...data.demographics.national);
+      rows.push(...data.health.national);
+      rows.push(...data.livability.national);
+      rows.push(...data.safety.national);
     }
 
     if (level === 'municipality') {
       rows.push(...data.demographics.municipality);
+      rows.push(...data.health.municipality);
       rows.push(...data.livability.municipality);
+      rows.push(...data.safety.municipality);
     }
 
     if (level === 'district') {
@@ -331,13 +378,26 @@ export class MultiLevelAggregator {
         );
         break;
       case 'health':
-        allRows.push(...data.health.district, ...data.health.neighborhood);
+        allRows.push(
+          ...data.health.national,
+          ...data.health.municipality,
+          ...data.health.district,
+          ...data.health.neighborhood
+        );
         break;
       case 'livability':
-        allRows.push(...data.livability.municipality);
+        allRows.push(
+          ...data.livability.national,
+          ...data.livability.municipality
+        );
         break;
       case 'safety':
-        allRows.push(...data.safety.district, ...data.safety.neighborhood);
+        allRows.push(
+          ...data.safety.national,
+          ...data.safety.municipality,
+          ...data.safety.district,
+          ...data.safety.neighborhood
+        );
         break;
     }
 

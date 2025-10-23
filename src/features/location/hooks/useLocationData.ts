@@ -132,9 +132,17 @@ export function useLocationData(): UseLocationDataReturn {
             districtCode,
             neighborhoodCode
           ),
-          healthClient.fetchMultiLevel(districtCode, neighborhoodCode),
-          livabilityClient.fetchMunicipality(municipalityCode),
-          safetyClient.fetchMultiLevel(districtCode, neighborhoodCode),
+          healthClient.fetchMultiLevel(
+            municipalityCode,
+            districtCode,
+            neighborhoodCode
+          ),
+          livabilityClient.fetchMultiLevel(municipalityCode),
+          safetyClient.fetchMultiLevel(
+            municipalityCode,
+            districtCode,
+            neighborhoodCode
+          ),
         ]);
 
         // Update loading states
@@ -160,17 +168,27 @@ export function useLocationData(): UseLocationDataReturn {
         const health =
           healthData.status === 'fulfilled'
             ? healthData.value
-            : { district: null, neighborhood: null };
+            : {
+                national: null,
+                municipality: null,
+                district: null,
+                neighborhood: null,
+              };
 
         const livability =
           livabilityData.status === 'fulfilled'
             ? livabilityData.value
-            : null;
+            : { national: null, municipality: null };
 
         const safety =
           safetyData.status === 'fulfilled'
             ? safetyData.value
-            : { district: null, neighborhood: null };
+            : {
+                national: null,
+                municipality: null,
+                district: null,
+                neighborhood: null,
+              };
 
         // Set errors if any
         if (demographicsData.status === 'rejected') {
