@@ -21,7 +21,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   title,
   subtitle,
 }) => {
-  const { classBuilders, utils } = useDesignSystem();
+  const { classBuilders } = useDesignSystem();
 
   const sidebarWidth = isCollapsed ? collapsedWidth : expandedWidth;
   const positionClass = position === 'left' ? 'left-0' : 'right-0';
@@ -47,12 +47,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         
         className
       )}
-      style={{ 
+      style={{
         width: sidebarWidth,
-        minWidth: sidebarWidth 
+        minWidth: sidebarWidth
       }}
       aria-label={`${position} sidebar`}
-      aria-expanded={!isCollapsed}
     >
       
       {/* Sidebar Header */}
@@ -118,7 +117,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Sidebar Content - Only show when not collapsed */}
       {!isCollapsed && (
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
-          {sections.map((section, index) => (
+          {sections.map((section) => (
             <div 
               key={section.id}
               className={cn(
@@ -175,7 +174,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Collapsed State Indicator */}
       {isCollapsed && (
         <div className="flex-1 flex flex-col items-center justify-start pt-lg">
-          {sections.map((section, index) => (
+          {sections.map((section) => (
             <div
               key={section.id}
               className="w-8 h-1 bg-gray-300 rounded-full mb-sm last:mb-0"

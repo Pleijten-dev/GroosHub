@@ -245,7 +245,7 @@ export class MultiLevelAggregator {
    */
   private convertSafetyToRows(
     data: Record<string, number>,
-    geographicLevel: 'district' | 'neighborhood',
+    geographicLevel: 'national' | 'municipality' | 'district' | 'neighborhood',
     geographicCode: string,
     geographicName: string
   ): UnifiedDataRow[] {
