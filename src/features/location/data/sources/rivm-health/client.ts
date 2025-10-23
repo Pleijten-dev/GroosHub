@@ -50,22 +50,29 @@ export class RIVMHealthClient {
         ` and Leeftijd eq '${leeftijd}'` +
         ` and Marges eq '${marges}'`;
 
+      console.log(`🟢 [RIVM Health] Fetching code: ${code}`);
+      console.log(`🟢 [RIVM Health] URL: ${url}`);
+
       const response = await fetch(url);
       if (!response.ok) {
-        console.error(`RIVM Health API error: ${response.statusText}`);
+        console.error(`❌ [RIVM Health] API error: ${response.statusText}`);
+        console.error(`❌ [RIVM Health] URL: ${url}`);
         return {};
       }
 
       const data = await response.json();
       const rows = data.value as FetchedData[] | undefined;
 
+      console.log(`✅ [RIVM Health] Found ${rows?.length || 0} rows for ${code}`);
+
       if (!rows || rows.length === 0) {
+        console.warn(`⚠️ [RIVM Health] No data for ${code}`);
         return {};
       }
 
       return rows[0];
     } catch (error) {
-      console.error('Error fetching RIVM health data:', error);
+      console.error(`❌ [RIVM Health] Error:`, error);
       return {};
     }
   }

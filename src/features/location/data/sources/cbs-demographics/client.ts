@@ -46,23 +46,30 @@ export class CBSDemographicsClient {
     try {
       const url = `${this.baseUrl}?$filter=startswith(WijkenEnBuurten,'${code}') and Perioden eq '${period}'`;
 
+      console.log(`🔵 [CBS Demographics] Fetching code: ${code}`);
+      console.log(`🔵 [CBS Demographics] URL: ${url}`);
+
       const response = await fetch(url);
       if (!response.ok) {
-        console.error(`CBS Demographics API error: ${response.statusText}`);
+        console.error(`❌ [CBS Demographics] API error: ${response.statusText}`);
+        console.error(`❌ [CBS Demographics] URL: ${url}`);
         return {};
       }
 
       const data = await response.json();
       const rows = data.value as FetchedData[] | undefined;
 
+      console.log(`✅ [CBS Demographics] Found ${rows?.length || 0} rows for ${code}`);
+
       if (!rows || rows.length === 0) {
+        console.warn(`⚠️ [CBS Demographics] No data for ${code}`);
         return {};
       }
 
       // Return the first row (should only be one for a specific code)
       return rows[0];
     } catch (error) {
-      console.error('Error fetching CBS demographics data:', error);
+      console.error(`❌ [CBS Demographics] Error:`, error);
       return {};
     }
   }

@@ -57,14 +57,20 @@ export class PolitieSafetyClient {
         `$filter=startswith(WijkenEnBuurten,'${code}')` +
         ` and Perioden eq '${period}'`;
 
+      console.log(`🔴 [Politie Safety] Fetching code: ${code}`);
+      console.log(`🔴 [Politie Safety] URL: ${url}`);
+
       const response = await fetch(url);
       if (!response.ok) {
-        console.error(`Politie Safety API error: ${response.statusText}`);
+        console.error(`❌ [Politie Safety] API error: ${response.statusText}`);
+        console.error(`❌ [Politie Safety] URL: ${url}`);
         return {};
       }
 
       const data = await response.json();
       const rows = (data.value as VeiligheidRow[]) || [];
+
+      console.log(`✅ [Politie Safety] Found ${rows.length} crime types for ${code}`);
 
       // Build a dictionary: SoortMisdrijf => number of crimes
       const result: SafetyDataRemapped = {};
@@ -85,9 +91,13 @@ export class PolitieSafetyClient {
         }
       }
 
+      if (Object.keys(result).length === 0) {
+        console.warn(`⚠️ [Politie Safety] No crime data for ${code}`);
+      }
+
       return result;
     } catch (error) {
-      console.error('Error fetching Politie safety data:', error);
+      console.error(`❌ [Politie Safety] Error:`, error);
       return {};
     }
   }

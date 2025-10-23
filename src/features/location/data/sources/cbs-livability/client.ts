@@ -41,22 +41,29 @@ export class CBSLivabilityClient {
         ` and Perioden eq '${period}'` +
         ` and Marges eq '${marges}'`;
 
+      console.log(`🟣 [CBS Livability] Fetching code: ${gemeenteCode}`);
+      console.log(`🟣 [CBS Livability] URL: ${url}`);
+
       const response = await fetch(url);
       if (!response.ok) {
-        console.error(`CBS Livability API error: ${response.statusText}`);
+        console.error(`❌ [CBS Livability] API error: ${response.statusText}`);
+        console.error(`❌ [CBS Livability] URL: ${url}`);
         return {};
       }
 
       const data = await response.json();
       const rows = data.value as FetchedData[] | undefined;
 
+      console.log(`✅ [CBS Livability] Found ${rows?.length || 0} rows for ${gemeenteCode}`);
+
       if (!rows || rows.length === 0) {
+        console.warn(`⚠️ [CBS Livability] No data for ${gemeenteCode}`);
         return {};
       }
 
       return rows[0];
     } catch (error) {
-      console.error('Error fetching CBS livability data:', error);
+      console.error(`❌ [CBS Livability] Error:`, error);
       return {};
     }
   }
