@@ -30,6 +30,8 @@ interface LocationSidebarContentProps {
   locale: Locale;
   activeTab: SectionId;
   onTabChange: (tab: SectionId) => void;
+  onAddressSearch?: (address: string) => void;
+  isSearching?: boolean;
 }
 
 export type { LocationSidebarContentProps };
@@ -38,12 +40,22 @@ export const useLocationSidebarSections = ({
   locale,
   activeTab,
   onTabChange,
+  onAddressSearch,
+  isSearching = false,
 }: LocationSidebarContentProps): SidebarSection[] => {
   const [searchAddress, setSearchAddress] = useState<string>('');
   const [isScoreExpanded, setIsScoreExpanded] = useState<boolean>(false);
 
   const handleAddressSearch = (): void => {
-    console.log(`Searching for address: ${searchAddress} (locale: ${locale})`);
+    if (searchAddress.trim() && onAddressSearch) {
+      onAddressSearch(searchAddress.trim());
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>): void => {
+    if (e.key === 'Enter') {
+      handleAddressSearch();
+    }
   };
 
   const handleScoreToggle = (): void => {
@@ -64,14 +76,19 @@ export const useLocationSidebarSections = ({
         placeholder={locale === 'nl' ? 'Voer adres in...' : 'Enter address...'}
         value={searchAddress}
         onChange={(e) => setSearchAddress(e.target.value)}
+        onKeyPress={handleKeyPress}
         className="w-full"
+        disabled={isSearching}
       />
       <Button
         onClick={handleAddressSearch}
         variant="primary"
         className="w-full"
+        disabled={isSearching || !searchAddress.trim()}
       >
-        {locale === 'nl' ? 'Haal Gegevens Op' : 'Get Data'}
+        {isSearching
+          ? (locale === 'nl' ? 'Bezig met laden...' : 'Loading...')
+          : (locale === 'nl' ? 'Haal Gegevens Op' : 'Get Data')}
       </Button>
     </div>
   );
