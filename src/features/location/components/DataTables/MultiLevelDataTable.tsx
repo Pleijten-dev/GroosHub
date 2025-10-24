@@ -46,10 +46,15 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
     switch (selectedLevel) {
       case 'national':
         rows.push(...data.demographics.national);
+        rows.push(...data.health.national);
+        rows.push(...data.livability.national);
+        rows.push(...data.safety.national);
         break;
       case 'municipality':
         rows.push(...data.demographics.municipality);
+        rows.push(...data.health.municipality);
         rows.push(...data.livability.municipality);
+        rows.push(...data.safety.municipality);
         break;
       case 'district':
         rows.push(...data.demographics.district);
@@ -82,10 +87,15 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
     switch (selectedLevel) {
       case 'national':
         sources.add('demographics');
+        sources.add('health');
+        sources.add('livability');
+        sources.add('safety');
         break;
       case 'municipality':
         sources.add('demographics');
+        sources.add('health');
         sources.add('livability');
+        sources.add('safety');
         break;
       case 'district':
         sources.add('demographics');
