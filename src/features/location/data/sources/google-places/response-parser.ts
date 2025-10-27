@@ -9,6 +9,7 @@ export class ResponseParser {
   /**
    * Parse a single place from Google Places API response
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parsePlace(rawPlace: any, searchLocation?: LatLng): PlaceResult {
     // Extract location
     const location: LatLng = {
@@ -67,6 +68,7 @@ export class ResponseParser {
   /**
    * Parse multiple places from API response
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parsePlaces(rawPlaces: any[], searchLocation?: LatLng): PlaceResult[] {
     if (!Array.isArray(rawPlaces)) {
       console.warn('⚠️  [Response Parser] Expected array, got:', typeof rawPlaces);
@@ -142,6 +144,7 @@ export class ResponseParser {
   /**
    * Parse error response from Google Places API
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parseError(error: any): string {
     if (error.response?.data?.error) {
       return error.response.data.error.message || 'Unknown API error';

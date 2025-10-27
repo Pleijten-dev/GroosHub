@@ -69,8 +69,9 @@ export async function POST(request: NextRequest) {
       responseTimeMs: responseTime
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     const responseTime = Date.now() - startTime;
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
     console.error('❌ [Nearby Search API] Error:', error);
 
@@ -79,17 +80,17 @@ export async function POST(request: NextRequest) {
       endpoint: 'nearby_search',
       categoryId: (await request.json().catch(() => ({}))).category?.id,
       status: 'error',
-      errorMessage: error.message || 'Unknown error',
+      errorMessage,
       responseTimeMs: responseTime
     });
 
     return NextResponse.json(
       {
         error: 'SEARCH_FAILED',
-        message: error.message || 'Failed to search nearby places',
+        message: errorMessage,
         places: [] // Return empty array on error
       },
-      { status: error.status || 500 }
+      { status: 500 }
     );
   }
 }

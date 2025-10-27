@@ -7,7 +7,7 @@ import { QUOTA_LIMITS } from '@/features/location/data/sources/google-places/ame
  * Get current API usage statistics
  * Returns quota usage for all users combined
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     console.log('📊 [Usage Stats API] Fetching usage statistics...');
 
@@ -44,13 +44,14 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(response);
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('❌ [Usage Stats API] Error:', error);
 
     return NextResponse.json(
       {
         error: 'STATS_FETCH_FAILED',
-        message: error.message || 'Failed to fetch usage statistics'
+        message: errorMessage
       },
       { status: 500 }
     );

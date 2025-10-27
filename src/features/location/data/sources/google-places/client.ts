@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type {
   PlaceResult,
   LatLng,
@@ -13,6 +14,7 @@ import { DEFAULT_SEARCH_CONFIG } from './amenity-search-config';
 /**
  * Google Places API Client
  * Handles communication with Google Places API (New)
+ * Note: Uses `any` for API responses since we handle varying external formats
  */
 export class GooglePlacesClient {
   private readonly apiKey: string;

@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Error Handler for Google Places API
  * Provides consistent error handling and retry logic
+ * Note: Uses `any` for error handling since we deal with unknown error shapes
  */
 
 export interface RetryConfig {

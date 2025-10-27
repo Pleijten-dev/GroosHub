@@ -11,6 +11,7 @@ import type { AmenityCategory, LatLng, PRICE_LEVELS } from '@/features/location/
  */
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let requestBody: any;
 
   try {
@@ -130,8 +131,9 @@ export async function POST(request: NextRequest) {
       responseTimeMs: responseTime
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     const responseTime = Date.now() - startTime;
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
     console.error('❌ [Text Search API] Error:', error);
 
@@ -141,17 +143,17 @@ export async function POST(request: NextRequest) {
       categoryId: requestBody?.category?.id,
       status: 'error',
       location: requestBody?.location,
-      errorMessage: error.message || 'Unknown error',
+      errorMessage,
       responseTimeMs: responseTime
     });
 
     return NextResponse.json(
       {
         error: 'SEARCH_FAILED',
-        message: error.message || 'Failed to search places',
+        message: errorMessage,
         places: []
       },
-      { status: error.status || 500 }
+      { status: 500 }
     );
   }
 }

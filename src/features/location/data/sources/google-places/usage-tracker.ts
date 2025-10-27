@@ -97,7 +97,6 @@ export class ApiUsageTracker {
    */
   async getUsageStats(): Promise<UsageStats> {
     try {
-      const sql = getDbConnection();
       const yearMonth = getCurrentYearMonth();
 
       // Get usage for both endpoints

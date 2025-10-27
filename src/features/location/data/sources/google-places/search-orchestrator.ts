@@ -90,8 +90,9 @@ export class SearchOrchestrator {
           await this.delay(100); // 100ms delay between requests
         }
 
-      } catch (error: any) {
-        console.error(`❌ [Search Orchestrator] Failed for ${category.displayName}:`, error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error(`❌ [Search Orchestrator] Failed for ${category.displayName}:`, errorMessage);
         failedCount++;
 
         // Continue with other categories even if one fails
@@ -103,7 +104,7 @@ export class SearchOrchestrator {
           totalResults: 0,
           searchedAt: new Date(),
           searchStrategy: category.searchStrategy,
-          error: error.message
+          error: errorMessage
         });
       }
     }
@@ -238,6 +239,7 @@ export class SearchOrchestrator {
   /**
    * Check current quota status
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async checkQuota(): Promise<any> {
     try {
       const response = await fetch(this.usageStatsEndpoint);
