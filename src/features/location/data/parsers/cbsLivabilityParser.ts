@@ -294,15 +294,15 @@ export class CBSLivabilityParser {
       ),
       unsafeOnStreetAtNight: parsePercentageField(
         rawData.sAvondsOpStraatInBuurtOnveilig_52,
-        's Avonds Op Straat In Buurt Onveilig'
+        "'s Avonds Op Straat In Buurt Onveilig"
       ),
       unsafeAloneAtHome: parsePercentageField(
         rawData.sAvondsAlleenThuisOnveilig_53,
-        's Avonds Alleen Thuis Onveilig'
+        "'s Avonds Alleen Thuis Onveilig"
       ),
       doesNotOpenDoorAtNight: parsePercentageField(
         rawData.DoetsAvondsNietOpen_54,
-        'Doet 's Avonds Niet Open'
+        "Doet 's Avonds Niet Open"
       ),
       drivesOrWalksAround: parsePercentageField(
         rawData.RijdtOfLooptOm_55,
@@ -514,7 +514,7 @@ export class CBSLivabilityParser {
       // Prevention measures
       leaveLightsOn: parsePercentageField(
         rawData.sAvondsLichtBrandenBijAfwezigheid_103,
-        's Avonds Licht Branden Bij Afwezigheid'
+        "'s Avonds Licht Branden Bij Afwezigheid"
       ),
       securedBicycleStorage: parsePercentageField(
         rawData.FietsInBewaakteFietsenstalling_104,
