@@ -1,10 +1,12 @@
-// src/app/[locale]/location/page.tsx - Updated with Reusable Sidebar
+// src/app/[locale]/location/page.tsx - Integrated with Data Fetching
 "use client";
 
 import React, { JSX, useState } from 'react';
 import { Locale } from '../../../lib/i18n/config';
 import { Sidebar, useSidebar } from '../../../shared/components/UI/Sidebar';
 import { useLocationSidebarSections } from '../../../features/location/components/LocationSidebar';
+import { useLocationData } from '../../../features/location/hooks/useLocationData';
+import { MultiLevelDataTable } from '../../../features/location/components/DataTables';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -32,12 +34,15 @@ interface LocationPageProps {
 }
 
 /**
- * Location Analysis Page - Using reusable Sidebar component
+ * Location Analysis Page - With integrated data fetching
  */
 const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   const [activeTab, setActiveTab] = useState<TabName>('doelgroepen');
   const [locale, setLocale] = useState<Locale>('nl');
   const [showRightMenu, setShowRightMenu] = useState<boolean>(false);
+
+  // Use location data hook
+  const { data, loading, error, isLoading, hasError, fetchData, clearData } = useLocationData();
 
   // Use sidebar hook for state management
   const { isCollapsed, toggle } = useSidebar({
@@ -56,11 +61,16 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
   const handleTabChange = (tab: TabName): void => {
     setActiveTab(tab);
-    console.log(`Tab changed to: ${tab} (locale: ${locale})`);
   };
 
   const handleRightMenuToggle = (): void => {
     setShowRightMenu(!showRightMenu);
+  };
+
+  const handleAddressSearch = async (address: string): Promise<void> => {
+    await fetchData(address);
+    // Auto-switch to demographics tab when data is loaded
+    setActiveTab('demografie');
   };
 
   // Get sidebar sections from useLocationSidebarSections hook
@@ -68,14 +78,129 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     locale,
     activeTab,
     onTabChange: handleTabChange,
+    onAddressSearch: handleAddressSearch,
+    isSearching: isLoading,
   });
 
   // Calculate main content margin based on sidebar state
   const mainContentMargin = isCollapsed ? 'ml-[60px]' : 'ml-[320px]';
 
+  /**
+   * Render main content based on active tab and data state
+   */
+  const renderMainContent = (): JSX.Element => {
+    // Show loading state
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-base"></div>
+            <p className="text-lg text-text-secondary">
+              {locale === 'nl' ? 'Gegevens ophalen...' : 'Fetching data...'}
+            </p>
+            <div className="mt-base space-y-xs text-sm text-text-muted">
+              {loading.geocoding && (
+                <p>✓ {locale === 'nl' ? 'Adres geocoderen...' : 'Geocoding address...'}</p>
+              )}
+              {loading.demographics && (
+                <p>→ {locale === 'nl' ? 'CBS Demografie ophalen...' : 'Fetching CBS Demographics...'}</p>
+              )}
+              {loading.health && (
+                <p>→ {locale === 'nl' ? 'RIVM Gezondheid ophalen...' : 'Fetching RIVM Health...'}</p>
+              )}
+              {loading.livability && (
+                <p>→ {locale === 'nl' ? 'CBS Leefbaarheid ophalen...' : 'Fetching CBS Livability...'}</p>
+              )}
+              {loading.safety && (
+                <p>→ {locale === 'nl' ? 'Politie Veiligheid ophalen...' : 'Fetching Police Safety...'}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Show error state
+    if (hasError) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center max-w-lg">
+            <div className="text-red-500 text-6xl mb-base">⚠️</div>
+            <h2 className="text-2xl font-bold text-text-primary mb-base">
+              {locale === 'nl' ? 'Fout bij ophalen gegevens' : 'Error fetching data'}
+            </h2>
+            <div className="space-y-sm text-sm text-text-muted mb-base">
+              {error.geocoding && <p>• {error.geocoding}</p>}
+              {error.demographics && <p>• {error.demographics}</p>}
+              {error.health && <p>• {error.health}</p>}
+              {error.livability && <p>• {error.livability}</p>}
+              {error.safety && <p>• {error.safety}</p>}
+            </div>
+            <button
+              onClick={clearData}
+              className="px-base py-sm bg-primary text-white rounded-md hover:bg-primary-hover"
+            >
+              {locale === 'nl' ? 'Opnieuw proberen' : 'Try again'}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Show data if available
+    if (data) {
+      return (
+        <div className="p-lg overflow-auto h-full">
+          <MultiLevelDataTable data={data} locale={locale} />
+        </div>
+      );
+    }
+
+    // Show welcome message if no data yet
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center max-w-2xl px-base">
+          <div className="text-6xl mb-base">🗺️</div>
+          <h1 className="text-4xl font-bold text-gray-900 mb-base">
+            {locale === 'nl' ? 'Locatie Analyse' : 'Location Analysis'}
+          </h1>
+          <p className="text-lg text-text-secondary mb-base">
+            {locale === 'nl'
+              ? 'Voer een adres in de zoekbalk links om data op te halen van:'
+              : 'Enter an address in the search bar on the left to fetch data from:'}
+          </p>
+          <div className="grid grid-cols-2 gap-base text-left bg-gray-50 rounded-lg p-base">
+            <div>
+              <h3 className="font-semibold text-text-primary mb-xs">
+                {locale === 'nl' ? 'Data Bronnen' : 'Data Sources'}
+              </h3>
+              <ul className="space-y-xs text-sm text-text-muted">
+                <li>• CBS Demografie (84583NED)</li>
+                <li>• RIVM Gezondheid (50120NED)</li>
+                <li>• CBS Leefbaarheid (85146NED)</li>
+                <li>• Politie Veiligheid (47018NED)</li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold text-text-primary mb-xs">
+                {locale === 'nl' ? 'Geografische Niveaus' : 'Geographic Levels'}
+              </h3>
+              <ul className="space-y-xs text-sm text-text-muted">
+                <li>• NL00 (Nederland)</li>
+                <li>• GMxxxx (Gemeente)</li>
+                <li>• WKxxxxxx (Wijk)</li>
+                <li>• BUxxxxxxxx (Buurt)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex h-screen w-screen overflow-hidden relative bg-white">
-      
+
       {/* SIDEBAR - Using reusable component */}
       <Sidebar
         isCollapsed={isCollapsed}
@@ -93,69 +218,13 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         flex-1 flex flex-col overflow-hidden bg-white transition-all duration-300
         ${mainContentMargin}
       `}>
-
-        {/* Content Area */}
-        <div className="flex-1 overflow-auto bg-white">
-          <div className="p-10 text-center max-w-4xl mx-auto">
-            <h1 className="text-4xl font-bold text-gray-900 mb-6">
-              {getCurrentTabDisplayName(activeTab, locale)} {locale === 'nl' ? 'Analyse' : 'Analysis'}
-            </h1>
-            
-            <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-left max-w-2xl mx-auto">
-              <p className="mb-3 text-base">
-                <strong className="text-blue-600">{locale === 'nl' ? 'Component:' : 'Component:'}</strong> {getComponentName(activeTab)}
-              </p>
-              <p className="text-base text-gray-700">
-                <strong className="text-blue-600">{locale === 'nl' ? 'Beschrijving:' : 'Description:'}</strong> {getComponentDescription(activeTab, locale)}
-              </p>
-              <p className="text-sm text-gray-500 mt-3">
-                <strong>{locale === 'nl' ? 'Huidige Tab:' : 'Current Tab:'}</strong> {getCurrentTabDisplayName(activeTab, locale)} | <strong>{locale === 'nl' ? 'Taal:' : 'Locale:'}</strong> {locale.toUpperCase()}
-              </p>
-            </div>
-
-            {/* Sample content area */}
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-              <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                  {locale === 'nl' ? 'Datavisualisatie' : 'Data Visualization'}
-                </h3>
-                <div className="h-32 bg-gradient-to-br from-blue-50 to-blue-100 rounded-md flex items-center justify-center">
-                  <span className="text-gray-600">
-                    {locale === 'nl' ? 'Grafiek Component Hier' : 'Chart Component Here'}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                  {locale === 'nl' ? 'Kernmetrieken' : 'Key Metrics'}
-                </h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="text-sm text-gray-600">{locale === 'nl' ? 'Score' : 'Score'}</span>
-                    <span className="font-medium text-blue-600">8.5/10</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="text-sm text-gray-600">{locale === 'nl' ? 'Trend' : 'Trend'}</span>
-                    <span className="font-medium text-green-600">↗ +2.3%</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2">
-                    <span className="text-sm text-gray-600">{locale === 'nl' ? 'Ranking' : 'Ranking'}</span>
-                    <span className="font-medium text-gray-900">
-                      {locale === 'nl' ? '#3 in regio' : '#3 in region'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        {renderMainContent()}
       </main>
 
       {/* RIGHT MENU - Fixed in proper position */}
       <aside className={`
         fixed right-0 top-navbar h-[calc(100vh-var(--navbar-height))] z-40
-        bg-white/80 backdrop-blur-md border-l border-gray-200/50 
+        bg-white/80 backdrop-blur-md border-l border-gray-200/50
         transition-transform duration-300 w-70 flex flex-col shadow-lg
         ${showRightMenu ? 'translate-x-0' : 'translate-x-full'}
       `}>
@@ -166,19 +235,19 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         >
           {showRightMenu ? '→' : '←'}
         </button>
-        
+
         {showRightMenu && (
           <div className="p-lg overflow-y-auto h-full">
             <h3 className="text-lg font-semibold mb-base text-gray-900">
               {locale === 'nl' ? 'Analyse Tools' : 'Analysis Tools'}
             </h3>
             <p className="text-sm text-gray-600 mb-base">
-              {locale === 'nl' 
+              {locale === 'nl'
                 ? 'Snelle toegang tot analyse-opties en instellingen.'
                 : 'Quick access to analysis options and settings.'
               }
             </p>
-            
+
             <div className="space-y-base">
               <div className="bg-white/60 rounded-lg p-base border border-gray-200/50">
                 <h4 className="font-medium text-gray-900 mb-sm">
@@ -190,18 +259,20 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                   <li>• {locale === 'nl' ? 'Afbeelding Export' : 'Image Export'}</li>
                 </ul>
               </div>
-              
-              <div className="bg-white/60 rounded-lg p-base border border-gray-200/50">
-                <h4 className="font-medium text-gray-900 mb-sm">
-                  {locale === 'nl' ? 'Weergave Instellingen' : 'View Settings'}
-                </h4>
-                <ul className="space-y-1 text-sm text-gray-600">
-                  <li>• {locale === 'nl' ? 'Kaartlagen' : 'Map Layers'}</li>
-                  <li>• {locale === 'nl' ? 'Gegevensfilters' : 'Data Filters'}</li>
-                  <li>• {locale === 'nl' ? 'Tijdsbereik' : 'Time Range'}</li>
-                </ul>
-              </div>
-              
+
+              {data && (
+                <div className="bg-white/60 rounded-lg p-base border border-gray-200/50">
+                  <h4 className="font-medium text-gray-900 mb-sm">
+                    {locale === 'nl' ? 'Huidige Locatie' : 'Current Location'}
+                  </h4>
+                  <ul className="space-y-1 text-sm text-gray-600">
+                    <li>• {data.location.municipality.statnaam}</li>
+                    {data.location.district && <li>• {data.location.district.statnaam}</li>}
+                    {data.location.neighborhood && <li>• {data.location.neighborhood.statnaam}</li>}
+                  </ul>
+                </div>
+              )}
+
               <div className="bg-white/60 rounded-lg p-base border border-gray-200/50">
                 <h4 className="font-medium text-gray-900 mb-sm">
                   {locale === 'nl' ? 'Help & Ondersteuning' : 'Help & Support'}
@@ -218,65 +289,6 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
       </aside>
     </div>
   );
-};
-
-// Helper functions
-const getCurrentTabDisplayName = (tabId: TabName, locale: Locale): string => {
-  // Find the section in main sections first
-  const mainSection = MAIN_SECTIONS.find(section => section.id === tabId);
-  if (mainSection) {
-    return mainSection[locale];
-  }
-  
-  // If not found, check subsections
-  const subSection = SCORE_SUBSECTIONS.find(section => section.id === tabId);
-  return subSection ? subSection[locale] : tabId;
-};
-
-const getComponentName = (tabId: TabName): string => {
-  const componentMap: Record<TabName, string> = {
-    'doelgroepen': 'DoelgroepenTabContent',
-    'score': 'ScoringTabContent', 
-    'demografie': 'DemografieTabContent',
-    'woningmarkt': 'WoningmarktTabContent',
-    'veiligheid': 'VeiligheidTabContent',
-    'gezondheid': 'GezondheidTabContent',
-    'leefbaarheid': 'LeefbaarheidTabContent',
-    'voorzieningen': 'VoorzieningenTabContent',
-    'kaarten': 'KaartenTabContent',
-    'pve': 'PVETabContent'
-  };
-  return componentMap[tabId];
-};
-
-const getComponentDescription = (tabId: TabName, locale: Locale): string => {
-  const descriptionMap: Record<Locale, Record<TabName, string>> = {
-    nl: {
-      'doelgroepen': 'Doelgroep analyse en visualisatie met 3D kubus',
-      'score': 'Algemene locatie scoring dashboard met uitklapbare sub-categorieën',
-      'demografie': 'CBS demografische data grafieken en analyse',
-      'woningmarkt': 'Woningmarkt gegevens en trends',
-      'veiligheid': 'Veiligheidsstatistieken en misdaadgegevens',
-      'gezondheid': 'Gezondheidsmetrieken en toegang tot medische voorzieningen',
-      'leefbaarheid': 'Leefbaarheidsindex en kwaliteit van leven metrieken',
-      'voorzieningen': 'Voorzieningen en faciliteiten mapping',
-      'kaarten': 'Interactieve kaarten met WMS lagen',
-      'pve': 'Programma van eisen en specificaties'
-    },
-    en: {
-      'doelgroepen': 'Target group analysis and visualization with 3D cube',
-      'score': 'Overall location scoring dashboard with expandable sub-categories',
-      'demografie': 'CBS demographic data charts and analysis',
-      'woningmarkt': 'Housing market data and trends',
-      'veiligheid': 'Safety statistics and crime data',
-      'gezondheid': 'Health metrics and medical facility access',
-      'leefbaarheid': 'Livability index and quality of life metrics',
-      'voorzieningen': 'Amenities and facilities mapping',
-      'kaarten': 'Interactive maps with WMS layers',
-      'pve': 'Requirements program and specifications'
-    }
-  };
-  return descriptionMap[locale][tabId] || tabId;
 };
 
 export default LocationPage;
