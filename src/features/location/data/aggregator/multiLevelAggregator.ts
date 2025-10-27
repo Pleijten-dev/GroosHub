@@ -5,6 +5,10 @@ import type { CBSDemographicsMultiLevelResponse } from '../sources/cbs-demograph
 import type { RIVMHealthMultiLevelResponse } from '../sources/rivm-health/client';
 import type { CBSLivabilityMultiLevelResponse } from '../sources/cbs-livability/client';
 import type { PolitieSafetyMultiLevelResponse } from '../sources/politie-safety/client';
+import { getReadableKey as getDemographicsReadableKey } from '../normalizers/demographicsKeyNormalizer';
+import { getReadableKey as getHealthReadableKey } from '../normalizers/healthKeyNormalizer';
+import { getReadableKey as getLivabilityReadableKey } from '../normalizers/livabilityKeyNormalizer';
+import { normalizeSafetyKey } from '../normalizers/safetyKeyNormalizer';
 
 /**
  * Single data row in the unified table
@@ -225,12 +229,26 @@ export class MultiLevelAggregator {
         return;
       }
 
+      // Normalize the key based on the source
+      let normalizedKey = key;
+      switch (source) {
+        case 'demographics':
+          normalizedKey = getDemographicsReadableKey(key);
+          break;
+        case 'health':
+          normalizedKey = getHealthReadableKey(key);
+          break;
+        case 'livability':
+          normalizedKey = getLivabilityReadableKey(key);
+          break;
+      }
+
       rows.push({
         source,
         geographicLevel,
         geographicCode,
         geographicName,
-        key,
+        key: normalizedKey,
         value,
         displayValue: this.formatValue(value),
       });
@@ -252,14 +270,17 @@ export class MultiLevelAggregator {
     const rows: UnifiedDataRow[] = [];
 
     Object.entries(data).forEach(([crimeType, count]) => {
+      // Normalize the crime code to human-readable crime type name
+      const normalizedKey = normalizeSafetyKey(`Crime_${crimeType}`);
+
       rows.push({
         source: 'safety',
         geographicLevel,
         geographicCode,
         geographicName,
-        key: `Crime_${crimeType}`,
+        key: normalizedKey,
         value: count,
-        displayValue: count.toString(),
+        displayValue: this.formatValue(count),
       });
     });
 
