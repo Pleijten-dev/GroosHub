@@ -240,14 +240,17 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
                 {locale === 'nl' ? 'Indicator' : 'Indicator'}
               </th>
               <th className="text-right p-sm text-sm font-semibold text-text-primary border-b">
-                {locale === 'nl' ? 'Waarde' : 'Value'}
+                {locale === 'nl' ? 'Absoluut' : 'Absolute'}
+              </th>
+              <th className="text-right p-sm text-sm font-semibold text-text-primary border-b">
+                {locale === 'nl' ? 'Relatief' : 'Relative'}
               </th>
             </tr>
           </thead>
           <tbody>
             {filteredRows.length === 0 ? (
               <tr>
-                <td colSpan={3} className="p-base text-center text-text-muted">
+                <td colSpan={4} className="p-base text-center text-text-muted">
                   {locale === 'nl'
                     ? 'Geen data beschikbaar voor dit niveau en deze bron'
                     : 'No data available for this level and source'}
@@ -256,7 +259,7 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
             ) : (
               filteredRows.map((row, idx) => (
                 <tr
-                  key={`${row.source}-${row.key}-${idx}`}
+                  key={`${row.source}-${row.indicator}-${idx}`}
                   className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                 >
                   <td className="p-sm text-sm">
@@ -274,9 +277,12 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
                       {SOURCE_LABELS[row.source][locale]}
                     </span>
                   </td>
-                  <td className="p-sm text-sm text-text-primary">{row.key}</td>
+                  <td className="p-sm text-sm text-text-primary">{row.indicator}</td>
                   <td className="p-sm text-sm text-right font-medium text-text-primary">
-                    {row.displayValue}
+                    {row.displayValueAbsolute}
+                  </td>
+                  <td className="p-sm text-sm text-right font-medium text-text-secondary">
+                    {row.displayValueRelative}
                   </td>
                 </tr>
               ))

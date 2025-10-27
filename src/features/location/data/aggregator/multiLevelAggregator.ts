@@ -5,10 +5,13 @@ import type { CBSDemographicsMultiLevelResponse } from '../sources/cbs-demograph
 import type { RIVMHealthMultiLevelResponse } from '../sources/rivm-health/client';
 import type { CBSLivabilityMultiLevelResponse } from '../sources/cbs-livability/client';
 import type { PolitieSafetyMultiLevelResponse } from '../sources/politie-safety/client';
-import { getReadableKey as getDemographicsReadableKey } from '../normalizers/demographicsKeyNormalizer';
-import { getReadableKey as getHealthReadableKey } from '../normalizers/healthKeyNormalizer';
-import { getReadableKey as getLivabilityReadableKey } from '../normalizers/livabilityKeyNormalizer';
-import { normalizeSafetyKey } from '../normalizers/safetyKeyNormalizer';
+import {
+  parseDemographicsData,
+  parseHealthData,
+  parseLivabilityData,
+  parseSafetyData,
+  type ParsedIndicator,
+} from '../parsers';
 
 /**
  * Single data row in the unified table
@@ -18,9 +21,15 @@ export interface UnifiedDataRow {
   geographicLevel: 'national' | 'municipality' | 'district' | 'neighborhood';
   geographicCode: string;
   geographicName: string;
-  key: string; // The data property key (e.g., "Bevolking_1")
-  value: unknown; // The actual value
-  displayValue: string; // Formatted value for display
+  indicator: string; // Human-readable indicator name
+  originalValue: number | string | null; // Original value from API
+  absoluteValue: number | null; // Calculated absolute value
+  relativeValue: number | null; // Calculated relative value (percentage)
+  operator: string | null; // Description of the calculation
+  format?: 'percentage' | 'count' | 'currency' | 'distance' | 'score' | 'energy' | 'area';
+  unit?: string; // Unit of measurement
+  displayValueAbsolute: string; // Formatted absolute value for display
+  displayValueRelative: string; // Formatted relative value for display
 }
 
 /**
@@ -68,6 +77,12 @@ export class MultiLevelAggregator {
     livability: CBSLivabilityMultiLevelResponse,
     safety: PolitieSafetyMultiLevelResponse
   ): UnifiedLocationData {
+    // Extract population counts from demographics data for each level
+    const aantalInwonersNational = this.getAantalInwoners(demographics.national?.data);
+    const aantalInwonersMunicipality = this.getAantalInwoners(demographics.municipality?.data);
+    const aantalInwonersDistrict = this.getAantalInwoners(demographics.district?.data);
+    const aantalInwonersNeighborhood = this.getAantalInwoners(demographics.neighborhood?.data);
+
     return {
       location: locationData,
       demographics: {
@@ -77,7 +92,8 @@ export class MultiLevelAggregator {
               'demographics',
               'national',
               demographics.national.level.code,
-              demographics.national.level.name
+              demographics.national.level.name,
+              aantalInwonersNational
             )
           : [],
         municipality: demographics.municipality
@@ -86,7 +102,8 @@ export class MultiLevelAggregator {
               'demographics',
               'municipality',
               demographics.municipality.level.code,
-              locationData.municipality.statnaam
+              locationData.municipality.statnaam,
+              aantalInwonersMunicipality
             )
           : [],
         district: demographics.district
@@ -95,7 +112,8 @@ export class MultiLevelAggregator {
               'demographics',
               'district',
               demographics.district.level.code,
-              locationData.district?.statnaam || ''
+              locationData.district?.statnaam || '',
+              aantalInwonersDistrict
             )
           : [],
         neighborhood: demographics.neighborhood
@@ -104,7 +122,8 @@ export class MultiLevelAggregator {
               'demographics',
               'neighborhood',
               demographics.neighborhood.level.code,
-              locationData.neighborhood?.statnaam || ''
+              locationData.neighborhood?.statnaam || '',
+              aantalInwonersNeighborhood
             )
           : [],
       },
@@ -115,7 +134,8 @@ export class MultiLevelAggregator {
               'health',
               'national',
               health.national.level.code,
-              'Nederland'
+              'Nederland',
+              aantalInwonersNational
             )
           : [],
         municipality: health.municipality
@@ -124,7 +144,8 @@ export class MultiLevelAggregator {
               'health',
               'municipality',
               health.municipality.level.code,
-              locationData.municipality.statnaam
+              locationData.municipality.statnaam,
+              aantalInwonersMunicipality
             )
           : [],
         district: health.district
@@ -133,7 +154,8 @@ export class MultiLevelAggregator {
               'health',
               'district',
               health.district.level.code,
-              locationData.district?.statnaam || ''
+              locationData.district?.statnaam || '',
+              aantalInwonersDistrict
             )
           : [],
         neighborhood: health.neighborhood
@@ -142,7 +164,8 @@ export class MultiLevelAggregator {
               'health',
               'neighborhood',
               health.neighborhood.level.code,
-              locationData.neighborhood?.statnaam || ''
+              locationData.neighborhood?.statnaam || '',
+              aantalInwonersNeighborhood
             )
           : [],
       },
@@ -153,7 +176,8 @@ export class MultiLevelAggregator {
               'livability',
               'national',
               livability.national.level.code,
-              'Nederland'
+              'Nederland',
+              aantalInwonersNational
             )
           : [],
         municipality: livability.municipality
@@ -162,7 +186,8 @@ export class MultiLevelAggregator {
               'livability',
               'municipality',
               livability.municipality.level.code,
-              locationData.municipality.statnaam
+              locationData.municipality.statnaam,
+              aantalInwonersMunicipality
             )
           : [],
       },
@@ -172,7 +197,8 @@ export class MultiLevelAggregator {
               safety.national.data,
               'national',
               safety.national.level.code,
-              'Nederland'
+              'Nederland',
+              aantalInwonersNational
             )
           : [],
         municipality: safety.municipality
@@ -180,7 +206,8 @@ export class MultiLevelAggregator {
               safety.municipality.data,
               'municipality',
               safety.municipality.level.code,
-              locationData.municipality.statnaam
+              locationData.municipality.statnaam,
+              aantalInwonersMunicipality
             )
           : [],
         district: safety.district
@@ -188,7 +215,8 @@ export class MultiLevelAggregator {
               safety.district.data,
               'district',
               safety.district.level.code,
-              locationData.district?.statnaam || ''
+              locationData.district?.statnaam || '',
+              aantalInwonersDistrict
             )
           : [],
         neighborhood: safety.neighborhood
@@ -196,7 +224,8 @@ export class MultiLevelAggregator {
               safety.neighborhood.data,
               'neighborhood',
               safety.neighborhood.level.code,
-              locationData.neighborhood?.statnaam || ''
+              locationData.neighborhood?.statnaam || '',
+              aantalInwonersNeighborhood
             )
           : [],
       },
@@ -205,110 +234,132 @@ export class MultiLevelAggregator {
   }
 
   /**
-   * Convert raw data object to UnifiedDataRow array
+   * Extract Aantal Inwoners from demographics data
+   */
+  private getAantalInwoners(data: Record<string, unknown> | undefined): number {
+    if (!data) return 0;
+    const value = data['Bevolking_1'];
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') {
+      const parsed = parseFloat(value);
+      return isNaN(parsed) ? 0 : parsed;
+    }
+    return 0;
+  }
+
+  /**
+   * Convert raw data object to UnifiedDataRow array using parsers
    */
   private convertToRows(
     data: Record<string, unknown>,
     source: 'demographics' | 'health' | 'livability' | 'safety',
     geographicLevel: 'national' | 'municipality' | 'district' | 'neighborhood',
     geographicCode: string,
-    geographicName: string
+    geographicName: string,
+    aantalInwoners: number
   ): UnifiedDataRow[] {
-    const rows: UnifiedDataRow[] = [];
+    let parsedData: { indicators: ParsedIndicator[] };
 
-    Object.entries(data).forEach(([key, value]) => {
-      // Skip metadata fields
-      if (
-        key === 'ID' ||
-        key === 'WijkenEnBuurten' ||
-        key === 'RegioS' ||
-        key === 'Perioden' ||
-        key === 'Leeftijd' ||
-        key === 'Marges'
-      ) {
-        return;
-      }
+    // Parse data using the appropriate parser
+    switch (source) {
+      case 'demographics':
+        parsedData = parseDemographicsData(data);
+        break;
+      case 'health':
+        parsedData = parseHealthData(data, aantalInwoners);
+        break;
+      case 'livability':
+        parsedData = parseLivabilityData(data, aantalInwoners);
+        break;
+      default:
+        return [];
+    }
 
-      // Normalize the key based on the source
-      let normalizedKey = key;
-      switch (source) {
-        case 'demographics':
-          normalizedKey = getDemographicsReadableKey(key);
-          break;
-        case 'health':
-          normalizedKey = getHealthReadableKey(key);
-          break;
-        case 'livability':
-          normalizedKey = getLivabilityReadableKey(key);
-          break;
-      }
-
-      rows.push({
-        source,
-        geographicLevel,
-        geographicCode,
-        geographicName,
-        key: normalizedKey,
-        value,
-        displayValue: this.formatValue(value),
-      });
-    });
-
-    return rows;
+    // Convert parsed indicators to UnifiedDataRow
+    return parsedData.indicators.map((indicator) => ({
+      source,
+      geographicLevel,
+      geographicCode,
+      geographicName,
+      indicator: indicator.indicator,
+      originalValue: indicator.originalValue,
+      absoluteValue: indicator.absoluteValue,
+      relativeValue: indicator.relativeValue,
+      operator: indicator.operator,
+      format: indicator.format,
+      unit: indicator.unit,
+      displayValueAbsolute: this.formatValue(indicator.absoluteValue, indicator.format, indicator.unit),
+      displayValueRelative: this.formatValue(indicator.relativeValue, 'percentage'),
+    }));
   }
 
   /**
-   * Convert safety data (crime statistics) to UnifiedDataRow array
+   * Convert safety data (crime statistics) to UnifiedDataRow array using parser
    * Safety data has a different structure: crime type => count
    */
   private convertSafetyToRows(
     data: Record<string, number>,
     geographicLevel: 'national' | 'municipality' | 'district' | 'neighborhood',
     geographicCode: string,
-    geographicName: string
+    geographicName: string,
+    aantalInwoners: number
   ): UnifiedDataRow[] {
-    const rows: UnifiedDataRow[] = [];
+    // Parse safety data
+    const parsedData = parseSafetyData(data, aantalInwoners);
 
-    Object.entries(data).forEach(([crimeType, count]) => {
-      // Normalize the crime code to human-readable crime type name
-      const normalizedKey = normalizeSafetyKey(`Crime_${crimeType}`);
-
-      rows.push({
-        source: 'safety',
-        geographicLevel,
-        geographicCode,
-        geographicName,
-        key: normalizedKey,
-        value: count,
-        displayValue: this.formatValue(count),
-      });
-    });
-
-    return rows;
+    // Convert parsed indicators to UnifiedDataRow
+    return parsedData.indicators.map((indicator) => ({
+      source: 'safety',
+      geographicLevel,
+      geographicCode,
+      geographicName,
+      indicator: indicator.indicator,
+      originalValue: indicator.originalValue,
+      absoluteValue: indicator.absoluteValue,
+      relativeValue: indicator.relativeValue,
+      operator: indicator.operator,
+      format: indicator.format,
+      unit: indicator.unit,
+      displayValueAbsolute: this.formatValue(indicator.absoluteValue, indicator.format, indicator.unit),
+      displayValueRelative: this.formatValue(indicator.relativeValue, 'percentage'),
+    }));
   }
 
   /**
    * Format value for display
    */
-  private formatValue(value: unknown): string {
-    if (value === null || value === undefined) {
-      return '-';
+  private formatValue(
+    value: number | string | null,
+    format?: 'percentage' | 'count' | 'currency' | 'distance' | 'score' | 'energy' | 'area',
+    unit?: string
+  ): string {
+    if (value === null || value === undefined || value === 'n/a') {
+      return 'n/a';
     }
 
-    if (typeof value === 'number') {
-      return value.toLocaleString('nl-NL');
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(numValue)) {
+      return String(value);
     }
 
-    if (typeof value === 'string') {
-      // Check if it's a numeric string
-      const num = parseFloat(value);
-      if (!isNaN(num)) {
-        return num.toLocaleString('nl-NL');
-      }
-      return value;
+    // Format based on type
+    switch (format) {
+      case 'percentage':
+        return `${numValue.toFixed(2)}%`;
+      case 'currency':
+        return unit ? `${unit} ${numValue.toLocaleString('nl-NL')}` : `€${numValue.toLocaleString('nl-NL')}`;
+      case 'distance':
+        return `${numValue.toFixed(1)} km`;
+      case 'energy':
+        return unit ? `${numValue.toLocaleString('nl-NL')} ${unit}` : `${numValue.toLocaleString('nl-NL')} kWh`;
+      case 'area':
+        return unit ? `${numValue.toLocaleString('nl-NL')} ${unit}` : `${numValue.toLocaleString('nl-NL')} ha`;
+      case 'score':
+        return numValue.toLocaleString('nl-NL', { minimumFractionDigits: 0, maximumFractionDigits: 1 });
+      case 'count':
+      default:
+        return numValue.toLocaleString('nl-NL', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
     }
-
-    return String(value);
   }
 
   /**
@@ -379,11 +430,11 @@ export class MultiLevelAggregator {
   }
 
   /**
-   * Find a specific data point by key across all levels
+   * Find a specific data point by indicator name across all levels
    */
-  findByKey(
+  findByIndicator(
     data: UnifiedLocationData,
-    key: string,
+    indicator: string,
     source: 'demographics' | 'health' | 'livability' | 'safety'
   ): UnifiedDataRow[] {
     const allRows: UnifiedDataRow[] = [];
@@ -422,6 +473,6 @@ export class MultiLevelAggregator {
         break;
     }
 
-    return allRows.filter((row) => row.key === key);
+    return allRows.filter((row) => row.indicator === indicator);
   }
 }
