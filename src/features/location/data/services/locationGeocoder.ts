@@ -209,7 +209,7 @@ export class LocationGeocoderService {
 
       return {
         address,
-        fullAddress,
+        fullAddress: fullAddress || undefined,
         coordinates: {
           wgs84: {
             latitude,
