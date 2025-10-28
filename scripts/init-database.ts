@@ -19,8 +19,22 @@ async function runMigration() {
     console.log('📄 Schema file loaded\n');
 
     // Execute schema
+    // Note: Neon SQL client requires template literals, not strings
+    // We use neon() which returns a function that accepts template strings
     console.log('⚙️  Executing schema...\n');
-    await sql(schema);
+
+    // Split by semicolons and execute each statement
+    const statements = schema
+      .split(';')
+      .map(s => s.trim())
+      .filter(s => s.length > 0);
+
+    for (const statement of statements) {
+      if (statement.toLowerCase().startsWith('create')) {
+        // Execute CREATE statements
+        await sql([statement] as unknown as TemplateStringsArray);
+      }
+    }
 
     console.log('✅ Database schema created successfully!\n');
     console.log('📊 Created:');
