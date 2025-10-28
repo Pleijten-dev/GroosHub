@@ -53,7 +53,7 @@ export class AltumAIClient {
   };
 
   constructor(apiKey?: string) {
-    this.apiKey = apiKey || process.env.ALTUM_AI_KEY || process.env.NEXT_PUBLIC_ALTUM_AI_KEY || '';
+    this.apiKey = apiKey || process.env.Altum_AI_Key || process.env.ALTUM_AI_KEY || process.env.NEXT_PUBLIC_ALTUM_AI_KEY || '';
     this.parser = new AltumAIParser();
 
     if (!this.apiKey) {
