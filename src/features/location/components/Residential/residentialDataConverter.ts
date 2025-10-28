@@ -33,7 +33,7 @@ export function convertResidentialToRows(
       displayAbsolute = formatNumericValue(field.average, field.type);
     }
 
-    // Create a row with the market data
+    // Create a row with the market data (value)
     rows.push({
       source: 'residential',
       geographicLevel: 'municipality', // Residential data is location-specific
@@ -54,6 +54,28 @@ export function convertResidentialToRows(
         count: field.count,
         total: residentialData.referenceHouses.length,
         distribution: field.valueDistribution,
+      },
+    });
+
+    // Create a row with the count
+    rows.push({
+      source: 'residential',
+      geographicLevel: 'municipality',
+      geographicCode: residentialData.targetProperty.address.postcode,
+      geographicName: residentialData.targetProperty.address.postcode,
+      key: `${field.fieldName}_Count`,
+      title: `${field.displayName.nl} - Aantal`,
+      titleNl: `${field.displayName.nl} - Aantal`,
+      titleEn: `${field.displayName.en} - Count`,
+      value: field.count,
+      absolute: field.count,
+      relative: null,
+      displayValue: field.count.toString(),
+      displayAbsolute: field.count.toString(),
+      displayRelative: '-',
+      metadata: {
+        count: field.count,
+        total: residentialData.referenceHouses.length,
       },
     });
   });
