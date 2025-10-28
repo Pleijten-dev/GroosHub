@@ -8,6 +8,7 @@ import { useLocationSidebarSections } from '../../../features/location/component
 import { useLocationData } from '../../../features/location/hooks/useLocationData';
 import { MultiLevelDataTable } from '../../../features/location/components/DataTables';
 import { AmenitiesGrid, AmenitiesSummary } from '../../../features/location/components/Amenities';
+import { ResidentialSummary, ResidentialGrid } from '../../../features/location/components/Residential';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -118,6 +119,9 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
               {loading.amenities && (
                 <p>→ {locale === 'nl' ? 'Google Voorzieningen ophalen...' : 'Fetching Google Amenities...'}</p>
               )}
+              {loading.residential && (
+                <p>→ {locale === 'nl' ? 'Altum AI Woningmarkt ophalen...' : 'Fetching Altum AI Housing Data...'}</p>
+              )}
             </div>
           </div>
         </div>
@@ -140,6 +144,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
               {error.livability && <p>• {error.livability}</p>}
               {error.safety && <p>• {error.safety}</p>}
               {error.amenities && <p>• {error.amenities}</p>}
+              {error.residential && <p>• {error.residential}</p>}
             </div>
             <button
               onClick={clearData}
@@ -166,6 +171,13 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                 onViewAll={() => setActiveTab('voorzieningen')}
               />
             )}
+            {data.residential && (
+              <ResidentialSummary
+                data={data.residential}
+                locale={locale}
+                onViewAll={() => setActiveTab('woningmarkt')}
+              />
+            )}
           </div>
         );
       }
@@ -184,6 +196,28 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                     {locale === 'nl'
                       ? 'Voorzieningen gegevens niet beschikbaar'
                       : 'Amenities data not available'}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      // For Woningmarkt tab - show full residential grid
+      if (activeTab === 'woningmarkt') {
+        return (
+          <div className="p-lg overflow-auto h-full">
+            {data.residential ? (
+              <ResidentialGrid data={data.residential} locale={locale} />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="text-6xl mb-base">🏠</div>
+                  <p className="text-lg text-text-secondary">
+                    {locale === 'nl'
+                      ? 'Woningmarkt gegevens niet beschikbaar'
+                      : 'Housing market data not available'}
                   </p>
                 </div>
               </div>

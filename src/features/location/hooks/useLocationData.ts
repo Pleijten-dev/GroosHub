@@ -6,6 +6,7 @@ import { CBSDemographicsClient } from '../data/sources/cbs-demographics/client';
 import { RIVMHealthClient } from '../data/sources/rivm-health/client';
 import { CBSLivabilityClient } from '../data/sources/cbs-livability/client';
 import { PolitieSafetyClient } from '../data/sources/politie-safety/client';
+import { AltumAIClient } from '../data/sources/altum-ai/client';
 import {
   MultiLevelAggregator,
   type UnifiedLocationData,
@@ -23,6 +24,7 @@ export interface LoadingState {
   livability: boolean;
   safety: boolean;
   amenities: boolean;
+  residential: boolean;
 }
 
 /**
@@ -35,6 +37,7 @@ export interface ErrorState {
   livability: string | null;
   safety: string | null;
   amenities: string | null;
+  residential: string | null;
 }
 
 /**
@@ -64,6 +67,7 @@ export function useLocationData(): UseLocationDataReturn {
     livability: false,
     safety: false,
     amenities: false,
+    residential: false,
   });
   const [error, setError] = useState<ErrorState>({
     geocoding: null,
@@ -72,6 +76,7 @@ export function useLocationData(): UseLocationDataReturn {
     livability: null,
     safety: null,
     amenities: null,
+    residential: null,
   });
 
   // Initialize services
@@ -80,6 +85,7 @@ export function useLocationData(): UseLocationDataReturn {
   const healthClient = new RIVMHealthClient();
   const livabilityClient = new CBSLivabilityClient();
   const safetyClient = new PolitieSafetyClient();
+  const residentialClient = new AltumAIClient();
   const aggregator = new MultiLevelAggregator();
 
   /**
@@ -97,6 +103,7 @@ export function useLocationData(): UseLocationDataReturn {
         livability: null,
         safety: null,
         amenities: null,
+        residential: null,
       });
 
       // Start geocoding
@@ -130,6 +137,7 @@ export function useLocationData(): UseLocationDataReturn {
           livability: true,
           safety: true,
           amenities: true,
+          residential: true,
         });
 
         const [
@@ -138,6 +146,7 @@ export function useLocationData(): UseLocationDataReturn {
           livabilityData,
           safetyData,
           amenitiesData,
+          residentialData,
         ] = await Promise.allSettled([
           demographicsClient.fetchMultiLevel(
             municipalityCode,
@@ -159,6 +168,7 @@ export function useLocationData(): UseLocationDataReturn {
             lat: locationData.coordinates.wgs84.latitude,
             lng: locationData.coordinates.wgs84.longitude,
           }),
+          residentialClient.fetchReferenceData(locationData),
         ]);
 
         // Update loading states
@@ -169,6 +179,7 @@ export function useLocationData(): UseLocationDataReturn {
           livability: false,
           safety: false,
           amenities: false,
+          residential: false,
         });
 
         // Handle results and errors
@@ -238,11 +249,21 @@ export function useLocationData(): UseLocationDataReturn {
             amenities: 'Failed to fetch amenities data',
           }));
         }
+        if (residentialData.status === 'rejected') {
+          setError((prev) => ({
+            ...prev,
+            residential: 'Failed to fetch residential data',
+          }));
+        }
 
         // Store amenities data separately
         if (amenitiesData.status === 'fulfilled') {
           setAmenities(amenitiesData.value);
         }
+
+        // Get residential data (or null if failed)
+        const residential =
+          residentialData.status === 'fulfilled' ? residentialData.value : null;
 
         // Step 3: Aggregate all data
         const unifiedData = aggregator.aggregate(
@@ -250,7 +271,8 @@ export function useLocationData(): UseLocationDataReturn {
           demographics,
           health,
           livability,
-          safety
+          safety,
+          residential
         );
 
         setData(unifiedData);
@@ -267,10 +289,11 @@ export function useLocationData(): UseLocationDataReturn {
           livability: false,
           safety: false,
           amenities: false,
+          residential: false,
         });
       }
     },
-    [geocoderService, demographicsClient, healthClient, livabilityClient, safetyClient, aggregator]
+    [geocoderService, demographicsClient, healthClient, livabilityClient, safetyClient, residentialClient, aggregator]
   );
 
   /**
@@ -286,6 +309,7 @@ export function useLocationData(): UseLocationDataReturn {
       livability: null,
       safety: null,
       amenities: null,
+      residential: null,
     });
   }, []);
 
