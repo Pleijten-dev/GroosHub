@@ -6,6 +6,10 @@ import type { UnifiedLocationData, UnifiedDataRow } from '../../data/aggregator/
 export interface MultiLevelDataTableProps {
   data: UnifiedLocationData;
   locale: 'nl' | 'en';
+  /** Default source filter to apply */
+  defaultSource?: DataSource | 'all';
+  /** If true, locks the source filter and hides the dropdown */
+  lockSourceFilter?: boolean;
 }
 
 type GeographicLevel = 'national' | 'municipality' | 'district' | 'neighborhood';
@@ -32,9 +36,11 @@ const SOURCE_LABELS = {
 export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
   data,
   locale,
+  defaultSource = 'all',
+  lockSourceFilter = false,
 }) => {
   const [selectedLevel, setSelectedLevel] = useState<GeographicLevel>('municipality');
-  const [selectedSource, setSelectedSource] = useState<DataSource | 'all'>('all');
+  const [selectedSource, setSelectedSource] = useState<DataSource | 'all'>(defaultSource);
 
   /**
    * Get data rows for the selected level and source
@@ -203,24 +209,26 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
           </select>
         </div>
 
-        {/* Data source selector */}
-        <div>
-          <label className="block text-sm font-medium mb-xs">
-            {locale === 'nl' ? 'Data Bron' : 'Data Source'}
-          </label>
-          <select
-            value={selectedSource}
-            onChange={(e) => setSelectedSource(e.target.value as DataSource | 'all')}
-            className="p-sm rounded-md border border-gray-300 bg-white text-sm"
-          >
-            <option value="all">{locale === 'nl' ? 'Alle Bronnen' : 'All Sources'}</option>
-            {availableSources.map((source) => (
-              <option key={source} value={source}>
-                {SOURCE_LABELS[source][locale]}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* Data source selector - only show if not locked */}
+        {!lockSourceFilter && (
+          <div>
+            <label className="block text-sm font-medium mb-xs">
+              {locale === 'nl' ? 'Data Bron' : 'Data Source'}
+            </label>
+            <select
+              value={selectedSource}
+              onChange={(e) => setSelectedSource(e.target.value as DataSource | 'all')}
+              className="p-sm rounded-md border border-gray-300 bg-white text-sm"
+            >
+              <option value="all">{locale === 'nl' ? 'Alle Bronnen' : 'All Sources'}</option>
+              {availableSources.map((source) => (
+                <option key={source} value={source}>
+                  {SOURCE_LABELS[source][locale]}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Row count */}
         <div className="ml-auto text-sm text-text-muted">
