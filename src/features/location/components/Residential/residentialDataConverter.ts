@@ -1,21 +1,17 @@
-import type { ResidentialData } from '../../data/sources/altum-ai/types';
+import type { ResidentialData, ReferenceHouse } from '../../data/sources/altum-ai/types';
 import type { UnifiedDataRow } from '../../data/aggregator/multiLevelAggregator';
-import {
-  aggregateMarketData,
-  formatNumericValue,
-} from './marketDataAggregator';
 
 /**
  * Get all unique values and their counts for a specific field
  */
 function getFieldDistribution(
-  referenceHouses: any[],
+  referenceHouses: ReferenceHouse[],
   fieldKey: string
 ): Record<string, number> {
   const distribution: Record<string, number> = {};
 
   referenceHouses.forEach((house) => {
-    const value = house[fieldKey];
+    const value = house[fieldKey as keyof ReferenceHouse];
     if (value !== null && value !== undefined) {
       const stringValue = String(value);
       distribution[stringValue] = (distribution[stringValue] || 0) + 1;
