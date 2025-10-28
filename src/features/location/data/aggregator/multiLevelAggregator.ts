@@ -5,6 +5,7 @@ import type { CBSDemographicsMultiLevelResponse } from '../sources/cbs-demograph
 import type { RIVMHealthMultiLevelResponse } from '../sources/rivm-health/client';
 import type { CBSLivabilityMultiLevelResponse } from '../sources/cbs-livability/client';
 import type { PolitieSafetyMultiLevelResponse } from '../sources/politie-safety/client';
+import type { ResidentialData } from '../sources/altum-ai/types';
 import { getReadableKey as getDemographicsReadableKey } from '../normalizers/demographicsKeyNormalizer';
 import { getReadableKey as getHealthReadableKey } from '../normalizers/healthKeyNormalizer';
 import { getReadableKey as getLivabilityReadableKey } from '../normalizers/livabilityKeyNormalizer';
@@ -50,6 +51,7 @@ export interface UnifiedLocationData {
     district: UnifiedDataRow[];
     neighborhood: UnifiedDataRow[];
   };
+  residential: ResidentialData | null;
   fetchedAt: Date;
 }
 
@@ -66,7 +68,8 @@ export class MultiLevelAggregator {
     demographics: CBSDemographicsMultiLevelResponse,
     health: RIVMHealthMultiLevelResponse,
     livability: CBSLivabilityMultiLevelResponse,
-    safety: PolitieSafetyMultiLevelResponse
+    safety: PolitieSafetyMultiLevelResponse,
+    residential: ResidentialData | null = null
   ): UnifiedLocationData {
     return {
       location: locationData,
@@ -200,6 +203,7 @@ export class MultiLevelAggregator {
             )
           : [],
       },
+      residential,
       fetchedAt: new Date(),
     };
   }

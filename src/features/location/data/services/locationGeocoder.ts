@@ -29,10 +29,39 @@ interface PDOKWFSResponse {
 }
 
 /**
+ * PDOK Locatieserver address response
+ */
+interface PDOKAddressResponse {
+  response: {
+    docs: Array<{
+      id: string;
+      weergavenaam: string;
+      straatnaam?: string;
+      huisnummer?: number;
+      huisletter?: string;
+      huisnummertoevoeging?: string;
+      postcode?: string;
+      woonplaatsnaam?: string;
+      gemeentenaam?: string;
+      centroide_ll?: string; // "POINT(lat lon)"
+      type: string;
+    }>;
+  };
+}
+
+/**
  * Location data result interface
  */
 export interface LocationData {
   address: string;
+  fullAddress?: {
+    street: string;
+    houseNumber: number;
+    houseNumberAddition?: string;
+    postcode: string;
+    city: string;
+    municipality: string;
+  };
   coordinates: {
     wgs84: {
       latitude: number;
@@ -77,11 +106,69 @@ proj4.defs(
  */
 export class LocationGeocoderService {
   /**
+   * Fetch full address details from PDOK Locatieserver
+   * This provides postcode, house number, and complete address information
+   */
+  private async fetchPDOKAddressDetails(address: string): Promise<LocationData['fullAddress'] | null> {
+    try {
+      // Use PDOK Locatieserver free text search
+      const pdokUrl = `https://api.pdok.nl/bzk/locatieserver/search/v3_1/free?q=${encodeURIComponent(address)}&rows=1&fq=type:adres`;
+
+      console.log(`🔍 [PDOK] Fetching address details for: ${address}`);
+
+      const response = await fetch(pdokUrl);
+      const data: PDOKAddressResponse = await response.json();
+
+      if (!data.response.docs || data.response.docs.length === 0) {
+        console.warn(`⚠️  [PDOK] No address details found for: ${address}`);
+        return null;
+      }
+
+      const doc = data.response.docs[0];
+
+      // Only proceed if we have essential address components
+      if (!doc.postcode || !doc.huisnummer || !doc.straatnaam) {
+        console.warn(`⚠️  [PDOK] Incomplete address data for: ${address}`);
+        return null;
+      }
+
+      // Build house number addition (letter + toevoeging)
+      let houseNumberAddition: string | undefined;
+      if (doc.huisletter && doc.huisnummertoevoeging) {
+        houseNumberAddition = `${doc.huisletter}${doc.huisnummertoevoeging}`;
+      } else if (doc.huisletter) {
+        houseNumberAddition = doc.huisletter;
+      } else if (doc.huisnummertoevoeging) {
+        houseNumberAddition = doc.huisnummertoevoeging;
+      }
+
+      const fullAddress = {
+        street: doc.straatnaam,
+        houseNumber: doc.huisnummer,
+        houseNumberAddition,
+        postcode: doc.postcode,
+        city: doc.woonplaatsnaam || '',
+        municipality: doc.gemeentenaam || '',
+      };
+
+      console.log(`✅ [PDOK] Found address: ${doc.postcode} ${doc.huisnummer}${houseNumberAddition || ''}`);
+
+      return fullAddress;
+    } catch (error) {
+      console.error('❌ [PDOK] Error fetching address details:', error);
+      return null;
+    }
+  }
+
+  /**
    * Geocode an address and retrieve all relevant location codes
    */
   async geocodeAddress(address: string): Promise<LocationData | null> {
     try {
-      // 1) Geocode address via Nominatim (OpenStreetMap)
+      // 1) Fetch full address details from PDOK (includes postcode)
+      const fullAddress = await this.fetchPDOKAddressDetails(address);
+
+      // 2) Geocode address via Nominatim (OpenStreetMap) as fallback for coordinates
       const geocodeUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&countrycodes=nl`;
       const geoRes = await fetch(geocodeUrl);
       const geoData = await geoRes.json();
@@ -122,6 +209,7 @@ export class LocationGeocoderService {
 
       return {
         address,
+        fullAddress: fullAddress || undefined,
         coordinates: {
           wgs84: {
             latitude,
