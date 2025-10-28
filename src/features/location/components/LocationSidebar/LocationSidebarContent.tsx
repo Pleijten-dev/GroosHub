@@ -4,8 +4,9 @@
 import React, { useState } from 'react';
 import { Locale } from '../../../../lib/i18n/config';
 import { SidebarSection } from '../../../../shared/components/UI/Sidebar/types';
-import { Button, Input } from '../../../../shared/components/UI';
+import { Button } from '../../../../shared/components/UI';
 import { cn } from '../../../../shared/utils/cn';
+import { AddressAutocomplete } from '../AddressAutocomplete/AddressAutocomplete';
 
 // Types for location analysis sections
 const MAIN_SECTIONS = [
@@ -72,10 +73,16 @@ export const useLocationSidebarSections = ({
   // Search section content
   const searchSection = (
     <div className="space-y-md">
-      <Input
+      <AddressAutocomplete
         placeholder={locale === 'nl' ? 'Voer adres in...' : 'Enter address...'}
         value={searchAddress}
-        onChange={(e) => setSearchAddress(e.target.value)}
+        onChange={setSearchAddress}
+        onSelect={(address) => {
+          setSearchAddress(address);
+          if (onAddressSearch) {
+            onAddressSearch(address);
+          }
+        }}
         onKeyPress={handleKeyPress}
         className="w-full"
         disabled={isSearching}
