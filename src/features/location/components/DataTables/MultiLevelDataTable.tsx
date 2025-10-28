@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { UnifiedLocationData, UnifiedDataRow } from '../../data/aggregator/multiLevelAggregator';
 
 export interface MultiLevelDataTableProps {
@@ -41,6 +41,11 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
 }) => {
   const [selectedLevel, setSelectedLevel] = useState<GeographicLevel>('municipality');
   const [selectedSource, setSelectedSource] = useState<DataSource | 'all'>(defaultSource);
+
+  // Sync selectedSource with defaultSource prop changes
+  useEffect(() => {
+    setSelectedSource(defaultSource);
+  }, [defaultSource]);
 
   /**
    * Get data rows for the selected level and source
