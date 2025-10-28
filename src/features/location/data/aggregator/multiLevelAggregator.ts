@@ -39,6 +39,8 @@ export interface UnifiedDataRow {
     count?: number;
     total?: number;
     distribution?: Record<string, number>;
+    fieldName?: string;
+    fieldValue?: string;
   };
 }
 
