@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { LocationGeocoderService } from '../data/services/locationGeocoder';
 import { CBSDemographicsClient } from '../data/sources/cbs-demographics/client';
 import { RIVMHealthClient } from '../data/sources/rivm-health/client';
@@ -10,6 +10,8 @@ import {
   MultiLevelAggregator,
   type UnifiedLocationData,
 } from '../data/aggregator/multiLevelAggregator';
+import { searchOrchestrator } from '../data/sources/google-places/search-orchestrator';
+import type { AmenityMultiCategoryResponse } from '../data/sources/google-places/types';
 
 /**
  * Loading state for each data source
@@ -20,6 +22,7 @@ export interface LoadingState {
   health: boolean;
   livability: boolean;
   safety: boolean;
+  amenities: boolean;
 }
 
 /**
@@ -31,6 +34,7 @@ export interface ErrorState {
   health: string | null;
   livability: string | null;
   safety: string | null;
+  amenities: string | null;
 }
 
 /**
@@ -38,6 +42,7 @@ export interface ErrorState {
  */
 export interface UseLocationDataReturn {
   data: UnifiedLocationData | null;
+  amenities: AmenityMultiCategoryResponse | null;
   loading: LoadingState;
   error: ErrorState;
   isLoading: boolean;
@@ -51,12 +56,14 @@ export interface UseLocationDataReturn {
  */
 export function useLocationData(): UseLocationDataReturn {
   const [data, setData] = useState<UnifiedLocationData | null>(null);
+  const [amenities, setAmenities] = useState<AmenityMultiCategoryResponse | null>(null);
   const [loading, setLoading] = useState<LoadingState>({
     geocoding: false,
     demographics: false,
     health: false,
     livability: false,
     safety: false,
+    amenities: false,
   });
   const [error, setError] = useState<ErrorState>({
     geocoding: null,
@@ -64,6 +71,7 @@ export function useLocationData(): UseLocationDataReturn {
     health: null,
     livability: null,
     safety: null,
+    amenities: null,
   });
 
   // Initialize services
@@ -81,12 +89,14 @@ export function useLocationData(): UseLocationDataReturn {
     async (address: string) => {
       // Reset state
       setData(null);
+      setAmenities(null);
       setError({
         geocoding: null,
         demographics: null,
         health: null,
         livability: null,
         safety: null,
+        amenities: null,
       });
 
       // Start geocoding
@@ -119,6 +129,7 @@ export function useLocationData(): UseLocationDataReturn {
           health: true,
           livability: true,
           safety: true,
+          amenities: true,
         });
 
         const [
@@ -126,6 +137,7 @@ export function useLocationData(): UseLocationDataReturn {
           healthData,
           livabilityData,
           safetyData,
+          amenitiesData,
         ] = await Promise.allSettled([
           demographicsClient.fetchMultiLevel(
             municipalityCode,
@@ -143,6 +155,10 @@ export function useLocationData(): UseLocationDataReturn {
             districtCode,
             neighborhoodCode
           ),
+          searchOrchestrator.searchAllCategories({
+            lat: locationData.coordinates.wgs84.latitude,
+            lng: locationData.coordinates.wgs84.longitude,
+          }),
         ]);
 
         // Update loading states
@@ -152,6 +168,7 @@ export function useLocationData(): UseLocationDataReturn {
           health: false,
           livability: false,
           safety: false,
+          amenities: false,
         });
 
         // Handle results and errors
@@ -215,6 +232,17 @@ export function useLocationData(): UseLocationDataReturn {
             safety: 'Failed to fetch safety data',
           }));
         }
+        if (amenitiesData.status === 'rejected') {
+          setError((prev) => ({
+            ...prev,
+            amenities: 'Failed to fetch amenities data',
+          }));
+        }
+
+        // Store amenities data separately
+        if (amenitiesData.status === 'fulfilled') {
+          setAmenities(amenitiesData.value);
+        }
 
         // Step 3: Aggregate all data
         const unifiedData = aggregator.aggregate(
@@ -238,6 +266,7 @@ export function useLocationData(): UseLocationDataReturn {
           health: false,
           livability: false,
           safety: false,
+          amenities: false,
         });
       }
     },
@@ -249,12 +278,14 @@ export function useLocationData(): UseLocationDataReturn {
    */
   const clearData = useCallback(() => {
     setData(null);
+    setAmenities(null);
     setError({
       geocoding: null,
       demographics: null,
       health: null,
       livability: null,
       safety: null,
+      amenities: null,
     });
   }, []);
 
@@ -264,6 +295,7 @@ export function useLocationData(): UseLocationDataReturn {
 
   return {
     data,
+    amenities,
     loading,
     error,
     isLoading,

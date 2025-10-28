@@ -7,6 +7,7 @@ import { Sidebar, useSidebar } from '../../../shared/components/UI/Sidebar';
 import { useLocationSidebarSections } from '../../../features/location/components/LocationSidebar';
 import { useLocationData } from '../../../features/location/hooks/useLocationData';
 import { MultiLevelDataTable } from '../../../features/location/components/DataTables';
+import { AmenitiesGrid, AmenitiesSummary } from '../../../features/location/components/Amenities';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -42,7 +43,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   const [showRightMenu, setShowRightMenu] = useState<boolean>(false);
 
   // Use location data hook
-  const { data, loading, error, isLoading, hasError, fetchData, clearData } = useLocationData();
+  const { data, amenities, loading, error, isLoading, hasError, fetchData, clearData } = useLocationData();
 
   // Use sidebar hook for state management
   const { isCollapsed, toggle } = useSidebar({
@@ -114,6 +115,9 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
               {loading.safety && (
                 <p>→ {locale === 'nl' ? 'Politie Veiligheid ophalen...' : 'Fetching Police Safety...'}</p>
               )}
+              {loading.amenities && (
+                <p>→ {locale === 'nl' ? 'Google Voorzieningen ophalen...' : 'Fetching Google Amenities...'}</p>
+              )}
             </div>
           </div>
         </div>
@@ -135,6 +139,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
               {error.health && <p>• {error.health}</p>}
               {error.livability && <p>• {error.livability}</p>}
               {error.safety && <p>• {error.safety}</p>}
+              {error.amenities && <p>• {error.amenities}</p>}
             </div>
             <button
               onClick={clearData}
@@ -149,6 +154,45 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
     // Show data if available
     if (data) {
+      // For Demographics, Health, Safety, Livability tabs - show data table with amenities summary
+      if (activeTab === 'demografie' || activeTab === 'gezondheid' || activeTab === 'veiligheid' || activeTab === 'leefbaarheid') {
+        return (
+          <div className="p-lg overflow-auto h-full">
+            <MultiLevelDataTable data={data} locale={locale} />
+            {amenities && (
+              <AmenitiesSummary
+                data={amenities}
+                locale={locale}
+                onViewAll={() => setActiveTab('voorzieningen')}
+              />
+            )}
+          </div>
+        );
+      }
+
+      // For Voorzieningen tab - show full amenities grid
+      if (activeTab === 'voorzieningen') {
+        return (
+          <div className="p-lg overflow-auto h-full">
+            {amenities ? (
+              <AmenitiesGrid data={amenities} locale={locale} />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="text-6xl mb-base">🏪</div>
+                  <p className="text-lg text-text-secondary">
+                    {locale === 'nl'
+                      ? 'Voorzieningen gegevens niet beschikbaar'
+                      : 'Amenities data not available'}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      // For other tabs - just show data table
       return (
         <div className="p-lg overflow-auto h-full">
           <MultiLevelDataTable data={data} locale={locale} />
