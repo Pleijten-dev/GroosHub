@@ -240,6 +240,9 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
                 {locale === 'nl' ? 'Indicator' : 'Indicator'}
               </th>
               <th className="text-right p-sm text-sm font-semibold text-text-primary border-b">
+                {locale === 'nl' ? 'Origineel' : 'Original'}
+              </th>
+              <th className="text-right p-sm text-sm font-semibold text-text-primary border-b">
                 {locale === 'nl' ? 'Absoluut' : 'Absolute'}
               </th>
               <th className="text-right p-sm text-sm font-semibold text-text-primary border-b">
@@ -250,7 +253,7 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
           <tbody>
             {filteredRows.length === 0 ? (
               <tr>
-                <td colSpan={4} className="p-base text-center text-text-muted">
+                <td colSpan={5} className="p-base text-center text-text-muted">
                   {locale === 'nl'
                     ? 'Geen data beschikbaar voor dit niveau en deze bron'
                     : 'No data available for this level and source'}
@@ -278,6 +281,9 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
                     </span>
                   </td>
                   <td className="p-sm text-sm text-text-primary">{row.title || row.key}</td>
+                  <td className="p-sm text-sm text-right text-text-muted">
+                    {row.displayValue}
+                  </td>
                   <td className="p-sm text-sm text-right font-medium text-text-primary">
                     {row.displayAbsolute}
                   </td>
