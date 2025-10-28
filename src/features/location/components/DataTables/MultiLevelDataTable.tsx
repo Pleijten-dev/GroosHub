@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import type { UnifiedLocationData, UnifiedDataRow } from '../../data/aggregator/multiLevelAggregator';
+import { convertResidentialToRows } from '../Residential/residentialDataConverter';
 
 export interface MultiLevelDataTableProps {
   data: UnifiedLocationData;
@@ -13,7 +14,7 @@ export interface MultiLevelDataTableProps {
 }
 
 type GeographicLevel = 'national' | 'municipality' | 'district' | 'neighborhood';
-type DataSource = 'demographics' | 'health' | 'livability' | 'safety';
+type DataSource = 'demographics' | 'health' | 'livability' | 'safety' | 'residential';
 
 const LEVEL_LABELS = {
   national: { nl: 'Nederland (NL00)', en: 'Netherlands (NL00)' },
@@ -27,6 +28,7 @@ const SOURCE_LABELS = {
   health: { nl: 'Gezondheid (RIVM)', en: 'Health (RIVM)' },
   livability: { nl: 'Leefbaarheid (CBS)', en: 'Livability (CBS)' },
   safety: { nl: 'Veiligheid (Politie)', en: 'Safety (Police)' },
+  residential: { nl: 'Woningmarkt (Altum)', en: 'Housing Market (Altum)' },
 };
 
 /**
@@ -79,6 +81,12 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
         break;
     }
 
+    // Add residential data (appears at all levels)
+    if (data.residential) {
+      const residentialRows = convertResidentialToRows(data.residential);
+      rows.push(...residentialRows);
+    }
+
     // Filter by source if not 'all'
     if (selectedSource !== 'all') {
       return rows.filter((row) => row.source === selectedSource);
@@ -118,6 +126,11 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
         sources.add('health');
         sources.add('safety');
         break;
+    }
+
+    // Add residential source if data is available
+    if (data.residential && data.residential.hasData) {
+      sources.add('residential');
     }
 
     return Array.from(sources);
@@ -273,38 +286,48 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
                 </td>
               </tr>
             ) : (
-              filteredRows.map((row, idx) => (
-                <tr
-                  key={`${row.source}-${row.key}-${idx}`}
-                  className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
-                >
-                  <td className="p-sm text-sm">
-                    <span
-                      className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                        row.source === 'demographics'
-                          ? 'bg-blue-100 text-blue-700'
-                          : row.source === 'health'
-                          ? 'bg-green-100 text-green-700'
-                          : row.source === 'livability'
-                          ? 'bg-purple-100 text-purple-700'
-                          : 'bg-red-100 text-red-700'
-                      }`}
-                    >
-                      {SOURCE_LABELS[row.source][locale]}
-                    </span>
-                  </td>
-                  <td className="p-sm text-sm text-text-primary">{row.title || row.key}</td>
-                  <td className="p-sm text-sm text-right text-text-muted">
-                    {row.displayValue}
-                  </td>
-                  <td className="p-sm text-sm text-right font-medium text-text-primary">
-                    {row.displayAbsolute}
-                  </td>
-                  <td className="p-sm text-sm text-right font-medium text-text-primary">
-                    {row.displayRelative}
-                  </td>
-                </tr>
-              ))
+              filteredRows.map((row, idx) => {
+                // Get the appropriate title based on locale
+                const displayTitle =
+                  locale === 'nl' && row.titleNl ? row.titleNl :
+                  locale === 'en' && row.titleEn ? row.titleEn :
+                  row.title || row.key;
+
+                return (
+                  <tr
+                    key={`${row.source}-${row.key}-${idx}`}
+                    className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="p-sm text-sm">
+                      <span
+                        className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                          row.source === 'demographics'
+                            ? 'bg-blue-100 text-blue-700'
+                            : row.source === 'health'
+                            ? 'bg-green-100 text-green-700'
+                            : row.source === 'livability'
+                            ? 'bg-purple-100 text-purple-700'
+                            : row.source === 'safety'
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-orange-100 text-orange-700'
+                        }`}
+                      >
+                        {SOURCE_LABELS[row.source][locale]}
+                      </span>
+                    </td>
+                    <td className="p-sm text-sm text-text-primary">{displayTitle}</td>
+                    <td className="p-sm text-sm text-right text-text-muted">
+                      {row.displayValue}
+                    </td>
+                    <td className="p-sm text-sm text-right font-medium text-text-primary">
+                      {row.displayAbsolute}
+                    </td>
+                    <td className="p-sm text-sm text-right font-medium text-text-primary">
+                      {row.displayRelative}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
