@@ -71,8 +71,8 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
   const handleAddressSearch = async (address: string): Promise<void> => {
     await fetchData(address);
-    // Auto-switch to demographics tab when data is loaded
-    setActiveTab('demografie');
+    // Auto-switch to score overview tab when data is loaded
+    setActiveTab('score');
   };
 
   // Get sidebar sections from useLocationSidebarSections hook
@@ -159,8 +159,8 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
     // Show data if available
     if (data) {
-      // For Demographics, Health, Safety, Livability tabs - show data table with amenities summary
-      if (activeTab === 'demografie' || activeTab === 'gezondheid' || activeTab === 'veiligheid' || activeTab === 'leefbaarheid') {
+      // For Score tab - show overview with all data
+      if (activeTab === 'score') {
         return (
           <div className="p-lg overflow-auto h-full">
             <MultiLevelDataTable data={data} locale={locale} />
@@ -178,6 +178,62 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                 onViewAll={() => setActiveTab('woningmarkt')}
               />
             )}
+          </div>
+        );
+      }
+
+      // For Demographics tab - show only demographics data
+      if (activeTab === 'demografie') {
+        return (
+          <div className="p-lg overflow-auto h-full">
+            <MultiLevelDataTable
+              data={data}
+              locale={locale}
+              defaultSource="demographics"
+              lockSourceFilter={true}
+            />
+          </div>
+        );
+      }
+
+      // For Safety tab - show only safety data
+      if (activeTab === 'veiligheid') {
+        return (
+          <div className="p-lg overflow-auto h-full">
+            <MultiLevelDataTable
+              data={data}
+              locale={locale}
+              defaultSource="safety"
+              lockSourceFilter={true}
+            />
+          </div>
+        );
+      }
+
+      // For Health tab - show only health data
+      if (activeTab === 'gezondheid') {
+        return (
+          <div className="p-lg overflow-auto h-full">
+            <MultiLevelDataTable
+              data={data}
+              locale={locale}
+              defaultSource="health"
+              lockSourceFilter={true}
+            />
+          </div>
+        );
+      }
+
+      // For Livability tab - show only livability data
+      if (activeTab === 'leefbaarheid') {
+        return (
+          <div className="p-lg overflow-auto h-full">
+            <MultiLevelDataTable
+              data={data}
+              locale={locale}
+              defaultSource="livability"
+              lockSourceFilter={true}
+            />
           </div>
         );
       }
