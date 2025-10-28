@@ -4,12 +4,11 @@
  * Altum AI API Client
  * Interactive Reference API - Housing Market Data
  *
- * This client fetches comparable property data for valuation purposes
+ * This client fetches comparable property data via our API route
  */
 
 import type { LocationData } from '../../services/locationGeocoder';
 import type {
-  AltumAIRequest,
   AltumAIResponse,
   ResidentialData,
 } from './types';
@@ -28,52 +27,26 @@ interface ParsedAddress {
  * Altum AI Client
  */
 export class AltumAIClient {
-  private readonly apiKey: string;
-  private readonly baseUrl = 'https://api.altum.ai/interactive-reference';
+  private readonly apiUrl = '/api/location/residential';
   private readonly parser: AltumAIParser;
 
-  // Default search parameters (from user's schema)
-  private readonly defaultParams = {
-    strict_energylabel: false,
-    strict_street: false,
-    strict_buurt: false,
-    strict_wijk: false,
-    comparable_housetype: 0,
-    comparable_innersurfacearea: 0,
-    comparable_distance: 0,
-    reference_number: 30,
-    weight_distance: 0.8,
-    weight_innersurfacearea: 0.2,
-    weight_transactiondate: 0.2,
-    weight_buildyear: 0.5,
-    date_limit: 60,
-    weight_visualsimilarity: 0.5,
-    visual_similarity: false,
-    include_funda_data: false,
-  };
-
-  constructor(apiKey?: string) {
-    this.apiKey = apiKey || process.env.Altum_AI_Key || process.env.ALTUM_AI_KEY || process.env.NEXT_PUBLIC_ALTUM_AI_KEY || '';
+  constructor() {
     this.parser = new AltumAIParser();
-
-    if (!this.apiKey) {
-      console.warn('⚠️  [Altum AI Client] API key not configured');
-    }
   }
 
   /**
    * Parse address string to extract postcode, housenumber, and addition
-   * Example inputs:
+   * Supports various Dutch address formats:
    *   "Kerkstraat 37C, 3021AC Rotterdam"
    *   "3021AC 37 C"
-   *   "Postcode: 3021AC, Number: 37C"
+   *   "Straatnaam 123-A, 1234 AB Plaats"
    */
   private parseAddress(address: string): ParsedAddress | null {
     try {
       console.log(`🔍 [Altum AI] Parsing address: ${address}`);
 
-      // Pattern 1: Match postcode (6 chars: 4 digits + 2 letters)
-      const postcodePattern = /\b(\d{4}\s?[A-Z]{2})\b/i;
+      // Pattern 1: Match Dutch postcode (4 digits + 2 letters, optionally with space)
+      const postcodePattern = /\b(\d{4})\s?([A-Z]{2})\b/i;
       const postcodeMatch = address.match(postcodePattern);
 
       if (!postcodeMatch) {
@@ -81,11 +54,11 @@ export class AltumAIClient {
         return null;
       }
 
-      const postcode = postcodeMatch[1].replace(/\s/g, '').toUpperCase();
+      const postcode = (postcodeMatch[1] + postcodeMatch[2]).toUpperCase();
 
-      // Pattern 2: Match house number (digits, optionally followed by letter/addition)
-      // Look for number near the postcode
-      const numberPattern = /\b(\d+)\s*([A-Z]{1,3})?\b/gi;
+      // Pattern 2: Match house number with optional addition
+      // Supports formats: "37", "37C", "37-C", "37 C", "37c"
+      const numberPattern = /\b(\d+)\s*[-]?\s*([A-Za-z]{1,4})?\b/g;
       const numberMatches = [...address.matchAll(numberPattern)];
 
       if (numberMatches.length === 0) {
@@ -93,9 +66,29 @@ export class AltumAIClient {
         return null;
       }
 
-      // Take the first match as house number
-      const housenumber = parseInt(numberMatches[0][1], 10);
-      const houseaddition = numberMatches[0][2] || undefined;
+      // Find the house number (should be before or after the postcode)
+      let housenumber: number | null = null;
+      let houseaddition: string | undefined;
+
+      // Try to find a number that's not part of the postcode
+      for (const match of numberMatches) {
+        const num = parseInt(match[1], 10);
+        const addition = match[2];
+
+        // Skip if this looks like it's part of the postcode
+        if (match[1] === postcodeMatch[1]) {
+          continue;
+        }
+
+        housenumber = num;
+        houseaddition = addition ? addition.toUpperCase() : undefined;
+        break;
+      }
+
+      if (housenumber === null) {
+        console.warn(`⚠️  [Altum AI] Could not extract house number from: ${address}`);
+        return null;
+      }
 
       console.log(`✅ [Altum AI] Parsed: ${postcode} ${housenumber}${houseaddition || ''}`);
 
@@ -125,26 +118,14 @@ export class AltumAIClient {
         return null;
       }
 
-      // Build request body
-      const requestBody: AltumAIRequest = {
+      console.log(`📤 [Altum AI] Request:`, {
         postcode: parsedAddress.postcode,
         housenumber: parsedAddress.housenumber,
-        ...this.defaultParams,
-      };
-
-      // Add house addition if present
-      if (parsedAddress.houseaddition) {
-        requestBody.houseaddition = parsedAddress.houseaddition;
-      }
-
-      console.log(`📤 [Altum AI] Request:`, {
-        postcode: requestBody.postcode,
-        housenumber: requestBody.housenumber,
-        houseaddition: requestBody.houseaddition,
+        houseaddition: parsedAddress.houseaddition,
       });
 
-      // Make API request
-      const response = await this.makeRequest(requestBody);
+      // Make API request via our server-side route
+      const response = await this.makeRequest(parsedAddress);
 
       if (!response) {
         return null;
@@ -168,60 +149,51 @@ export class AltumAIClient {
   }
 
   /**
-   * Make HTTP request to Altum AI API
+   * Make HTTP request to our API route (which calls Altum AI)
    */
   private async makeRequest(
-    body: AltumAIRequest
+    address: ParsedAddress
   ): Promise<AltumAIResponse | null> {
     const startTime = Date.now();
 
     try {
-      if (!this.apiKey) {
-        throw new Error('Altum AI API key not configured');
-      }
-
-      const response = await fetch(this.baseUrl, {
+      const response = await fetch(this.apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': this.apiKey,
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          postcode: address.postcode,
+          housenumber: address.housenumber,
+          houseaddition: address.houseaddition,
+        }),
       });
 
       const responseTime = Date.now() - startTime;
 
       if (!response.ok) {
-        // Handle 422 Unprocessable Entity (wrong input format)
-        if (response.status === 422) {
-          console.error(`❌ [Altum AI] Invalid request format (422)`);
-          const errorData = await response.json().catch(() => ({}));
-          console.error(`❌ [Altum AI] Error details:`, errorData);
-          return null;
-        }
-
+        const errorData = await response.json().catch(() => ({}));
         console.error(
-          `❌ [Altum AI] API error: ${response.status} ${response.statusText}`
+          `❌ [Altum AI] API route error: ${response.status} ${response.statusText}`
         );
+        console.error(`❌ [Altum AI] Error details:`, errorData);
         return null;
       }
 
-      const data: AltumAIResponse = await response.json();
+      const result = await response.json();
+
+      if (!result.success || !result.data) {
+        console.error(`❌ [Altum AI] Invalid response from API route`);
+        return null;
+      }
 
       console.log(`⏱️  [Altum AI] Request completed in ${responseTime}ms`);
 
-      return data;
+      return result.data;
     } catch (error) {
       const responseTime = Date.now() - startTime;
       console.error(`❌ [Altum AI] Request failed after ${responseTime}ms:`, error);
       return null;
     }
-  }
-
-  /**
-   * Check if API key is configured
-   */
-  isConfigured(): boolean {
-    return this.apiKey !== '';
   }
 }
