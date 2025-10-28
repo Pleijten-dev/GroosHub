@@ -110,8 +110,21 @@ export class AltumAIClient {
     try {
       console.log(`🔵 [Altum AI] Fetching reference data for: ${locationData.address}`);
 
-      // Parse address to extract postcode and house number
-      const parsedAddress = this.parseAddress(locationData.address);
+      let parsedAddress: ParsedAddress | null = null;
+
+      // Priority 1: Use fullAddress data from PDOK if available
+      if (locationData.fullAddress) {
+        console.log(`✅ [Altum AI] Using PDOK address data`);
+        parsedAddress = {
+          postcode: locationData.fullAddress.postcode,
+          housenumber: locationData.fullAddress.houseNumber,
+          houseaddition: locationData.fullAddress.houseNumberAddition,
+        };
+      } else {
+        // Fallback: Try to parse from address string
+        console.log(`⚠️  [Altum AI] PDOK data not available, parsing address string`);
+        parsedAddress = this.parseAddress(locationData.address);
+      }
 
       if (!parsedAddress) {
         console.error(`❌ [Altum AI] Could not parse address: ${locationData.address}`);
