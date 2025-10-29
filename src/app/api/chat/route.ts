@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       return new Response('Unauthorized', { status: 401 });
     }
 
-    const { messages, model = DEFAULT_CHAT_MODEL, chatId, locale = 'en' } = await req.json();
+    const { messages, model = DEFAULT_CHAT_MODEL, chatId, locale = 'en' } = await req.json() as { messages: Array<{ role: string; content: string }>; model?: string; chatId?: string; locale?: string };
 
     if (!messages || !Array.isArray(messages)) {
       return new Response('Invalid request: messages array required', { status: 400 });
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     let currentChatId = chatId;
     if (!currentChatId) {
       // Create new chat with title from first user message
-      const firstMessage = messages.find((m: any) => m.role === 'user');
+      const firstMessage = messages.find((m: { role: string; content: string }) => m.role === 'user');
       const title = firstMessage?.content?.substring(0, 100) || 'New Chat';
       const chat = await createChat(session.user.id, title);
       currentChatId = chat.id;
@@ -73,8 +73,8 @@ export async function POST(req: Request) {
     response.headers.set('X-Chat-Id', currentChatId);
 
     return response;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Chat API error:', error);
-    return new Response(error.message || 'Internal server error', { status: 500 });
+    return new Response(error instanceof Error ? error.message : 'Internal server error', { status: 500 });
   }
 }

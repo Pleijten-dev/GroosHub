@@ -83,7 +83,7 @@ export async function getMessagesByChatId(chatId: string): Promise<ChatMessage[]
     ORDER BY created_at ASC
   `;
 
-  return result.map((message: any) => ({
+  return result.map((message: { id: string; role: string; content: string; createdAt: Date }) => ({
     id: message.id,
     role: message.role as 'user' | 'assistant' | 'system' | 'tool',
     content: message.content,

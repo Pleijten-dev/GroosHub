@@ -10,7 +10,7 @@ export interface UseChatOptions {
   model?: string;
   locale?: string;
   initialMessages?: ChatMessage[];
-  onFinish?: (message: any) => void;
+  onFinish?: (message: ChatMessage) => void;
   onError?: (error: Error) => void;
 }
 

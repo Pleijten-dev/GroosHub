@@ -73,12 +73,6 @@ export function getTextFromMessage(message: ChatMessage): string {
     return message.content;
   }
 
-  if (Array.isArray(message.content)) {
-    return message.content
-      .filter((part: any) => part.type === 'text')
-      .map((part: any) => part.text)
-      .join('');
-  }
 
   return '';
 }

@@ -6,12 +6,12 @@ import { useChat } from '../../hooks/useChat';
 import { DEFAULT_CHAT_MODEL } from '../../lib/ai/models';
 import { ChatMessages } from './ChatMessages';
 import { ChatInput } from './ChatInput';
-import { cn } from '../../lib/utils';
+import type { ChatMessage } from '../../types/message';
 
 interface ChatInterfaceProps {
   locale: string;
   chatId?: string;
-  initialMessages?: any[];
+  initialMessages?: ChatMessage[];
 }
 
 export function ChatInterface({
@@ -66,7 +66,7 @@ export function ChatInterface({
 
       {/* Messages */}
       <ChatMessages
-        messages={messages as any}
+        messages={messages as ChatMessage[]}
         locale={locale}
         isLoading={isLoading}
       />

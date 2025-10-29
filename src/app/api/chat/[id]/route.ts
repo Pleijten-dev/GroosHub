@@ -32,10 +32,10 @@ export async function GET(
     const messages = await getMessagesByChatId(id);
 
     return Response.json({ chat, messages });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Get chat error:', error);
     return Response.json(
-      { error: error.message || 'Failed to fetch chat' },
+      { error: error instanceof Error ? error.message : 'Failed to fetch chat' },
       { status: 500 }
     );
   }
@@ -72,10 +72,10 @@ export async function PATCH(
     await updateChatTitle(id, title);
 
     return Response.json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Update chat error:', error);
     return Response.json(
-      { error: error.message || 'Failed to update chat' },
+      { error: error instanceof Error ? error.message : 'Failed to update chat' },
       { status: 500 }
     );
   }
@@ -106,10 +106,10 @@ export async function DELETE(
     await deleteChat(id);
 
     return Response.json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Delete chat error:', error);
     return Response.json(
-      { error: error.message || 'Failed to delete chat' },
+      { error: error instanceof Error ? error.message : 'Failed to delete chat' },
       { status: 500 }
     );
   }

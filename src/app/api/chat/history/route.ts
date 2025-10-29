@@ -12,10 +12,10 @@ export async function GET() {
     const chats = await getChatsByUserId(session.user.id);
 
     return Response.json({ chats });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Get chat history error:', error);
     return Response.json(
-      { error: error.message || 'Failed to fetch chat history' },
+      { error: error instanceof Error ? error.message : 'Failed to fetch chat history' },
       { status: 500 }
     );
   }
