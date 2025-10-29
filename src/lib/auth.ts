@@ -56,10 +56,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const db = getDbConnection();
 
           // Query user from database
-          const result = await db(
-            'SELECT id, name, email, role, password FROM users WHERE email = $1',
-            [credentials.email as string]
-          );
+          const result = await db`
+            SELECT id, name, email, role, password
+            FROM users
+            WHERE email = ${credentials.email as string}
+          `;
 
           if (result.length === 0) {
             return null;

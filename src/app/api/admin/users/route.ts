@@ -7,7 +7,7 @@ import bcrypt from 'bcryptjs';
  * GET /api/admin/users
  * Get all users (admin only)
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await auth();
 
@@ -22,9 +22,11 @@ export async function GET(request: NextRequest) {
     const db = getDbConnection();
 
     // Get all users (excluding passwords)
-    const users = await db(
-      'SELECT id, name, email, role, created_at, updated_at FROM users ORDER BY created_at DESC'
-    );
+    const users = await db`
+      SELECT id, name, email, role, created_at, updated_at
+      FROM users
+      ORDER BY created_at DESC
+    `;
 
     return NextResponse.json({ users });
   } catch (error) {
@@ -74,10 +76,9 @@ export async function POST(request: NextRequest) {
     const db = getDbConnection();
 
     // Check if email already exists
-    const existingUser = await db(
-      'SELECT id FROM users WHERE email = $1',
-      [email]
-    );
+    const existingUser = await db`
+      SELECT id FROM users WHERE email = ${email}
+    `;
 
     if (existingUser.length > 0) {
       return NextResponse.json(
@@ -90,10 +91,11 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create user
-    const result = await db(
-      'INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role, created_at',
-      [name, email, hashedPassword, role]
-    );
+    const result = await db`
+      INSERT INTO users (name, email, password, role)
+      VALUES (${name}, ${email}, ${hashedPassword}, ${role})
+      RETURNING id, name, email, role, created_at
+    `;
 
     return NextResponse.json(
       { user: result[0], message: 'User created successfully' },
@@ -146,17 +148,18 @@ export async function PUT(request: NextRequest) {
     const db = getDbConnection();
 
     // Check if user exists
-    const existingUser = await db('SELECT id FROM users WHERE id = $1', [id]);
+    const existingUser = await db`
+      SELECT id FROM users WHERE id = ${id}
+    `;
 
     if (existingUser.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Check if email is already taken by another user
-    const emailCheck = await db(
-      'SELECT id FROM users WHERE email = $1 AND id != $2',
-      [email, id]
-    );
+    const emailCheck = await db`
+      SELECT id FROM users WHERE email = ${email} AND id != ${id}
+    `;
 
     if (emailCheck.length > 0) {
       return NextResponse.json(
@@ -169,15 +172,19 @@ export async function PUT(request: NextRequest) {
     let result;
     if (password) {
       const hashedPassword = await bcrypt.hash(password, 10);
-      result = await db(
-        'UPDATE users SET name = $1, email = $2, password = $3, role = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5 RETURNING id, name, email, role, updated_at',
-        [name, email, hashedPassword, role, id]
-      );
+      result = await db`
+        UPDATE users
+        SET name = ${name}, email = ${email}, password = ${hashedPassword}, role = ${role}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${id}
+        RETURNING id, name, email, role, updated_at
+      `;
     } else {
-      result = await db(
-        'UPDATE users SET name = $1, email = $2, role = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4 RETURNING id, name, email, role, updated_at',
-        [name, email, role, id]
-      );
+      result = await db`
+        UPDATE users
+        SET name = ${name}, email = ${email}, role = ${role}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${id}
+        RETURNING id, name, email, role, updated_at
+      `;
     }
 
     return NextResponse.json({
@@ -230,14 +237,16 @@ export async function DELETE(request: NextRequest) {
     const db = getDbConnection();
 
     // Check if user exists
-    const existingUser = await db('SELECT id FROM users WHERE id = $1', [id]);
+    const existingUser = await db`
+      SELECT id FROM users WHERE id = ${id}
+    `;
 
     if (existingUser.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Delete user
-    await db('DELETE FROM users WHERE id = $1', [id]);
+    await db`DELETE FROM users WHERE id = ${id}`;
 
     return NextResponse.json({ message: 'User deleted successfully' });
   } catch (error) {
