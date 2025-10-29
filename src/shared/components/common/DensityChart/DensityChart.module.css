@@ -1,0 +1,108 @@
+/* styles/components/DensityChart.css - Black and white distribution chart styling */
+
+.density-chart {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: visible !important;
+  position: relative;
+  background: #ffffff;
+}
+
+.density-chart svg {
+  background: #ffffff;
+  overflow: visible !important;
+  position: relative;
+}
+
+/* Area styling */
+.density-chart .area {
+  fill: #000000;
+  opacity: 0.15;
+}
+
+.density-chart .line {
+  fill: none;
+  stroke: #000000;
+  stroke-width: 2px;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* Histogram bar styling */
+.density-chart .bar {
+  fill: #000000;
+  opacity: 0.7;
+  stroke: none;
+  transition: opacity 0.2s ease;
+}
+
+.density-chart .bar:hover {
+  opacity: 0.9;
+}
+
+/* Grid lines */
+.density-chart .grid-line-horizontal,
+.density-chart .grid-line-vertical {
+  stroke: #e5e5e5;
+  stroke-width: 1;
+  stroke-dasharray: 3, 3;
+}
+
+/* Axis styling */
+.density-chart .x-axis path,
+.density-chart .x-axis line,
+.density-chart .y-axis path,
+.density-chart .y-axis line {
+  stroke: #333333;
+  stroke-width: 1;
+}
+
+.density-chart .x-axis text,
+.density-chart .y-axis text {
+  font-size: 11px;
+  font-family: Arial, sans-serif;
+  fill: #666666;
+}
+
+/* Title styling */
+.density-chart text.title {
+  font-size: 14px;
+  font-weight: 600;
+  font-family: Arial, sans-serif;
+  fill: #000000;
+}
+
+/* Prevent text selection */
+.density-chart {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Ensure proper rendering across browsers */
+.density-chart text {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  text-rendering: optimizeLegibility;
+}
+
+/* Container wrapper */
+.density-chart-container {
+  position: relative;
+  overflow: visible !important;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #ffffff;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .density-chart .x-axis text,
+  .density-chart .y-axis text {
+    font-size: 9px;
+  }
+}

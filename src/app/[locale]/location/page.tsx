@@ -10,6 +10,7 @@ import { MultiLevelDataTable } from '../../../features/location/components/DataT
 import { AmenitiesGrid, AmenitiesSummary } from '../../../features/location/components/Amenities';
 import { ResidentialSummary, ResidentialGrid } from '../../../features/location/components/Residential';
 import { DoelgroepenGrid } from '../../../features/location/components/Doelgroepen';
+import { RadialChart, BarChart, DensityChart } from '../../../shared/components/common';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -292,6 +293,82 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         );
       }
 
+      // For PVE (Programma van Eisen) tab - show charts with dummy data
+      if (activeTab === 'pve') {
+        // Dummy data for RadialChart
+        const radialData = [
+          { name: 'Veiligheid', value: 85, color: '#48806a' },
+          { name: 'Toegankelijkheid', value: 72, color: '#477638' },
+          { name: 'Voorzieningen', value: 90, color: '#8a976b' },
+          { name: 'Groen', value: 65, color: '#0c211a' },
+          { name: 'Mobiliteit', value: 78, color: '#48806a' },
+          { name: 'Sociale cohesie', value: 68, color: '#477638' },
+          { name: 'Leefbaarheid', value: 82, color: '#8a976b' },
+          { name: 'Duurzaamheid', value: 74, color: '#0c211a' }
+        ];
+
+        // Dummy data for BarChart
+        const barData = [
+          { name: 'Week 1', value: 45, color: '#48806a' },
+          { name: 'Week 2', value: 62, color: '#477638' },
+          { name: 'Week 3', value: 58, color: '#8a976b' },
+          { name: 'Week 4', value: 71, color: '#0c211a' },
+          { name: 'Week 5', value: 55, color: '#48806a' },
+          { name: 'Week 6', value: 68, color: '#477638' }
+        ];
+
+        return (
+          <div className="p-lg overflow-auto h-full">
+            <div className="space-y-lg">
+              <div>
+                <h2 className="text-2xl font-bold text-text-primary mb-base">
+                  {locale === 'nl' ? 'Programma van Eisen - Analyse' : 'Requirements Program - Analysis'}
+                </h2>
+                <p className="text-sm text-text-secondary mb-lg">
+                  {locale === 'nl'
+                    ? 'Visualisaties van de belangrijkste criteria en trends.'
+                    : 'Visualizations of key criteria and trends.'}
+                </p>
+              </div>
+
+              {/* Radial Chart Section */}
+              <div className="bg-white rounded-lg shadow-sm p-base border border-gray-200">
+                <h3 className="text-lg font-semibold text-text-primary mb-base">
+                  {locale === 'nl' ? 'Score Overzicht' : 'Score Overview'}
+                </h3>
+                <div className="flex justify-center">
+                  <RadialChart
+                    data={radialData}
+                    width={600}
+                    height={500}
+                    showLabels={true}
+                    isSimple={false}
+                  />
+                </div>
+              </div>
+
+              {/* Bar Chart Section */}
+              <div className="bg-white rounded-lg shadow-sm p-base border border-gray-200">
+                <h3 className="text-lg font-semibold text-text-primary mb-base">
+                  {locale === 'nl' ? 'Trend Analyse' : 'Trend Analysis'}
+                </h3>
+                <div className="flex justify-center">
+                  <BarChart
+                    data={barData}
+                    width={700}
+                    height={400}
+                    showLabels={true}
+                    showAverageLine={true}
+                    minValue={0}
+                    maxValue={100}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
       // For other tabs - just show data table
       return (
         <div className="p-lg overflow-auto h-full">
@@ -306,6 +383,136 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
       return (
         <div className="p-lg overflow-auto h-full">
           <DoelgroepenGrid locale={locale} />
+        </div>
+      );
+    }
+
+    // For PVE tab - always show it with dummy data (no data needed)
+    if (activeTab === 'pve') {
+      // Dummy data for RadialChart
+      const radialData = [
+        { name: 'Veiligheid', value: 85, color: '#48806a' },
+        { name: 'Toegankelijkheid', value: 72, color: '#477638' },
+        { name: 'Voorzieningen', value: 90, color: '#8a976b' },
+        { name: 'Groen', value: 65, color: '#0c211a' },
+        { name: 'Mobiliteit', value: 78, color: '#48806a' },
+        { name: 'Sociale cohesie', value: 68, color: '#477638' },
+        { name: 'Leefbaarheid', value: 82, color: '#8a976b' },
+        { name: 'Duurzaamheid', value: 74, color: '#0c211a' }
+      ];
+
+      // Dummy data for BarChart
+      const barData = [
+        { name: 'Week 1', value: 45, color: '#48806a' },
+        { name: 'Week 2', value: 62, color: '#477638' },
+        { name: 'Week 3', value: 58, color: '#8a976b' },
+        { name: 'Week 4', value: 71, color: '#0c211a' },
+        { name: 'Week 5', value: 55, color: '#48806a' },
+        { name: 'Week 6', value: 68, color: '#477638' }
+      ];
+
+      // Dummy data for DensityChart - distribution data
+      const densityData = [
+        { x: 0, y: 5 },
+        { x: 10, y: 12 },
+        { x: 20, y: 28 },
+        { x: 30, y: 45 },
+        { x: 40, y: 68 },
+        { x: 50, y: 85 },
+        { x: 60, y: 92 },
+        { x: 70, y: 78 },
+        { x: 80, y: 52 },
+        { x: 90, y: 28 },
+        { x: 100, y: 12 },
+        { x: 110, y: 5 }
+      ];
+
+      return (
+        <div className="p-lg overflow-auto h-full">
+          <div className="space-y-lg">
+            <div>
+              <h2 className="text-2xl font-bold text-text-primary mb-base">
+                {locale === 'nl' ? 'Programma van Eisen - Analyse' : 'Requirements Program - Analysis'}
+              </h2>
+              <p className="text-sm text-text-secondary mb-lg">
+                {locale === 'nl'
+                  ? 'Visualisaties van de belangrijkste criteria en trends.'
+                  : 'Visualizations of key criteria and trends.'}
+              </p>
+            </div>
+
+            {/* Radial Chart Section */}
+            <div className="bg-white rounded-lg shadow-sm p-base border border-gray-200">
+              <h3 className="text-lg font-semibold text-text-primary mb-base">
+                {locale === 'nl' ? 'Score Overzicht' : 'Score Overview'}
+              </h3>
+              <div className="flex justify-center">
+                <RadialChart
+                  data={radialData}
+                  width={600}
+                  height={500}
+                  showLabels={true}
+                  isSimple={false}
+                />
+              </div>
+            </div>
+
+            {/* Bar Chart Section */}
+            <div className="bg-white rounded-lg shadow-sm p-base border border-gray-200">
+              <h3 className="text-lg font-semibold text-text-primary mb-base">
+                {locale === 'nl' ? 'Trend Analyse' : 'Trend Analysis'}
+              </h3>
+              <div className="flex justify-center">
+                <BarChart
+                  data={barData}
+                  width={700}
+                  height={400}
+                  showLabels={true}
+                  showAverageLine={true}
+                  minValue={0}
+                  maxValue={100}
+                />
+              </div>
+            </div>
+
+            {/* Density Charts Section - Side by Side */}
+            <div className="bg-white rounded-lg shadow-sm p-base border border-gray-200">
+              <h3 className="text-lg font-semibold text-text-primary mb-base">
+                {locale === 'nl' ? 'Distributie Analyse' : 'Distribution Analysis'}
+              </h3>
+              <div className="grid grid-cols-2 gap-base">
+                {/* Area Chart */}
+                <div className="flex flex-col items-center">
+                  <h4 className="text-sm font-medium text-text-secondary mb-sm">
+                    {locale === 'nl' ? 'Gebied Grafiek' : 'Area Chart'}
+                  </h4>
+                  <DensityChart
+                    data={densityData}
+                    width={450}
+                    height={300}
+                    mode="area"
+                    showLabels={true}
+                    showGrid={false}
+                  />
+                </div>
+
+                {/* Histogram */}
+                <div className="flex flex-col items-center">
+                  <h4 className="text-sm font-medium text-text-secondary mb-sm">
+                    {locale === 'nl' ? 'Histogram' : 'Histogram'}
+                  </h4>
+                  <DensityChart
+                    data={densityData}
+                    width={450}
+                    height={300}
+                    mode="histogram"
+                    showLabels={true}
+                    showGrid={false}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       );
     }
