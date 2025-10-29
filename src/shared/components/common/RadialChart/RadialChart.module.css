@@ -1,0 +1,195 @@
+/* styles/components/RadialChart.css - FINAL OVERFLOW FIX */
+
+.radial-chart {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: visible !important; /* CRITICAL: Allow hover effects to extend beyond container */
+  position: relative; /* Establish positioning context */
+}
+
+.radial-chart svg {
+  background: transparent;
+  overflow: visible !important; /* CRITICAL: Prevent clipping of scaled elements */
+  position: relative;
+}
+
+/* EXACT styling from your HTML reference */
+.radial-chart .label {
+  font-size: 5.5px;
+  font-weight: 500;
+  fill: #292928;
+  font-family: Arial, sans-serif;
+  text-rendering: optimizeLegibility;
+  pointer-events: none; /* Prevent interference with hover */
+}
+
+.radial-chart .value-label {
+  font-size: 12px;
+  font-weight: bold;
+  fill: #292928;
+  font-family: Arial, sans-serif;
+  text-rendering: optimizeLegibility;
+  pointer-events: none; /* Prevent interference with hover */
+}
+
+/* Slice group styling - TRANSITION-SAFE OVERFLOW */
+.radial-chart .slice-group {
+  cursor: pointer;
+  overflow: visible !important; /* Ensure group elements can overflow */
+}
+
+.radial-chart .slice-group .bar {
+  transition: all 0.2s ease; /* Individual element transitions for smooth scaling */
+  overflow: visible !important; /* CRITICAL: Prevent clipping during transitions */
+}
+
+.radial-chart .slice-group .background-bar {
+  transition: all 0.2s ease; /* Individual element transitions for smooth scaling */
+  overflow: visible !important; /* CRITICAL: Prevent clipping during transitions */
+}
+
+.radial-chart .slice-group:hover .bar {
+  filter: brightness(1.05);
+}
+
+/* Label group styling - TRANSITION-SAFE with overflow handling */
+.radial-chart .label-group {
+  transition: all 0.2s ease; /* Smooth label scaling and repositioning */
+  overflow: visible !important; /* Allow labels to extend during scaling */
+  pointer-events: none; /* Prevent interference with slice hover */
+}
+
+/* Individual label elements - ensure they can overflow during transitions */
+.radial-chart .label-group text {
+  overflow: visible !important;
+}
+
+.radial-chart .label-group .label {
+  overflow: visible !important;
+}
+
+.radial-chart .label-group .value-label {
+  overflow: visible !important;
+}
+
+/* Average circle styling - EXACT from HTML reference */
+.radial-chart .average-circle {
+  pointer-events: none;
+}
+
+/* Scoring specific styling - COMPREHENSIVE OVERFLOW HANDLING */
+.scoring-radial-chart {
+  overflow: visible !important;
+  position: relative;
+  z-index: 1;
+}
+
+.scoring-radial-chart svg {
+  overflow: visible !important;
+  position: relative;
+}
+
+.scoring-radial-chart .slice-group {
+  overflow: visible !important;
+}
+
+.scoring-radial-chart .label-group {
+  overflow: visible !important;
+}
+
+/* Responsive adjustments for dense charts (24+ slices) */
+.radial-chart[data-slice-count="24"] .label {
+  font-size: 4.5px; /* Smaller text for dense layouts */
+}
+
+.radial-chart[data-slice-count="24"] .value-label {
+  font-size: 10px; /* Slightly smaller values for dense layouts */
+}
+
+/* Ensure proper rendering across browsers */
+.radial-chart text {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  pointer-events: none;
+  text-rendering: optimizeLegibility;
+}
+
+/* Enhanced hover effects for radial scaling */
+.radial-chart .slice-group:hover {
+  z-index: 10; /* Bring hovered slice to front */
+}
+
+/* Smooth hover transitions with radial scaling */
+.radial-chart .slice-group {
+  overflow: visible !important;
+}
+
+.radial-chart .slice-group:hover .bar {
+  filter: brightness(1.05); /* Slight brightness increase on hover */
+}
+
+/* Prevent text selection and improve performance */
+.radial-chart {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Additional styling for consistent appearance */
+.radial-chart .background-bar {
+  fill: #ACACAC;
+}
+
+.radial-chart .bar {
+  opacity: 0.9;
+}
+
+/* CRITICAL: Container wrapper to handle overflow properly */
+.radial-chart-container {
+  position: relative;
+  overflow: visible !important;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Ensure all child elements can overflow */
+.radial-chart * {
+  overflow: visible !important;
+}
+
+/* Special handling for transformed elements during hover */
+.radial-chart .slice-group.hovering {
+  z-index: 100;
+  overflow: visible !important;
+}
+
+.radial-chart .label-group.scaled {
+  overflow: visible !important;
+  z-index: 101;
+}
+
+/* Browser-specific overflow fixes */
+@supports (overflow: clip) {
+  .radial-chart,
+  .radial-chart svg,
+  .scoring-radial-chart,
+  .scoring-radial-chart svg {
+    overflow: visible !important; /* Override any clip values */
+  }
+}
+
+/* Force overflow visible on all states */
+.radial-chart:hover,
+.radial-chart:active,
+.radial-chart:focus {
+  overflow: visible !important;
+}
+
+.radial-chart svg:hover,
+.radial-chart svg:active {
+  overflow: visible !important;
+}

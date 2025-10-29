@@ -1,0 +1,173 @@
+/* styles/components/BarChart.css - Matching RadialChart styling exactly */
+
+.bar-chart {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: visible !important; /* CRITICAL: Allow hover effects to extend beyond container */
+  position: relative; /* Establish positioning context */
+}
+
+.bar-chart svg {
+  background: transparent;
+  overflow: visible !important; /* CRITICAL: Prevent clipping of scaled elements */
+  position: relative;
+}
+
+/* EXACT styling from RadialChart reference */
+.bar-chart .label {
+  font-size: 5.5px;
+  font-weight: 500;
+  fill: #292928;
+  font-family: Arial, sans-serif;
+  text-rendering: optimizeLegibility;
+  pointer-events: none; /* Prevent interference with hover */
+}
+
+.bar-chart .value-label {
+  font-size: 12px;
+  font-weight: bold;
+  fill: #292928;
+  font-family: Arial, sans-serif;
+  text-rendering: optimizeLegibility;
+  pointer-events: none; /* Prevent interference with hover */
+}
+
+/* Bar group styling - TRANSITION-SAFE OVERFLOW */
+.bar-chart .bar-group {
+  cursor: pointer;
+  overflow: visible !important; /* Ensure group elements can overflow */
+}
+
+.bar-chart .bar-group .bar {
+  transition: all 0.2s ease; /* Individual element transitions for smooth scaling */
+  overflow: visible !important; /* CRITICAL: Prevent clipping during transitions */
+}
+
+.bar-chart .bar-group .background-bar {
+  transition: all 0.2s ease; /* Individual element transitions for smooth scaling */
+  overflow: visible !important; /* CRITICAL: Prevent clipping during transitions */
+}
+
+.bar-chart .bar-group:hover .bar {
+  filter: brightness(1.05);
+}
+
+/* Label group styling - TRANSITION-SAFE with overflow handling */
+.bar-chart .label-group {
+  transition: all 0.2s ease; /* Smooth label scaling and repositioning */
+  overflow: visible !important; /* Allow labels to extend during scaling */
+  pointer-events: none; /* Prevent interference with bar hover */
+}
+
+/* Individual label elements - ensure they can overflow during transitions */
+.bar-chart .label-group text {
+  overflow: visible !important;
+}
+
+.bar-chart .label-group .label {
+  overflow: visible !important;
+}
+
+.bar-chart .label-group .value-label {
+  overflow: visible !important;
+}
+
+/* Average line styling - EXACT from HTML reference */
+.bar-chart .average-line {
+  pointer-events: none;
+}
+
+/* Prevent text selection and improve performance */
+.bar-chart {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Additional styling for consistent appearance */
+.bar-chart .background-bar {
+  fill: #ACACAC;
+}
+
+.bar-chart .bar {
+  opacity: 0.9;
+}
+
+/* CRITICAL: Container wrapper to handle overflow properly */
+.bar-chart-container {
+  position: relative;
+  overflow: visible !important;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Ensure all child elements can overflow */
+.bar-chart * {
+  overflow: visible !important;
+}
+
+/* Special handling for transformed elements during hover */
+.bar-chart .bar-group.hovering {
+  z-index: 100;
+  overflow: visible !important;
+}
+
+.bar-chart .label-group.scaled {
+  overflow: visible !important;
+  z-index: 101;
+}
+
+/* Browser-specific overflow fixes */
+@supports (overflow: clip) {
+  .bar-chart,
+  .bar-chart svg {
+    overflow: visible !important; /* Override any clip values */
+  }
+}
+
+/* Force overflow visible on all states */
+.bar-chart:hover,
+.bar-chart:active,
+.bar-chart:focus {
+  overflow: visible !important;
+}
+
+.bar-chart svg:hover,
+.bar-chart svg:active {
+  overflow: visible !important;
+}
+
+/* Responsive adjustments for dense charts */
+.bar-chart[data-bar-count="10"] .label {
+  font-size: 4.5px; /* Smaller text for dense layouts */
+}
+
+.bar-chart[data-bar-count="10"] .value-label {
+  font-size: 10px; /* Slightly smaller values for dense layouts */
+}
+
+/* Enhanced hover effects for bar scaling */
+.bar-chart .bar-group:hover {
+  z-index: 10; /* Bring hovered bar to front */
+}
+
+/* Smooth hover transitions with bar scaling */
+.bar-chart .bar-group {
+  overflow: visible !important;
+}
+
+.bar-chart .bar-group:hover .bar {
+  filter: brightness(1.05); /* Slight brightness increase on hover */
+}
+
+/* Ensure proper rendering across browsers */
+.bar-chart text {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  pointer-events: none;
+  text-rendering: optimizeLegibility;
+}
