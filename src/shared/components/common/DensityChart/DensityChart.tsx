@@ -19,19 +19,25 @@ interface DensityChartProps {
 }
 
 // D3 type definitions
+interface D3CurveFactory {
+  // D3 curve factory type placeholder
+  _brand?: 'D3CurveFactory';
+}
+
 interface D3Selection {
   selectAll: (selector: string) => D3Selection;
   data: (data: DensityChartData[] | number[][]) => D3Selection;
   enter: () => D3Selection;
   append: (element: string) => D3Selection;
-  attr: (name: string, value: string | number | ((d: any, i?: number) => string | number)) => D3Selection;
+  attr: (name: string, value: string | number | ((d: DensityChartData | number, i?: number) => string | number)) => D3Selection;
   style: (name: string, value: string | number) => D3Selection;
-  text: (value: string | number | ((d: any) => string | number)) => D3Selection;
+  text: (value: string | number | ((d: DensityChartData | number) => string | number)) => D3Selection;
   select: (selector: string) => D3Selection;
   remove: () => D3Selection;
   transition: () => D3Selection;
   duration: (ms: number) => D3Selection;
-  call: (fn: any, ...args: any[]) => D3Selection;
+  call: (fn: (selection: D3Selection, ...args: unknown[]) => void, ...args: unknown[]) => D3Selection;
+  datum: (data: DensityChartData[]) => D3Selection;
 }
 
 interface D3Scale {
@@ -44,7 +50,7 @@ interface D3Scale {
 interface D3Line {
   x: (fn: (d: DensityChartData) => number) => D3Line;
   y: (fn: (d: DensityChartData) => number) => D3Line;
-  curve: (curve: any) => D3Line;
+  curve: (curve: D3CurveFactory) => D3Line;
   (data: DensityChartData[]): string;
 }
 
@@ -52,7 +58,7 @@ interface D3Area {
   x: (fn: (d: DensityChartData) => number) => D3Area;
   y0: (y: number) => D3Area;
   y1: (fn: (d: DensityChartData) => number) => D3Area;
-  curve: (curve: any) => D3Area;
+  curve: (curve: D3CurveFactory) => D3Area;
   (data: DensityChartData[]): string;
 }
 
@@ -71,7 +77,7 @@ interface D3Instance {
   max: (data: DensityChartData[], accessor: (d: DensityChartData) => number) => number;
   axisBottom: (scale: D3Scale) => D3Axis;
   axisLeft: (scale: D3Scale) => D3Axis;
-  curveMonotoneX: any;
+  curveMonotoneX: D3CurveFactory;
 }
 
 /**
