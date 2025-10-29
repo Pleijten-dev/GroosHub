@@ -34,20 +34,31 @@ export function LoginForm({ translations, locale }: LoginFormProps) {
     setError('');
     setLoading(true);
 
+    console.log('🔐 Login attempt:', { email, callbackUrl });
+
     try {
       const result = await signIn('credentials', {
         email,
         password,
         redirect: false,
+        callbackUrl,
       });
 
+      console.log('📊 SignIn result:', result);
+
       if (result?.error) {
+        console.error('❌ Login error:', result.error);
         setError(translations.invalidCredentials);
-      } else {
+      } else if (result?.ok) {
+        console.log('✅ Login successful, redirecting to:', callbackUrl);
         router.push(callbackUrl);
         router.refresh();
+      } else {
+        console.error('❌ Unexpected result:', result);
+        setError(translations.error);
       }
     } catch (err) {
+      console.error('❌ Login exception:', err);
       setError(translations.error);
     } finally {
       setLoading(false);
