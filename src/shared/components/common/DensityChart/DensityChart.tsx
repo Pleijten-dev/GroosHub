@@ -26,7 +26,7 @@ interface D3CurveFactory {
 
 interface D3Selection {
   selectAll: (selector: string) => D3Selection;
-  data: (data: DensityChartData[] | number[][]) => D3Selection;
+  data: (data: DensityChartData[] | number[][] | number[]) => D3Selection;
   enter: () => D3Selection;
   append: (element: string) => D3Selection;
   attr: (name: string, value: string | number | ((d: DensityChartData | number, i?: number) => string | number)) => D3Selection;
