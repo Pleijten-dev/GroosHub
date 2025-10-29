@@ -44,17 +44,16 @@ XAI_API_KEY=your_actual_xai_api_key_here
 ### Step 2: Run Database Migration
 
 ```bash
-# Method 1: Using the migration script (recommended)
-node src/features/chat/scripts/migrate.js
-
-# Method 2: Using psql directly
-psql "$POSTGRES_URL" < src/lib/db/migrations/002_chat_schema.sql
+# Run the migration script (creates all tables including chat tables)
+pnpm db:migrate
 ```
 
-This creates three tables:
-- `chats` - Stores chat conversations
+This creates the following chat tables:
+- `chats` - Stores chat conversations with title
 - `messages` - Stores individual messages
 - `message_votes` - Stores user feedback
+
+**Note:** The migration script will create all database tables including the base schema and chat tables. If you see "already exists" errors, that's normal - it means those tables are already set up.
 
 ### Step 3: Start the Development Server
 
@@ -276,15 +275,14 @@ src/
 2. Test connection: `psql "$POSTGRES_URL" -c "SELECT 1"`
 3. Ensure database is accessible from your network
 
-### Problem: Tables don't exist
+### Problem: Tables don't exist or "column title does not exist"
 **Solution:**
 ```bash
-# Re-run migration
-node src/features/chat/scripts/migrate.js
-
-# Or manually
-psql "$POSTGRES_URL" < src/lib/db/migrations/002_chat_schema.sql
+# Re-run migration to create all tables
+pnpm db:migrate
 ```
+
+This will create the `chats` table with the `title` column and all other required tables.
 
 ### Problem: Streaming doesn't work
 **Solution:**
