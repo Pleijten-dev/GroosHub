@@ -2,7 +2,6 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { ChatInterface } from '@/features/chat/components/chat';
-import { getTranslations } from '@/lib/i18n/config';
 
 export default async function AIAssistantPage({
   params,
@@ -16,8 +15,6 @@ export default async function AIAssistantPage({
   if (!session) {
     redirect(`/${locale}/login?callbackUrl=/${locale}/ai-assistant`);
   }
-
-  const t = await getTranslations(locale);
 
   return (
     <div className="flex h-[calc(100vh-var(--navbar-height))] flex-col">
@@ -33,7 +30,6 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const t = await getTranslations(locale);
 
   return {
     title: locale === 'nl' ? 'AI Assistent - GroosHub' : 'AI Assistant - GroosHub',
