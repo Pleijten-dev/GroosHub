@@ -13,6 +13,12 @@ export interface NavigationBarProps {
   locale: Locale;
   currentPath: string;
   className?: string;
+  user?: {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+  };
 }
 
 export interface NavigationItemProps {
