@@ -237,10 +237,10 @@ const DensityChart: React.FC<DensityChartProps> = ({
             .enter()
             .append('rect')
             .attr('class', 'bar')
-            .attr('x', (d: DensityChartData) => xScale(d.x) - barWidth / 2)
-            .attr('y', (d: DensityChartData) => yScale(d.y))
+            .attr('x', (d) => xScale((d as DensityChartData).x) - barWidth / 2)
+            .attr('y', (d) => yScale((d as DensityChartData).y))
             .attr('width', barWidth)
-            .attr('height', (d: DensityChartData) => chartHeight - yScale(d.y))
+            .attr('height', (d) => chartHeight - yScale((d as DensityChartData).y))
             .style('fill', '#000000')
             .style('opacity', 0.7)
             .style('stroke', 'none');
