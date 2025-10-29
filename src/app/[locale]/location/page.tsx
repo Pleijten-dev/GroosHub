@@ -9,6 +9,7 @@ import { useLocationData } from '../../../features/location/hooks/useLocationDat
 import { MultiLevelDataTable } from '../../../features/location/components/DataTables';
 import { AmenitiesGrid, AmenitiesSummary } from '../../../features/location/components/Amenities';
 import { ResidentialSummary, ResidentialGrid } from '../../../features/location/components/Residential';
+import { DoelgroepenGrid } from '../../../features/location/components/Doelgroepen';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -159,6 +160,15 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
     // Show data if available
     if (data) {
+      // For Doelgroepen tab - show housing personas
+      if (activeTab === 'doelgroepen') {
+        return (
+          <div className="p-lg overflow-auto h-full">
+            <DoelgroepenGrid locale={locale} />
+          </div>
+        );
+      }
+
       // For Score tab - show overview with all data
       if (activeTab === 'score') {
         return (
@@ -291,6 +301,15 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     }
 
     // Show welcome message if no data yet
+    // For Doelgroepen tab - always show it (no data needed)
+    if (activeTab === 'doelgroepen') {
+      return (
+        <div className="p-lg overflow-auto h-full">
+          <DoelgroepenGrid locale={locale} />
+        </div>
+      );
+    }
+
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center max-w-2xl px-base">
