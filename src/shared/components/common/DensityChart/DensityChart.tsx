@@ -24,6 +24,10 @@ interface D3CurveFactory {
   _brand?: 'D3CurveFactory';
 }
 
+interface D3CurveCardinal {
+  tension: (tension: number) => D3CurveFactory;
+}
+
 interface D3Selection {
   selectAll: (selector: string) => D3Selection;
   data: (data: DensityChartData[] | number[][] | number[]) => D3Selection;
@@ -41,7 +45,10 @@ interface D3Selection {
 }
 
 interface D3Scale {
-  domain: (domain: number[]) => D3Scale;
+  domain: {
+    (): number[];
+    (domain: number[]): D3Scale;
+  };
   range: (range: number[]) => D3Scale;
   ticks: (count?: number) => number[];
   (value: number): number;
@@ -79,6 +86,7 @@ interface D3Instance {
   axisBottom: (scale: D3Scale) => D3Axis;
   axisLeft: (scale: D3Scale) => D3Axis;
   curveMonotoneX: D3CurveFactory;
+  curveCardinal: D3CurveCardinal;
 }
 
 /**
@@ -196,18 +204,18 @@ const DensityChart: React.FC<DensityChartProps> = ({
         }
 
         if (mode === 'area') {
-          // Create area generator
+          // Create area generator with smoother curve
           const area = d3.area()
             .x((d: DensityChartData) => xScale(d.x))
             .y0(chartHeight)
             .y1((d: DensityChartData) => yScale(d.y))
-            .curve(d3.curveMonotoneX);
+            .curve(d3.curveCardinal.tension(0.5));
 
-          // Create line generator
+          // Create line generator with smoother curve
           const line = d3.line()
             .x((d: DensityChartData) => xScale(d.x))
             .y((d: DensityChartData) => yScale(d.y))
-            .curve(d3.curveMonotoneX);
+            .curve(d3.curveCardinal.tension(0.5));
 
           // Add filled area
           chartArea
@@ -247,48 +255,33 @@ const DensityChart: React.FC<DensityChartProps> = ({
             .style('stroke', 'none');
         }
 
-        // Add axes if labels enabled
+        // Add only first and last labels on x-axis
         if (showLabels) {
-          // X-axis
-          const xAxis = d3.axisBottom(xScale)
-            .ticks(8)
-            .tickSize(6);
+          const xDomain = xScale.domain();
+          const firstValue = xDomain[0];
+          const lastValue = xDomain[1];
 
+          // First label (left)
           chartArea
-            .append('g')
-            .attr('class', 'x-axis')
-            .attr('transform', `translate(0, ${chartHeight})`)
-            .call(xAxis)
-            .selectAll('text')
+            .append('text')
+            .attr('x', 0)
+            .attr('y', chartHeight + 20)
+            .attr('text-anchor', 'start')
             .style('font-size', '11px')
             .style('font-family', 'Arial, sans-serif')
-            .style('fill', '#666666');
+            .style('fill', '#666666')
+            .text(firstValue.toFixed(0));
 
-          // Style axis line and ticks
-          chartArea.select('.x-axis')
-            .selectAll('path, line')
-            .style('stroke', '#333333')
-            .style('stroke-width', '1');
-
-          // Y-axis
-          const yAxis = d3.axisLeft(yScale)
-            .ticks(5)
-            .tickSize(6);
-
+          // Last label (right)
           chartArea
-            .append('g')
-            .attr('class', 'y-axis')
-            .call(yAxis)
-            .selectAll('text')
+            .append('text')
+            .attr('x', chartWidth)
+            .attr('y', chartHeight + 20)
+            .attr('text-anchor', 'end')
             .style('font-size', '11px')
             .style('font-family', 'Arial, sans-serif')
-            .style('fill', '#666666');
-
-          // Style axis line and ticks
-          chartArea.select('.y-axis')
-            .selectAll('path, line')
-            .style('stroke', '#333333')
-            .style('stroke-width', '1');
+            .style('fill', '#666666')
+            .text(lastValue.toFixed(0));
         }
 
         // Add title if provided
