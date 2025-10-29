@@ -130,6 +130,109 @@ const BarChart: React.FC<BarChartProps> = ({
           .append('g')
           .attr('transform', `translate(${margin.left}, ${margin.top})`);
 
+        // Helpers for ids + stable randomness (same as RadialChart)
+        const slug = (s: string) => s.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        const seeded = (seed: string) => {
+          let h = 2166136261;
+          for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619);
+          return (mod: number, off = 0) => ((Math.abs(Math.sin(h++)) % 1) * mod) + off;
+        };
+
+        // Noise texture controls (same as RadialChart)
+        const NOISE_SCALE = 0.001;
+        const NOISE_BLACK = 0.3;
+        const NOISE_WHITE = 0.8;
+        const NOISE_GAMMA = 1.0;
+
+        // ── Per-bar noise → grayscale → 5-color gradient map, clipped to bar
+        const defs = svg.append('defs');
+
+        defs.selectAll('filter.noiseHeat')
+          .data(data)
+          .enter()
+          .append('filter')
+          .attr('class', 'noiseHeat')
+          .attr('id', (d: BarChartData) => `noise-heat-bar-${slug(d.name)}`)
+          .attr('filterUnits', 'objectBoundingBox')
+          .attr('primitiveUnits', 'objectBoundingBox')
+          .attr('x', -0.2).attr('y', -0.2)
+          .attr('width', 1.4).attr('height', 1.4)
+          .each((d: BarChartData, i: number, nodes: Element[]) => {
+            const f = d3.select(nodes[i] as SVGFilterElement);
+            const rnd = seeded(`${i}-${d.name}`);
+
+            // 1) procedural noise
+            f.append('feTurbulence')
+              .attr('type', 'fractalNoise')
+              .attr('baseFrequency', NOISE_SCALE * (0.9 + rnd(0.2)))
+              .attr('numOctaves', 3)
+              .attr('seed', Math.floor(rnd(10000)))
+              .attr('result', 'noise');
+
+            // 1b) soften
+            f.append('feGaussianBlur')
+              .attr('in', 'noise')
+              .attr('stdDeviation', 0.015)
+              .attr('edgeMode', 'duplicate')
+              .attr('result', 'soft');
+
+            // 2) ensure grayscale
+            f.append('feColorMatrix')
+              .attr('in', 'soft')
+              .attr('type', 'saturate')
+              .attr('values', 0)
+              .attr('result', 'gray');
+
+            // 2b) LEVELS (black/white points)
+            const bp = Math.min(Math.max(NOISE_BLACK, 0), 0.98);
+            const wp = Math.min(Math.max(NOISE_WHITE, bp + 0.01), 1);
+            const slope = 1 / (wp - bp);
+            const intercept = -bp * slope;
+
+            const levels = f.append('feComponentTransfer')
+              .attr('in', 'gray')
+              .attr('result', 'leveled');
+
+            levels.append('feFuncR').attr('type', 'linear')
+              .attr('slope', slope).attr('intercept', intercept);
+            levels.append('feFuncG').attr('type', 'linear')
+              .attr('slope', slope).attr('intercept', intercept);
+            levels.append('feFuncB').attr('type', 'linear')
+              .attr('slope', slope).attr('intercept', intercept);
+
+            // 2c) optional mid-tone curve (gamma)
+            const curve = f.append('feComponentTransfer')
+              .attr('in', 'leveled')
+              .attr('result', 'leveled');
+
+            curve.append('feFuncR').attr('type', 'gamma')
+              .attr('amplitude', 1).attr('exponent', NOISE_GAMMA).attr('offset', 0);
+            curve.append('feFuncG').attr('type', 'gamma')
+              .attr('amplitude', 1).attr('exponent', NOISE_GAMMA).attr('offset', 0);
+            curve.append('feFuncB').attr('type', 'gamma')
+              .attr('amplitude', 1).attr('exponent', NOISE_GAMMA).attr('offset', 0);
+
+            // 3) gradient-map to palette
+            const map = f.append('feComponentTransfer')
+              .attr('in', 'leveled')
+              .attr('result', 'colorized');
+
+            // #0c211a, #48806a, #477638, #8a976b, #f8eee4
+            map.append('feFuncR').attr('type', 'table')
+              .attr('tableValues', '0.047 0.282 0.278 0.541 0.973');
+            map.append('feFuncG').attr('type', 'table')
+              .attr('tableValues', '0.129 0.502 0.463 0.592 0.933');
+            map.append('feFuncB').attr('type', 'table')
+              .attr('tableValues', '0.102 0.416 0.220 0.420 0.894');
+
+            // 4) clip to the bar alpha
+            f.append('feComposite')
+              .attr('in', 'colorized')
+              .attr('in2', 'SourceAlpha')
+              .attr('operator', 'in')
+              .attr('result', 'final');
+          });
+
         // Scales - handle negative to positive ranges
         const xScale = d3.scaleBand()
           .domain(data.map((d: BarChartData) => d.name))
@@ -229,7 +332,7 @@ const BarChart: React.FC<BarChartProps> = ({
           .style("fill", "#ACACAC")
           .style("opacity", 0.3);
 
-        // Add foreground bars (difference values - can be positive or negative)
+        // Add foreground bars with noise texture (same as RadialChart)
         barGroups
           .append("rect")
           .attr("class", "bar")
@@ -247,10 +350,9 @@ const BarChart: React.FC<BarChartProps> = ({
           })
           .attr("rx", 12)
           .attr("ry", 12)
-          .style("fill", (d: BarChartData) => d.color) // Always use original color
-          .style("opacity", 0.9)
-          .style("stroke", "none") // Remove border
-          .style("stroke-width", "0px");
+          .style("fill", '#fff') // Base fill (color comes from filter)
+          .style("opacity", 0.98)
+          .style("filter", (d: BarChartData) => `url(#noise-heat-bar-${slug(d.name)})`);
 
         // Add out-of-bounds indicators for extreme values
         barGroups
