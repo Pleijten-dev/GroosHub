@@ -10,7 +10,7 @@ import {
 // GET /api/chat/[id] - Get chat with messages
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -18,7 +18,8 @@ export async function GET(
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const chat = await getChatById(params.id);
+    const { id } = await params;
+    const chat = await getChatById(id);
 
     if (!chat) {
       return Response.json({ error: 'Chat not found' }, { status: 404 });
@@ -28,7 +29,7 @@ export async function GET(
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const messages = await getMessagesByChatId(params.id);
+    const messages = await getMessagesByChatId(id);
 
     return Response.json({ chat, messages });
   } catch (error: any) {
@@ -43,7 +44,7 @@ export async function GET(
 // PATCH /api/chat/[id] - Update chat title
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -51,7 +52,8 @@ export async function PATCH(
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const chat = await getChatById(params.id);
+    const { id } = await params;
+    const chat = await getChatById(id);
 
     if (!chat) {
       return Response.json({ error: 'Chat not found' }, { status: 404 });
@@ -67,7 +69,7 @@ export async function PATCH(
       return Response.json({ error: 'Invalid title' }, { status: 400 });
     }
 
-    await updateChatTitle(params.id, title);
+    await updateChatTitle(id, title);
 
     return Response.json({ success: true });
   } catch (error: any) {
@@ -82,7 +84,7 @@ export async function PATCH(
 // DELETE /api/chat/[id] - Delete chat
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -90,7 +92,8 @@ export async function DELETE(
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const chat = await getChatById(params.id);
+    const { id } = await params;
+    const chat = await getChatById(id);
 
     if (!chat) {
       return Response.json({ error: 'Chat not found' }, { status: 404 });
@@ -100,7 +103,7 @@ export async function DELETE(
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    await deleteChat(params.id);
+    await deleteChat(id);
 
     return Response.json({ success: true });
   } catch (error: any) {

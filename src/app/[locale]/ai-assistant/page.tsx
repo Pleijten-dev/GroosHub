@@ -7,20 +7,21 @@ import { getTranslations } from '@/lib/i18n/config';
 export default async function AIAssistantPage({
   params,
 }: {
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }) {
+  const { locale } = await params;
   const session = await auth();
 
   // Redirect to login if not authenticated
   if (!session) {
-    redirect(`/${params.locale}/login?callbackUrl=/${params.locale}/ai-assistant`);
+    redirect(`/${locale}/login?callbackUrl=/${locale}/ai-assistant`);
   }
 
-  const t = await getTranslations(params.locale);
+  const t = await getTranslations(locale);
 
   return (
     <div className="flex h-[calc(100vh-var(--navbar-height))] flex-col">
-      <ChatInterface locale={params.locale} />
+      <ChatInterface locale={locale} />
     </div>
   );
 }
@@ -29,14 +30,15 @@ export default async function AIAssistantPage({
 export async function generateMetadata({
   params,
 }: {
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }) {
-  const t = await getTranslations(params.locale);
+  const { locale } = await params;
+  const t = await getTranslations(locale);
 
   return {
-    title: params.locale === 'nl' ? 'AI Assistent - GroosHub' : 'AI Assistant - GroosHub',
+    title: locale === 'nl' ? 'AI Assistent - GroosHub' : 'AI Assistant - GroosHub',
     description:
-      params.locale === 'nl'
+      locale === 'nl'
         ? 'Chat met onze AI assistent over locatiedata, demografie en vastgoed'
         : 'Chat with our AI assistant about location data, demographics, and real estate',
   };

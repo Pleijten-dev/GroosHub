@@ -1,14 +1,15 @@
 // Custom chat hook that wraps AI SDK's useChat
 'use client';
 
-import { useChat as useAIChat } from '@ai-sdk/react';
+import { useChat as useAIChat } from 'ai/react';
 import { useCallback } from 'react';
+import type { ChatMessage } from '../types/message';
 
 export interface UseChatOptions {
   chatId?: string;
   model?: string;
   locale?: string;
-  initialMessages?: any[];
+  initialMessages?: ChatMessage[];
   onFinish?: (message: any) => void;
   onError?: (error: Error) => void;
 }
@@ -22,7 +23,6 @@ export function useChat({
   onError,
 }: UseChatOptions = {}) {
   const chat = useAIChat({
-    api: '/api/chat',
     id: chatId,
     initialMessages,
     body: {

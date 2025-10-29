@@ -1,11 +1,12 @@
 // Chat message types adapted from Vercel AI Chatbot
-import type { Message } from 'ai';
-
 export interface MessageMetadata {
   createdAt: string;
 }
 
-export interface ChatMessage extends Message {
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system' | 'tool';
+  content: string;
   metadata?: MessageMetadata;
 }
 

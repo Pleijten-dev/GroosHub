@@ -22,39 +22,28 @@ export function ChatInterface({
   const [currentChatId, setCurrentChatId] = useState<string | undefined>(initialChatId);
   const [selectedModel, setSelectedModel] = useState(DEFAULT_CHAT_MODEL);
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error } =
-    useChat({
-      chatId: currentChatId,
-      model: selectedModel,
-      locale,
-      initialMessages,
-      onFinish: (message) => {
-        // Extract chat ID from response if this is a new chat
-        if (!currentChatId && message) {
-          // Chat ID will be set via response headers
-          const chatIdFromStorage = localStorage.getItem('lastChatId');
-          if (chatIdFromStorage) {
-            setCurrentChatId(chatIdFromStorage);
-          }
+  const { messages, append, isLoading, error } = useChat({
+    chatId: currentChatId,
+    model: selectedModel,
+    locale,
+    initialMessages,
+    onFinish: (message) => {
+      // Extract chat ID from response if this is a new chat
+      if (!currentChatId && message) {
+        // Chat ID will be set via response headers
+        const chatIdFromStorage = localStorage.getItem('lastChatId');
+        if (chatIdFromStorage) {
+          setCurrentChatId(chatIdFromStorage);
         }
-      },
+      }
+    },
+  });
+
+  const handleSendMessage = async (message: string) => {
+    await append({
+      role: 'user',
+      content: message,
     });
-
-  const handleSendMessage = (message: string) => {
-    const syntheticEvent = {
-      preventDefault: () => {},
-    } as React.FormEvent;
-
-    // Manually update input via the handleInputChange
-    const inputEvent = {
-      target: { value: message },
-    } as React.ChangeEvent<HTMLInputElement>;
-    handleInputChange(inputEvent);
-
-    // Submit after a brief delay to ensure state is updated
-    setTimeout(() => {
-      handleSubmit(syntheticEvent);
-    }, 0);
   };
 
   return (
@@ -76,7 +65,11 @@ export function ChatInterface({
       </div>
 
       {/* Messages */}
-      <ChatMessages messages={messages} locale={locale} isLoading={isLoading} />
+      <ChatMessages
+        messages={messages as any}
+        locale={locale}
+        isLoading={isLoading}
+      />
 
       {/* Error message */}
       {error && (

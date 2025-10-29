@@ -69,7 +69,7 @@ export async function POST(req: Request) {
     });
 
     // Return stream response with chat ID in headers
-    const response = result.toDataStreamResponse();
+    const response = result.toTextStreamResponse();
     response.headers.set('X-Chat-Id', currentChatId);
 
     return response;

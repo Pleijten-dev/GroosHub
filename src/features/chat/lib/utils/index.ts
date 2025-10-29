@@ -1,7 +1,7 @@
 // Utility functions adapted from Vercel AI Chatbot
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import type { ChatMessage } from '../types';
+import type { ChatMessage } from '../../types';
 
 // Tailwind class name utility (using your existing pattern)
 export function cn(...inputs: ClassValue[]) {

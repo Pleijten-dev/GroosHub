@@ -67,12 +67,12 @@ export async function createMessage(
   const message = result[0];
   return {
     id: message.id,
-    role: message.role as any,
+    role: message.role as 'user' | 'assistant' | 'system' | 'tool',
     content: message.content,
     metadata: {
       createdAt: message.createdAt.toISOString(),
     },
-  };
+  } as ChatMessage;
 }
 
 export async function getMessagesByChatId(chatId: string): Promise<ChatMessage[]> {
@@ -85,12 +85,12 @@ export async function getMessagesByChatId(chatId: string): Promise<ChatMessage[]
 
   return result.map((message: any) => ({
     id: message.id,
-    role: message.role,
+    role: message.role as 'user' | 'assistant' | 'system' | 'tool',
     content: message.content,
     metadata: {
       createdAt: message.createdAt.toISOString(),
     },
-  }));
+  } as ChatMessage));
 }
 
 export async function deleteMessage(messageId: string): Promise<void> {
