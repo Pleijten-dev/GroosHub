@@ -10,7 +10,7 @@ interface LoginPageProps {
 
 export default async function LoginPage({ params }: LoginPageProps) {
   const { locale } = await params;
-  const t = await getTranslations(locale);
+  const t = await getTranslations(locale as 'nl' | 'en');
 
   return (
     <Suspense fallback={<div>Loading...</div>}>
