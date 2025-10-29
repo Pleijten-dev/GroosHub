@@ -1,6 +1,6 @@
 // Chat API endpoint with streaming support
 import { auth } from '@/lib/auth';
-import { streamText } from 'ai';
+import { streamText, type CoreMessage } from 'ai';
 import { getLanguageModel } from '@/features/chat/lib/ai/providers';
 import { getSystemPrompt } from '@/features/chat/lib/ai/prompts';
 import { DEFAULT_CHAT_MODEL } from '@/features/chat/lib/ai/models';
@@ -16,9 +16,20 @@ export async function POST(req: Request) {
       return new Response('Unauthorized', { status: 401 });
     }
 
-    const { messages, model = DEFAULT_CHAT_MODEL, chatId, locale = 'en' } = await req.json() as { messages: Array<{ role: string; content: string }>; model?: string; chatId?: string; locale?: string };
+    const body = await req.json();
+    const {
+      messages: rawMessages,
+      model = DEFAULT_CHAT_MODEL,
+      chatId,
+      locale = 'en'
+    } = body as {
+      messages: CoreMessage[];
+      model?: string;
+      chatId?: string;
+      locale?: string
+    };
 
-    if (!messages || !Array.isArray(messages)) {
+    if (!rawMessages || !Array.isArray(rawMessages)) {
       return new Response('Invalid request: messages array required', { status: 400 });
     }
 
@@ -26,8 +37,10 @@ export async function POST(req: Request) {
     let currentChatId = chatId;
     if (!currentChatId) {
       // Create new chat with title from first user message
-      const firstMessage = messages.find((m: { role: string; content: string }) => m.role === 'user');
-      const title = firstMessage?.content?.substring(0, 100) || 'New Chat';
+      const firstMessage = rawMessages.find((m) => m.role === 'user');
+      const title = firstMessage && 'content' in firstMessage
+        ? String(firstMessage.content).substring(0, 100)
+        : 'New Chat';
       const chat = await createChat(session.user.id, title);
       currentChatId = chat.id;
     } else {
@@ -39,15 +52,12 @@ export async function POST(req: Request) {
     }
 
     // Save user message to database
-    const userMessage = messages[messages.length - 1];
-    if (userMessage.role === 'user') {
-      await createMessage(
-        currentChatId,
-        'user',
-        typeof userMessage.content === 'string'
-          ? userMessage.content
-          : JSON.stringify(userMessage.content)
-      );
+    const userMessage = rawMessages[rawMessages.length - 1];
+    if (userMessage && userMessage.role === 'user' && 'content' in userMessage) {
+      const content = typeof userMessage.content === 'string'
+        ? userMessage.content
+        : JSON.stringify(userMessage.content);
+      await createMessage(currentChatId, 'user', content);
     }
 
     // Get system prompt
@@ -61,7 +71,7 @@ export async function POST(req: Request) {
     const result = streamText({
       model: getLanguageModel(model),
       system: systemPrompt,
-      messages,
+      messages: rawMessages,
       async onFinish({ text }) {
         // Save assistant message to database
         await createMessage(currentChatId, 'assistant', text);
