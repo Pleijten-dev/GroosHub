@@ -24,9 +24,6 @@ interface D3CurveFactory {
   _brand?: 'D3CurveFactory';
 }
 
-interface D3CurveCardinal {
-  tension: (tension: number) => D3CurveFactory;
-}
 
 interface D3Selection {
   selectAll: (selector: string) => D3Selection;
@@ -86,7 +83,7 @@ interface D3Instance {
   axisBottom: (scale: D3Scale) => D3Axis;
   axisLeft: (scale: D3Scale) => D3Axis;
   curveMonotoneX: D3CurveFactory;
-  curveCardinal: D3CurveCardinal;
+  curveBasis: D3CurveFactory;
 }
 
 /**
@@ -170,52 +167,19 @@ const DensityChart: React.FC<DensityChartProps> = ({
           .domain(yExtent)
           .range([chartHeight, 0]);
 
-        // Add grid lines if enabled
-        if (showGrid) {
-          // Horizontal grid lines
-          const yTicks = yScale.ticks(5);
-          chartArea.selectAll('.grid-line-horizontal')
-            .data(yTicks)
-            .enter()
-            .append('line')
-            .attr('class', 'grid-line-horizontal')
-            .attr('x1', 0)
-            .attr('x2', chartWidth)
-            .attr('y1', (d) => yScale(d as number))
-            .attr('y2', (d) => yScale(d as number))
-            .style('stroke', '#e5e5e5')
-            .style('stroke-width', '1')
-            .style('stroke-dasharray', '3,3');
-
-          // Vertical grid lines
-          const xTicks = xScale.ticks(8);
-          chartArea.selectAll('.grid-line-vertical')
-            .data(xTicks)
-            .enter()
-            .append('line')
-            .attr('class', 'grid-line-vertical')
-            .attr('x1', (d) => xScale(d as number))
-            .attr('x2', (d) => xScale(d as number))
-            .attr('y1', 0)
-            .attr('y2', chartHeight)
-            .style('stroke', '#e5e5e5')
-            .style('stroke-width', '1')
-            .style('stroke-dasharray', '3,3');
-        }
-
         if (mode === 'area') {
-          // Create area generator with smoother curve
+          // Create area generator with very smooth curve
           const area = d3.area()
             .x((d: DensityChartData) => xScale(d.x))
             .y0(chartHeight)
             .y1((d: DensityChartData) => yScale(d.y))
-            .curve(d3.curveCardinal.tension(0.5));
+            .curve(d3.curveBasis);
 
-          // Create line generator with smoother curve
+          // Create line generator with very smooth curve
           const line = d3.line()
             .x((d: DensityChartData) => xScale(d.x))
             .y((d: DensityChartData) => yScale(d.y))
-            .curve(d3.curveCardinal.tension(0.5));
+            .curve(d3.curveBasis);
 
           // Add filled area
           chartArea

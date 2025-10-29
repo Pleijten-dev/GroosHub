@@ -492,7 +492,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                     height={300}
                     mode="area"
                     showLabels={true}
-                    showGrid={true}
+                    showGrid={false}
                   />
                 </div>
 
@@ -507,7 +507,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                     height={300}
                     mode="histogram"
                     showLabels={true}
-                    showGrid={true}
+                    showGrid={false}
                   />
                 </div>
               </div>
