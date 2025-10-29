@@ -10,7 +10,7 @@ import { MultiLevelDataTable } from '../../../features/location/components/DataT
 import { AmenitiesGrid, AmenitiesSummary } from '../../../features/location/components/Amenities';
 import { ResidentialSummary, ResidentialGrid } from '../../../features/location/components/Residential';
 import { DoelgroepenGrid } from '../../../features/location/components/Doelgroepen';
-import { RadialChart, BarChart } from '../../../shared/components/common';
+import { RadialChart, BarChart, DensityChart } from '../../../shared/components/common';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -411,6 +411,22 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         { name: 'Week 6', value: 68, color: '#477638' }
       ];
 
+      // Dummy data for DensityChart - distribution data
+      const densityData = [
+        { x: 0, y: 5 },
+        { x: 10, y: 12 },
+        { x: 20, y: 28 },
+        { x: 30, y: 45 },
+        { x: 40, y: 68 },
+        { x: 50, y: 85 },
+        { x: 60, y: 92 },
+        { x: 70, y: 78 },
+        { x: 80, y: 52 },
+        { x: 90, y: 28 },
+        { x: 100, y: 12 },
+        { x: 110, y: 5 }
+      ];
+
       return (
         <div className="p-lg overflow-auto h-full">
           <div className="space-y-lg">
@@ -456,6 +472,44 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                   minValue={0}
                   maxValue={100}
                 />
+              </div>
+            </div>
+
+            {/* Density Charts Section - Side by Side */}
+            <div className="bg-white rounded-lg shadow-sm p-base border border-gray-200">
+              <h3 className="text-lg font-semibold text-text-primary mb-base">
+                {locale === 'nl' ? 'Distributie Analyse' : 'Distribution Analysis'}
+              </h3>
+              <div className="grid grid-cols-2 gap-base">
+                {/* Area Chart */}
+                <div className="flex flex-col items-center">
+                  <h4 className="text-sm font-medium text-text-secondary mb-sm">
+                    {locale === 'nl' ? 'Gebied Grafiek' : 'Area Chart'}
+                  </h4>
+                  <DensityChart
+                    data={densityData}
+                    width={450}
+                    height={300}
+                    mode="area"
+                    showLabels={true}
+                    showGrid={true}
+                  />
+                </div>
+
+                {/* Histogram */}
+                <div className="flex flex-col items-center">
+                  <h4 className="text-sm font-medium text-text-secondary mb-sm">
+                    {locale === 'nl' ? 'Histogram' : 'Histogram'}
+                  </h4>
+                  <DensityChart
+                    data={densityData}
+                    width={450}
+                    height={300}
+                    mode="histogram"
+                    showLabels={true}
+                    showGrid={true}
+                  />
+                </div>
               </div>
             </div>
           </div>
