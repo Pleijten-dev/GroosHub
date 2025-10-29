@@ -1,7 +1,7 @@
 // AI Assistant page with locale support
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { ChatInterface } from '@/features/chat/components/chat';
+import { AIAssistantClient } from './AIAssistantClient';
 
 export default async function AIAssistantPage({
   params,
@@ -16,11 +16,7 @@ export default async function AIAssistantPage({
     redirect(`/${locale}/login?callbackUrl=/${locale}/ai-assistant`);
   }
 
-  return (
-    <div className="flex h-[calc(100vh-var(--navbar-height))] flex-col">
-      <ChatInterface locale={locale} />
-    </div>
-  );
+  return <AIAssistantClient locale={locale} userId={session.user.id.toString()} />;
 }
 
 // Metadata
