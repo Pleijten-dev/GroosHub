@@ -5,6 +5,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 import { NavigationBarProps } from './types';
 import { NAVIGATION_ITEMS } from './constants';
 import NavigationItem from './NavigationItem';
@@ -18,6 +19,7 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
   locale,
   currentPath,
   className = '',
+  user,
 }) => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState<boolean>(false);
   const [isLanguageSubMenuOpen, setIsLanguageSubMenuOpen] = useState<boolean>(false);
@@ -58,6 +60,18 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
   // Handle user profile navigation
   const handleUserProfile = () => {
     router.push(`/${locale}/user`);
+    setIsUserMenuOpen(false);
+  };
+
+  // Handle admin navigation
+  const handleAdminPanel = () => {
+    router.push(`/${locale}/admin`);
+    setIsUserMenuOpen(false);
+  };
+
+  // Handle logout
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: `/${locale}/login` });
     setIsUserMenuOpen(false);
   };
 
@@ -159,7 +173,7 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
         </Button>
         
         {/* User Dropdown Menu */}
-        <div 
+        <div
           ref={userDropdownRef}
           className={cn(
             'absolute top-full right-0 mt-sm',
@@ -170,6 +184,17 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
           role="menu"
           aria-hidden={!isUserMenuOpen}
         >
+          {/* User Info */}
+          {user && (
+            <>
+              <div className="px-3 py-2 mb-2">
+                <p className="text-sm font-medium text-text-primary">{user.name}</p>
+                <p className="text-xs text-text-muted">{user.email}</p>
+              </div>
+              <div className="h-px bg-border mb-sm" />
+            </>
+          )}
+
           {/* User Profile Option */}
           <Button
             onClick={handleUserProfile}
@@ -182,7 +207,22 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
             </svg>
             {locale === 'nl' ? 'Gebruikersprofiel' : 'User Profile'}
           </Button>
-          
+
+          {/* Admin Panel Option (only for admin users) */}
+          {user?.role === 'admin' && (
+            <Button
+              onClick={handleAdminPanel}
+              variant="ghost"
+              className="w-full justify-start gap-md"
+              role="menuitem"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+              </svg>
+              {locale === 'nl' ? 'Administratie' : 'Administration'}
+            </Button>
+          )}
+
           {/* Separator */}
           <div className="h-px bg-border my-sm" />
           
@@ -256,6 +296,24 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
               })}
             </div>
           </div>
+
+          {/* Logout Button */}
+          {user && (
+            <>
+              <div className="h-px bg-border my-sm" />
+              <Button
+                onClick={handleLogout}
+                variant="ghost"
+                className="w-full justify-start gap-md text-error hover:bg-error-light"
+                role="menuitem"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+                </svg>
+                {t('login.signOut')}
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </nav>

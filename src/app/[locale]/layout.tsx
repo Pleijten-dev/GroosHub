@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import { Locale, locales, isValidLocale } from '../../lib/i18n/config';
 import { NavigationBar } from '../../shared/components/UI';
 import { notFound } from 'next/navigation';
+import { auth } from '../../lib/auth';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -21,14 +22,17 @@ export default async function LocaleLayout({
     notFound();
   }
 
+  const session = await auth();
+
   return (
     <div className={inter.className}>
       {/* Navigation Bar at the top */}
-      <NavigationBar 
+      <NavigationBar
         locale={locale}
         currentPath={`/${locale}`}
+        user={session?.user}
       />
-      
+
       {/* Main content area with proper padding for fixed navbar */}
       <main className="min-h-screen bg-white" style={{ paddingTop: '64px' }}>
         {children}

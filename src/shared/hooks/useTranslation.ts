@@ -17,6 +17,39 @@ interface TranslationData {
     close: string;
     save: string;
     cancel: string;
+    delete: string;
+    edit: string;
+    create: string;
+    confirm: string;
+  };
+  login: {
+    title: string;
+    email: string;
+    password: string;
+    signIn: string;
+    signOut: string;
+    invalidCredentials: string;
+    error: string;
+  };
+  admin: {
+    title: string;
+    userManagement: string;
+    createUser: string;
+    editUser: string;
+    deleteUser: string;
+    confirmDelete: string;
+    name: string;
+    email: string;
+    role: string;
+    password: string;
+    userRole: string;
+    adminRole: string;
+    actions: string;
+    noUsers: string;
+    userCreated: string;
+    userUpdated: string;
+    userDeleted: string;
+    accessDenied: string;
   };
 }
 
@@ -52,6 +85,39 @@ export function useTranslation(locale: Locale) {
         close: 'Sluiten',
         save: 'Opslaan',
         cancel: 'Annuleren',
+        delete: 'Verwijderen',
+        edit: 'Bewerken',
+        create: 'Aanmaken',
+        confirm: 'Bevestigen',
+      },
+      login: {
+        title: 'Inloggen',
+        email: 'E-mailadres',
+        password: 'Wachtwoord',
+        signIn: 'Inloggen',
+        signOut: 'Uitloggen',
+        invalidCredentials: 'Onjuiste e-mailadres of wachtwoord',
+        error: 'Er is een fout opgetreden. Probeer het opnieuw.',
+      },
+      admin: {
+        title: 'Administratie',
+        userManagement: 'Gebruikersbeheer',
+        createUser: 'Gebruiker aanmaken',
+        editUser: 'Gebruiker bewerken',
+        deleteUser: 'Gebruiker verwijderen',
+        confirmDelete: 'Weet je zeker dat je deze gebruiker wilt verwijderen?',
+        name: 'Naam',
+        email: 'E-mailadres',
+        role: 'Rol',
+        password: 'Wachtwoord',
+        userRole: 'Gebruiker',
+        adminRole: 'Beheerder',
+        actions: 'Acties',
+        noUsers: 'Geen gebruikers gevonden',
+        userCreated: 'Gebruiker succesvol aangemaakt',
+        userUpdated: 'Gebruiker succesvol bijgewerkt',
+        userDeleted: 'Gebruiker succesvol verwijderd',
+        accessDenied: 'Toegang geweigerd. Je hebt geen beheerderrechten.',
       },
     },
     en: {
@@ -69,6 +135,39 @@ export function useTranslation(locale: Locale) {
         close: 'Close',
         save: 'Save',
         cancel: 'Cancel',
+        delete: 'Delete',
+        edit: 'Edit',
+        create: 'Create',
+        confirm: 'Confirm',
+      },
+      login: {
+        title: 'Sign In',
+        email: 'Email',
+        password: 'Password',
+        signIn: 'Sign In',
+        signOut: 'Sign Out',
+        invalidCredentials: 'Invalid email or password',
+        error: 'An error occurred. Please try again.',
+      },
+      admin: {
+        title: 'Administration',
+        userManagement: 'User Management',
+        createUser: 'Create User',
+        editUser: 'Edit User',
+        deleteUser: 'Delete User',
+        confirmDelete: 'Are you sure you want to delete this user?',
+        name: 'Name',
+        email: 'Email',
+        role: 'Role',
+        password: 'Password',
+        userRole: 'User',
+        adminRole: 'Administrator',
+        actions: 'Actions',
+        noUsers: 'No users found',
+        userCreated: 'User created successfully',
+        userUpdated: 'User updated successfully',
+        userDeleted: 'User deleted successfully',
+        accessDenied: 'Access denied. You do not have administrator rights.',
       },
     },
   };
