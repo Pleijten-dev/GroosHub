@@ -83,14 +83,17 @@ export async function getMessagesByChatId(chatId: string): Promise<ChatMessage[]
     ORDER BY created_at ASC
   `;
 
-  return result.map((message: { id: string; role: string; content: string; createdAt: Date }) => ({
-    id: message.id,
-    role: message.role as 'user' | 'assistant' | 'system' | 'tool',
-    content: message.content,
-    metadata: {
-      createdAt: message.createdAt.toISOString(),
-    },
-  } as ChatMessage));
+  return result.map((message) => {
+    const msg = message as { id: string; role: string; content: string; createdAt: Date };
+    return {
+      id: msg.id,
+      role: msg.role as 'user' | 'assistant' | 'system' | 'tool',
+      content: msg.content,
+      metadata: {
+        createdAt: msg.createdAt.toISOString(),
+      },
+    } as ChatMessage;
+  });
 }
 
 export async function deleteMessage(messageId: string): Promise<void> {

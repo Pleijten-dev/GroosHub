@@ -2,15 +2,15 @@
 'use client';
 
 import { useChat as useAIChat } from '@ai-sdk/react';
-import { useCallback } from 'react';
-import type { ChatMessage } from '../types/message';
+import { DefaultChatTransport, type UIMessage } from 'ai';
+import { useMemo } from 'react';
 
 export interface UseChatOptions {
   chatId?: string;
   model?: string;
   locale?: string;
-  initialMessages?: ChatMessage[];
-  onFinish?: (message: ChatMessage) => void;
+  initialMessages?: UIMessage[];
+  onFinish?: (result: { message: UIMessage; messages: UIMessage[] }) => void;
   onError?: (error: Error) => void;
 }
 
@@ -22,17 +22,24 @@ export function useChat({
   onFinish,
   onError,
 }: UseChatOptions = {}) {
+  const transport = useMemo(
+    () => new DefaultChatTransport({
+      api: '/api/chat',
+      body: {
+        chatId,
+        model,
+        locale,
+      },
+    }),
+    [chatId, model, locale]
+  );
+
   const chat = useAIChat({
-    api: '/api/chat',
     id: chatId,
-    initialMessages,
-    body: {
-      chatId,
-      model,
-      locale,
-    },
-    onFinish(message) {
-      onFinish?.(message);
+    transport,
+    messages: initialMessages,
+    onFinish(result) {
+      onFinish?.(result);
     },
     onError(error) {
       console.error('Chat error:', error);
@@ -40,13 +47,5 @@ export function useChat({
     },
   });
 
-  // Get chat ID from response headers
-  const getChatIdFromResponse = useCallback((headers: Headers) => {
-    return headers.get('X-Chat-Id');
-  }, []);
-
-  return {
-    ...chat,
-    getChatIdFromResponse,
-  };
+  return chat;
 }

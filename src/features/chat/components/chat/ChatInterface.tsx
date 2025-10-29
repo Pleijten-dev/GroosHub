@@ -1,17 +1,18 @@
 // Main chat interface component
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useChat } from '../../hooks/useChat';
 import { DEFAULT_CHAT_MODEL } from '../../lib/ai/models';
 import { ChatMessages } from './ChatMessages';
 import { ChatInput } from './ChatInput';
 import type { ChatMessage } from '../../types/message';
+import type { UIMessage } from 'ai';
 
 interface ChatInterfaceProps {
   locale: string;
   chatId?: string;
-  initialMessages?: ChatMessage[];
+  initialMessages?: UIMessage[];
 }
 
 export function ChatInterface({
@@ -22,7 +23,7 @@ export function ChatInterface({
   const [currentChatId, setCurrentChatId] = useState<string | undefined>(initialChatId);
   const [selectedModel, setSelectedModel] = useState(DEFAULT_CHAT_MODEL);
 
-  const { messages, append, isLoading, error } = useChat({
+  const { messages, sendMessage, status, error } = useChat({
     chatId: currentChatId,
     model: selectedModel,
     locale,
@@ -39,12 +40,33 @@ export function ChatInterface({
     },
   });
 
+  const isLoading = status === 'submitted' || status === 'streaming';
+
   const handleSendMessage = async (message: string) => {
-    await append({
-      role: 'user',
-      content: message,
+    await sendMessage({
+      text: message,
     });
   };
+
+  // Convert UIMessage to ChatMessage for display
+  const chatMessages = useMemo((): ChatMessage[] => {
+    return messages.map((msg) => {
+      // Extract text content from parts
+      const textContent = msg.parts
+        .filter((part) => part.type === 'text')
+        .map((part) => (part as { type: 'text'; text: string }).text)
+        .join('');
+
+      return {
+        id: msg.id,
+        role: msg.role,
+        content: textContent || '',
+        metadata: {
+          createdAt: (msg.metadata as { createdAt?: string })?.createdAt || new Date().toISOString(),
+        },
+      };
+    });
+  }, [messages]);
 
   return (
     <div className="flex h-full flex-col bg-bg-primary">
@@ -66,7 +88,7 @@ export function ChatInterface({
 
       {/* Messages */}
       <ChatMessages
-        messages={messages as ChatMessage[]}
+        messages={chatMessages}
         locale={locale}
         isLoading={isLoading}
       />
