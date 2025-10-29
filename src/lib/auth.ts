@@ -1,4 +1,4 @@
-import NextAuth from 'next-auth';
+import NextAuth, { type DefaultSession } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { authConfig } from './auth.config';
@@ -15,28 +15,17 @@ export interface User {
 }
 
 /**
- * Extended session and JWT types for NextAuth
+ * Extended session and JWT types for NextAuth v5
  */
 declare module 'next-auth' {
   interface Session {
     user: {
       id: number;
-      name: string;
-      email: string;
       role: string;
-    };
+    } & DefaultSession['user'];
   }
 
   interface User {
-    id: number;
-    name: string;
-    email: string;
-    role: string;
-  }
-}
-
-declare module 'next-auth/jwt' {
-  interface JWT {
     id: number;
     role: string;
   }
@@ -103,18 +92,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       // Add user info to token on sign in
       if (user) {
-        token.id = user.id;
-        token.role = user.role;
+        return {
+          ...token,
+          id: user.id,
+          role: user.role,
+        };
       }
       return token;
     },
     async session({ session, token }) {
       // Add user info to session
-      if (token && session.user) {
-        session.user.id = token.id as number;
-        session.user.role = token.role as string;
-      }
-      return session;
+      return {
+        ...session,
+        user: {
+          ...session.user,
+          id: token.id as number,
+          role: token.role as string,
+        },
+      };
     },
   },
   session: {
@@ -123,3 +118,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   secret: process.env.NEXTAUTH_SECRET,
 });
+

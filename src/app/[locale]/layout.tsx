@@ -30,7 +30,16 @@ export default async function LocaleLayout({
       <NavigationBar
         locale={locale}
         currentPath={`/${locale}`}
-        user={session?.user}
+        user={
+          session?.user
+            ? {
+                id: session.user.id,
+                name: session.user.name || '',
+                email: session.user.email || '',
+                role: session.user.role,
+              }
+            : undefined
+        }
       />
 
       {/* Main content area with proper padding for fixed navbar */}
