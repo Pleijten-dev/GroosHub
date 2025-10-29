@@ -15,7 +15,7 @@ export interface User {
 }
 
 /**
- * Extended session type with user role
+ * Extended session and JWT types for NextAuth
  */
 declare module 'next-auth' {
   interface Session {
@@ -31,6 +31,13 @@ declare module 'next-auth' {
     id: number;
     name: string;
     email: string;
+    role: string;
+  }
+}
+
+declare module 'next-auth/jwt' {
+  interface JWT {
+    id: number;
     role: string;
   }
 }
