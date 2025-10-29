@@ -63,6 +63,7 @@ interface D3Area {
 }
 
 interface D3Axis {
+  (selection: D3Selection): void;
   scale: (scale: D3Scale) => D3Axis;
   ticks: (count: number) => D3Axis;
   tickFormat: (format: (d: number) => string) => D3Axis;
