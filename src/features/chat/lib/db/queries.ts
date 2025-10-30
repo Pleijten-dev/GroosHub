@@ -59,7 +59,7 @@ export async function createMessage(
   content: string
 ): Promise<ChatMessage> {
   const result = await sql`
-    INSERT INTO messages (chat_id, role, content)
+    INSERT INTO chats_messages (chat_id, role, content)
     VALUES (${chatId}, ${role}, ${content})
     RETURNING id, chat_id as "chatId", role, content, created_at as "createdAt"
   `;
@@ -78,7 +78,7 @@ export async function createMessage(
 export async function getMessagesByChatId(chatId: string): Promise<ChatMessage[]> {
   const result = await sql`
     SELECT id, role, content, created_at as "createdAt"
-    FROM messages
+    FROM chats_messages
     WHERE chat_id = ${chatId}
     ORDER BY created_at ASC
   `;
@@ -98,7 +98,7 @@ export async function getMessagesByChatId(chatId: string): Promise<ChatMessage[]
 
 export async function deleteMessage(messageId: string): Promise<void> {
   await sql`
-    DELETE FROM messages
+    DELETE FROM chats_messages
     WHERE id = ${messageId}
   `;
 }
@@ -110,7 +110,7 @@ export async function voteMessage(
   isUpvoted: boolean
 ): Promise<void> {
   await sql`
-    INSERT INTO message_votes (message_id, user_id, is_upvoted)
+    INSERT INTO chats_messages_votes (message_id, user_id, is_upvoted)
     VALUES (${messageId}, ${userId}, ${isUpvoted})
     ON CONFLICT (message_id)
     DO UPDATE SET is_upvoted = ${isUpvoted}
@@ -120,7 +120,7 @@ export async function voteMessage(
 export async function getVote(messageId: string): Promise<boolean | null> {
   const result = await sql`
     SELECT is_upvoted as "isUpvoted"
-    FROM message_votes
+    FROM chats_messages_votes
     WHERE message_id = ${messageId}
   `;
   return result[0]?.isUpvoted ?? null;

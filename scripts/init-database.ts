@@ -77,8 +77,8 @@ async function runMigration() {
     console.log('  - users table');
     console.log('  - api_usage table');
     console.log('  - chats table');
-    console.log('  - messages table');
-    console.log('  - message_votes table');
+    console.log('  - chats_messages table');
+    console.log('  - chats_messages_votes table');
     console.log('  - Indexes and views\n');
 
     // Verify tables exist
@@ -86,7 +86,7 @@ async function runMigration() {
       SELECT table_name
       FROM information_schema.tables
       WHERE table_schema = 'public'
-      AND table_name IN ('api_usage', 'users', 'chats', 'messages')
+      AND table_name IN ('api_usage', 'users', 'chats', 'chats_messages', 'chats_messages_votes')
       ORDER BY table_name
     `;
 

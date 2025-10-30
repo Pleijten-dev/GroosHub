@@ -1,12 +1,26 @@
--- Chat Schema Migration
--- Adds tables for AI chatbot functionality
+-- ========================================
+-- AI CHATBOT DATABASE SETUP FOR NEON
+-- ========================================
+--
+-- INSTRUCTIONS:
+-- 1. Copy this entire file
+-- 2. Go to your Neon console: https://console.neon.tech
+-- 3. Select your database
+-- 4. Go to SQL Editor
+-- 5. Paste and run this script
+--
+-- This will:
+-- - Drop existing chats table (and any old data)
+-- - Create new tables: chats, chats_messages, chats_messages_votes
+-- - Set up all indexes and triggers
+-- ========================================
 
--- Drop existing chats table if it exists (and cascade to dependent objects)
-DROP TABLE IF EXISTS chats CASCADE;
-DROP TABLE IF EXISTS chats_messages CASCADE;
+-- Drop existing tables if they exist (this will remove all old data)
 DROP TABLE IF EXISTS chats_messages_votes CASCADE;
+DROP TABLE IF EXISTS chats_messages CASCADE;
+DROP TABLE IF EXISTS chats CASCADE;
 
--- Chats Table
+-- Create Chats Table
 CREATE TABLE chats (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -18,7 +32,7 @@ CREATE TABLE chats (
 CREATE INDEX idx_chats_user_id ON chats(user_id);
 CREATE INDEX idx_chats_created_at ON chats(created_at DESC);
 
--- Messages Table
+-- Create Messages Table
 CREATE TABLE chats_messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   chat_id UUID NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
@@ -30,7 +44,7 @@ CREATE TABLE chats_messages (
 CREATE INDEX idx_chats_messages_chat_id ON chats_messages(chat_id);
 CREATE INDEX idx_chats_messages_created_at ON chats_messages(created_at);
 
--- Votes Table (for message feedback)
+-- Create Votes Table (for message feedback)
 CREATE TABLE chats_messages_votes (
   message_id UUID PRIMARY KEY REFERENCES chats_messages(id) ON DELETE CASCADE,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -58,3 +72,17 @@ COMMENT ON TABLE chats IS 'Stores chat conversations';
 COMMENT ON TABLE chats_messages IS 'Stores individual messages within chats';
 COMMENT ON TABLE chats_messages_votes IS 'Stores user feedback on AI responses';
 
+-- ========================================
+-- VERIFICATION QUERY (run this after)
+-- ========================================
+-- SELECT table_name
+-- FROM information_schema.tables
+-- WHERE table_schema = 'public'
+-- AND table_name LIKE 'chats%'
+-- ORDER BY table_name;
+--
+-- Expected output:
+-- - chats
+-- - chats_messages
+-- - chats_messages_votes
+-- ========================================

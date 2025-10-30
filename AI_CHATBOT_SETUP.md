@@ -41,19 +41,23 @@ XAI_API_KEY=your_actual_xai_api_key_here
 3. Create a new API key
 4. Copy and paste it into `.env.local`
 
-### Step 2: Run Database Migration
+### Step 2: Run Database Migration in Neon Console
 
-```bash
-# Run the migration script (creates all tables including chat tables)
-pnpm db:migrate
-```
+Since you're using Neon Postgres, follow these steps:
 
-This creates the following chat tables:
+1. **Open the SQL file** `NEON_SETUP.sql` in the project root
+2. **Copy all the contents** of that file
+3. **Go to your Neon console**: https://console.neon.tech
+4. **Select your database**
+5. **Go to SQL Editor**
+6. **Paste and run the script**
+
+This will create the following tables:
 - `chats` - Stores chat conversations with title
-- `messages` - Stores individual messages
-- `message_votes` - Stores user feedback
+- `chats_messages` - Stores individual messages
+- `chats_messages_votes` - Stores user feedback
 
-**Note:** The migration script will create all database tables including the base schema and chat tables. If you see "already exists" errors, that's normal - it means those tables are already set up.
+**Note:** This will DROP and recreate the existing `chats` table to ensure the correct schema. Any old data will be removed.
 
 ### Step 3: Start the Development Server
 
@@ -110,7 +114,7 @@ created_at    TIMESTAMP
 updated_at    TIMESTAMP      Auto-updated trigger
 ```
 
-#### `messages` table
+#### `chats_messages` table
 ```sql
 id            UUID           PRIMARY KEY
 chat_id       UUID           FOREIGN KEY to chats.id
@@ -119,9 +123,9 @@ content       TEXT           Message content
 created_at    TIMESTAMP
 ```
 
-#### `message_votes` table
+#### `chats_messages_votes` table
 ```sql
-message_id    UUID           PRIMARY KEY, FOREIGN KEY to messages.id
+message_id    UUID           PRIMARY KEY, FOREIGN KEY to chats_messages.id
 user_id       INTEGER        FOREIGN KEY to users.id
 is_upvoted    BOOLEAN        User feedback
 created_at    TIMESTAMP
@@ -135,15 +139,21 @@ node -e "console.log('XAI_API_KEY:', process.env.XAI_API_KEY ? '✓ Set' : '✗ 
 ```
 
 #### 2. Check Database Tables
-```bash
-psql "$POSTGRES_URL" -c "\dt" | grep -E "chats|messages"
+
+In your Neon SQL Editor, run:
+```sql
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public'
+AND table_name LIKE 'chats%'
+ORDER BY table_name;
 ```
 
 Expected output:
 ```
- public | chats         | table | ...
- public | messages      | table | ...
- public | message_votes | table | ...
+chats
+chats_messages
+chats_messages_votes
 ```
 
 #### 3. Test the Chat
@@ -277,12 +287,12 @@ src/
 
 ### Problem: Tables don't exist or "column title does not exist"
 **Solution:**
-```bash
-# Re-run migration to create all tables
-pnpm db:migrate
-```
+1. Open `NEON_SETUP.sql` in the project root
+2. Copy all the SQL
+3. Go to your Neon console SQL Editor
+4. Paste and run it
 
-This will create the `chats` table with the `title` column and all other required tables.
+This will create the `chats`, `chats_messages`, and `chats_messages_votes` tables with all required columns.
 
 ### Problem: Streaming doesn't work
 **Solution:**
