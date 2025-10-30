@@ -78,6 +78,7 @@ export function ChatInterface({
         parts: result.message.parts,
         partsCount: result.message.parts.length,
         partsContent: result.message.parts.map(p => p),
+        allMessages: result.messages,
       });
     },
   });

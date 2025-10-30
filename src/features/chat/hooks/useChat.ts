@@ -78,6 +78,18 @@ export function useChat({
           model: errorData.model,
         });
       }
+    } else {
+      // For successful responses, log a sample of the stream to debug
+      const clonedResponse = response.clone();
+      const reader = clonedResponse.body?.getReader();
+      if (reader) {
+        const { value } = await reader.read();
+        if (value) {
+          const text = new TextDecoder().decode(value);
+          console.log('[Client] 📨 First chunk of stream:', text.substring(0, 200));
+        }
+        reader.releaseLock();
+      }
     }
 
     // Extract chat ID from response headers
