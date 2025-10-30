@@ -75,10 +75,10 @@ export function ChatInterface({
       // Chat message finished generating
       console.log('[Client] Message finished:', {
         message: result.message,
+        content: (result.message as any).content,
         parts: result.message.parts,
-        partsCount: result.message.parts.length,
-        partsContent: result.message.parts.map(p => p),
-        allMessages: result.messages,
+        partsCount: result.message.parts?.length,
+        allMessagesCount: result.messages.length,
       });
     },
   });
@@ -102,11 +102,23 @@ export function ChatInterface({
   // Convert UIMessage to ChatMessage for display
   const chatMessages = useMemo((): ChatMessage[] => {
     return messages.map((msg) => {
-      // Extract text content from parts
-      const textContent = msg.parts
-        .filter((part) => part.type === 'text')
-        .map((part) => (part as { type: 'text'; text: string }).text)
-        .join('');
+      // Extract text content from either content string or parts array
+      // UIMessage from AI SDK can have different structures:
+      // 1. content as string (simple text messages)
+      // 2. parts as array (multi-part messages with text, images, etc.)
+      let textContent = '';
+
+      // Check if message has content property (string format)
+      if (typeof (msg as any).content === 'string') {
+        textContent = (msg as any).content;
+      }
+      // Check if message has parts array
+      else if (msg.parts && Array.isArray(msg.parts)) {
+        textContent = msg.parts
+          .filter((part) => part.type === 'text')
+          .map((part) => (part as { type: 'text'; text: string }).text)
+          .join('');
+      }
 
       return {
         id: msg.id,
