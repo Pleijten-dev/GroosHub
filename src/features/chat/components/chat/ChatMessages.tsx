@@ -21,6 +21,14 @@ export function ChatMessages({ messages, locale, isLoading }: ChatMessagesProps)
     }
   }, [messages]);
 
+  // Debug log
+  useEffect(() => {
+    console.log('[ChatMessages] Received messages:', {
+      count: messages.length,
+      messages: messages.map(m => ({ id: m.id, role: m.role, content: m.content?.substring(0, 50) })),
+    });
+  }, [messages]);
+
   if (messages.length === 0) {
     return (
       <div className="flex h-full items-center justify-center p-4">

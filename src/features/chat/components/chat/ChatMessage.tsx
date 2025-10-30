@@ -12,6 +12,13 @@ interface ChatMessageProps {
 export function ChatMessage({ message, locale }: ChatMessageProps) {
   const isUser = message.role === 'user';
 
+  console.log('[ChatMessage] Rendering message:', {
+    id: message.id,
+    role: message.role,
+    contentLength: message.content?.length,
+    contentPreview: message.content?.substring(0, 50),
+  });
+
   return (
     <div
       className={cn(

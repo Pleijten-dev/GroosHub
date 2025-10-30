@@ -106,7 +106,19 @@ export function ChatInterface({
 
   // Convert UIMessage to ChatMessage for display
   const chatMessages = useMemo((): ChatMessage[] => {
-    return messages.map((msg) => {
+    console.log('[Client] Converting messages:', {
+      messagesCount: messages.length,
+      messages: messages.map(m => ({
+        id: m.id,
+        role: m.role,
+        hasContent: !!(m as ExtendedUIMessage).content,
+        hasParts: !!m.parts,
+        parts: m.parts,
+        content: (m as ExtendedUIMessage).content,
+      })),
+    });
+
+    const converted = messages.map((msg) => {
       // Extract text content from either content string or parts array
       // UIMessage from AI SDK can have different structures:
       // 1. content as string (simple text messages)
@@ -117,6 +129,7 @@ export function ChatInterface({
       // Check if message has content property (string format)
       if (typeof extendedMsg.content === 'string') {
         textContent = extendedMsg.content;
+        console.log('[Client] Message has content string:', { id: msg.id, content: textContent });
       }
       // Check if message has parts array
       else if (msg.parts && Array.isArray(msg.parts)) {
@@ -124,6 +137,9 @@ export function ChatInterface({
           .filter((part) => part.type === 'text')
           .map((part) => (part as { type: 'text'; text: string }).text)
           .join('');
+        console.log('[Client] Message has parts array:', { id: msg.id, partsCount: msg.parts.length, content: textContent });
+      } else {
+        console.warn('[Client] Message has no content or parts:', msg);
       }
 
       return {
@@ -135,6 +151,13 @@ export function ChatInterface({
         },
       };
     });
+
+    console.log('[Client] Converted chat messages:', {
+      count: converted.length,
+      messages: converted,
+    });
+
+    return converted;
   }, [messages]);
 
   return (
