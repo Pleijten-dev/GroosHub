@@ -3,7 +3,7 @@
 
 import { useChat as useAIChat } from '@ai-sdk/react';
 import { DefaultChatTransport, type UIMessage } from 'ai';
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 
 export interface UseChatOptions {
   chatId?: string;
@@ -12,6 +12,7 @@ export interface UseChatOptions {
   initialMessages?: UIMessage[];
   onFinish?: (result: { message: UIMessage; messages: UIMessage[] }) => void;
   onError?: (error: Error) => void;
+  onChatCreated?: (chatId: string) => void;
 }
 
 export function useChat({
@@ -21,7 +22,22 @@ export function useChat({
   initialMessages = [],
   onFinish,
   onError,
+  onChatCreated,
 }: UseChatOptions = {}) {
+  // Custom fetch to intercept and extract chat ID
+  const customFetch = useCallback(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const response = await fetch(input, init);
+
+    // Extract chat ID from response headers
+    const newChatId = response.headers.get('X-Chat-Id');
+    if (newChatId && !chatId && onChatCreated) {
+      // Call the callback with the new chat ID
+      onChatCreated(newChatId);
+    }
+
+    return response;
+  }, [chatId, onChatCreated]);
+
   const transport = useMemo(
     () => new DefaultChatTransport({
       api: '/api/chat',
@@ -30,8 +46,9 @@ export function useChat({
         model,
         locale,
       },
+      fetch: customFetch,
     }),
-    [chatId, model, locale]
+    [chatId, model, locale, customFetch]
   );
 
   const chat = useAIChat({

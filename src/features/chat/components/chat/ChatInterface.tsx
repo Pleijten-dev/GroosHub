@@ -70,13 +70,10 @@ export function ChatInterface({
     model: selectedModel,
     locale,
     initialMessages: loadedMessages,
+    onChatCreated: onChatCreated,
     onFinish: (result) => {
-      // Extract chat ID from response if this is a new chat
-      if (!chatId && result && onChatCreated) {
-        // The chat ID should be in the URL or we need to extract it
-        // For now, we'll rely on the API creating it and returning it
-        // We could enhance this by reading from response headers
-      }
+      // Chat message finished generating
+      console.log('Message finished:', result.message);
     },
   });
 
@@ -122,8 +119,26 @@ export function ChatInterface({
             onChange={(e) => setSelectedModel(e.target.value)}
             className="rounded-md border bg-bg-primary px-3 py-1 text-sm"
           >
-            <option value="grok-2-vision-1212">Grok 2 Vision</option>
-            <option value="grok-2-1212">Grok 2</option>
+            <optgroup label="xAI">
+              <option value="grok-2-vision-1212">Grok 2 Vision</option>
+              <option value="grok-2-1212">Grok 2</option>
+            </optgroup>
+            <optgroup label="Anthropic">
+              <option value="claude-opus-4-20250514">Claude Opus 4</option>
+              <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
+            </optgroup>
+            <optgroup label="OpenAI">
+              <option value="gpt-4o">GPT-4o</option>
+              <option value="gpt-4o-mini">GPT-4o Mini</option>
+            </optgroup>
+            <optgroup label="Mistral">
+              <option value="mistral-large-latest">Mistral Large</option>
+              <option value="mistral-medium-latest">Mistral Medium</option>
+            </optgroup>
+            <optgroup label="Google">
+              <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash</option>
+              <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+            </optgroup>
           </select>
         </div>
       </div>

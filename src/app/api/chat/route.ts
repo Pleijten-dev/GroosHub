@@ -35,6 +35,18 @@ export async function POST(req: Request) {
 
     // Get or create chat
     let currentChatId = chatId;
+    if (currentChatId) {
+      // Verify chat exists and belongs to user
+      const existingChat = await getChatById(currentChatId);
+      if (!existingChat) {
+        // Chat doesn't exist, create a new one
+        console.log(`Chat ${currentChatId} not found, creating new chat`);
+        currentChatId = undefined;
+      } else if (existingChat.userId !== session.user.id) {
+        return new Response('Forbidden', { status: 403 });
+      }
+    }
+
     if (!currentChatId) {
       // Create new chat with title from first user message
       const firstMessage = rawMessages.find((m) => m.role === 'user');
@@ -43,12 +55,7 @@ export async function POST(req: Request) {
         : 'New Chat';
       const chat = await createChat(session.user.id, title);
       currentChatId = chat.id;
-    } else {
-      // Verify chat belongs to user
-      const chat = await getChatById(currentChatId);
-      if (!chat || chat.userId !== session.user.id) {
-        return new Response('Chat not found', { status: 404 });
-      }
+      console.log(`Created new chat: ${currentChatId}`);
     }
 
     // Save user message to database
