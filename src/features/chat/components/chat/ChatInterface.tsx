@@ -73,9 +73,22 @@ export function ChatInterface({
     onChatCreated: onChatCreated,
     onFinish: (result) => {
       // Chat message finished generating
-      console.log('Message finished:', result.message);
+      console.log('[Client] Message finished:', {
+        message: result.message,
+        parts: result.message.parts,
+        partsCount: result.message.parts.length,
+        partsContent: result.message.parts.map(p => p),
+      });
     },
   });
+
+  // Log when messages change
+  useEffect(() => {
+    console.log('[Client] Messages updated:', {
+      count: messages.length,
+      lastMessage: messages[messages.length - 1],
+    });
+  }, [messages]);
 
   const isLoading = status === 'submitted' || status === 'streaming';
 

@@ -26,17 +26,34 @@ export function useChat({
 }: UseChatOptions = {}) {
   // Custom fetch to intercept and extract chat ID
   const customFetch = useCallback(async (input: RequestInfo | URL, init?: RequestInit) => {
+    console.log('[Client] Sending request to API:', {
+      url: input.toString(),
+      body: init?.body ? JSON.parse(init.body as string) : null,
+      chatId,
+      model,
+    });
+
     const response = await fetch(input, init);
+
+    console.log('[Client] API response received:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: {
+        contentType: response.headers.get('Content-Type'),
+        chatId: response.headers.get('X-Chat-Id'),
+      },
+    });
 
     // Extract chat ID from response headers
     const newChatId = response.headers.get('X-Chat-Id');
     if (newChatId && !chatId && onChatCreated) {
+      console.log('[Client] New chat created:', newChatId);
       // Call the callback with the new chat ID
       onChatCreated(newChatId);
     }
 
     return response;
-  }, [chatId, onChatCreated]);
+  }, [chatId, onChatCreated, model]);
 
   const transport = useMemo(
     () => new DefaultChatTransport({
