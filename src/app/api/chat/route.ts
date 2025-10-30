@@ -128,12 +128,19 @@ export async function POST(req: Request) {
       }, { status: 500 });
     }
 
+    // TEMPORARY TEST: Use gpt-4o-mini to verify system works
+    // TODO: Remove this after confirming chat works
+    const testModel = model.startsWith('gpt') ? 'gpt-4o-mini' : model;
+    if (testModel !== model) {
+      console.log(`⚠️ TESTING: Replacing ${model} with ${testModel} to verify system works`);
+    }
+
     // Stream AI response
     let result;
     let streamError: Error | null = null;
     try {
       result = streamText({
-        model: getLanguageModel(model),
+        model: getLanguageModel(testModel),
         system: systemPrompt,
         messages: rawMessages,
         async onFinish({ text, finishReason, usage }) {
