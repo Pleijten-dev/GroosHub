@@ -274,14 +274,15 @@ export async function POST(req: Request) {
     }
 
     // Create streaming response with additional logging
+    // Using toDataStreamResponse() to return messages in UIMessage format for useChat
     try {
-      const response = result.toTextStreamResponse();
+      const response = result.toDataStreamResponse();
 
       // Add diagnostic headers so client can see server-side info
       response.headers.set('X-Chat-Id', currentChatId);
       response.headers.set('X-Model', model);
       response.headers.set('X-Provider', provider);
-      response.headers.set('X-Debug-Stream-Type', 'text-stream');
+      response.headers.set('X-Debug-Stream-Type', 'data-stream');
       response.headers.set('X-Debug-Stream-Init', String(diagnostics.streamInitialized));
       response.headers.set('X-Debug-API-Key-Exists', String(apiKeyExists));
       response.headers.set('X-Debug-Model-ID', model);
