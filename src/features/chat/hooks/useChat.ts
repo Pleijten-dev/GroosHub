@@ -76,24 +76,25 @@ export function useChat({
   const transport = useMemo(
     () => new DefaultChatTransport({
       api: '/api/chat',
-      body: {
-        chatId,
-        locale,
-      },
       fetch: customFetch,
       prepareSendMessagesRequest(request) {
-        // Inject the current model into each request
-        // Keep all existing request properties (especially messages!)
+        // Add our custom fields (model, locale, chatId) to the request
+        // The messages will be added by the transport automatically
         console.log('[Client] Preparing request with model:', model);
-        console.log('[Client] Original request:', request);
+        console.log('[Client] Original request.messages:', request.messages);
+        console.log('[Client] Original request.body:', request.body);
+
         const updatedRequest = {
           ...request,
           body: {
             ...request.body,
             model: model,
+            locale: locale,
+            chatId: chatId,
           },
         };
-        console.log('[Client] Updated request:', updatedRequest);
+
+        console.log('[Client] Updated request.body:', updatedRequest.body);
         return updatedRequest;
       },
     }),
