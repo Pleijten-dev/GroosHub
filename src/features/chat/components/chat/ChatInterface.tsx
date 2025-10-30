@@ -9,6 +9,11 @@ import { ChatInput } from './ChatInput';
 import type { ChatMessage } from '../../types/message';
 import type { UIMessage } from 'ai';
 
+// Extended UIMessage type that accounts for both message formats from AI SDK
+type ExtendedUIMessage = UIMessage & {
+  content?: string; // Simple text messages can have content as string
+};
+
 interface ChatInterfaceProps {
   locale: string;
   chatId?: string;
@@ -75,7 +80,7 @@ export function ChatInterface({
       // Chat message finished generating
       console.log('[Client] Message finished:', {
         message: result.message,
-        content: (result.message as any).content,
+        content: (result.message as ExtendedUIMessage).content,
         parts: result.message.parts,
         partsCount: result.message.parts?.length,
         allMessagesCount: result.messages.length,
@@ -107,10 +112,11 @@ export function ChatInterface({
       // 1. content as string (simple text messages)
       // 2. parts as array (multi-part messages with text, images, etc.)
       let textContent = '';
+      const extendedMsg = msg as ExtendedUIMessage;
 
       // Check if message has content property (string format)
-      if (typeof (msg as any).content === 'string') {
-        textContent = (msg as any).content;
+      if (typeof extendedMsg.content === 'string') {
+        textContent = extendedMsg.content;
       }
       // Check if message has parts array
       else if (msg.parts && Array.isArray(msg.parts)) {

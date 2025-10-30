@@ -17,7 +17,6 @@ import { cn } from '../../../utils/cn';
 
 const NavigationBar: React.FC<NavigationBarProps> = ({
   locale,
-  currentPath,
   className = '',
   user,
 }) => {
@@ -26,7 +25,7 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
   const router = useRouter();
   const pathname = usePathname();
   const { t } = useTranslation(locale);
-  const { classBuilders, utils } = useDesignSystem();
+  const { classBuilders } = useDesignSystem();
   const userDropdownRef = useRef<HTMLDivElement>(null);
   const userButtonRef = useRef<HTMLButtonElement>(null);
   const languageSubMenuRef = useRef<HTMLDivElement>(null);
