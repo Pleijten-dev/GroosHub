@@ -142,13 +142,15 @@ export function useChat({
       api: '/api/chat',
       fetch: customFetch,
       prepareSendMessagesRequest: (options) => {
+        // DefaultChatTransport sends: { id, messages, trigger, body }
+        // Our API expects: { messages, model, locale, chatId }
         return {
           ...options,
           body: {
-            ...options.body,
+            messages: options.messages,  // Ensure messages array is in body
             model: modelRef.current,
             locale: localeRef.current,
-            chatId: chatIdRef.current,
+            chatId: chatIdRef.current || options.id,  // Use chatIdRef or fallback to options.id
           },
         };
       },
