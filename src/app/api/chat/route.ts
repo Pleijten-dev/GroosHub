@@ -1,28 +1,53 @@
 // Chat API endpoint with streaming support
 import { auth } from '@/lib/auth';
-import { streamText, type CoreMessage, convertToModelMessages } from 'ai';
+import { streamText, type CoreMessage } from 'ai';
 import { getLanguageModel } from '@/features/chat/lib/ai/providers';
 import { getSystemPrompt } from '@/features/chat/lib/ai/prompts';
 import { DEFAULT_CHAT_MODEL } from '@/features/chat/lib/ai/models';
 import { createChat, createMessage, getChatById } from '@/features/chat/lib/db/queries';
 
+// Type for UIMessage format (from AI SDK client)
+interface UIMessagePart {
+  type: string;
+  text?: string;
+}
+
+interface UIMessage {
+  role: string;
+  parts?: UIMessagePart[];
+  content?: string;
+}
+
 // Helper to extract text from UIMessage parts
-function extractTextFromMessage(message: CoreMessage | { parts?: Array<{ text?: string }> }): string {
+function extractTextFromMessage(message: UIMessage): string {
   // If it has parts array (UIMessage format)
-  if ('parts' in message && Array.isArray(message.parts)) {
+  if (message.parts && Array.isArray(message.parts)) {
     const textParts = message.parts
-      .filter((part): part is { text: string } => 'text' in part && typeof part.text === 'string')
+      .filter((part): part is UIMessagePart & { text: string } =>
+        'text' in part && typeof part.text === 'string'
+      )
       .map(part => part.text);
     return textParts.join('');
   }
 
   // If it has content string (CoreMessage format)
-  if ('content' in message && typeof message.content === 'string') {
+  if (message.content && typeof message.content === 'string') {
     return message.content;
   }
 
   // Fallback
   return '';
+}
+
+// Convert UIMessage to CoreMessage format
+function convertUIMessageToCoreMessage(message: UIMessage): CoreMessage {
+  const content = extractTextFromMessage(message);
+  const role = message.role as 'user' | 'assistant' | 'system';
+
+  return {
+    role,
+    content,
+  };
 }
 
 export const maxDuration = 60;
@@ -45,7 +70,7 @@ export async function POST(req: Request) {
       chatId,
       locale = 'en'
     } = body as {
-      messages: CoreMessage[];
+      messages: unknown[]; // Can be UIMessage[] or CoreMessage[], will convert later
       model?: string;
       chatId?: string;
       locale?: string
@@ -77,7 +102,10 @@ export async function POST(req: Request) {
 
     if (!currentChatId) {
       // Create new chat with title from first user message
-      const firstMessage = rawMessages.find((m) => m.role === 'user');
+      const firstMessage = rawMessages.find((m) => {
+        const msg = m as UIMessage;
+        return msg.role === 'user';
+      }) as UIMessage | undefined;
       const title = firstMessage
         ? extractTextFromMessage(firstMessage).substring(0, 100) || 'New Chat'
         : 'New Chat';
@@ -89,7 +117,7 @@ export async function POST(req: Request) {
     }
 
     // Save user message to database
-    const userMessage = rawMessages[rawMessages.length - 1];
+    const userMessage = rawMessages[rawMessages.length - 1] as UIMessage | undefined;
     if (userMessage && userMessage.role === 'user') {
       const content = extractTextFromMessage(userMessage);
 
@@ -143,19 +171,18 @@ export async function POST(req: Request) {
 
     console.log(`🚀 Attempting to call ${provider} API with model: ${model}`);
 
-    // Convert UIMessages to CoreMessages (ModelMessages)
+    // Convert UIMessages to CoreMessages
     console.log('🔄 Converting messages from UIMessage format to CoreMessage format...');
-    let convertedMessages: CoreMessage[];
-    try {
-      convertedMessages = convertToModelMessages(rawMessages);
-      console.log('✅ Messages converted successfully:', JSON.stringify(convertedMessages, null, 2));
-    } catch (conversionError) {
-      console.error('❌ Failed to convert messages:', conversionError);
-      return Response.json({
-        error: 'Failed to convert messages',
-        message: conversionError instanceof Error ? conversionError.message : 'Unknown error',
-      }, { status: 500 });
-    }
+    const convertedMessages: CoreMessage[] = rawMessages.map((msg) => {
+      const message = msg as UIMessage;
+      // If already in CoreMessage format with content string, use as-is
+      if ('content' in message && typeof message.content === 'string' && !('parts' in message)) {
+        return message as unknown as CoreMessage;
+      }
+      // Otherwise convert from UIMessage format
+      return convertUIMessageToCoreMessage(message);
+    });
+    console.log('✅ Messages converted successfully:', JSON.stringify(convertedMessages, null, 2));
 
     // Track diagnostics to send in headers
     const diagnostics = {
