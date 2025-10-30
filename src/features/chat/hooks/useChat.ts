@@ -83,14 +83,18 @@ export function useChat({
       fetch: customFetch,
       prepareSendMessagesRequest(request) {
         // Inject the current model into each request
+        // Keep all existing request properties (especially messages!)
         console.log('[Client] Preparing request with model:', model);
-        return {
+        console.log('[Client] Original request:', request);
+        const updatedRequest = {
           ...request,
           body: {
             ...request.body,
             model: model,
           },
         };
+        console.log('[Client] Updated request:', updatedRequest);
+        return updatedRequest;
       },
     }),
     [chatId, locale, customFetch, model]
