@@ -3,7 +3,7 @@
 
 import { useChat as useAIChat } from '@ai-sdk/react';
 import { DefaultChatTransport, type UIMessage } from 'ai';
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useRef, useEffect } from 'react';
 
 export interface UseChatOptions {
   chatId?: string;
@@ -24,6 +24,24 @@ export function useChat({
   onError,
   onChatCreated,
 }: UseChatOptions = {}) {
+  // Use refs to capture current values (not stale closure values)
+  // This follows Vercel AI Chatbot pattern
+  const modelRef = useRef(model);
+  const localeRef = useRef(locale);
+  const chatIdRef = useRef(chatId);
+
+  // Keep refs up to date
+  useEffect(() => {
+    modelRef.current = model;
+  }, [model]);
+
+  useEffect(() => {
+    localeRef.current = locale;
+  }, [locale]);
+
+  useEffect(() => {
+    chatIdRef.current = chatId;
+  }, [chatId]);
   // Custom fetch to intercept and extract chat ID
   const customFetch = useCallback(async (input: RequestInfo | URL, init?: RequestInit) => {
     console.log('[Client] Sending request to API:', {
@@ -79,23 +97,27 @@ export function useChat({
       fetch: customFetch,
       prepareSendMessagesRequest(request) {
         // Build the complete request body with messages array
-        // The DefaultChatTransport passes messages separately, but our API expects them in the body
-        console.log('[Client] Preparing request with model:', model);
+        // Use refs to get CURRENT values (not stale closure values)
+        const currentModel = modelRef.current;
+        const currentLocale = localeRef.current;
+        const currentChatId = chatIdRef.current;
+
+        console.log('[Client] Preparing request with model:', currentModel);
         console.log('[Client] Original request.messages:', request.messages);
 
         return {
           body: {
             id: request.id,
             messages: request.messages,  // Include the full messages array
-            model: model,
-            locale: locale,
-            chatId: chatId,
+            model: currentModel,  // Use ref value, not closure value
+            locale: currentLocale,
+            chatId: currentChatId,
             ...request.body,  // Spread any additional fields
           },
         };
       },
     }),
-    [chatId, locale, customFetch, model]
+    [customFetch]  // Remove model, locale, chatId from deps - we use refs instead
   );
 
   const chat = useAIChat({
