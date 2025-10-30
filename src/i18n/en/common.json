@@ -13,5 +13,32 @@
     "close": "Close",
     "save": "Save",
     "cancel": "Cancel"
+  },
+  "chat": {
+    "title": "AI Assistant",
+    "newChat": "New Chat",
+    "placeholder": "Ask a question...",
+    "send": "Send",
+    "thinking": "Thinking...",
+    "emptyState": {
+      "title": "Start a conversation",
+      "description": "Ask me anything about location data, real estate, or demographics"
+    },
+    "models": {
+      "select": "Select Model",
+      "grok2Vision": "Grok 2 Vision",
+      "grok2": "Grok 2"
+    },
+    "history": {
+      "title": "Chat History",
+      "empty": "No conversations yet",
+      "delete": "Delete chat",
+      "deleteConfirm": "Are you sure you want to delete this chat?"
+    },
+    "errors": {
+      "failed": "Failed to send message",
+      "retry": "Retry",
+      "offline": "You are offline. Please check your connection."
+    }
   }
 }

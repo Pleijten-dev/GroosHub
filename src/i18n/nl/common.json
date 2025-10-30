@@ -13,5 +13,32 @@
     "close": "Sluiten",
     "save": "Opslaan",
     "cancel": "Annuleren"
+  },
+  "chat": {
+    "title": "AI Assistent",
+    "newChat": "Nieuwe Chat",
+    "placeholder": "Stel een vraag...",
+    "send": "Versturen",
+    "thinking": "Aan het nadenken...",
+    "emptyState": {
+      "title": "Start een gesprek",
+      "description": "Stel mij vragen over locatiedata, vastgoed of demografie"
+    },
+    "models": {
+      "select": "Selecteer Model",
+      "grok2Vision": "Grok 2 Vision",
+      "grok2": "Grok 2"
+    },
+    "history": {
+      "title": "Chat Geschiedenis",
+      "empty": "Nog geen gesprekken",
+      "delete": "Chat verwijderen",
+      "deleteConfirm": "Weet je zeker dat je deze chat wilt verwijderen?"
+    },
+    "errors": {
+      "failed": "Bericht versturen mislukt",
+      "retry": "Opnieuw proberen",
+      "offline": "Je bent offline. Controleer je internetverbinding."
+    }
   }
 }
