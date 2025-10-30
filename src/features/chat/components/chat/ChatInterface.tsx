@@ -124,12 +124,13 @@ export function ChatInterface({
               <option value="grok-2-1212">Grok 2</option>
             </optgroup>
             <optgroup label="Anthropic">
-              <option value="claude-opus-4-20250514">Claude Opus 4</option>
-              <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
+              <option value="claude-opus-4-1">Claude Opus 4.1</option>
+              <option value="claude-opus-4-0">Claude Opus 4.0</option>
+              <option value="claude-sonnet-4-0">Claude Sonnet 4.0</option>
             </optgroup>
             <optgroup label="OpenAI">
-              <option value="gpt-4o">GPT-4o</option>
-              <option value="gpt-4o-mini">GPT-4o Mini</option>
+              <option value="gpt-5">GPT-5</option>
+              <option value="gpt-5-mini">GPT-5 Mini</option>
             </optgroup>
             <optgroup label="Mistral">
               <option value="mistral-large-latest">Mistral Large</option>

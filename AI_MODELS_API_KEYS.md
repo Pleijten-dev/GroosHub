@@ -52,14 +52,16 @@ GOOGLE_GENERATIVE_AI_API_KEY=your_google_api_key_here
 ### Anthropic Models
 | Model ID | Name | Description |
 |----------|------|-------------|
-| `claude-opus-4-20250514` | Claude Opus 4 | Most capable Claude model |
-| `claude-sonnet-4-20250514` | Claude Sonnet 4 | Balanced model for everyday tasks |
+| `claude-opus-4-1` | Claude Opus 4.1 | Latest and most capable Claude model |
+| `claude-sonnet-4-0` | Claude Sonnet 4 | Balanced model for everyday tasks |
+| `claude-sonnet-4-0` | Claude Sonnet 4.0 | Balanced model for everyday tasks |
+| `claude-opus-4-0` | Claude Opus 4.0 | Previous generation flagship model |
 
 ### OpenAI Models
 | Model ID | Name | Description |
-|----------|------|-------------|
-| `gpt-4o` | GPT-4o | Multimodal flagship model |
-| `gpt-4o-mini` | GPT-4o Mini | Fast and efficient variant |
+| `gpt-5` | GPT-5 | OpenAI's latest and most advanced model |
+| `gpt-5-mini` | GPT-5 Mini | Fast and efficient GPT-5 variant |
+| `gpt-5-mini` | GPT-4o Mini | Fast and efficient variant |
 
 ### Mistral Models
 | Model ID | Name | Description |

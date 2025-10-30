@@ -42,7 +42,8 @@ export async function POST(req: Request) {
         // Chat doesn't exist, create a new one
         console.log(`Chat ${currentChatId} not found, creating new chat`);
         currentChatId = undefined;
-      } else if (existingChat.userId !== session.user.id) {
+      } else if (existingChat.userId !== Number(session.user.id)) {
+        console.error(`Chat ${currentChatId} belongs to user ${existingChat.userId}, but current user is ${session.user.id}`);
         return new Response('Forbidden', { status: 403 });
       }
     }

@@ -1,4 +1,4 @@
-// AI model definitions adapted from Vercel AI Chatbot
+// AI model definitions
 export const DEFAULT_CHAT_MODEL: string = "grok-2-vision-1212";
 
 export type ChatModel = {
@@ -25,29 +25,35 @@ export const chatModels: ChatModel[] = [
 
   // Anthropic Claude Models
   {
-    id: "claude-opus-4-20250514",
-    name: "Claude Opus 4",
-    description: "Most capable Claude model for complex tasks",
+    id: "claude-opus-4-1",
+    name: "Claude Opus 4.1",
+    description: "Latest and most capable Claude model",
     provider: 'anthropic',
   },
   {
-    id: "claude-sonnet-4-20250514",
-    name: "Claude Sonnet 4",
+    id: "claude-opus-4-0",
+    name: "Claude Opus 4.0",
+    description: "Previous generation flagship Claude model",
+    provider: 'anthropic',
+  },
+  {
+    id: "claude-sonnet-4-0",
+    name: "Claude Sonnet 4.0",
     description: "Balanced Claude model for everyday tasks",
     provider: 'anthropic',
   },
 
   // OpenAI Models
   {
-    id: "gpt-4o",
-    name: "GPT-4o",
-    description: "OpenAI's multimodal flagship model",
+    id: "gpt-5",
+    name: "GPT-5",
+    description: "OpenAI's latest and most advanced language model",
     provider: 'openai',
   },
   {
-    id: "gpt-4o-mini",
-    name: "GPT-4o Mini",
-    description: "Fast and efficient GPT-4 model",
+    id: "gpt-5-mini",
+    name: "GPT-5 Mini",
+    description: "Fast and efficient GPT-5 model",
     provider: 'openai',
   },
 

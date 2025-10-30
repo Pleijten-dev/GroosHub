@@ -25,7 +25,8 @@ export async function GET(
       return Response.json({ error: 'Chat not found' }, { status: 404 });
     }
 
-    if (chat.userId !== session.user.id) {
+    if (chat.userId !== Number(session.user.id)) {
+      console.error(`Chat ${id} belongs to user ${chat.userId}, but current user is ${session.user.id}`);
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -59,7 +60,8 @@ export async function PATCH(
       return Response.json({ error: 'Chat not found' }, { status: 404 });
     }
 
-    if (chat.userId !== session.user.id) {
+    if (chat.userId !== Number(session.user.id)) {
+      console.error(`Chat ${id} belongs to user ${chat.userId}, but current user is ${session.user.id}`);
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -99,7 +101,8 @@ export async function DELETE(
       return Response.json({ error: 'Chat not found' }, { status: 404 });
     }
 
-    if (chat.userId !== session.user.id) {
+    if (chat.userId !== Number(session.user.id)) {
+      console.error(`Chat ${id} belongs to user ${chat.userId}, but current user is ${session.user.id}`);
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
