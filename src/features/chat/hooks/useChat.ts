@@ -78,24 +78,21 @@ export function useChat({
       api: '/api/chat',
       fetch: customFetch,
       prepareSendMessagesRequest(request) {
-        // Add our custom fields (model, locale, chatId) to the request
-        // The messages will be added by the transport automatically
+        // Build the complete request body with messages array
+        // The DefaultChatTransport passes messages separately, but our API expects them in the body
         console.log('[Client] Preparing request with model:', model);
         console.log('[Client] Original request.messages:', request.messages);
-        console.log('[Client] Original request.body:', request.body);
 
-        const updatedRequest = {
-          ...request,
+        return {
           body: {
-            ...request.body,
+            id: request.id,
+            messages: request.messages,  // Include the full messages array
             model: model,
             locale: locale,
             chatId: chatId,
+            ...request.body,  // Spread any additional fields
           },
         };
-
-        console.log('[Client] Updated request.body:', updatedRequest.body);
-        return updatedRequest;
       },
     }),
     [chatId, locale, customFetch, model]
