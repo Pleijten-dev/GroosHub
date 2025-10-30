@@ -2,8 +2,8 @@
 'use client';
 
 import { useChat as useAIChat } from '@ai-sdk/react';
-import { type UIMessage } from 'ai';
-import { useRef, useEffect, useCallback } from 'react';
+import { DefaultChatTransport, type UIMessage } from 'ai';
+import { useRef, useEffect, useCallback, useMemo } from 'react';
 
 export interface UseChatOptions {
   chatId?: string;
@@ -137,29 +137,35 @@ export function useChat({
     return response;
   }, [onChatCreated]);
 
+  const transport = useMemo(
+    () => new DefaultChatTransport({
+      api: '/api/chat',
+      fetch: customFetch,
+      prepareSendMessagesRequest: (options) => {
+        return {
+          ...options,
+          body: {
+            ...options.body,
+            model: modelRef.current,
+            locale: localeRef.current,
+            chatId: chatIdRef.current,
+          },
+        };
+      },
+    }),
+    [customFetch]
+  );
+
   const chat = useAIChat({
     id: chatId,
-    api: '/api/chat',
-    fetch: customFetch,
-    initialMessages,
+    transport,
+    messages: initialMessages,
     onFinish(result) {
       onFinish?.(result);
     },
     onError(error) {
       console.error('Chat error:', error);
       onError?.(error);
-    },
-    // Pass body dynamically through sendMessage to avoid stale data
-    prepareSendMessagesRequest: (options) => {
-      return {
-        ...options,
-        body: {
-          ...options.body,
-          model: modelRef.current,
-          locale: localeRef.current,
-          chatId: chatIdRef.current,
-        },
-      };
     },
   });
 
