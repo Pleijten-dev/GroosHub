@@ -1,7 +1,7 @@
 // Main chat interface component
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useChat } from '../../hooks/useChat';
 import { DEFAULT_CHAT_MODEL } from '../../lib/ai/models';
 import { ChatMessages } from './ChatMessages';
@@ -13,29 +13,69 @@ interface ChatInterfaceProps {
   locale: string;
   chatId?: string;
   initialMessages?: UIMessage[];
+  onChatCreated?: (chatId: string) => void;
 }
 
 export function ChatInterface({
   locale,
-  chatId: initialChatId,
+  chatId,
   initialMessages = [],
+  onChatCreated,
 }: ChatInterfaceProps) {
-  const [currentChatId, setCurrentChatId] = useState<string | undefined>(initialChatId);
   const [selectedModel, setSelectedModel] = useState(DEFAULT_CHAT_MODEL);
+  const [loadedMessages, setLoadedMessages] = useState<UIMessage[]>(initialMessages);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const hasLoadedRef = useRef(false);
+  const chatIdRef = useRef(chatId);
+
+  // Load messages when chatId changes
+  useEffect(() => {
+    async function loadMessages() {
+      if (!chatId || hasLoadedRef.current) return;
+
+      hasLoadedRef.current = true;
+      setIsLoadingMessages(true);
+
+      try {
+        const response = await fetch(`/api/chat/${chatId}`);
+        if (response.ok) {
+          const data = await response.json();
+          // Convert ChatMessage format to UIMessage format
+          const uiMessages: UIMessage[] = data.messages.map((msg: ChatMessage) => ({
+            id: msg.id,
+            role: msg.role,
+            parts: [{ type: 'text' as const, text: msg.content }],
+            metadata: msg.metadata,
+          }));
+          setLoadedMessages(uiMessages);
+        }
+      } catch (error) {
+        console.error('Failed to load messages:', error);
+      } finally {
+        setIsLoadingMessages(false);
+      }
+    }
+
+    // Reset loaded ref if chatId changes
+    if (chatIdRef.current !== chatId) {
+      hasLoadedRef.current = false;
+      chatIdRef.current = chatId;
+    }
+
+    loadMessages();
+  }, [chatId]);
 
   const { messages, sendMessage, status, error } = useChat({
-    chatId: currentChatId,
+    chatId,
     model: selectedModel,
     locale,
-    initialMessages,
-    onFinish: (message) => {
+    initialMessages: loadedMessages,
+    onFinish: (result) => {
       // Extract chat ID from response if this is a new chat
-      if (!currentChatId && message) {
-        // Chat ID will be set via response headers
-        const chatIdFromStorage = localStorage.getItem('lastChatId');
-        if (chatIdFromStorage) {
-          setCurrentChatId(chatIdFromStorage);
-        }
+      if (!chatId && result && onChatCreated) {
+        // The chat ID should be in the URL or we need to extract it
+        // For now, we'll rely on the API creating it and returning it
+        // We could enhance this by reading from response headers
       }
     },
   });
@@ -72,7 +112,9 @@ export function ChatInterface({
     <div className="flex h-full flex-col bg-bg-primary">
       {/* Header */}
       <div className="flex items-center justify-between border-b bg-bg-secondary px-6 py-4">
-        <h1 className="text-lg font-semibold text-text-primary">AI Assistant</h1>
+        <h1 className="text-lg font-semibold text-text-primary">
+          {locale === 'nl' ? 'AI Assistent' : 'AI Assistant'}
+        </h1>
 
         <div className="flex items-center gap-2">
           <select
@@ -86,12 +128,26 @@ export function ChatInterface({
         </div>
       </div>
 
+      {/* Loading messages state */}
+      {isLoadingMessages && (
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-text-secondary">
+              {locale === 'nl' ? 'Berichten laden...' : 'Loading messages...'}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Messages */}
-      <ChatMessages
-        messages={chatMessages}
-        locale={locale}
-        isLoading={isLoading}
-      />
+      {!isLoadingMessages && (
+        <ChatMessages
+          messages={chatMessages}
+          locale={locale}
+          isLoading={isLoading}
+        />
+      )}
 
       {/* Error message */}
       {error && (

@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { ChatInterface } from '@/features/chat/components/chat';
 import { Sidebar, useSidebar } from '@/shared/components/UI/Sidebar';
 import { useChatSidebarSections } from '@/features/chat/components/ChatSidebar';
@@ -18,10 +19,17 @@ interface AIAssistantClientProps {
   userId: string;
 }
 
-export function AIAssistantClient({ locale, userId }: AIAssistantClientProps) {
-  const [currentChatId, setCurrentChatId] = useState<string | undefined>(undefined);
+export function AIAssistantClient({ locale }: AIAssistantClientProps) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Get chat ID from URL query parameter
+  const chatIdFromUrl = searchParams.get('chat');
+
+  const [currentChatId, setCurrentChatId] = useState<string | undefined>(chatIdFromUrl || undefined);
   const [chats, setChats] = useState<Chat[]>([]);
   const [isLoadingChats, setIsLoadingChats] = useState(false);
+  const [key, setKey] = useState(0); // Key to force re-render of ChatInterface
 
   // Use sidebar hook for state management
   const { isCollapsed, toggle } = useSidebar({
@@ -30,6 +38,12 @@ export function AIAssistantClient({ locale, userId }: AIAssistantClientProps) {
     storageKey: 'chat-sidebar-collapsed',
     autoCollapseMobile: true,
   });
+
+  // Update currentChatId when URL changes
+  useEffect(() => {
+    setCurrentChatId(chatIdFromUrl || undefined);
+    setKey(prev => prev + 1); // Force ChatInterface to remount with new chatId
+  }, [chatIdFromUrl]);
 
   // Load chat history on mount
   useEffect(() => {
@@ -52,15 +66,19 @@ export function AIAssistantClient({ locale, userId }: AIAssistantClientProps) {
   };
 
   const handleNewChat = () => {
-    setCurrentChatId(undefined);
-    // Optionally reload the page or reset chat state
-    window.location.href = `/${locale}/ai-assistant`;
+    // Navigate to clean URL without chat parameter
+    router.push(`/${locale}/ai-assistant`);
   };
 
   const handleSelectChat = (chatId: string) => {
-    setCurrentChatId(chatId);
-    // Optionally navigate to the chat
-    window.location.href = `/${locale}/ai-assistant?chat=${chatId}`;
+    // Navigate to URL with chat parameter
+    router.push(`/${locale}/ai-assistant?chat=${chatId}`);
+  };
+
+  const handleChatCreated = (chatId: string) => {
+    // When a new chat is created, reload chat history and navigate to it
+    loadChatHistory();
+    router.push(`/${locale}/ai-assistant?chat=${chatId}`);
   };
 
   // Get sidebar sections
@@ -97,7 +115,12 @@ export function AIAssistantClient({ locale, userId }: AIAssistantClientProps) {
           ${mainContentMargin}
         `}
       >
-        <ChatInterface locale={locale} chatId={currentChatId} />
+        <ChatInterface
+          key={key}
+          locale={locale}
+          chatId={currentChatId}
+          onChatCreated={handleChatCreated}
+        />
       </main>
     </div>
   );
