@@ -41,8 +41,26 @@ export function useChat({
       headers: {
         contentType: response.headers.get('Content-Type'),
         chatId: response.headers.get('X-Chat-Id'),
+        model: response.headers.get('X-Model'),
+        provider: response.headers.get('X-Provider'),
       },
     });
+
+    // Check for error responses
+    if (!response.ok) {
+      const contentType = response.headers.get('Content-Type');
+      if (contentType?.includes('application/json')) {
+        const errorData = await response.clone().json();
+        console.error('[Client] ❌ API Error:', errorData);
+        console.error('[Client] Error details:', {
+          status: response.status,
+          error: errorData.error,
+          message: errorData.message,
+          provider: errorData.provider,
+          model: errorData.model,
+        });
+      }
+    }
 
     // Extract chat ID from response headers
     const newChatId = response.headers.get('X-Chat-Id');

@@ -101,8 +101,36 @@ export async function POST(req: Request) {
     console.log(`Calling AI model: ${model}`);
     console.log('Messages being sent to AI:', JSON.stringify(rawMessages, null, 2));
 
+    // Determine provider for debugging
+    const provider = model.startsWith('grok') ? 'xai' :
+                    model.startsWith('gpt') ? 'openai' :
+                    model.startsWith('claude') ? 'anthropic' :
+                    model.startsWith('mistral') ? 'mistral' :
+                    model.startsWith('gemini') ? 'google' : 'unknown';
+
+    // Check if API key exists for this provider
+    const apiKeyEnvVar = provider === 'xai' ? 'XAI_API_KEY' :
+                        provider === 'openai' ? 'OPENAI_API_KEY' :
+                        provider === 'anthropic' ? 'ANTHROPIC_API_KEY' :
+                        provider === 'mistral' ? 'MISTRAL_API_KEY' :
+                        provider === 'google' ? 'GOOGLE_GENERATIVE_AI_API_KEY' : 'UNKNOWN';
+
+    const apiKeyExists = !!process.env[apiKeyEnvVar];
+    console.log(`Provider: ${provider}, API Key Env Var: ${apiKeyEnvVar}, API Key Exists: ${apiKeyExists}`);
+
+    if (!apiKeyExists) {
+      console.error(`❌ CRITICAL: ${apiKeyEnvVar} is not set!`);
+      return Response.json({
+        error: `${provider.toUpperCase()} API key not configured`,
+        message: `Please set ${apiKeyEnvVar} in your environment variables`,
+        provider,
+        model,
+      }, { status: 500 });
+    }
+
     // Stream AI response
     let result;
+    let streamError: Error | null = null;
     try {
       result = streamText({
         model: getLanguageModel(model),
@@ -129,24 +157,42 @@ export async function POST(req: Request) {
               }
             }
           } else {
-            console.error('AI returned empty response!');
+            console.error('❌ AI returned empty response!');
+            console.error(`Possible causes:`);
+            console.error(`1. Invalid model ID: "${model}"`);
+            console.error(`2. Invalid ${apiKeyEnvVar}`);
+            console.error(`3. API rate limit exceeded`);
+            console.error(`4. Model does not exist or requires different permissions`);
           }
         },
       });
-      console.log('streamText called successfully');
+      console.log('✅ streamText called successfully, starting stream...');
     } catch (error) {
-      console.error('Failed to call streamText:', error);
+      streamError = error instanceof Error ? error : new Error('Unknown error');
+      console.error('❌ CRITICAL: Failed to call streamText:', error);
       if (error instanceof Error) {
-        console.error('StreamText error details:', error.message, error.stack);
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
       }
-      throw error;
+
+      // Return a JSON error response instead of throwing
+      return Response.json({
+        error: 'AI API call failed',
+        message: streamError.message,
+        provider,
+        model,
+        apiKeyEnvVar,
+      }, { status: 500 });
     }
 
     // Return stream response with chat ID in headers
     const response = result.toTextStreamResponse();
     response.headers.set('X-Chat-Id', currentChatId);
+    response.headers.set('X-Model', model);
+    response.headers.set('X-Provider', provider);
 
-    console.log(`Returning streaming response with chat ID: ${currentChatId}`);
+    console.log(`✅ Returning streaming response with chat ID: ${currentChatId}`);
     return response;
   } catch (error) {
     console.error('Chat API error:', error);
