@@ -67,14 +67,17 @@ export function useChat({
 
     const response = await fetch(input, init);
 
-    console.log('[Client] API response received:', {
+    console.log('[Client] 📡 API response received:', {
       status: response.status,
       statusText: response.statusText,
+      ok: response.ok,
+      bodyUsed: response.bodyUsed,
       headers: {
         contentType: response.headers.get('Content-Type'),
         chatId: response.headers.get('X-Chat-Id'),
         model: response.headers.get('X-Model'),
         provider: response.headers.get('X-Provider'),
+        debugStreamType: response.headers.get('X-Debug-Stream-Type'),
       },
     });
 
@@ -84,25 +87,48 @@ export function useChat({
       if (contentType?.includes('application/json')) {
         const errorData = await response.clone().json();
         console.error('[Client] ❌ API Error:', errorData);
-        console.error('[Client] Error details:', {
+      } else {
+        console.error('[Client] ❌ Non-JSON error response:', {
           status: response.status,
-          error: errorData.error,
-          message: errorData.message,
-          provider: errorData.provider,
-          model: errorData.model,
+          statusText: response.statusText,
         });
       }
     } else {
-      // For successful responses, log a sample of the stream to debug
+      // For successful responses, inspect the stream
+      console.log('[Client] ✅ Response OK, inspecting stream...');
+      console.log('[Client] Stream details:', {
+        hasBody: !!response.body,
+        bodyType: response.body ? typeof response.body : 'null',
+        locked: response.body?.locked,
+      });
+
       const clonedResponse = response.clone();
       const reader = clonedResponse.body?.getReader();
-      if (reader) {
-        const { value } = await reader.read();
-        if (value) {
-          const text = new TextDecoder().decode(value);
-          console.log('[Client] 📨 First chunk of stream:', text.substring(0, 200));
+
+      if (!reader) {
+        console.error('[Client] ❌ No readable stream available!');
+      } else {
+        console.log('[Client] 📖 Reading first chunk...');
+        try {
+          const { done, value } = await reader.read();
+          console.log('[Client] First read result:', {
+            done,
+            hasValue: !!value,
+            valueLength: value?.length || 0,
+          });
+
+          if (value) {
+            const text = new TextDecoder().decode(value);
+            console.log('[Client] 📨 First chunk content:', text.substring(0, 200));
+          } else {
+            console.warn('[Client] ⚠️ First chunk is empty!');
+          }
+
+          reader.releaseLock();
+        } catch (readError) {
+          console.error('[Client] ❌ Error reading stream:', readError);
+          reader.releaseLock();
         }
-        reader.releaseLock();
       }
     }
 

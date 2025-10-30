@@ -128,79 +128,108 @@ export async function POST(req: Request) {
       }, { status: 500 });
     }
 
-    // TEMPORARY TEST: Use gpt-4o-mini to verify system works
-    // TODO: Remove this after confirming chat works
-    const testModel = model.startsWith('gpt') ? 'gpt-4o-mini' : model;
-    if (testModel !== model) {
-      console.log(`⚠️ TESTING: Replacing ${model} with ${testModel} to verify system works`);
-    }
+    console.log(`🚀 Attempting to call ${provider} API with model: ${model}`);
 
-    // Stream AI response
+    // Stream AI response with comprehensive error handling
     let result;
-    let streamError: Error | null = null;
     try {
       result = streamText({
-        model: getLanguageModel(testModel),
+        model: getLanguageModel(model),
         system: systemPrompt,
         messages: rawMessages,
         async onFinish({ text, finishReason, usage }) {
-          console.log('AI response finished:', {
-            textLength: text.length,
+          console.log('🏁 AI stream finished:', {
+            textLength: text?.length || 0,
             finishReason,
             usage,
-            preview: text.substring(0, 100)
+            preview: text ? text.substring(0, 100) : '(empty)',
           });
 
           // Save assistant message to database
           if (text && text.length > 0) {
-            console.log(`Saving assistant message to chat ${currentChatId}`);
+            console.log(`💾 Saving assistant message to chat ${currentChatId}`);
             try {
               await createMessage(currentChatId, 'assistant', text);
-              console.log('Assistant message saved to database');
+              console.log('✅ Assistant message saved to database');
             } catch (dbError) {
-              console.error('Failed to save assistant message to database:', dbError);
+              console.error('❌ Failed to save assistant message:', dbError);
               if (dbError instanceof Error) {
-                console.error('DB Error details:', dbError.message, dbError.stack);
+                console.error('DB Error:', dbError.message);
               }
             }
           } else {
-            console.error('❌ AI returned empty response!');
-            console.error(`Possible causes:`);
-            console.error(`1. Invalid model ID: "${model}"`);
-            console.error(`2. Invalid ${apiKeyEnvVar}`);
-            console.error(`3. API rate limit exceeded`);
-            console.error(`4. Model does not exist or requires different permissions`);
+            console.error('❌ EMPTY AI RESPONSE!');
+            console.error('Finish reason:', finishReason);
+            console.error('Usage:', usage);
+          }
+        },
+        onError(error) {
+          console.error('❌ Stream error callback triggered:', error);
+          if (error instanceof Error) {
+            console.error('Stream error details:', {
+              name: error.name,
+              message: error.message,
+              stack: error.stack,
+            });
           }
         },
       });
-      console.log('✅ streamText called successfully, starting stream...');
+
+      console.log('✅ streamText() initialized successfully');
+      console.log('📊 Result type:', typeof result);
+      console.log('📊 Result methods:', Object.keys(result));
+
     } catch (error) {
-      streamError = error instanceof Error ? error : new Error('Unknown error');
-      console.error('❌ CRITICAL: Failed to call streamText:', error);
+      console.error('❌ FATAL: streamText() threw an error:', error);
       if (error instanceof Error) {
-        console.error('Error name:', error.name);
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
+        console.error('Error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+        });
       }
 
-      // Return a JSON error response instead of throwing
       return Response.json({
-        error: 'AI API call failed',
-        message: streamError.message,
+        error: 'Failed to initialize AI stream',
+        message: error instanceof Error ? error.message : 'Unknown error',
         provider,
         model,
-        apiKeyEnvVar,
       }, { status: 500 });
     }
 
-    // Return the text streaming response
-    const response = result.toTextStreamResponse();
-    response.headers.set('X-Chat-Id', currentChatId);
-    response.headers.set('X-Model', model);
-    response.headers.set('X-Provider', provider);
+    // Create streaming response with additional logging
+    try {
+      const response = result.toTextStreamResponse();
 
-    console.log(`✅ Returning text stream response with chat ID: ${currentChatId}`);
-    return response;
+      response.headers.set('X-Chat-Id', currentChatId);
+      response.headers.set('X-Model', model);
+      response.headers.set('X-Provider', provider);
+      response.headers.set('X-Debug-Stream-Type', 'text-stream');
+
+      console.log(`✅ Returning streaming response:`, {
+        chatId: currentChatId,
+        model,
+        provider,
+        contentType: response.headers.get('Content-Type'),
+      });
+
+      return response;
+    } catch (error) {
+      console.error('❌ FATAL: Failed to create stream response:', error);
+      if (error instanceof Error) {
+        console.error('Response error:', {
+          name: error.name,
+          message: error.message,
+        });
+      }
+
+      return Response.json({
+        error: 'Failed to create stream response',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        provider,
+        model,
+      }, { status: 500 });
+    }
   } catch (error) {
     console.error('Chat API error:', error);
 
