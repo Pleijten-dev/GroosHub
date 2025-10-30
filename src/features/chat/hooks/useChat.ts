@@ -105,14 +105,30 @@ export function useChat({
         console.log('[Client] Preparing request with model:', currentModel);
         console.log('[Client] Original request.messages:', request.messages);
 
+        // Convert UIMessage (with parts array) to CoreMessage (with content string)
+        const convertedMessages = request.messages.map((msg) => {
+          // Extract text from parts array
+          const textContent = msg.parts
+            .filter((part) => part.type === 'text')
+            .map((part) => 'text' in part ? part.text : '')
+            .join('');
+
+          return {
+            role: msg.role,
+            content: textContent,
+          };
+        });
+
+        console.log('[Client] Converted messages:', convertedMessages);
+
         return {
           body: {
             id: request.id,
-            messages: request.messages,  // Include the full messages array
-            model: currentModel,  // Use ref value, not closure value
+            messages: convertedMessages,  // Send converted messages
+            model: currentModel,
             locale: currentLocale,
             chatId: currentChatId,
-            ...request.body,  // Spread any additional fields
+            ...request.body,
           },
         };
       },
