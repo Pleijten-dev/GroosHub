@@ -1,10 +1,29 @@
 // Chat API endpoint with streaming support
 import { auth } from '@/lib/auth';
-import { streamText, type CoreMessage } from 'ai';
+import { streamText, type CoreMessage, convertToModelMessages } from 'ai';
 import { getLanguageModel } from '@/features/chat/lib/ai/providers';
 import { getSystemPrompt } from '@/features/chat/lib/ai/prompts';
 import { DEFAULT_CHAT_MODEL } from '@/features/chat/lib/ai/models';
 import { createChat, createMessage, getChatById } from '@/features/chat/lib/db/queries';
+
+// Helper to extract text from UIMessage parts
+function extractTextFromMessage(message: CoreMessage | { parts?: Array<{ text?: string }> }): string {
+  // If it has parts array (UIMessage format)
+  if ('parts' in message && Array.isArray(message.parts)) {
+    const textParts = message.parts
+      .filter((part): part is { text: string } => 'text' in part && typeof part.text === 'string')
+      .map(part => part.text);
+    return textParts.join('');
+  }
+
+  // If it has content string (CoreMessage format)
+  if ('content' in message && typeof message.content === 'string') {
+    return message.content;
+  }
+
+  // Fallback
+  return '';
+}
 
 export const maxDuration = 60;
 
@@ -59,8 +78,8 @@ export async function POST(req: Request) {
     if (!currentChatId) {
       // Create new chat with title from first user message
       const firstMessage = rawMessages.find((m) => m.role === 'user');
-      const title = firstMessage && 'content' in firstMessage
-        ? String(firstMessage.content).substring(0, 100)
+      const title = firstMessage
+        ? extractTextFromMessage(firstMessage).substring(0, 100) || 'New Chat'
         : 'New Chat';
 
       console.log('Creating new chat for user:', session.user.id, 'with title:', title);
@@ -71,24 +90,18 @@ export async function POST(req: Request) {
 
     // Save user message to database
     const userMessage = rawMessages[rawMessages.length - 1];
-    console.log('User message structure:', {
-      hasMessage: !!userMessage,
-      role: userMessage?.role,
-      hasContent: 'content' in (userMessage || {}),
-      contentType: userMessage && 'content' in userMessage ? typeof userMessage.content : 'undefined',
-      messageKeys: Object.keys(userMessage || {})
-    });
+    if (userMessage && userMessage.role === 'user') {
+      const content = extractTextFromMessage(userMessage);
 
-    if (userMessage && userMessage.role === 'user' && 'content' in userMessage) {
-      const content = typeof userMessage.content === 'string'
-        ? userMessage.content
-        : JSON.stringify(userMessage.content);
-
-      console.log(`Saving user message to chat ${currentChatId}: "${content.substring(0, 50)}..."`);
-      await createMessage(currentChatId, 'user', content);
-      console.log('User message saved to database');
+      if (content) {
+        console.log(`Saving user message to chat ${currentChatId}: "${content.substring(0, 50)}..."`);
+        await createMessage(currentChatId, 'user', content);
+        console.log('✅ User message saved to database');
+      } else {
+        console.warn('⚠️ User message has no text content');
+      }
     } else {
-      console.warn('User message not saved - condition not met');
+      console.warn('⚠️ No user message found to save');
     }
 
     // Get system prompt
@@ -130,14 +143,40 @@ export async function POST(req: Request) {
 
     console.log(`🚀 Attempting to call ${provider} API with model: ${model}`);
 
+    // Convert UIMessages to CoreMessages (ModelMessages)
+    console.log('🔄 Converting messages from UIMessage format to CoreMessage format...');
+    let convertedMessages: CoreMessage[];
+    try {
+      convertedMessages = convertToModelMessages(rawMessages);
+      console.log('✅ Messages converted successfully:', JSON.stringify(convertedMessages, null, 2));
+    } catch (conversionError) {
+      console.error('❌ Failed to convert messages:', conversionError);
+      return Response.json({
+        error: 'Failed to convert messages',
+        message: conversionError instanceof Error ? conversionError.message : 'Unknown error',
+      }, { status: 500 });
+    }
+
+    // Track diagnostics to send in headers
+    const diagnostics = {
+      streamInitialized: false,
+      streamError: '',
+      finishReason: '',
+      textLength: 0,
+      providerError: '',
+    };
+
     // Stream AI response with comprehensive error handling
     let result;
     try {
       result = streamText({
         model: getLanguageModel(model),
         system: systemPrompt,
-        messages: rawMessages,
+        messages: convertedMessages,
         async onFinish({ text, finishReason, usage }) {
+          diagnostics.finishReason = finishReason || 'unknown';
+          diagnostics.textLength = text?.length || 0;
+
           console.log('🏁 AI stream finished:', {
             textLength: text?.length || 0,
             finishReason,
@@ -161,9 +200,14 @@ export async function POST(req: Request) {
             console.error('❌ EMPTY AI RESPONSE!');
             console.error('Finish reason:', finishReason);
             console.error('Usage:', usage);
+            diagnostics.streamError = `Empty response. FinishReason: ${finishReason}`;
           }
         },
         onError(error) {
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          diagnostics.streamError = errorMsg;
+          diagnostics.providerError = errorMsg;
+
           console.error('❌ Stream error callback triggered:', error);
           if (error instanceof Error) {
             console.error('Stream error details:', {
@@ -175,11 +219,15 @@ export async function POST(req: Request) {
         },
       });
 
+      diagnostics.streamInitialized = true;
       console.log('✅ streamText() initialized successfully');
       console.log('📊 Result type:', typeof result);
       console.log('📊 Result methods:', Object.keys(result));
 
     } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      diagnostics.streamError = `Init failed: ${errorMsg}`;
+
       console.error('❌ FATAL: streamText() threw an error:', error);
       if (error instanceof Error) {
         console.error('Error details:', {
@@ -191,9 +239,10 @@ export async function POST(req: Request) {
 
       return Response.json({
         error: 'Failed to initialize AI stream',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        message: errorMsg,
         provider,
         model,
+        diagnostics,
       }, { status: 500 });
     }
 
@@ -201,20 +250,29 @@ export async function POST(req: Request) {
     try {
       const response = result.toTextStreamResponse();
 
+      // Add diagnostic headers so client can see server-side info
       response.headers.set('X-Chat-Id', currentChatId);
       response.headers.set('X-Model', model);
       response.headers.set('X-Provider', provider);
       response.headers.set('X-Debug-Stream-Type', 'text-stream');
+      response.headers.set('X-Debug-Stream-Init', String(diagnostics.streamInitialized));
+      response.headers.set('X-Debug-API-Key-Exists', String(apiKeyExists));
+      response.headers.set('X-Debug-Model-ID', model);
+      response.headers.set('X-Debug-Provider', provider);
 
       console.log(`✅ Returning streaming response:`, {
         chatId: currentChatId,
         model,
         provider,
         contentType: response.headers.get('Content-Type'),
+        diagnostics,
       });
 
       return response;
     } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      diagnostics.streamError = `Response creation failed: ${errorMsg}`;
+
       console.error('❌ FATAL: Failed to create stream response:', error);
       if (error instanceof Error) {
         console.error('Response error:', {
@@ -225,9 +283,10 @@ export async function POST(req: Request) {
 
       return Response.json({
         error: 'Failed to create stream response',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        message: errorMsg,
         provider,
         model,
+        diagnostics,
       }, { status: 500 });
     }
   } catch (error) {

@@ -67,19 +67,29 @@ export function useChat({
 
     const response = await fetch(input, init);
 
+    // Log ALL headers to see everything the server sent
+    const allHeaders: Record<string, string> = {};
+    response.headers.forEach((value, key) => {
+      allHeaders[key] = value;
+    });
+
     console.log('[Client] 📡 API response received:', {
       status: response.status,
       statusText: response.statusText,
       ok: response.ok,
       bodyUsed: response.bodyUsed,
-      headers: {
-        contentType: response.headers.get('Content-Type'),
-        chatId: response.headers.get('X-Chat-Id'),
-        model: response.headers.get('X-Model'),
-        provider: response.headers.get('X-Provider'),
-        debugStreamType: response.headers.get('X-Debug-Stream-Type'),
-      },
+      url: response.url,
+      allHeaders,
     });
+
+    // Extract and log diagnostic headers
+    const debugInfo = {
+      streamInit: response.headers.get('X-Debug-Stream-Init'),
+      apiKeyExists: response.headers.get('X-Debug-API-Key-Exists'),
+      modelID: response.headers.get('X-Debug-Model-ID'),
+      provider: response.headers.get('X-Debug-Provider'),
+    };
+    console.log('[Client] 🔍 Server diagnostics:', debugInfo);
 
     // Check for error responses
     if (!response.ok) {
