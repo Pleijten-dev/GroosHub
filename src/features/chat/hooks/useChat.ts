@@ -2,8 +2,8 @@
 'use client';
 
 import { useChat as useAIChat } from '@ai-sdk/react';
-import { DefaultChatTransport, type UIMessage } from 'ai';
-import { useMemo, useCallback, useRef, useEffect } from 'react';
+import { type UIMessage } from 'ai';
+import { useRef, useEffect, useCallback } from 'react';
 
 export interface UseChatOptions {
   chatId?: string;
@@ -25,7 +25,6 @@ export function useChat({
   onChatCreated,
 }: UseChatOptions = {}) {
   // Use refs to capture current values (not stale closure values)
-  // This follows Vercel AI Chatbot pattern
   const modelRef = useRef(model);
   const localeRef = useRef(locale);
   const chatIdRef = useRef(chatId);
@@ -42,28 +41,13 @@ export function useChat({
   useEffect(() => {
     chatIdRef.current = chatId;
   }, [chatId]);
-  // Custom fetch to intercept, modify body, and extract chat ID
+
+  // Custom fetch to extract chat ID from response headers
   const customFetch = useCallback(async (input: RequestInfo | URL, init?: RequestInit) => {
-    // Modify the request body to include current model, locale, chatId
-    if (init?.body) {
-      const originalBody = JSON.parse(init.body as string);
-      const modifiedBody = {
-        ...originalBody,
-        model: modelRef.current,
-        locale: localeRef.current,
-        chatId: chatIdRef.current,
-      };
-
-      init = {
-        ...init,
-        body: JSON.stringify(modifiedBody),
-      };
-
-      console.log('[Client] Sending request to API:', {
-        url: input.toString(),
-        body: modifiedBody,
-      });
-    }
+    console.log('[Client] Sending request to API:', {
+      url: input.toString(),
+      body: init?.body ? JSON.parse(init.body as string) : null,
+    });
 
     const response = await fetch(input, init);
 
@@ -153,24 +137,29 @@ export function useChat({
     return response;
   }, [onChatCreated]);
 
-  const transport = useMemo(
-    () => new DefaultChatTransport({
-      api: '/api/chat',
-      fetch: customFetch,
-    }),
-    [customFetch]
-  );
-
   const chat = useAIChat({
     id: chatId,
-    transport,
-    messages: initialMessages,
+    api: '/api/chat',
+    fetch: customFetch,
+    initialMessages,
     onFinish(result) {
       onFinish?.(result);
     },
     onError(error) {
       console.error('Chat error:', error);
       onError?.(error);
+    },
+    // Pass body dynamically through sendMessage to avoid stale data
+    prepareSendMessagesRequest: (options) => {
+      return {
+        ...options,
+        body: {
+          ...options.body,
+          model: modelRef.current,
+          locale: localeRef.current,
+          chatId: chatIdRef.current,
+        },
+      };
     },
   });
 
