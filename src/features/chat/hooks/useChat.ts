@@ -78,12 +78,22 @@ export function useChat({
       api: '/api/chat',
       body: {
         chatId,
-        model,
         locale,
       },
       fetch: customFetch,
+      prepareSendMessagesRequest(request) {
+        // Inject the current model into each request
+        console.log('[Client] Preparing request with model:', model);
+        return {
+          ...request,
+          body: {
+            ...request.body,
+            model: model,
+          },
+        };
+      },
     }),
-    [chatId, model, locale, customFetch]
+    [chatId, locale, customFetch, model]
   );
 
   const chat = useAIChat({
