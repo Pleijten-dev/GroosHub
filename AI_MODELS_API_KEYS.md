@@ -125,19 +125,42 @@ This will show:
 
 ## 📝 Important Notes
 
-### Model IDs Updated (January 2025)
-The original model IDs you requested (gpt-5, gpt-5-mini, claude-opus-4-1, grok-2-vision-1212, etc.) **don't exist in the actual APIs yet**.
+### Model IDs (October 2025)
+The application is configured with the following October 2025 model IDs:
 
-I've updated the configuration to use **real, working model IDs** as of early 2025:
-- ❌ `gpt-5-mini` → ✅ `gpt-4o-mini`
-- ❌ `gpt-5` → ✅ `gpt-4o`
-- ❌ `claude-opus-4-1` → ✅ `claude-3-5-sonnet-20241022`
-- ❌ `grok-2-vision-1212` → ✅ `grok-beta`
+**xAI Models:**
+- `grok-2-vision-1212` (default)
+- `grok-2-1212`
 
-### When New Models Are Released
-When the AI providers release new models (like GPT-5, Claude Opus 4, Grok 2), update:
-1. `src/features/chat/lib/ai/models.ts` - Add the new model IDs
-2. `src/features/chat/components/chat/ChatInterface.tsx` - Update the dropdown
+**Anthropic Claude Models:**
+- `claude-opus-4-1`
+- `claude-opus-4-0`
+- `claude-sonnet-4-0`
+
+**OpenAI Models:**
+- `gpt-5`
+- `gpt-5-mini`
+
+**Mistral Models:**
+- `mistral-large-latest`
+- `mistral-medium-latest`
+
+**Google Gemini Models:**
+- `gemini-2.0-flash-exp`
+- `gemini-1.5-pro`
+
+These model IDs are passed directly to the AI SDK, which forwards them to the provider APIs.
+
+**Note:** If you experience empty responses even when API keys are valid:
+1. The AI SDK or provider API might not recognize these specific model IDs yet
+2. Your API key might not have access to these models (some require waitlist approval)
+3. Check the enhanced logging in browser console for specific error messages
+4. Try the `/api/chat/test` endpoint to verify API connectivity
+
+### When Models Change
+To update available models:
+1. `src/features/chat/lib/ai/models.ts` - Add/remove model IDs
+2. `src/features/chat/components/chat/ChatInterface.tsx` - Update the dropdown (if needed)
 3. This file - Update the documentation
 
 ## 🔒 Security
@@ -159,9 +182,90 @@ Each provider has different pricing:
 
 ## 🆘 Troubleshooting
 
-### Empty response / no answer
-- **Cause**: Invalid model ID or missing API key
-- **Fix**: Use the test endpoint (`/api/chat/test`) to verify your setup
+### Empty response / no answer (even when user messages are saved)
+
+**Symptoms:**
+- User messages appear in postgres database ✅
+- API returns 200 OK ✅
+- But AI response is empty ❌
+- `parts: []` array is empty
+- No assistant messages saved to database
+
+**New Enhanced Logging (Latest Update):**
+
+The code now includes comprehensive logging to diagnose this issue. Check browser console for:
+
+**Server-side logs** (look for these):
+```
+🚀 Attempting to call <provider> API with model: <model>
+✅ streamText() initialized successfully
+📊 Result type: object
+📊 Result methods: [...]
+✅ Returning streaming response
+```
+
+If stream fails:
+```
+❌ Stream error callback triggered: <error details>
+❌ EMPTY AI RESPONSE!
+Finish reason: <reason>
+```
+
+**Client-side logs** (look for these):
+```
+[Client] 📡 API response received
+[Client] ✅ Response OK, inspecting stream...
+[Client] Stream details: { hasBody: true, ... }
+[Client] 📖 Reading first chunk...
+[Client] First read result: { done: false, hasValue: true, valueLength: X }
+[Client] 📨 First chunk content: <actual data>
+```
+
+If stream is empty:
+```
+[Client] ⚠️ First chunk is empty!
+or
+[Client] First read result: { done: true, hasValue: false, valueLength: 0 }
+```
+
+**Diagnostic Steps:**
+
+1. **Check if API key works at all:**
+   - Visit `/api/chat/test` to verify API keys
+   - If OpenAI test passes, API key is valid ✅
+
+2. **Check browser console for new detailed logs:**
+   - Look for `🚀 Attempting to call...` - confirms API call started
+   - Look for `✅ streamText() initialized` - confirms no immediate error
+   - Look for `📊 Result methods` - shows what methods are available on the result
+   - Look for `[Client] 📨 First chunk content` - shows actual stream data
+
+3. **Check for stream errors:**
+   - Look for `❌ Stream error callback triggered`
+   - Look for `❌ EMPTY AI RESPONSE!` with finish reason
+
+4. **Verify model ID is being sent correctly:**
+   - Check `[Client] Sending request to API` log
+   - Confirm `model` field matches what you selected
+
+**Possible Causes:**
+
+1. **Model ID not recognized by provider API:**
+   - Even if model exists, AI SDK or provider might not recognize it yet
+   - Error might be silently swallowed in stream
+   - Check `onError` logs for API-level errors
+
+2. **API key lacks permissions:**
+   - Some models require special access/waitlist approval
+   - Check provider's dashboard for access status
+
+3. **Rate limiting:**
+   - Too many requests to provider API
+   - Check `finishReason` in logs for rate limit indicators
+
+4. **Response format mismatch:**
+   - Stream might be using wrong format (text vs data stream)
+   - Check `X-Debug-Stream-Type` header in logs
 
 ### "API key not configured" error
 - **Cause**: Missing environment variable
@@ -170,4 +274,4 @@ Each provider has different pricing:
 ### Can't see server logs
 - **Vercel**: Dashboard → Project → Logs
 - **Local**: Check your terminal where `pnpm dev` is running
-- **Alternative**: Use `/api/chat/test` and check browser console
+- **Browser Console**: Now includes detailed client-side AND server-side logs
