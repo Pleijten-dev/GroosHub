@@ -132,27 +132,26 @@ export function ChatInterface({
             onChange={(e) => setSelectedModel(e.target.value)}
             className="rounded-md border bg-bg-primary px-3 py-1 text-sm"
           >
-            <optgroup label="OpenAI">
-              <option value="gpt-4o">GPT-4o</option>
-              <option value="gpt-4o-mini">GPT-4o Mini</option>
-              <option value="gpt-4-turbo">GPT-4 Turbo</option>
-              <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+            <optgroup label="xAI">
+              <option value="grok-2-vision-1212">Grok 2 Vision</option>
+              <option value="grok-2-1212">Grok 2</option>
             </optgroup>
             <optgroup label="Anthropic">
-              <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
-              <option value="claude-3-opus-20240229">Claude 3 Opus</option>
-              <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
+              <option value="claude-opus-4-1">Claude Opus 4.1</option>
+              <option value="claude-opus-4-0">Claude Opus 4.0</option>
+              <option value="claude-sonnet-4-0">Claude Sonnet 4.0</option>
             </optgroup>
-            <optgroup label="xAI">
-              <option value="grok-beta">Grok Beta</option>
-            </optgroup>
-            <optgroup label="Google">
-              <option value="gemini-1.5-pro-latest">Gemini 1.5 Pro</option>
-              <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash</option>
+            <optgroup label="OpenAI">
+              <option value="gpt-5">GPT-5</option>
+              <option value="gpt-5-mini">GPT-5 Mini</option>
             </optgroup>
             <optgroup label="Mistral">
               <option value="mistral-large-latest">Mistral Large</option>
-              <option value="mistral-small-latest">Mistral Small</option>
+              <option value="mistral-medium-latest">Mistral Medium</option>
+            </optgroup>
+            <optgroup label="Google">
+              <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash</option>
+              <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
             </optgroup>
           </select>
         </div>

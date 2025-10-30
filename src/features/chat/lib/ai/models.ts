@@ -1,6 +1,5 @@
 // AI model definitions
-// Using working model IDs as of early 2025
-export const DEFAULT_CHAT_MODEL: string = "gpt-4o-mini";
+export const DEFAULT_CHAT_MODEL: string = "grok-2-vision-1212";
 
 export type ChatModel = {
   id: string;
@@ -10,86 +9,80 @@ export type ChatModel = {
 };
 
 export const chatModels: ChatModel[] = [
-  // OpenAI Models (VERIFIED WORKING)
+  // xAI Models
   {
-    id: "gpt-4o",
-    name: "GPT-4o",
-    description: "Most capable OpenAI model with vision and text",
-    provider: 'openai',
+    id: "grok-2-vision-1212",
+    name: "Grok 2 Vision",
+    description: "Advanced multimodal model with vision and text capabilities",
+    provider: 'xai',
   },
   {
-    id: "gpt-4o-mini",
-    name: "GPT-4o Mini",
-    description: "Fast and efficient GPT-4 level model",
-    provider: 'openai',
-  },
-  {
-    id: "gpt-4-turbo",
-    name: "GPT-4 Turbo",
-    description: "High performance GPT-4 model",
-    provider: 'openai',
-  },
-  {
-    id: "gpt-3.5-turbo",
-    name: "GPT-3.5 Turbo",
-    description: "Fast and cost-effective model",
-    provider: 'openai',
-  },
-
-  // Anthropic Claude Models (Update these if you have Claude API access)
-  {
-    id: "claude-3-5-sonnet-20241022",
-    name: "Claude 3.5 Sonnet",
-    description: "Most capable Claude model",
-    provider: 'anthropic',
-  },
-  {
-    id: "claude-3-opus-20240229",
-    name: "Claude 3 Opus",
-    description: "Previous flagship Claude model",
-    provider: 'anthropic',
-  },
-  {
-    id: "claude-3-haiku-20240307",
-    name: "Claude 3 Haiku",
-    description: "Fast Claude model for simple tasks",
-    provider: 'anthropic',
-  },
-
-  // xAI Models (Requires XAI_API_KEY - currently not set)
-  {
-    id: "grok-beta",
-    name: "Grok Beta",
-    description: "xAI's conversational AI model",
+    id: "grok-2-1212",
+    name: "Grok 2",
+    description: "Fast and powerful text generation model",
     provider: 'xai',
   },
 
-  // Google Gemini Models
+  // Anthropic Claude Models
   {
-    id: "gemini-1.5-pro-latest",
-    name: "Gemini 1.5 Pro",
-    description: "Google's most capable model",
-    provider: 'google',
+    id: "claude-opus-4-1",
+    name: "Claude Opus 4.1",
+    description: "Latest and most capable Claude model",
+    provider: 'anthropic',
   },
   {
-    id: "gemini-1.5-flash-latest",
-    name: "Gemini 1.5 Flash",
-    description: "Fast and efficient Gemini model",
-    provider: 'google',
+    id: "claude-opus-4-0",
+    name: "Claude Opus 4.0",
+    description: "Previous generation flagship Claude model",
+    provider: 'anthropic',
+  },
+  {
+    id: "claude-sonnet-4-0",
+    name: "Claude Sonnet 4.0",
+    description: "Balanced Claude model for everyday tasks",
+    provider: 'anthropic',
+  },
+
+  // OpenAI Models
+  {
+    id: "gpt-5",
+    name: "GPT-5",
+    description: "OpenAI's latest and most advanced language model",
+    provider: 'openai',
+  },
+  {
+    id: "gpt-5-mini",
+    name: "GPT-5 Mini",
+    description: "Fast and efficient GPT-5 model",
+    provider: 'openai',
   },
 
   // Mistral Models
   {
     id: "mistral-large-latest",
     name: "Mistral Large",
-    description: "Mistral's flagship model",
+    description: "Mistral's flagship large language model",
     provider: 'mistral',
   },
   {
-    id: "mistral-small-latest",
-    name: "Mistral Small",
-    description: "Fast Mistral model",
+    id: "mistral-medium-latest",
+    name: "Mistral Medium",
+    description: "Balanced Mistral model",
     provider: 'mistral',
+  },
+
+  // Google Gemini Models
+  {
+    id: "gemini-2.0-flash-exp",
+    name: "Gemini 2.0 Flash",
+    description: "Fast experimental Gemini model",
+    provider: 'google',
+  },
+  {
+    id: "gemini-1.5-pro",
+    name: "Gemini 1.5 Pro",
+    description: "Google's powerful Pro model",
+    provider: 'google',
   },
 ];
 
