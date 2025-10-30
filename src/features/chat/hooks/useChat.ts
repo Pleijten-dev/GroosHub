@@ -42,14 +42,28 @@ export function useChat({
   useEffect(() => {
     chatIdRef.current = chatId;
   }, [chatId]);
-  // Custom fetch to intercept and extract chat ID
+  // Custom fetch to intercept, modify body, and extract chat ID
   const customFetch = useCallback(async (input: RequestInfo | URL, init?: RequestInit) => {
-    console.log('[Client] Sending request to API:', {
-      url: input.toString(),
-      body: init?.body ? JSON.parse(init.body as string) : null,
-      chatId,
-      model,
-    });
+    // Modify the request body to include current model, locale, chatId
+    if (init?.body) {
+      const originalBody = JSON.parse(init.body as string);
+      const modifiedBody = {
+        ...originalBody,
+        model: modelRef.current,
+        locale: localeRef.current,
+        chatId: chatIdRef.current,
+      };
+
+      init = {
+        ...init,
+        body: JSON.stringify(modifiedBody),
+      };
+
+      console.log('[Client] Sending request to API:', {
+        url: input.toString(),
+        body: modifiedBody,
+      });
+    }
 
     const response = await fetch(input, init);
 
@@ -94,58 +108,21 @@ export function useChat({
 
     // Extract chat ID from response headers
     const newChatId = response.headers.get('X-Chat-Id');
-    if (newChatId && !chatId && onChatCreated) {
+    if (newChatId && !chatIdRef.current && onChatCreated) {
       console.log('[Client] New chat created:', newChatId);
       // Call the callback with the new chat ID
       onChatCreated(newChatId);
     }
 
     return response;
-  }, [chatId, onChatCreated, model]);
+  }, [onChatCreated]);
 
   const transport = useMemo(
     () => new DefaultChatTransport({
       api: '/api/chat',
       fetch: customFetch,
-      prepareSendMessagesRequest(request) {
-        // Build the complete request body with messages array
-        // Use refs to get CURRENT values (not stale closure values)
-        const currentModel = modelRef.current;
-        const currentLocale = localeRef.current;
-        const currentChatId = chatIdRef.current;
-
-        console.log('[Client] Preparing request with model:', currentModel);
-        console.log('[Client] Original request.messages:', request.messages);
-
-        // Convert UIMessage (with parts array) to CoreMessage (with content string)
-        const convertedMessages = request.messages.map((msg) => {
-          // Extract text from parts array
-          const textContent = msg.parts
-            .filter((part) => part.type === 'text')
-            .map((part) => 'text' in part ? part.text : '')
-            .join('');
-
-          return {
-            role: msg.role,
-            content: textContent,
-          };
-        });
-
-        console.log('[Client] Converted messages:', convertedMessages);
-
-        return {
-          body: {
-            id: request.id,
-            messages: convertedMessages,  // Send converted messages
-            model: currentModel,
-            locale: currentLocale,
-            chatId: currentChatId,
-            ...request.body,
-          },
-        };
-      },
     }),
-    [customFetch]  // Remove model, locale, chatId from deps - we use refs instead
+    [customFetch]
   );
 
   const chat = useAIChat({

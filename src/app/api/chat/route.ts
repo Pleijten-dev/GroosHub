@@ -186,15 +186,13 @@ export async function POST(req: Request) {
       }, { status: 500 });
     }
 
-    // Return text stream response
-    // The AI SDK's toTextStreamResponse() returns a streaming Response
-    // that is compatible with @ai-sdk/react's useChat hook
+    // Return the text streaming response
     const response = result.toTextStreamResponse();
     response.headers.set('X-Chat-Id', currentChatId);
     response.headers.set('X-Model', model);
     response.headers.set('X-Provider', provider);
 
-    console.log(`✅ Returning streaming response with chat ID: ${currentChatId}`);
+    console.log(`✅ Returning text stream response with chat ID: ${currentChatId}`);
     return response;
   } catch (error) {
     console.error('Chat API error:', error);
