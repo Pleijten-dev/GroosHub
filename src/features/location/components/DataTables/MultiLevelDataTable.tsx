@@ -439,6 +439,11 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
                 ? 'Scores worden berekend door vergelijking met landelijke data binnen een gedefinieerde marge. "Rel" = relatieve waarde, "Abs" = absolute waarde.'
                 : 'Scores are calculated by comparing with national data within a defined margin. "Rel" = relative value, "Abs" = absolute value.'}
             </div>
+            <div className="mt-xs pt-xs border-t border-blue-300 text-xs text-blue-800 font-medium">
+              ℹ️ {locale === 'nl'
+                ? 'Let op: Woningmarkt (Altum) data toont vergelijkbare woningen en heeft geen landelijke vergelijking.'
+                : 'Note: Housing Market (Altum) data shows comparable properties and has no national comparison.'}
+            </div>
           </div>
         )}
 
