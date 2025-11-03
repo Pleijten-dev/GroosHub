@@ -19,12 +19,14 @@ import { SafetyParser } from '../parsers/safetyParser';
  * Single data row in the unified table
  */
 export interface UnifiedDataRow {
-  source: 'demographics' | 'health' | 'livability' | 'safety';
+  source: 'demographics' | 'health' | 'livability' | 'safety' | 'residential';
   geographicLevel: 'national' | 'municipality' | 'district' | 'neighborhood';
   geographicCode: string;
   geographicName: string;
   key: string; // The data property key (e.g., "Bevolking_1")
   title: string; // Human-readable title
+  titleNl?: string; // Dutch title (for residential data)
+  titleEn?: string; // English title (for residential data)
   value: unknown; // The original raw value
   absolute: number | null; // Absolute value (actual count/amount)
   relative: number | null; // Relative value (percentage, per capita, etc.)
@@ -32,6 +34,14 @@ export interface UnifiedDataRow {
   displayValue: string; // Formatted value for display (original behavior)
   displayAbsolute: string; // Formatted absolute value
   displayRelative: string; // Formatted relative value
+  metadata?: {
+    // Optional metadata for additional info (e.g., distribution for residential data)
+    count?: number;
+    total?: number;
+    distribution?: Record<string, number>;
+    fieldName?: string;
+    fieldValue?: string;
+  };
 }
 
 /**

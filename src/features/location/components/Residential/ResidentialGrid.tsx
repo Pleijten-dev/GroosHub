@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { ResidentialData, ReferenceHouse } from './types';
 import { ReferenceCard } from './ReferenceCard';
+import { MarketDataTable } from './MarketDataTable';
 
 interface ResidentialGridProps {
   data: ResidentialData;
@@ -147,6 +148,9 @@ export const ResidentialGrid: React.FC<ResidentialGridProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Market Data Table */}
+      <MarketDataTable data={data} locale={locale} />
 
       {/* Filter and Sort Controls */}
       <div className="bg-white rounded-lg border border-gray-200 p-4">
