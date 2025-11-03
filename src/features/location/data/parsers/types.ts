@@ -1,4 +1,28 @@
 /**
+ * Comparison type for scoring calculation
+ */
+export type ComparisonType = 'relatief' | 'absoluut';
+
+/**
+ * Direction for scoring interpretation
+ */
+export type ScoreDirection = 'positive' | 'negative';
+
+/**
+ * Scoring configuration for a data point
+ */
+export interface ScoringConfig {
+  /** Type of value to use for comparison (default: 'relatief') */
+  comparisonType: ComparisonType;
+  /** Acceptable variance threshold percentage (default: 20) */
+  margin: number;
+  /** Benchmark value for comparison (default: national level value) */
+  baseValue: number | null;
+  /** Whether higher values are better (default: 'positive') */
+  direction: ScoreDirection;
+}
+
+/**
  * Parsed data value with both absolute and relative representations
  */
 export interface ParsedValue {
@@ -12,6 +36,10 @@ export interface ParsedValue {
   relative: number | null;
   /** Unit for the value (%, count, etc.) */
   unit?: string;
+  /** Scoring configuration (optional, added during scoring phase) */
+  scoring?: ScoringConfig;
+  /** Calculated score based on comparison (-1, 0, or 1) (optional, added during scoring phase) */
+  calculatedScore?: -1 | 0 | 1 | null;
 }
 
 /**

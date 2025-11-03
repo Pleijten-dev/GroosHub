@@ -266,7 +266,7 @@ export function useLocationData(): UseLocationDataReturn {
           residentialData.status === 'fulfilled' ? residentialData.value : null;
 
         // Step 3: Aggregate all data
-        const unifiedData = aggregator.aggregate(
+        const unifiedData = await aggregator.aggregate(
           locationData,
           demographics,
           health,
