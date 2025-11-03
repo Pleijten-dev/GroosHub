@@ -274,12 +274,26 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
               <th className="text-right p-sm text-sm font-semibold text-text-primary border-b">
                 {locale === 'nl' ? 'Relatief' : 'Relative'}
               </th>
+              {/* Show scoring columns only for non-national levels */}
+              {selectedLevel !== 'national' && (
+                <>
+                  <th className="text-center p-sm text-sm font-semibold text-text-primary border-b">
+                    {locale === 'nl' ? 'Score' : 'Score'}
+                  </th>
+                  <th className="text-center p-sm text-sm font-semibold text-text-primary border-b">
+                    {locale === 'nl' ? 'Vergelijking' : 'Comparison'}
+                  </th>
+                  <th className="text-right p-sm text-sm font-semibold text-text-primary border-b">
+                    {locale === 'nl' ? 'Marge' : 'Margin'}
+                  </th>
+                </>
+              )}
             </tr>
           </thead>
           <tbody>
             {filteredRows.length === 0 ? (
               <tr>
-                <td colSpan={5} className="p-base text-center text-text-muted">
+                <td colSpan={selectedLevel === 'national' ? 5 : 8} className="p-base text-center text-text-muted">
                   {locale === 'nl'
                     ? 'Geen data beschikbaar voor dit niveau en deze bron'
                     : 'No data available for this level and source'}
@@ -325,6 +339,53 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
                     <td className="p-sm text-sm text-right font-medium text-text-primary">
                       {row.displayRelative}
                     </td>
+                    {/* Show scoring cells only for non-national levels */}
+                    {selectedLevel !== 'national' && (
+                      <>
+                        {/* Score column with visual indicator */}
+                        <td className="p-sm text-center">
+                          {row.calculatedScore !== undefined && row.calculatedScore !== null ? (
+                            <div className="flex items-center justify-center gap-1">
+                              <span
+                                className={`inline-flex items-center justify-center w-16 px-2 py-1 rounded font-medium text-xs ${
+                                  row.calculatedScore === 1
+                                    ? 'bg-green-100 text-green-800'
+                                    : row.calculatedScore === 0
+                                    ? 'bg-yellow-100 text-yellow-800'
+                                    : 'bg-red-100 text-red-800'
+                                }`}
+                              >
+                                {row.calculatedScore === 1 ? (
+                                  <>↑ +1</>
+                                ) : row.calculatedScore === 0 ? (
+                                  <>= 0</>
+                                ) : (
+                                  <>↓ -1</>
+                                )}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400">-</span>
+                          )}
+                        </td>
+                        {/* Comparison type column */}
+                        <td className="p-sm text-center">
+                          {row.scoring ? (
+                            <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">
+                              {row.scoring.comparisonType === 'relatief'
+                                ? (locale === 'nl' ? 'Rel' : 'Rel')
+                                : (locale === 'nl' ? 'Abs' : 'Abs')}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-400">-</span>
+                          )}
+                        </td>
+                        {/* Margin column */}
+                        <td className="p-sm text-right text-xs text-gray-600">
+                          {row.scoring ? `±${row.scoring.margin}%` : '-'}
+                        </td>
+                      </>
+                    )}
                   </tr>
                 );
               })
@@ -333,10 +394,59 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
         </table>
       </div>
 
-      {/* Summary statistics */}
-      <div className="mt-base p-sm bg-gray-50 rounded text-xs text-text-muted">
-        {locale === 'nl' ? 'Data opgehaald op' : 'Data fetched on'}:{' '}
-        {data.fetchedAt.toLocaleString(locale === 'nl' ? 'nl-NL' : 'en-US')}
+      {/* Summary and Legend */}
+      <div className="mt-base space-y-sm">
+        {/* Scoring legend - only show for non-national levels */}
+        {selectedLevel !== 'national' && (
+          <div className="p-sm bg-blue-50 rounded border border-blue-200">
+            <div className="text-xs font-semibold text-blue-900 mb-xs">
+              {locale === 'nl' ? 'Score Uitleg' : 'Score Legend'}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-sm text-xs">
+              <div className="flex items-center gap-xs">
+                <span className="inline-flex items-center justify-center w-12 px-2 py-1 rounded font-medium text-xs bg-green-100 text-green-800">
+                  ↑ +1
+                </span>
+                <span className="text-gray-700">
+                  {locale === 'nl'
+                    ? 'Beter dan landelijk gemiddelde'
+                    : 'Better than national average'}
+                </span>
+              </div>
+              <div className="flex items-center gap-xs">
+                <span className="inline-flex items-center justify-center w-12 px-2 py-1 rounded font-medium text-xs bg-yellow-100 text-yellow-800">
+                  = 0
+                </span>
+                <span className="text-gray-700">
+                  {locale === 'nl'
+                    ? 'Vergelijkbaar met landelijk'
+                    : 'Comparable to national'}
+                </span>
+              </div>
+              <div className="flex items-center gap-xs">
+                <span className="inline-flex items-center justify-center w-12 px-2 py-1 rounded font-medium text-xs bg-red-100 text-red-800">
+                  ↓ -1
+                </span>
+                <span className="text-gray-700">
+                  {locale === 'nl'
+                    ? 'Slechter dan landelijk gemiddelde'
+                    : 'Worse than national average'}
+                </span>
+              </div>
+            </div>
+            <div className="mt-xs text-xs text-gray-600">
+              {locale === 'nl'
+                ? 'Scores worden berekend door vergelijking met landelijke data binnen een gedefinieerde marge. "Rel" = relatieve waarde, "Abs" = absolute waarde.'
+                : 'Scores are calculated by comparing with national data within a defined margin. "Rel" = relative value, "Abs" = absolute value.'}
+            </div>
+          </div>
+        )}
+
+        {/* Data fetch timestamp */}
+        <div className="p-sm bg-gray-50 rounded text-xs text-text-muted">
+          {locale === 'nl' ? 'Data opgehaald op' : 'Data fetched on'}:{' '}
+          {data.fetchedAt.toLocaleString(locale === 'nl' ? 'nl-NL' : 'en-US')}
+        </div>
       </div>
     </div>
   );
