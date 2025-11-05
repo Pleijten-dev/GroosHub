@@ -46,6 +46,12 @@ export interface UnifiedDataRow {
     distribution?: Record<string, number>;
     fieldName?: string;
     fieldValue?: string;
+    // For scored residential categories
+    categoryType?: 'typologie' | 'woonoppervlak' | 'transactieprijs';
+    categoryKey?: string;
+    // For display-only fields
+    isAverage?: boolean;
+    isDistribution?: boolean;
   };
 }
 
