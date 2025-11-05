@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { AmenityMultiCategoryResponse } from './types';
 import { distanceCalculator } from '../../data/sources/google-places/distance-calculator';
+import { calculateAllAmenityScores, getAmenityScoreSummary } from '../../data/scoring/amenityScoring';
 
 interface AmenitiesSummaryProps {
   data: AmenityMultiCategoryResponse;
@@ -35,6 +36,15 @@ export const AmenitiesSummary: React.FC<AmenitiesSummaryProps> = ({
   const essentialWithinWalkingDistance = essentialServices.filter(
     r => r.places[0]?.distance && r.places[0].distance <= 1000
   ).length;
+
+  // Calculate amenity scores
+  const amenityScores = useMemo(() => {
+    return calculateAllAmenityScores(data.results);
+  }, [data.results]);
+
+  const scoreSummary = useMemo(() => {
+    return getAmenityScoreSummary(amenityScores);
+  }, [amenityScores]);
 
   return (
     <div className="mt-6 space-y-4">
@@ -126,6 +136,73 @@ export const AmenitiesSummary: React.FC<AmenitiesSummaryProps> = ({
               </>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Scoring Summary */}
+      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-200 p-4">
+        <h4 className="text-sm font-semibold text-indigo-900 mb-3">
+          {locale === 'nl' ? '📊 Score Overzicht' : '📊 Score Summary'}
+        </h4>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* Average Count Score */}
+          <div className="bg-white rounded p-3 border border-indigo-100">
+            <p className="text-xs text-gray-600 mb-1">
+              {locale === 'nl' ? 'Gem. Aantal Score' : 'Avg. Count Score'}
+            </p>
+            <p className={`text-lg font-bold ${
+              scoreSummary.averageCountScore >= 0 ? 'text-green-700' : 'text-orange-700'
+            }`}>
+              {scoreSummary.averageCountScore >= 0 ? '+' : ''}{scoreSummary.averageCountScore.toFixed(2)}
+            </p>
+          </div>
+
+          {/* Average Proximity Bonus */}
+          <div className="bg-white rounded p-3 border border-indigo-100">
+            <p className="text-xs text-gray-600 mb-1">
+              {locale === 'nl' ? 'Nabijheid Bonus' : 'Proximity Bonus'}
+            </p>
+            <p className="text-lg font-bold text-indigo-700">
+              {(scoreSummary.averageProximityBonus * 100).toFixed(0)}%
+            </p>
+            <p className="text-xs text-gray-500">
+              {scoreSummary.categoriesWithProximity}/{scoreSummary.totalCategories} {locale === 'nl' ? 'binnen 250m' : 'within 250m'}
+            </p>
+          </div>
+
+          {/* Combined Score */}
+          <div className="bg-white rounded p-3 border border-indigo-100">
+            <p className="text-xs text-gray-600 mb-1">
+              {locale === 'nl' ? 'Totaal Score' : 'Combined Score'}
+            </p>
+            <p className="text-lg font-bold text-purple-700">
+              {(scoreSummary.averageCombinedScore * 100).toFixed(0)}%
+            </p>
+          </div>
+
+          {/* Categories With No Amenities */}
+          <div className="bg-white rounded p-3 border border-indigo-100">
+            <p className="text-xs text-gray-600 mb-1">
+              {locale === 'nl' ? 'Geen Voorzieningen' : 'No Amenities'}
+            </p>
+            <p className={`text-lg font-bold ${
+              scoreSummary.categoriesWithNoAmenities === 0 ? 'text-green-700' : 'text-red-700'
+            }`}>
+              {scoreSummary.categoriesWithNoAmenities}
+            </p>
+            <p className="text-xs text-gray-500">
+              {locale === 'nl' ? 'categorieën' : 'categories'}
+            </p>
+          </div>
+        </div>
+
+        {/* Score explanation */}
+        <div className="mt-3 pt-3 border-t border-indigo-100">
+          <p className="text-xs text-gray-600">
+            {locale === 'nl'
+              ? 'Aantal score: -1 (geen) tot +1 (6+). Nabijheid: +1 als voorzieningen binnen 250m.'
+              : 'Count score: -1 (none) to +1 (6+). Proximity: +1 if amenities within 250m.'}
+          </p>
         </div>
       </div>
 
