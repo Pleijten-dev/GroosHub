@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { AmenitySearchResult } from './types';
 import { distanceCalculator } from '../../data/sources/google-places/distance-calculator';
 import { calculateAmenityScore, type AmenityScore } from '../../data/scoring/amenityScoring';
+import { AmenityDetailModal } from './AmenityDetailModal';
 
 interface AmenityCardProps {
   result: AmenitySearchResult;
@@ -34,6 +35,9 @@ function formatScore(score: number): string {
 export const AmenityCard: React.FC<AmenityCardProps> = ({ result, locale = 'nl' }) => {
   const { category, places, searchStrategy, error } = result;
 
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   // Calculate statistics
   const hasPlaces = places.length > 0;
   const closestPlace = places[0]; // Already sorted by distance
@@ -48,10 +52,20 @@ export const AmenityCard: React.FC<AmenityCardProps> = ({ result, locale = 'nl' 
   }, [result]);
 
   return (
-    <div
-      className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-lg transition-shadow duration-200"
-      style={{ borderLeftColor: category.color, borderLeftWidth: '4px' }}
-    >
+    <>
+      <div
+        className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-lg transition-shadow duration-200 cursor-pointer"
+        style={{ borderLeftColor: category.color, borderLeftWidth: '4px' }}
+        onClick={() => setIsModalOpen(true)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setIsModalOpen(true);
+          }
+        }}
+      >
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
@@ -229,6 +243,22 @@ export const AmenityCard: React.FC<AmenityCardProps> = ({ result, locale = 'nl' 
           }
         </p>
       </div>
+
+      {/* Click hint */}
+      <div className="mt-3 pt-2 border-t border-gray-100 text-center">
+        <p className="text-xs text-blue-600 font-medium">
+          {locale === 'nl' ? '👆 Klik voor details' : '👆 Click for details'}
+        </p>
+      </div>
     </div>
+
+    {/* Detail Modal */}
+    <AmenityDetailModal
+      result={result}
+      isOpen={isModalOpen}
+      onClose={() => setIsModalOpen(false)}
+      locale={locale}
+    />
+    </>
   );
 };
