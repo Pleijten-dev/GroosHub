@@ -42,6 +42,13 @@ export const AmenityDetailModal: React.FC<AmenityDetailModalProps> = ({
   const { category, places } = result;
   const amenityScore = React.useMemo(() => calculateAmenityScore(result), [result]);
 
+  // Helper to find matching place types between our search criteria and what Google assigned
+  const getMatchingPlaceTypes = (place: any): string[] => {
+    const categoryTypes = category.placeTypes.map((t: string) => t.toLowerCase());
+    const placeTypes = (place.types || []).map((t: string) => t.toLowerCase());
+    return placeTypes.filter((type: string) => categoryTypes.includes(type));
+  };
+
   // Don't render if not open
   if (!isOpen) return null;
 
@@ -252,19 +259,70 @@ export const AmenityDetailModal: React.FC<AmenityDetailModalProps> = ({
                           )}
                         </div>
 
-                        {/* Place Types */}
+                        {/* Place Types - Highlight matching search criteria */}
                         {place.types && place.types.length > 0 && (
-                          <div className="mt-2 flex flex-wrap gap-1">
-                            {place.types.slice(0, 5).map((type) => (
-                              <span
-                                key={type}
-                                className="inline-block px-2 py-0.5 text-xs bg-blue-50 text-blue-700 rounded"
-                              >
-                                {type.replace(/_/g, ' ')}
-                              </span>
-                            ))}
+                          <div className="mt-3">
+                            <div className="text-xs text-gray-600 mb-1">
+                              {locale === 'nl' ? 'Type voorziening:' : 'Place types:'}
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {(() => {
+                                const matchingTypes = getMatchingPlaceTypes(place);
+                                return place.types.slice(0, 8).map((type: string) => {
+                                  const isMatch = matchingTypes.includes(type.toLowerCase());
+                                  return (
+                                    <span
+                                      key={type}
+                                      className={`inline-block px-2 py-0.5 text-xs rounded ${
+                                        isMatch
+                                          ? 'bg-green-100 text-green-800 font-semibold border border-green-300'
+                                          : 'bg-gray-100 text-gray-600 border border-gray-200'
+                                      }`}
+                                      title={isMatch ? (locale === 'nl' ? 'Komt overeen met zoekcriteria' : 'Matches search criteria') : ''}
+                                    >
+                                      {isMatch && '✓ '}{type.replace(/_/g, ' ')}
+                                    </span>
+                                  );
+                                });
+                              })()}
+                            </div>
                           </div>
                         )}
+
+                        {/* Search Criteria Used */}
+                        <div className="mt-3 p-2 bg-blue-50 rounded border border-blue-100">
+                          <div className="text-xs">
+                            <div className="font-semibold text-blue-900 mb-1">
+                              {locale === 'nl' ? '🔍 Zoekcriteria:' : '🔍 Search criteria:'}
+                            </div>
+                            <div className="text-blue-800">
+                              <span className="font-medium">
+                                {locale === 'nl' ? 'Strategie:' : 'Strategy:'}
+                              </span>{' '}
+                              {result.searchStrategy === 'text' && (locale === 'nl' ? 'Tekst zoeken' : 'Text search')}
+                              {result.searchStrategy === 'nearby' && (locale === 'nl' ? 'Nabij zoeken' : 'Nearby search')}
+                              {result.searchStrategy === 'both' && (locale === 'nl' ? 'Beide' : 'Both')}
+                            </div>
+                            {(result.searchStrategy === 'text' || result.searchStrategy === 'both') && category.keywords && category.keywords.length > 0 && (
+                              <div className="text-blue-800 mt-1">
+                                <span className="font-medium">
+                                  {locale === 'nl' ? 'Zoektermen:' : 'Keywords:'}
+                                </span>{' '}
+                                {category.keywords.slice(0, 5).join(', ')}
+                                {category.keywords.length > 5 && ` +${category.keywords.length - 5}`}
+                              </div>
+                            )}
+                            {(result.searchStrategy === 'nearby' || result.searchStrategy === 'both') && category.placeTypes && category.placeTypes.length > 0 && (
+                              <div className="text-blue-800 mt-1">
+                                <span className="font-medium">
+                                  {locale === 'nl' ? 'Type filters:' : 'Type filters:'}
+                                </span>{' '}
+                                {category.placeTypes.slice(0, 5).map((t: string) => t.replace(/_/g, ' ')).join(', ')}
+                                {category.placeTypes.length > 5 && ` +${category.placeTypes.length - 5}`}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
 
                       {/* Right: Coordinates */}
