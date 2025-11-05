@@ -1,5 +1,5 @@
 import React from 'react';
-import type { AmenitySearchResult } from './types';
+import type { AmenitySearchResult, PlaceResult } from './types';
 import { distanceCalculator } from '../../data/sources/google-places/distance-calculator';
 import { calculateAmenityScore } from '../../data/scoring/amenityScoring';
 
@@ -43,25 +43,23 @@ export const AmenityDetailModal: React.FC<AmenityDetailModalProps> = ({
   const amenityScore = React.useMemo(() => calculateAmenityScore(result), [result]);
 
   // Helper to find matching place types between our search criteria and what Google assigned
-  const getMatchingPlaceTypes = (place: any): string[] => {
+  const getMatchingPlaceTypes = (place: PlaceResult): string[] => {
     const categoryTypes = category.placeTypes.map((t: string) => t.toLowerCase());
     const placeTypes = (place.types || []).map((t: string) => t.toLowerCase());
     return placeTypes.filter((type: string) => categoryTypes.includes(type));
   };
 
-  // Don't render if not open
-  if (!isOpen) return null;
-
-  // Handle escape key
+  // Handle escape key - MUST be called before early return
   React.useEffect(() => {
+    if (!isOpen) return;
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [onClose]);
+  }, [onClose, isOpen]);
 
-  // Prevent body scroll when modal is open
+  // Prevent body scroll when modal is open - MUST be called before early return
   React.useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -72,6 +70,9 @@ export const AmenityDetailModal: React.FC<AmenityDetailModalProps> = ({
       document.body.style.overflow = 'unset';
     };
   }, [isOpen]);
+
+  // Don't render if not open - early return AFTER hooks
+  if (!isOpen) return null;
 
   return (
     <>
