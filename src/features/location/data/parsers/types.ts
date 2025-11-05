@@ -38,8 +38,8 @@ export interface ParsedValue {
   unit?: string;
   /** Scoring configuration (optional, added during scoring phase) */
   scoring?: ScoringConfig;
-  /** Calculated score based on comparison (-1, 0, or 1) (optional, added during scoring phase) */
-  calculatedScore?: -1 | 0 | 1 | null;
+  /** Calculated score based on comparison (continuous value from -1 to 1) (optional, added during scoring phase) */
+  calculatedScore?: number | null;
 }
 
 /**

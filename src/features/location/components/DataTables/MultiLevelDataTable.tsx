@@ -35,6 +35,28 @@ const SOURCE_LABELS = {
  * Multi-level data table component
  * Displays all data across all geographic levels and sources
  */
+/**
+ * Get color class for a continuous score value (-1 to 1)
+ */
+function getScoreColor(score: number): string {
+  if (score >= 0.67) return 'bg-green-100 text-green-800 border-green-200';
+  if (score >= 0.33) return 'bg-green-50 text-green-700 border-green-100';
+  if (score > 0) return 'bg-yellow-50 text-yellow-700 border-yellow-100';
+  if (score === 0) return 'bg-gray-100 text-gray-700 border-gray-200';
+  if (score > -0.33) return 'bg-orange-50 text-orange-700 border-orange-100';
+  if (score > -0.67) return 'bg-orange-100 text-orange-800 border-orange-200';
+  return 'bg-red-100 text-red-800 border-red-200';
+}
+
+/**
+ * Format score for display
+ */
+function formatScore(score: number): string {
+  const formatted = score.toFixed(2);
+  if (score > 0) return `+${formatted}`;
+  return formatted;
+}
+
 export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
   data,
   locale,
@@ -347,21 +369,9 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
                           {row.calculatedScore !== undefined && row.calculatedScore !== null ? (
                             <div className="flex items-center justify-center gap-1">
                               <span
-                                className={`inline-flex items-center justify-center w-16 px-2 py-1 rounded font-medium text-xs ${
-                                  row.calculatedScore === 1
-                                    ? 'bg-green-100 text-green-800'
-                                    : row.calculatedScore === 0
-                                    ? 'bg-yellow-100 text-yellow-800'
-                                    : 'bg-red-100 text-red-800'
-                                }`}
+                                className={`inline-flex items-center justify-center min-w-[60px] px-2 py-1 rounded font-mono font-medium text-xs border ${getScoreColor(row.calculatedScore)}`}
                               >
-                                {row.calculatedScore === 1 ? (
-                                  <>↑ +1</>
-                                ) : row.calculatedScore === 0 ? (
-                                  <>= 0</>
-                                ) : (
-                                  <>↓ -1</>
-                                )}
+                                {formatScore(row.calculatedScore)}
                               </span>
                             </div>
                           ) : (
@@ -402,42 +412,70 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
             <div className="text-xs font-semibold text-blue-900 mb-xs">
               {locale === 'nl' ? 'Score Uitleg' : 'Score Legend'}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-sm text-xs">
+
+            {/* Gradient scale visualization */}
+            <div className="mb-sm">
+              <div className="flex items-center gap-1 text-xs mb-1">
+                <span className="text-gray-700 font-medium">
+                  {locale === 'nl' ? 'Score schaal:' : 'Score scale:'}
+                </span>
+              </div>
+              <div className="flex h-6 rounded overflow-hidden border border-gray-300">
+                <div className="bg-red-100 flex-1 flex items-center justify-center text-xs font-medium text-red-800">-1.0</div>
+                <div className="bg-orange-100 flex-1"></div>
+                <div className="bg-orange-50 flex-1"></div>
+                <div className="bg-gray-100 flex-1 flex items-center justify-center text-xs font-medium text-gray-700">0.0</div>
+                <div className="bg-yellow-50 flex-1"></div>
+                <div className="bg-green-50 flex-1"></div>
+                <div className="bg-green-100 flex-1 flex items-center justify-center text-xs font-medium text-green-800">+1.0</div>
+              </div>
+              <div className="flex justify-between text-xs text-gray-600 mt-1">
+                <span>{locale === 'nl' ? 'Slechter' : 'Worse'}</span>
+                <span>{locale === 'nl' ? 'Landelijk gemiddelde' : 'National average'}</span>
+                <span>{locale === 'nl' ? 'Beter' : 'Better'}</span>
+              </div>
+            </div>
+
+            {/* Score ranges explanation */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-xs text-xs mb-xs">
               <div className="flex items-center gap-xs">
-                <span className="inline-flex items-center justify-center w-12 px-2 py-1 rounded font-medium text-xs bg-green-100 text-green-800">
-                  ↑ +1
+                <span className="inline-flex items-center justify-center min-w-[50px] px-2 py-1 rounded font-mono font-medium text-xs border bg-green-100 text-green-800 border-green-200">
+                  +0.67
                 </span>
                 <span className="text-gray-700">
-                  {locale === 'nl'
-                    ? 'Beter dan landelijk gemiddelde'
-                    : 'Better than national average'}
+                  {locale === 'nl' ? 'Veel beter' : 'Much better'}
                 </span>
               </div>
               <div className="flex items-center gap-xs">
-                <span className="inline-flex items-center justify-center w-12 px-2 py-1 rounded font-medium text-xs bg-yellow-100 text-yellow-800">
-                  = 0
+                <span className="inline-flex items-center justify-center min-w-[50px] px-2 py-1 rounded font-mono font-medium text-xs border bg-gray-100 text-gray-700 border-gray-200">
+                  0.00
                 </span>
                 <span className="text-gray-700">
-                  {locale === 'nl'
-                    ? 'Vergelijkbaar met landelijk'
-                    : 'Comparable to national'}
+                  {locale === 'nl' ? 'Gelijk aan landelijk' : 'Equal to national'}
                 </span>
               </div>
               <div className="flex items-center gap-xs">
-                <span className="inline-flex items-center justify-center w-12 px-2 py-1 rounded font-medium text-xs bg-red-100 text-red-800">
-                  ↓ -1
+                <span className="inline-flex items-center justify-center min-w-[50px] px-2 py-1 rounded font-mono font-medium text-xs border bg-yellow-50 text-yellow-700 border-yellow-100">
+                  +0.25
                 </span>
                 <span className="text-gray-700">
-                  {locale === 'nl'
-                    ? 'Slechter dan landelijk gemiddelde'
-                    : 'Worse than national average'}
+                  {locale === 'nl' ? 'Iets beter' : 'Slightly better'}
+                </span>
+              </div>
+              <div className="flex items-center gap-xs">
+                <span className="inline-flex items-center justify-center min-w-[50px] px-2 py-1 rounded font-mono font-medium text-xs border bg-orange-50 text-orange-700 border-orange-100">
+                  -0.25
+                </span>
+                <span className="text-gray-700">
+                  {locale === 'nl' ? 'Iets slechter' : 'Slightly worse'}
                 </span>
               </div>
             </div>
-            <div className="mt-xs text-xs text-gray-600">
+
+            <div className="text-xs text-gray-600">
               {locale === 'nl'
-                ? 'Scores worden berekend door vergelijking met landelijke data binnen een gedefinieerde marge. "Rel" = relatieve waarde, "Abs" = absolute waarde.'
-                : 'Scores are calculated by comparing with national data within a defined margin. "Rel" = relative value, "Abs" = absolute value.'}
+                ? 'Scores worden continu berekend van -1.0 tot +1.0 door lineaire interpolatie binnen de marge. Waarden buiten de marge worden afgekapt op -1.0 of +1.0. "Rel" = relatieve waarde, "Abs" = absolute waarde.'
+                : 'Scores are continuously calculated from -1.0 to +1.0 using linear interpolation within the margin. Values outside the margin are capped at -1.0 or +1.0. "Rel" = relative value, "Abs" = absolute value.'}
             </div>
             <div className="mt-xs pt-xs border-t border-blue-300 text-xs text-blue-800 font-medium">
               ℹ️ {locale === 'nl'

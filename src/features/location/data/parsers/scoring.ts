@@ -36,16 +36,24 @@ export function createScoringConfig(
 /**
  * Calculate the score based on comparison value, base value, and configuration
  *
+ * Uses linear interpolation for continuous scoring from -1 to 1:
+ * - Values below lower bound: -1 (capped)
+ * - Values at lower bound: -1
+ * - Values at base value: 0
+ * - Values at upper bound: 1
+ * - Values above upper bound: 1 (capped)
+ * - Linear interpolation between these points
+ *
  * @param parsedValue - The parsed value containing absolute and relative data
  * @param nationalValue - The national level value for comparison (if baseValue not overridden)
  * @param config - Scoring configuration (optional overrides)
- * @returns Score: -1 (below threshold), 0 (within range), 1 (above threshold), or null if cannot calculate
+ * @returns Score: continuous value from -1 to 1, or null if cannot calculate
  */
 export function calculateScore(
   parsedValue: ParsedValue,
   nationalValue: ParsedValue | null,
   config?: ScoringConfigOverride
-): -1 | 0 | 1 | null {
+): number | null {
   const scoringConfig = createScoringConfig(config);
 
   // Determine which value to use for comparison
@@ -80,28 +88,37 @@ export function calculateScore(
   const lowerBound = baseValue - marginValue;
   const upperBound = baseValue + marginValue;
 
-  // Calculate raw score
-  let rawScore: -1 | 0 | 1;
+  // Calculate raw score using linear interpolation
+  let rawScore: number;
 
   if (comparisonValue < lowerBound) {
+    // Below lower bound: capped at -1
     rawScore = -1;
   } else if (comparisonValue > upperBound) {
+    // Above upper bound: capped at 1
     rawScore = 1;
+  } else if (comparisonValue < baseValue) {
+    // Between lower bound and base value: interpolate from -1 to 0
+    const range = baseValue - lowerBound;
+    const position = comparisonValue - lowerBound;
+    rawScore = -1 + (position / range);
+  } else if (comparisonValue > baseValue) {
+    // Between base value and upper bound: interpolate from 0 to 1
+    const range = upperBound - baseValue;
+    const position = comparisonValue - baseValue;
+    rawScore = position / range;
   } else {
+    // Exactly at base value
     rawScore = 0;
   }
 
   // Invert score if direction is negative
   if (scoringConfig.direction === 'negative') {
-    if (rawScore === -1) {
-      return 1;
-    } else if (rawScore === 1) {
-      return -1;
-    }
-    return 0;
+    rawScore = -rawScore;
   }
 
-  return rawScore;
+  // Round to 2 decimal places for cleaner display
+  return Math.round(rawScore * 100) / 100;
 }
 
 /**

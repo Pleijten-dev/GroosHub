@@ -38,7 +38,7 @@ export interface UnifiedDataRow {
   displayRelative: string; // Formatted relative value
   // Scoring fields (only present for non-national levels)
   scoring?: ScoringConfig;
-  calculatedScore?: -1 | 0 | 1 | null;
+  calculatedScore?: number | null;
   metadata?: {
     // Optional metadata for additional info (e.g., distribution for residential data)
     count?: number;
