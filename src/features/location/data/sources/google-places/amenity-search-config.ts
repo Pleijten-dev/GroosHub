@@ -19,7 +19,7 @@ export const DUTCH_AMENITY_CATEGORIES: AmenityCategory[] = [
     searchStrategy: 'both',
     placeTypes: ['doctor', 'hospital', 'pharmacy'],
     keywords: ['huisarts', 'dokter', 'apotheek', 'ziekenhuis'],
-    defaultRadius: 1000,
+    defaultRadius: 500,
     color: '#dc2626',
     icon: '🏥'
   },
@@ -42,8 +42,8 @@ export const DUTCH_AMENITY_CATEGORIES: AmenityCategory[] = [
     priority: 'essential',
     searchStrategy: 'both',
     placeTypes: [
-      'bus_station', 'light_rail_station', 'subway_station', 'taxi_stand',
-      'train_station', 'transit_station', 'airport', 'bus_stop', 'ferry_terminal'
+      'bus_station', 'light_rail_station', 'subway_station',
+      'train_station', 'transit_station', 'bus_stop',
     ],
     keywords: ['bushalte', 'tramhalte', 'metro', 'trein', 'bus'],
     defaultRadius: 500,
@@ -57,9 +57,9 @@ export const DUTCH_AMENITY_CATEGORIES: AmenityCategory[] = [
     priority: 'high',
     searchStrategy: 'both',
     placeTypes: [
-      'gas_station', 'parking', 'electric_vehicle_charging_station'
+      'parking', 'electric_vehicle_charging_station'
     ],
-    keywords: ['parkeren', 'garage', 'benzinestation', 'tankstation', 'chargingstation'],
+    keywords: ['parkeren', 'garage'],
     defaultRadius: 500,
     color: '#7c3aed',
     icon: '🚗'
@@ -70,8 +70,8 @@ export const DUTCH_AMENITY_CATEGORIES: AmenityCategory[] = [
     displayName: 'Onderwijs (Basisschool)',
     priority: 'essential',
     searchStrategy: 'both',
-    placeTypes: ['primary_school', 'school'],
-    keywords: ['basisschool', 'lagere school', 'school'],
+    placeTypes: ['primary_school'],
+    keywords: ['basisschool', 'lagere school'],
     defaultRadius: 1000,
     color: '#059669',
     icon: '🏫'
@@ -82,7 +82,7 @@ export const DUTCH_AMENITY_CATEGORIES: AmenityCategory[] = [
     displayName: 'Onderwijs (Voortgezet onderwijs)',
     priority: 'high',
     searchStrategy: 'both',
-    placeTypes: ['secondary_school', 'school'],
+    placeTypes: ['secondary_school'],
     keywords: ['middelbare school', 'voortgezet onderwijs', 'havo', 'vwo', 'mbo'],
     defaultRadius: 2000,
     color: '#059669',
@@ -94,7 +94,7 @@ export const DUTCH_AMENITY_CATEGORIES: AmenityCategory[] = [
     displayName: 'Onderwijs (Hoger onderwijs)',
     priority: 'medium',
     searchStrategy: 'both',
-    placeTypes: ['university', 'school'],
+    placeTypes: ['university'],
     keywords: ['universiteit', 'hogeschool', 'hbo', 'wo'],
     defaultRadius: 3000,
     color: '#059669',
@@ -106,7 +106,7 @@ export const DUTCH_AMENITY_CATEGORIES: AmenityCategory[] = [
     displayName: 'Kinderopvang & Opvang',
     priority: 'high',
     searchStrategy: 'both',
-    placeTypes: ['school', 'child_care_agency'],
+    placeTypes: ['child_care_agency'],
     keywords: ['kinderopvang', 'kinderdagverblijf', 'peuterspeelzaal', 'naschoolse opvang', 'bso'],
     defaultRadius: 1000,
     color: '#db2777',
@@ -119,11 +119,11 @@ export const DUTCH_AMENITY_CATEGORIES: AmenityCategory[] = [
     priority: 'essential',
     searchStrategy: 'both',
     placeTypes: [
-      'supermarket', 'convenience_store', 'liquor_store',
-      'bakery', 'butcher_shop'
+      'supermarket', 'convenience_store', 
+      'bakery', 'butcher_shop',
     ],
-    keywords: ['supermarkt', 'boodschappen', 'albert heijn', 'jumbo', 'bakker', 'slager'],
-    defaultRadius: 1000,
+    keywords: ['supermarkt', 'boodschappen', 'bakker', 'slager'],
+    defaultRadius: 500,
     color: '#16a34a',
     icon: '🛒'
   },
@@ -139,7 +139,7 @@ export const DUTCH_AMENITY_CATEGORIES: AmenityCategory[] = [
       'pharmacy', 'florist', 'jewelry_store', 'shopping_mall'
     ],
     keywords: ['winkelcentrum', 'kleding', 'schoenen', 'electronica', 'boekwinkel'],
-    defaultRadius: 2000,
+    defaultRadius: 1000,
     color: '#16a34a',
     icon: '🛍️'
   },
@@ -222,9 +222,9 @@ export const DUTCH_AMENITY_CATEGORIES: AmenityCategory[] = [
     priority: 'medium',
     searchStrategy: 'both',
     placeTypes: [
-      'stadium', 'swimming_pool', 'sports_complex', 'sports_activity_location',
+      'swimming_pool',
       'sports_coaching', 'ice_skating_rink', 'golf_course', 'fishing_pond',
-      'arena', 'athletic_field', 'fishing_charter', 'sports_club',
+      'athletic_field', 'fishing_charter', 'sports_club',
       'adventure_sports_center', 'cycling_park'
     ],
     keywords: ['sportclub', 'voetbalclub', 'tennisclub', 'zwembad', 'sporthal'],
