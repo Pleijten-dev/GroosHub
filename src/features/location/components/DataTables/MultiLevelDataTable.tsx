@@ -64,6 +64,15 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
   defaultSource = 'all',
   lockSourceFilter = false,
 }) => {
+  // Debug logging
+  React.useEffect(() => {
+    console.log('🔍 MultiLevelDataTable data structure:', {
+      hasAmenities: !!data.amenities,
+      amenitiesLength: data.amenities?.length || 0,
+      amenitiesFirstTwo: data.amenities?.slice(0, 2)
+    });
+  }, [data]);
+
   const [selectedLevel, setSelectedLevel] = useState<GeographicLevel>('municipality');
   const [selectedSource, setSelectedSource] = useState<DataSource | 'all'>(defaultSource);
 
@@ -112,18 +121,30 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
 
     // Add amenities data (appears at municipality level)
     if (data.amenities && data.amenities.length > 0 && selectedLevel === 'municipality') {
+      console.log('🎯 Adding amenities rows to table:', data.amenities.length);
       rows.push(...data.amenities);
+    } else {
+      console.log('⚠️ Not adding amenities. Conditions:', {
+        hasAmenities: !!data.amenities,
+        amenitiesLength: data.amenities?.length || 0,
+        selectedLevel,
+        isMunicipality: selectedLevel === 'municipality'
+      });
     }
 
     // Filter by source if not 'all'
     if (selectedSource !== 'all') {
-      return rows.filter((row) => row.source === selectedSource);
+      const filtered = rows.filter((row) => row.source === selectedSource);
+      console.log(`📊 Filtered rows (source: ${selectedSource}):`, filtered.length);
+      return filtered;
     }
 
+    console.log('📊 Total rows before return:', rows.length);
     return rows;
   };
 
   const filteredRows = getFilteredRows();
+  console.log('📊 Final filteredRows count:', filteredRows.length);
 
   /**
    * Get available sources for the selected level
