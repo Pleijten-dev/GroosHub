@@ -13,6 +13,7 @@ import {
 } from '../data/aggregator/multiLevelAggregator';
 import { searchOrchestrator } from '../data/sources/google-places/search-orchestrator';
 import type { AmenityMultiCategoryResponse } from '../data/sources/google-places/types';
+import { locationDataCache } from '../data/cache/locationDataCache';
 
 /**
  * Loading state for each data source
@@ -50,8 +51,10 @@ export interface UseLocationDataReturn {
   error: ErrorState;
   isLoading: boolean;
   hasError: boolean;
-  fetchData: (address: string) => Promise<void>;
+  fromCache: boolean;
+  fetchData: (address: string, skipCache?: boolean) => Promise<void>;
   clearData: () => void;
+  clearCache: () => void;
 }
 
 /**
@@ -60,6 +63,7 @@ export interface UseLocationDataReturn {
 export function useLocationData(): UseLocationDataReturn {
   const [data, setData] = useState<UnifiedLocationData | null>(null);
   const [amenities, setAmenities] = useState<AmenityMultiCategoryResponse | null>(null);
+  const [fromCache, setFromCache] = useState(false);
   const [loading, setLoading] = useState<LoadingState>({
     geocoding: false,
     demographics: false,
@@ -92,10 +96,11 @@ export function useLocationData(): UseLocationDataReturn {
    * Fetch all location data for a given address
    */
   const fetchData = useCallback(
-    async (address: string) => {
+    async (address: string, skipCache: boolean = false) => {
       // Reset state
       setData(null);
       setAmenities(null);
+      setFromCache(false);
       setError({
         geocoding: null,
         demographics: null,
@@ -105,6 +110,18 @@ export function useLocationData(): UseLocationDataReturn {
         amenities: null,
         residential: null,
       });
+
+      // Check cache first (unless skipCache is true)
+      if (!skipCache) {
+        const cached = locationDataCache.get(address);
+        if (cached) {
+          console.log('📦 Loading data from cache for:', address);
+          setData(cached.data);
+          setAmenities(cached.amenities);
+          setFromCache(true);
+          return;
+        }
+      }
 
       // Start geocoding
       setLoading((prev) => ({ ...prev, geocoding: true }));
@@ -275,7 +292,17 @@ export function useLocationData(): UseLocationDataReturn {
           residential
         );
 
+        // Store amenities separately
+        const amenitiesResult = amenitiesData.status === 'fulfilled' ? amenitiesData.value : null;
+
+        // Store in cache
+        const cached = locationDataCache.set(address, unifiedData, amenitiesResult);
+        if (cached) {
+          console.log('💾 Stored data in cache for:', address);
+        }
+
         setData(unifiedData);
+        setFromCache(false);
       } catch (err) {
         console.error('Error fetching location data:', err);
         setError((prev) => ({
@@ -302,6 +329,7 @@ export function useLocationData(): UseLocationDataReturn {
   const clearData = useCallback(() => {
     setData(null);
     setAmenities(null);
+    setFromCache(false);
     setError({
       geocoding: null,
       demographics: null,
@@ -311,6 +339,14 @@ export function useLocationData(): UseLocationDataReturn {
       amenities: null,
       residential: null,
     });
+  }, []);
+
+  /**
+   * Clear all cached location data
+   */
+  const clearCache = useCallback(() => {
+    locationDataCache.clearAll();
+    console.log('🗑️ Cache cleared');
   }, []);
 
   // Computed properties
@@ -324,7 +360,9 @@ export function useLocationData(): UseLocationDataReturn {
     error,
     isLoading,
     hasError,
+    fromCache,
     fetchData,
     clearData,
+    clearCache,
   };
 }
