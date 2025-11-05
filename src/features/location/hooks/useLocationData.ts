@@ -282,6 +282,9 @@ export function useLocationData(): UseLocationDataReturn {
         const residential =
           residentialData.status === 'fulfilled' ? residentialData.value : null;
 
+        // Get amenities data (or null if failed)
+        const amenitiesResult = amenitiesData.status === 'fulfilled' ? amenitiesData.value : null;
+
         // Step 3: Aggregate all data
         const unifiedData = await aggregator.aggregate(
           locationData,
@@ -289,11 +292,9 @@ export function useLocationData(): UseLocationDataReturn {
           health,
           livability,
           safety,
-          residential
+          residential,
+          amenitiesResult
         );
-
-        // Store amenities separately
-        const amenitiesResult = amenitiesData.status === 'fulfilled' ? amenitiesData.value : null;
 
         // Store in cache
         const cached = locationDataCache.set(address, unifiedData, amenitiesResult);

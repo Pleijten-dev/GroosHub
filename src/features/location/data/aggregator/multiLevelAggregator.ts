@@ -6,6 +6,8 @@ import type { RIVMHealthMultiLevelResponse } from '../sources/rivm-health/client
 import type { CBSLivabilityMultiLevelResponse } from '../sources/cbs-livability/client';
 import type { PolitieSafetyMultiLevelResponse } from '../sources/politie-safety/client';
 import type { ResidentialData } from '../sources/altum-ai/types';
+import type { AmenityMultiCategoryResponse } from '../sources/google-places/types';
+import { convertAmenitiesToRows } from '../../components/Amenities/amenityDataConverter';
 import { getReadableKey as getDemographicsReadableKey } from '../normalizers/demographicsKeyNormalizer';
 import { getReadableKey as getHealthReadableKey } from '../normalizers/healthKeyNormalizer';
 import { getReadableKey as getLivabilityReadableKey } from '../normalizers/livabilityKeyNormalizer';
@@ -21,7 +23,7 @@ import { applyScoringToDataset, loadScoringConfig, type ScoringConfigOverrides }
  * Single data row in the unified table
  */
 export interface UnifiedDataRow {
-  source: 'demographics' | 'health' | 'livability' | 'safety' | 'residential';
+  source: 'demographics' | 'health' | 'livability' | 'safety' | 'residential' | 'amenities';
   geographicLevel: 'national' | 'municipality' | 'district' | 'neighborhood';
   geographicCode: string;
   geographicName: string;
@@ -83,6 +85,7 @@ export interface UnifiedLocationData {
     neighborhood: UnifiedDataRow[];
   };
   residential: ResidentialData | null;
+  amenities: UnifiedDataRow[]; // Amenity data (location-specific, no multi-level)
   fetchedAt: Date;
 }
 
@@ -133,7 +136,8 @@ export class MultiLevelAggregator {
     health: RIVMHealthMultiLevelResponse,
     livability: CBSLivabilityMultiLevelResponse,
     safety: PolitieSafetyMultiLevelResponse,
-    residential: ResidentialData | null = null
+    residential: ResidentialData | null = null,
+    amenities: AmenityMultiCategoryResponse | null = null
   ): Promise<UnifiedLocationData> {
     // Load scoring configuration
     const scoringConfig = await this.ensureScoringConfig();
@@ -326,6 +330,13 @@ export class MultiLevelAggregator {
           : [],
       },
       residential,
+      amenities: amenities
+        ? convertAmenitiesToRows(
+            amenities,
+            locationData.municipality.statcode,
+            locationData.municipality.statnaam
+          )
+        : [],
       fetchedAt: new Date(),
     };
   }

@@ -14,7 +14,7 @@ export interface MultiLevelDataTableProps {
 }
 
 type GeographicLevel = 'national' | 'municipality' | 'district' | 'neighborhood';
-type DataSource = 'demographics' | 'health' | 'livability' | 'safety' | 'residential';
+type DataSource = 'demographics' | 'health' | 'livability' | 'safety' | 'residential' | 'amenities';
 
 const LEVEL_LABELS = {
   national: { nl: 'Nederland (NL00)', en: 'Netherlands (NL00)' },
@@ -29,6 +29,7 @@ const SOURCE_LABELS = {
   livability: { nl: 'Leefbaarheid (CBS)', en: 'Livability (CBS)' },
   safety: { nl: 'Veiligheid (Politie)', en: 'Safety (Police)' },
   residential: { nl: 'Woningmarkt (Altum)', en: 'Housing Market (Altum)' },
+  amenities: { nl: 'Voorzieningen (Google Maps)', en: 'Amenities (Google Maps)' },
 };
 
 /**
@@ -103,10 +104,15 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
         break;
     }
 
-    // Add residential data (appears at all levels)
-    if (data.residential) {
+    // Add residential data (appears at municipality level)
+    if (data.residential && selectedLevel === 'municipality') {
       const residentialRows = convertResidentialToRows(data.residential);
       rows.push(...residentialRows);
+    }
+
+    // Add amenities data (appears at municipality level)
+    if (data.amenities && data.amenities.length > 0 && selectedLevel === 'municipality') {
+      rows.push(...data.amenities);
     }
 
     // Filter by source if not 'all'
@@ -150,9 +156,14 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
         break;
     }
 
-    // Add residential source if data is available
-    if (data.residential && data.residential.hasData) {
+    // Add residential source if data is available (municipality only)
+    if (selectedLevel === 'municipality' && data.residential && data.residential.hasData) {
       sources.add('residential');
+    }
+
+    // Add amenities source if data is available (municipality only)
+    if (selectedLevel === 'municipality' && data.amenities && data.amenities.length > 0) {
+      sources.add('amenities');
     }
 
     return Array.from(sources);
