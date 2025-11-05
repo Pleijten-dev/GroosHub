@@ -50,7 +50,7 @@ function createAmenityRow(
     },
   });
 
-  // Row 2: Proximity Score
+  // Row 2: Proximity Score (always 250m)
   rows.push({
     source: 'amenities',
     geographicLevel: 'municipality',
@@ -95,8 +95,13 @@ function createAmenityRow(
  * for display in the main data table
  *
  * Creates two rows per category:
- * 1. Count score row (number of amenities found)
- * 2. Proximity score row (amenities within 250m)
+ * 1. Count score row (number of amenities within category's defaultRadius)
+ *    - Filters amenities to only count those within meaningful distance
+ *    - Uses category-specific radius from amenity-search-config.ts (e.g., 1km for supermarkets)
+ *    - Falls back to 1km if not specified
+ * 2. Proximity score row (amenities within fixed 250m)
+ *    - Always uses 250m radius
+ *    - Binary bonus: 1 if any amenities within 250m, 0 otherwise
  */
 export function convertAmenitiesToRows(
   amenitiesData: AmenityMultiCategoryResponse | null,

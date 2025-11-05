@@ -2,11 +2,25 @@
  * Amenity Scoring System
  *
  * Calculates two scores for each amenity category:
- * 1. Count-based score: -1 to 1 based on number of amenities
- * 2. Proximity bonus: 0 or 1 based on amenities within 250m
+ * 1. Count-based score: -1 to 1 based on number of amenities WITHIN category's defaultRadius
+ *    (Filters out amenities beyond the category's meaningful distance)
+ * 2. Proximity bonus: 0 or 1 based on amenities within 250m (fixed)
+ *
+ * Distance filtering uses each category's defaultRadius from amenity-search-config.ts
+ * Default radius is 1000m (1km) if not specified in the category config
  */
 
 import type { AmenitySearchResult, PlaceResult } from '../sources/google-places/types';
+
+/**
+ * Default distance radius if not specified in category config
+ */
+const DEFAULT_DISTANCE_RADIUS = 1000; // 1km
+
+/**
+ * Fixed proximity bonus radius
+ */
+const PROXIMITY_BONUS_RADIUS = 250; // 250m (fixed)
 
 /**
  * Amenity score breakdown
@@ -16,18 +30,20 @@ export interface AmenityScore {
   categoryId: string;
   /** Category display name */
   categoryName: string;
-  /** Total amenities found in category radius */
+  /** Amenities found within category's defaultRadius (used for count score) */
   totalCount: number;
-  /** Amenities within 250m */
+  /** Amenities within 250m (used for proximity bonus) */
   proximityCount: number;
-  /** Count-based score: -1 to 1 */
+  /** Count-based score: -1 to 1 (based on amenities within defaultRadius) */
   countScore: number;
-  /** Proximity bonus: 0 or 1 */
+  /** Proximity bonus: 0 or 1 (based on amenities within 250m) */
   proximityBonus: number;
   /** Combined score (for display) */
   combinedScore: number;
-  /** Search radius used */
+  /** Search radius used for API call */
   searchRadius: number;
+  /** Distance radius used for count filtering (from category config or default 1km) */
+  countRadius: number;
 }
 
 /**
@@ -60,16 +76,14 @@ export function calculateCountScore(count: number): number {
  * - 1+ amenities within 250m → 1
  * - 0 amenities within 250m → 0
  *
+ * Note: Proximity bonus always uses fixed 250m radius
+ *
  * @param places Array of amenity places with distances
- * @param radiusMeters Proximity radius (default: 250m)
  * @returns 0 or 1
  */
-export function calculateProximityBonus(
-  places: PlaceResult[],
-  radiusMeters: number = 250
-): number {
+export function calculateProximityBonus(places: PlaceResult[]): number {
   const nearby = places.filter(place =>
-    place.distance !== undefined && place.distance <= radiusMeters
+    place.distance !== undefined && place.distance <= PROXIMITY_BONUS_RADIUS
   );
 
   return nearby.length > 0 ? 1 : 0;
@@ -78,13 +92,33 @@ export function calculateProximityBonus(
 /**
  * Calculate amenity scores for a search result
  *
+ * Count Score:
+ * - Uses category's defaultRadius to filter amenities (e.g., 1km for supermarkets)
+ * - Only counts amenities within this meaningful distance
+ * - Falls back to DEFAULT_DISTANCE_RADIUS (1000m) if not specified
+ *
+ * Proximity Bonus:
+ * - Always uses fixed 250m radius
+ * - Binary score: 1 if any amenities within 250m, 0 otherwise
+ *
  * @param result Amenity search result
  * @returns Amenity score breakdown
  */
 export function calculateAmenityScore(result: AmenitySearchResult): AmenityScore {
-  const totalCount = result.places.length;
+  // Use category's defaultRadius for counting, or fall back to 1km
+  const countRadius = result.category.defaultRadius || DEFAULT_DISTANCE_RADIUS;
+
+  // Filter amenities within the count radius (e.g., 1km for supermarkets)
+  const amenitiesWithinRadius = result.places.filter(
+    p => p.distance !== undefined && p.distance <= countRadius
+  );
+
+  // Count score is based on amenities within the count radius only
+  const totalCount = amenitiesWithinRadius.length;
+
+  // Proximity count is always based on fixed 250m
   const proximityCount = result.places.filter(
-    p => p.distance !== undefined && p.distance <= 250
+    p => p.distance !== undefined && p.distance <= PROXIMITY_BONUS_RADIUS
   ).length;
 
   const countScore = calculateCountScore(totalCount);
@@ -105,6 +139,7 @@ export function calculateAmenityScore(result: AmenitySearchResult): AmenityScore
     proximityBonus,
     combinedScore,
     searchRadius: result.searchRadius,
+    countRadius,
   };
 }
 

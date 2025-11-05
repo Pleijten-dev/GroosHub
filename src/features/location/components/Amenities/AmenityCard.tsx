@@ -180,14 +180,18 @@ export const AmenityCard: React.FC<AmenityCardProps> = ({ result, locale = 'nl' 
               {formatScore(amenityScore.countScore)}
             </span>
             <p className="text-xs text-gray-400 mt-1">
-              {amenityScore.totalCount} {locale === 'nl' ? 'voorzieningen' : 'places'}
+              {amenityScore.totalCount} {locale === 'nl' ? 'binnen' : 'within'} {
+                amenityScore.countRadius >= 1000
+                  ? `${(amenityScore.countRadius / 1000).toFixed(1).replace('.0', '')}km`
+                  : `${amenityScore.countRadius}m`
+              }
             </p>
           </div>
 
           {/* Proximity Bonus */}
           <div>
             <p className="text-xs text-gray-500 mb-1">
-              {locale === 'nl' ? 'Nabijheid' : 'Proximity'}
+              {locale === 'nl' ? 'Nabijheid (250m)' : 'Proximity (250m)'}
             </p>
             <span className={`inline-block px-2 py-1 text-xs font-semibold rounded border ${
               amenityScore.proximityBonus === 1
