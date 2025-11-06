@@ -563,7 +563,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden relative bg-white">
+    <div className="page-background flex h-screen w-screen overflow-hidden relative">
 
       {/* SIDEBAR - Using reusable component */}
       <Sidebar
@@ -579,7 +579,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
       {/* MAIN CONTENT - Adjusted margins */}
       <main className={`
-        flex-1 flex flex-col overflow-hidden bg-white transition-all duration-300
+        flex-1 flex flex-col overflow-hidden transition-all duration-300
         ${mainContentMargin}
       `}>
         {renderMainContent()}

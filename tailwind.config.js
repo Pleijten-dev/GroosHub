@@ -11,6 +11,25 @@ module.exports = {
     extend: {
       // Color system using CSS custom properties
       colors: {
+        // Design System: Gradient Palette
+        gradient: {
+          1: 'var(--gradient-1-darkest)',  // #0c211a - Deep forest green
+          2: 'var(--gradient-2-dark)',     // #48806a - Teal green
+          3: 'var(--gradient-3-mid)',      // #477638 - Olive green
+          4: 'var(--gradient-4-light)',    // #8a976b - Sage green
+          5: 'var(--gradient-5-lightest)', // #f8eee4 - Cream
+          darkest: 'var(--gradient-1-darkest)',
+          dark: 'var(--gradient-2-dark)',
+          mid: 'var(--gradient-3-mid)',
+          light: 'var(--gradient-4-light)',
+          lightest: 'var(--gradient-5-lightest)',
+        },
+
+        // Theme colors
+        black: 'var(--color-black)',
+        cream: 'var(--color-cream)',
+        white: 'var(--color-white)',
+
         // Brand colors
         primary: {
           50: 'var(--color-primary-light)',

@@ -67,10 +67,10 @@
   --shadow-2xl: 0 10px 25px 0 rgba(0, 0, 0, 0.2);
   --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
   
-  /* Glass/backdrop effects */
-  --glass-bg: rgba(255, 255, 255, 0.85);
-  --glass-border: rgba(255, 255, 255, 0.2);
-  --backdrop-blur: 12px;
+  /* Glass/backdrop effects - Updated for panel system */
+  --glass-bg: var(--panel-outer-bg);
+  --glass-border: var(--panel-outer-border);
+  --backdrop-blur: var(--panel-outer-blur);
   
   /* ========== TYPOGRAPHY SYSTEM ========== */
   
@@ -97,18 +97,31 @@
   --line-height-relaxed: 1.75;
   
   /* ========== COLOR SYSTEM ========== */
-  
+
+  /* ========== DESIGN SYSTEM: GRADIENT PALETTE ========== */
+  /* The 5-color gradient: dark green → teal → olive → sage → cream */
+  --gradient-1-darkest: #0c211a;  /* Deep forest green */
+  --gradient-2-dark: #48806a;     /* Teal green */
+  --gradient-3-mid: #477638;      /* Olive green */
+  --gradient-4-light: #8a976b;    /* Sage green */
+  --gradient-5-lightest: #f8eee4; /* Cream offwhite */
+
+  /* Primary theme colors */
+  --color-black: #000000;
+  --color-cream: #f8eee4;
+  --color-white: #ffffff;
+
   /* Base colors (your existing palette) */
-  --background: #f0f0f0;
+  --background: var(--color-cream);  /* Changed to cream */
   --element-background: #ffffff;
   --foreground: #292929;
   --foreground-hover: #d4d4d4;
-  --border-color: #d4d4d4;
-  --border-color-hover: #292929;
-  --background-hover: #e5e7eb;
-  --background-selected: #dbeafe;
-  --text-grey: #6b7280;
-  --text-color: #292929;
+  --border-color: rgba(0, 0, 0, 0.08);
+  --border-color-hover: rgba(0, 0, 0, 0.20);
+  --background-hover: rgba(0, 0, 0, 0.04);
+  --background-selected: var(--color-cream);
+  --text-grey: rgba(0, 0, 0, 0.60);
+  --text-color: var(--color-black);
   
   /* Extended gray palette */
   --gray-50: #f9fafb;
@@ -122,10 +135,10 @@
   --gray-800: #1f2937;
   --gray-900: #111827;
   
-  /* Brand colors */
-  --color-primary: #3b82f6;
-  --color-primary-hover: #2563eb;
-  --color-primary-light: #dbeafe;
+  /* Brand colors - Updated to use gradient palette */
+  --color-primary: var(--gradient-3-mid);      /* Olive green #477638 */
+  --color-primary-hover: var(--gradient-2-dark); /* Teal green #48806a */
+  --color-primary-light: rgba(71, 118, 56, 0.1); /* Light olive with transparency */
   --color-secondary: #6b7280;
   --color-secondary-hover: #4b5563;
   
@@ -151,18 +164,40 @@
   --support-yellow: #E5BC72;
   
   /* Semantic text colors */
-  --text-primary: var(--gray-900);
-  --text-secondary: var(--gray-600);
-  --text-muted: var(--gray-500);
-  --text-placeholder: var(--gray-400);
+  --text-primary: var(--color-black);
+  --text-secondary: rgba(0, 0, 0, 0.87);
+  --text-muted: rgba(0, 0, 0, 0.60);
+  --text-placeholder: rgba(0, 0, 0, 0.38);
   --text-inverse: #ffffff;
-  
+
   /* Semantic background colors */
   --bg-primary: #ffffff;
-  --bg-secondary: var(--gray-50);
+  --bg-secondary: var(--color-cream);
   --bg-muted: var(--gray-100);
   --bg-accent: var(--gray-200);
   --bg-overlay: rgba(0, 0, 0, 0.5);
+
+  /* ========== PANEL SYSTEM ========== */
+  /* Frosted glass outer panel */
+  --panel-outer-bg: rgba(255, 255, 255, 0.7);
+  --panel-outer-border: rgba(0, 0, 0, 0.08);
+  --panel-outer-blur: 12px;
+  --panel-outer-radius: var(--radius-lg);
+  --panel-outer-padding: var(--space-2xl);
+  --panel-outer-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+
+  /* Cream inner panel */
+  --panel-inner-bg: var(--color-cream);
+  --panel-inner-border: rgba(0, 0, 0, 0.04);
+  --panel-inner-radius: var(--radius-md);
+  --panel-inner-padding: var(--space-lg);
+
+  /* ========== BACKGROUND GRADIENT BLOBS ========== */
+  /* Subtle gradient blob colors with low opacity */
+  --blob-1-color: rgba(12, 33, 26, 0.03);    /* darkest green */
+  --blob-2-color: rgba(72, 128, 106, 0.04);  /* teal green */
+  --blob-3-color: rgba(71, 118, 56, 0.03);   /* olive green */
+  --blob-4-color: rgba(138, 151, 107, 0.04); /* sage green */
   
   /* ========== LAYOUT SYSTEM ========== */
   
@@ -465,12 +500,49 @@
     border-color: var(--color-primary);
   }
   
-  /* Glass panels */
+  /* ========== PANEL SYSTEM COMPONENTS ========== */
+
+  /* Outer panel - Frosted glass */
+  .panel-outer {
+    background: var(--panel-outer-bg);
+    backdrop-filter: blur(var(--panel-outer-blur));
+    -webkit-backdrop-filter: blur(var(--panel-outer-blur));
+    border: 1px solid var(--panel-outer-border);
+    border-radius: var(--panel-outer-radius);
+    padding: var(--panel-outer-padding);
+    box-shadow: var(--panel-outer-shadow);
+  }
+
+  /* Inner panel - Cream */
+  .panel-inner {
+    background: var(--panel-inner-bg);
+    border: 1px solid var(--panel-inner-border);
+    border-radius: var(--panel-inner-radius);
+    padding: var(--panel-inner-padding);
+  }
+
+  /* Card with frosted glass effect */
+  .card-glass {
+    background: var(--panel-outer-bg);
+    backdrop-filter: blur(var(--panel-outer-blur));
+    -webkit-backdrop-filter: blur(var(--panel-outer-blur));
+    border: 1px solid var(--panel-outer-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    transition: all 200ms ease;
+  }
+
+  .card-glass:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+  }
+
+  /* Glass panels (legacy support) */
   .glass-panel {
     @apply glass;
     box-shadow: var(--shadow-lg);
   }
-  
+
   .glass-nav {
     @apply glass-strong;
     box-shadow: var(--shadow-md);
@@ -564,12 +636,48 @@ body {
   .sidebar-container {
     z-index: var(--z-fixed);
   }
-  
+
   .main-content {
     z-index: var(--z-base);
   }
-  
+
   .right-menu {
     z-index: var(--z-elevated);
   }
+}
+
+/* ========== BACKGROUND GRADIENT BLOB SYSTEM ========== */
+
+/* Page background with gradient blobs */
+.page-background {
+  position: relative;
+  background-color: var(--color-cream);
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.page-background::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 30%, var(--blob-1-color) 0%, transparent 40%),
+    radial-gradient(circle at 80% 70%, var(--blob-2-color) 0%, transparent 40%),
+    radial-gradient(circle at 40% 80%, var(--blob-3-color) 0%, transparent 40%),
+    radial-gradient(circle at 70% 20%, var(--blob-4-color) 0%, transparent 40%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.page-background > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Alternative: lighter gradient blobs */
+.page-background-light::before {
+  background:
+    radial-gradient(circle at 25% 25%, var(--blob-1-color) 0%, transparent 35%),
+    radial-gradient(circle at 75% 75%, var(--blob-2-color) 0%, transparent 35%),
+    radial-gradient(circle at 50% 50%, var(--blob-3-color) 0%, transparent 30%);
 }
