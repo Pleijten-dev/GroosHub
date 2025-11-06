@@ -4,37 +4,27 @@ import type { UnifiedLocationData, UnifiedDataRow } from '../data/aggregator/mul
  * Mapping from actual data table titles to scoring map subcategory names
  */
 const TITLE_MAPPING: Record<string, string> = {
-  // Amenities - we'll use the Nabijheid (proximity) score as it's more relevant
-  'Zorg (Huisarts & Apotheek) - Nabijheid (250m)': 'Zorg (Huisarts & Apotheek)',
-  'Zorg (Paramedische voorzieningen) - Nabijheid (250m)': 'Zorg (Paramedische voorzieningen)',
-  'Openbaar vervoer (halte) - Nabijheid (250m)': 'Openbaar vervoer (halte)',
-  'Mobiliteit & Parkeren - Nabijheid (250m)': 'Mobiliteit & Parkeren',
-  'Onderwijs (Basisschool) - Nabijheid (250m)': 'Onderwijs (Basisschool)',
-  'Onderwijs (Voortgezet onderwijs) - Nabijheid (250m)': 'Onderwijs (Voortgezet onderwijs)',
-  'Onderwijs (Hoger onderwijs) - Nabijheid (250m)': 'Onderwijs (Hoger onderwijs)',
-  'Kinderopvang & Opvang - Nabijheid (250m)': 'Kinderopvang & Opvang',
-  'Winkels (Dagelijkse boodschappen) - Nabijheid (250m)': 'Winkels (Dagelijkse boodschappen)',
-  'Winkels (Overige retail) - Nabijheid (250m)': 'Winkels (Overige retail)',
-  'Budget Restaurants (€) - Nabijheid (250m)': 'Budget Restaurants (€)',
-  'Mid-range Restaurants (€€€) - Nabijheid (250m)': 'Mid-range Restaurants (€€€)',
-  'Upscale Restaurants (€€€€-€€€€€) - Nabijheid (250m)': 'Upscale Restaurants (€€€€-€€€€€)',
-  'Cafés en avond programma - Nabijheid (250m)': 'Cafés en avond programma',
-  'Sport faciliteiten - Nabijheid (250m)': 'Sport faciliteiten',
-  'Sportschool / Fitnesscentrum - Nabijheid (250m)': 'Sportschool / Fitnesscentrum',
-  'Groen & Recreatie - Nabijheid (250m)': 'Groen & Recreatie',
-  'Cultuur & Entertainment - Nabijheid (250m)': 'Cultuur & Entertainment',
-  'Wellness & Recreatie - Nabijheid (250m)': 'Wellness & Recreatie',
-
-  // Housing Stock - exact matches with capitalization differences
+  // Housing Stock
   'Percentage Eengezinswoning': 'Percentage eengezinswoning',
   'Percentage Meergezinswoning': 'Percentage meergezinswoning',
-  'In Bezit Woningcorporatie': 'In Bezit Woningcorporatie', // Already matches
-  'In Bezit Overige Verhuurders': 'In Bezit Overige Verhuurders', // Already matches
+  'Koopwoningen': 'Koopwoningen',
+  'In Bezit Woningcorporatie': 'In Bezit Woningcorporatie',
+  'In Bezit Overige Verhuurders': 'In Bezit Overige Verhuurders',
   'Hoog stedelijk': 'Woningtype - Hoogstedelijk',
   'Rand stedelijk': 'Woningtype - Randstedelijk',
   'Laag stedelijk': 'Woningtype - Laagstedelijk',
+  'Klein (< 60m²)': 'Woonoppervlak - Klein',
+  'Midden (60-110m²)': 'Woonoppervlak - Midden',
+  'Groot (> 110m²)': 'Woonoppervlak - Groot',
+  'Laag (< €350k)': 'Transactieprijs - Laag',
+  'Midden (€350k-€525k)': 'Transactieprijs - Midden',
+  'Hoog (> €525k)': 'Transactieprijs - Hoog',
 
-  // Demographics - missing "Aandeel" prefix in data
+  // Livability
+  'Speelplekken Voor Kinderen': 'Speelplekken Voor Kinderen',
+  'Voorzieningen Voor Jongeren': 'Voorzieningen Voor Jongeren',
+
+  // Demographics
   '0 Tot 15 Jaar': 'Aandeel 0 tot 15 jaar',
   '15 Tot 25 Jaar': 'Aandeel 15 tot 25 jaar',
   '25 Tot 45 Jaar': 'Aandeel 25 tot 45 jaar',
@@ -43,8 +33,32 @@ const TITLE_MAPPING: Record<string, string> = {
   'Eenpersoonshuishoudens': 'Aandeel eenpersoonshuishoudens',
   'Huishoudens Zonder Kinderen': 'Aandeel huishoudens zonder kinderen',
   'Huishoudens Met Kinderen': 'Aandeel huishoudens met kinderen',
-  'Gemiddeld Inkomen Per Inkomensontvanger': 'Gemiddeld Inkomen Per Inkomensontvanger (medium >80% <120% of mediaan)',
 };
+
+/**
+ * Amenity categories that have both Aantal and Nabijheid scores
+ */
+const AMENITY_CATEGORIES = [
+  'Zorg (Huisarts & Apotheek)',
+  'Zorg (Paramedische voorzieningen)',
+  'Openbaar vervoer (halte)',
+  'Mobiliteit & Parkeren',
+  'Onderwijs (Basisschool)',
+  'Onderwijs (Voortgezet onderwijs)',
+  'Onderwijs (Hoger onderwijs)',
+  'Kinderopvang & Opvang',
+  'Winkels (Dagelijkse boodschappen)',
+  'Winkels (Overige retail)',
+  'Budget Restaurants (€)',
+  'Mid-range Restaurants (€€€)',
+  'Upscale Restaurants (€€€€-€€€€€)',
+  'Cafés en avond programma',
+  'Sport faciliteiten',
+  'Sportschool / Fitnesscentrum',
+  'Groen & Recreatie',
+  'Cultuur & Entertainment',
+  'Wellness & Recreatie',
+];
 
 /**
  * Extracts location scores from UnifiedLocationData and maps them to
@@ -52,21 +66,46 @@ const TITLE_MAPPING: Record<string, string> = {
  */
 export function extractLocationScores(data: UnifiedLocationData): Record<string, number> {
   const scores: Record<string, number> = {};
+  const amenityScores: Record<string, { aantal?: number; nabijheid?: number }> = {};
 
   // Helper to add scores from UnifiedDataRows
   const addScoresFromRows = (rows: UnifiedDataRow[]) => {
     rows.forEach(row => {
-      // Map the title to scoring subcategory name
-      const mappedTitle = TITLE_MAPPING[row.title] || row.title;
+      // Check if this is an amenity with Aantal or Nabijheid
+      const aantalMatch = row.title.match(/^(.+) - Aantal$/);
+      const nabijheidMatch = row.title.match(/^(.+) - Nabijheid \(250m\)$/);
 
-      // Use calculated score if available, otherwise fall back to relative value normalized
-      if (row.calculatedScore !== undefined && row.calculatedScore !== null) {
-        scores[mappedTitle] = row.calculatedScore;
-      } else if (row.relative !== null) {
-        // Normalize relative percentage values to -1 to 1 scale
-        scores[mappedTitle] = normalizePercentage(row.relative);
+      if (aantalMatch && AMENITY_CATEGORIES.includes(aantalMatch[1])) {
+        // Store Aantal score for later averaging
+        const category = aantalMatch[1];
+        if (!amenityScores[category]) amenityScores[category] = {};
+        const score = getScore(row);
+        if (score !== null) amenityScores[category].aantal = score;
+      } else if (nabijheidMatch && AMENITY_CATEGORIES.includes(nabijheidMatch[1])) {
+        // Store Nabijheid score for later averaging
+        const category = nabijheidMatch[1];
+        if (!amenityScores[category]) amenityScores[category] = {};
+        const score = getScore(row);
+        if (score !== null) amenityScores[category].nabijheid = score;
+      } else {
+        // Regular mapping
+        const mappedTitle = TITLE_MAPPING[row.title] || row.title;
+        const score = getScore(row);
+        if (score !== null) {
+          scores[mappedTitle] = score;
+        }
       }
     });
+  };
+
+  // Helper to get score from a row
+  const getScore = (row: UnifiedDataRow): number | null => {
+    if (row.calculatedScore !== undefined && row.calculatedScore !== null) {
+      return row.calculatedScore;
+    } else if (row.relative !== null) {
+      return normalizePercentage(row.relative);
+    }
+    return null;
   };
 
   // Extract from all geographic levels (prioritize more specific levels)
@@ -77,6 +116,36 @@ export function extractLocationScores(data: UnifiedLocationData): Record<string,
     addScoresFromRows(data.demographics.district);
   } else if (data.demographics.municipality.length > 0) {
     addScoresFromRows(data.demographics.municipality);
+  }
+
+  // Handle income splitting - find the income row and split into brackets
+  const allDemographicRows = [
+    ...data.demographics.neighborhood,
+    ...data.demographics.district,
+    ...data.demographics.municipality,
+  ];
+  const incomeRow = allDemographicRows.find(
+    row => row.title === 'Gemiddeld Inkomen Per Inkomensontvanger'
+  );
+  if (incomeRow && incomeRow.absolute !== null) {
+    const income = incomeRow.absolute / 1000; // Convert to thousands if needed
+
+    // Split into three brackets based on Dutch median (€36k in 2024)
+    const medianIncome = 36; // in thousands
+    const lowThreshold = medianIncome * 0.8; // 28.8k
+    const highThreshold = medianIncome * 1.2; // 43.2k
+
+    // Low income: score 1 if below 28.8k, 0 if above
+    scores['Gemiddeld Inkomen Per Inkomensontvanger (low <80% of mediaan)'] =
+      income < lowThreshold ? 1 : -1;
+
+    // Medium income: score 1 if between 28.8k and 43.2k, 0 if outside
+    scores['Gemiddeld Inkomen Per Inkomensontvanger (medium >80% <120% of mediaan)'] =
+      income >= lowThreshold && income <= highThreshold ? 1 : -1;
+
+    // High income: score 1 if above 43.2k, 0 if below
+    scores['Gemiddeld Inkomen Per Inkomensontvanger (high >120% of mediaan)'] =
+      income > highThreshold ? 1 : -1;
   }
 
   // Health
@@ -107,12 +176,19 @@ export function extractLocationScores(data: UnifiedLocationData): Record<string,
     addScoresFromRows(data.amenities);
   }
 
-  // Residential data - extract what's available
-  if (data.residential && data.residential.hasData) {
-    // Residential data is already included in the rows via convertResidentialToRows
-    // So it should be picked up by the amenities/municipality section
-    console.log('Residential data available - scores extracted from unified rows');
-  }
+  // Average Aantal and Nabijheid scores for amenities
+  Object.entries(amenityScores).forEach(([category, { aantal, nabijheid }]) => {
+    if (aantal !== undefined && nabijheid !== undefined) {
+      // Both available - average them
+      scores[category] = (aantal + nabijheid) / 2;
+    } else if (aantal !== undefined) {
+      // Only Aantal available
+      scores[category] = aantal;
+    } else if (nabijheid !== undefined) {
+      // Only Nabijheid available
+      scores[category] = nabijheid;
+    }
+  });
 
   return scores;
 }
