@@ -36,64 +36,21 @@ const TITLE_MAPPING: Record<string, string> = {
 };
 
 /**
- * Amenity categories that have both Aantal and Nabijheid scores
- */
-const AMENITY_CATEGORIES = [
-  'Zorg (Huisarts & Apotheek)',
-  'Zorg (Paramedische voorzieningen)',
-  'Openbaar vervoer (halte)',
-  'Mobiliteit & Parkeren',
-  'Onderwijs (Basisschool)',
-  'Onderwijs (Voortgezet onderwijs)',
-  'Onderwijs (Hoger onderwijs)',
-  'Kinderopvang & Opvang',
-  'Winkels (Dagelijkse boodschappen)',
-  'Winkels (Overige retail)',
-  'Budget Restaurants (€)',
-  'Mid-range Restaurants (€€€)',
-  'Upscale Restaurants (€€€€-€€€€€)',
-  'Cafés en avond programma',
-  'Sport faciliteiten',
-  'Sportschool / Fitnesscentrum',
-  'Groen & Recreatie',
-  'Cultuur & Entertainment',
-  'Wellness & Recreatie',
-];
-
-/**
  * Extracts location scores from UnifiedLocationData and maps them to
  * subcategory names used in the target group scoring system
  */
 export function extractLocationScores(data: UnifiedLocationData): Record<string, number> {
   const scores: Record<string, number> = {};
-  const amenityScores: Record<string, { aantal?: number; nabijheid?: number }> = {};
 
   // Helper to add scores from UnifiedDataRows
   const addScoresFromRows = (rows: UnifiedDataRow[]) => {
     rows.forEach(row => {
-      // Check if this is an amenity with Aantal or Nabijheid
-      const aantalMatch = row.title.match(/^(.+) - Aantal$/);
-      const nabijheidMatch = row.title.match(/^(.+) - Nabijheid \(250m\)$/);
-
-      if (aantalMatch && AMENITY_CATEGORIES.includes(aantalMatch[1])) {
-        // Store Aantal score for later averaging
-        const category = aantalMatch[1];
-        if (!amenityScores[category]) amenityScores[category] = {};
-        const score = getScore(row);
-        if (score !== null) amenityScores[category].aantal = score;
-      } else if (nabijheidMatch && AMENITY_CATEGORIES.includes(nabijheidMatch[1])) {
-        // Store Nabijheid score for later averaging
-        const category = nabijheidMatch[1];
-        if (!amenityScores[category]) amenityScores[category] = {};
-        const score = getScore(row);
-        if (score !== null) amenityScores[category].nabijheid = score;
-      } else {
-        // Regular mapping
-        const mappedTitle = TITLE_MAPPING[row.title] || row.title;
-        const score = getScore(row);
-        if (score !== null) {
-          scores[mappedTitle] = score;
-        }
+      // For amenities, keep the full title with "- Aantal" or "- Nabijheid (250m)"
+      // For other fields, use the title mapping
+      const mappedTitle = TITLE_MAPPING[row.title] || row.title;
+      const score = getScore(row);
+      if (score !== null) {
+        scores[mappedTitle] = score;
       }
     });
   };
@@ -175,20 +132,6 @@ export function extractLocationScores(data: UnifiedLocationData): Record<string,
   if (data.amenities && data.amenities.length > 0) {
     addScoresFromRows(data.amenities);
   }
-
-  // Average Aantal and Nabijheid scores for amenities
-  Object.entries(amenityScores).forEach(([category, { aantal, nabijheid }]) => {
-    if (aantal !== undefined && nabijheid !== undefined) {
-      // Both available - average them
-      scores[category] = (aantal + nabijheid) / 2;
-    } else if (aantal !== undefined) {
-      // Only Aantal available
-      scores[category] = aantal;
-    } else if (nabijheid !== undefined) {
-      // Only Nabijheid available
-      scores[category] = nabijheid;
-    }
-  });
 
   return scores;
 }
