@@ -85,23 +85,23 @@ export function extractLocationScores(data: UnifiedLocationData): Record<string,
   const incomeRow = allDemographicRows.find(
     row => row.title === 'Gemiddeld Inkomen Per Inkomensontvanger'
   );
-  if (incomeRow && incomeRow.absolute !== null) {
-    const income = incomeRow.absolute / 1000; // Convert to thousands if needed
+  if (incomeRow && incomeRow.relative !== null) {
+    const income = incomeRow.relative / 1000; // Convert to thousands
 
     // Split into three brackets based on Dutch median (€36k in 2024)
     const medianIncome = 36; // in thousands
     const lowThreshold = medianIncome * 0.8; // 28.8k
     const highThreshold = medianIncome * 1.2; // 43.2k
 
-    // Low income: score 1 if below 28.8k, 0 if above
+    // Low income: score 1 if below 28.8k, -1 if above
     scores['Gemiddeld Inkomen Per Inkomensontvanger (low <80% of mediaan)'] =
       income < lowThreshold ? 1 : -1;
 
-    // Medium income: score 1 if between 28.8k and 43.2k, 0 if outside
+    // Medium income: score 1 if between 28.8k and 43.2k, -1 if outside
     scores['Gemiddeld Inkomen Per Inkomensontvanger (medium >80% <120% of mediaan)'] =
       income >= lowThreshold && income <= highThreshold ? 1 : -1;
 
-    // High income: score 1 if above 43.2k, 0 if below
+    // High income: score 1 if above 43.2k, -1 if below
     scores['Gemiddeld Inkomen Per Inkomensontvanger (high >120% of mediaan)'] =
       income > highThreshold ? 1 : -1;
   }
