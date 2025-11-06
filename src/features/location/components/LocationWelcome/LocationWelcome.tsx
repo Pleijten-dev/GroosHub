@@ -3,7 +3,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Locale } from '../../../../lib/i18n/config';
-import { CubeVisualization } from '../Doelgroepen/CubeVisualization';
+import { AnimatedCube } from './AnimatedCube';
 import { AddressAutocomplete } from '../AddressAutocomplete/AddressAutocomplete';
 import { getRandomTetrisShape, generateGradientColors } from '../../utils/cubePatterns';
 
@@ -16,8 +16,8 @@ interface LocationWelcomeProps {
 /**
  * Welcome state component shown when no location data is cached
  * Features:
- * - Centered cube visualization with random tetris shape
- * - Address search bar below cube
+ * - Centered animated cube visualization with random tetris shape
+ * - Pill-shaped address search bar
  * - Clean, minimal design
  */
 export const LocationWelcome: React.FC<LocationWelcomeProps> = ({
@@ -44,7 +44,6 @@ export const LocationWelcome: React.FC<LocationWelcomeProps> = ({
     const allColors = generateGradientColors();
     const shapeIndices = getRandomTetrisShape();
 
-    // Create color array for all 27 positions, but only active ones will show
     return {
       activeIndices: shapeIndices,
       cubeColors: allColors,
@@ -54,36 +53,26 @@ export const LocationWelcome: React.FC<LocationWelcomeProps> = ({
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-lg">
       <div className="w-full max-w-4xl space-y-xl">
-        {/* Cube Visualization - No title, no legend */}
-        <div className="panel-outer">
-          <CubeVisualization
-            activeIndices={activeIndices}
-            cubeColors={cubeColors}
-            locale={locale}
-          />
-        </div>
+        {/* Animated Cube Visualization - No border, larger, rotating */}
+        <AnimatedCube
+          activeIndices={activeIndices}
+          cubeColors={cubeColors}
+        />
 
-        {/* Search Bar */}
-        <div className="panel-inner max-w-2xl mx-auto">
-          <div className="space-y-md">
-            <label className="block text-center text-base font-medium text-text-secondary mb-sm">
-              {locale === 'nl'
-                ? 'Vind je ideale doelgroep'
-                : 'Find your ideal target audience'}
-            </label>
-            <AddressAutocomplete
-              placeholder={locale === 'nl' ? 'Voer een adres in...' : 'Enter an address...'}
-              value={searchAddress}
-              onChange={setSearchAddress}
-              onSelect={(address) => {
-                setSearchAddress(address);
-                onAddressSearch(address);
-              }}
-              onKeyPress={handleKeyPress}
-              className="w-full"
-              disabled={isSearching}
-            />
-          </div>
+        {/* Pill-shaped Search Bar - No panel wrapper */}
+        <div className="max-w-2xl mx-auto">
+          <AddressAutocomplete
+            placeholder={locale === 'nl' ? 'Vind je ideale doelgroep' : 'Find your ideal target audience'}
+            value={searchAddress}
+            onChange={setSearchAddress}
+            onSelect={(address) => {
+              setSearchAddress(address);
+              onAddressSearch(address);
+            }}
+            onKeyPress={handleKeyPress}
+            className="w-full !rounded-full px-lg py-md text-base"
+            disabled={isSearching}
+          />
         </div>
       </div>
     </div>

@@ -50,13 +50,20 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   // Use location data hook
   const { data, amenities, loading, error, isLoading, hasError, fetchData, clearData } = useLocationData();
 
-  // Use sidebar hook for state management - collapsed by default when no data
-  const { isCollapsed, toggle } = useSidebar({
-    defaultCollapsed: !data, // Collapsed when no data, expanded when data exists
+  // Use sidebar hook for state management
+  const { isCollapsed, toggle, setCollapsed } = useSidebar({
+    defaultCollapsed: true, // Start collapsed
     persistState: true,
     storageKey: 'location-sidebar-collapsed',
     autoCollapseMobile: true,
   });
+
+  // Force sidebar to collapse when no data
+  React.useEffect(() => {
+    if (!data && !isLoading) {
+      setCollapsed(true);
+    }
+  }, [data, isLoading, setCollapsed]);
 
   // Resolve params on mount
   React.useEffect(() => {
