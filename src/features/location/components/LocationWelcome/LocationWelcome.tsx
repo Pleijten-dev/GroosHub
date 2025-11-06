@@ -1,10 +1,11 @@
 // src/features/location/components/LocationWelcome/LocationWelcome.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Locale } from '../../../../lib/i18n/config';
 import { CubeVisualization } from '../Doelgroepen/CubeVisualization';
 import { AddressAutocomplete } from '../AddressAutocomplete/AddressAutocomplete';
+import { getRandomTetrisShape, generateGradientColors } from '../../utils/cubePatterns';
 
 interface LocationWelcomeProps {
   locale: Locale;
@@ -15,7 +16,7 @@ interface LocationWelcomeProps {
 /**
  * Welcome state component shown when no location data is cached
  * Features:
- * - Centered cube visualization for target groups
+ * - Centered cube visualization with random tetris shape
  * - Address search bar below cube
  * - Clean, minimal design
  */
@@ -38,34 +39,26 @@ export const LocationWelcome: React.FC<LocationWelcomeProps> = ({
     }
   };
 
-  // Default cube data - show all cubes with gradient colors
-  const defaultActiveIndices = Array.from({ length: 27 }, (_, i) => i);
-  const defaultCubeColors = [
-    '#0c211a', '#48806a', '#477638', '#8a976b', '#0c211a', '#48806a', '#477638', '#8a976b', '#0c211a',
-    '#48806a', '#477638', '#8a976b', '#0c211a', '#48806a', '#477638', '#8a976b', '#0c211a', '#48806a',
-    '#477638', '#8a976b', '#0c211a', '#48806a', '#477638', '#8a976b', '#0c211a', '#48806a', '#477638',
-  ];
+  // Generate random tetris shape and gradient colors (memoized to stay consistent)
+  const { activeIndices, cubeColors } = useMemo(() => {
+    const allColors = generateGradientColors();
+    const shapeIndices = getRandomTetrisShape();
+
+    // Create color array for all 27 positions, but only active ones will show
+    return {
+      activeIndices: shapeIndices,
+      cubeColors: allColors,
+    };
+  }, []); // Empty deps = only run once on mount
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-lg">
       <div className="w-full max-w-4xl space-y-xl">
-        {/* Page Title */}
-        <div className="text-center mb-xl">
-          <h1 className="text-4xl font-bold text-black mb-sm">
-            {locale === 'nl' ? 'Locatie Analyse' : 'Location Analysis'}
-          </h1>
-          <p className="text-lg text-text-secondary">
-            {locale === 'nl'
-              ? 'Ontdek de perfecte doelgroep voor jouw locatie'
-              : 'Discover the perfect target audience for your location'}
-          </p>
-        </div>
-
-        {/* Cube Visualization */}
+        {/* Cube Visualization - No title, no legend */}
         <div className="panel-outer">
           <CubeVisualization
-            activeIndices={defaultActiveIndices}
-            cubeColors={defaultCubeColors}
+            activeIndices={activeIndices}
+            cubeColors={cubeColors}
             locale={locale}
           />
         </div>
@@ -73,7 +66,7 @@ export const LocationWelcome: React.FC<LocationWelcomeProps> = ({
         {/* Search Bar */}
         <div className="panel-inner max-w-2xl mx-auto">
           <div className="space-y-md">
-            <label className="block text-center text-sm font-medium text-text-secondary mb-sm">
+            <label className="block text-center text-base font-medium text-text-secondary mb-sm">
               {locale === 'nl'
                 ? 'Vind je ideale doelgroep'
                 : 'Find your ideal target audience'}
@@ -91,13 +84,6 @@ export const LocationWelcome: React.FC<LocationWelcomeProps> = ({
               disabled={isSearching}
             />
           </div>
-        </div>
-
-        {/* Optional: Help text */}
-        <div className="text-center text-sm text-text-muted">
-          {locale === 'nl'
-            ? 'Voer een adres in om gedetailleerde locatieanalyse te bekijken'
-            : 'Enter an address to view detailed location analysis'}
         </div>
       </div>
     </div>
