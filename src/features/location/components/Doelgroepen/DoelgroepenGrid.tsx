@@ -27,54 +27,54 @@ export const DoelgroepenGrid: React.FC<DoelgroepenGridProps> = ({
   // Calculate persona scores if location data is available
   const personaScores: PersonaScore[] = useMemo(() => {
     if (!locationScores || Object.keys(locationScores).length === 0) {
-      // Use dummy data for demonstration
+      // Use dummy data for demonstration (includes negative scores)
       const dummyScores: Record<string, number> = {
         'Zorg (Huisarts & Apotheek)': 0.8,
-        'Zorg (Paramedische voorzieningen)': 0.7,
+        'Zorg (Paramedische voorzieningen)': -0.3,  // Negative: poor healthcare access
         'Openbaar vervoer (halte)': 0.9,
-        'Mobiliteit & Parkeren': 0.6,
+        'Mobiliteit & Parkeren': -0.5,  // Negative: limited parking
         'Onderwijs (Basisschool)': 0.85,
         'Onderwijs (Voortgezet onderwijs)': 0.75,
-        'Onderwijs (Hoger onderwijs)': 0.7,
+        'Onderwijs (Hoger onderwijs)': -0.4,  // Negative: far from universities
         'Kinderopvang & Opvang': 0.8,
         'Winkels (Dagelijkse boodschappen)': 0.9,
-        'Winkels (Overige retail)': 0.7,
+        'Winkels (Overige retail)': -0.2,  // Negative: limited shopping options
         'Budget Restaurants (€)': 0.6,
         'Mid-range Restaurants (€€€)': 0.7,
-        'Upscale Restaurants (€€€€-€€€€€)': 0.5,
+        'Upscale Restaurants (€€€€-€€€€€)': -0.6,  // Negative: no upscale dining
         'Cafés en avond programma': 0.8,
         'Sport faciliteiten': 0.75,
-        'Sportschool / Fitnesscentrum': 0.7,
+        'Sportschool / Fitnesscentrum': -0.1,
         'Groen & Recreatie': 0.85,
-        'Cultuur & Entertainment': 0.6,
-        'Wellness & Recreatie': 0.5,
+        'Cultuur & Entertainment': -0.45,  // Negative: limited cultural venues
+        'Wellness & Recreatie': -0.3,
         'Speelplekken Voor Kinderen': 0.8,
         'Voorzieningen Voor Jongeren': 0.7,
         'Percentage eengezinswoning': 0.6,
         'Percentage meergezinswoning': 0.7,
-        'Koopwoningen': 0.5,
+        'Koopwoningen': -0.25,  // Negative: limited homeownership
         'In Bezit Overige Verhuurders': 0.6,
         'In Bezit Woningcorporatie': 0.7,
         'Woningtype - Hoogstedelijk': 0.8,
         'Woningtype - Randstedelijk': 0.6,
-        'Woningtype - Laagstedelijk': 0.5,
+        'Woningtype - Laagstedelijk': -0.35,
         'Woonoppervlak - Klein': 0.7,
         'Woonoppervlak - Midden': 0.8,
-        'Woonoppervlak - Groot': 0.6,
+        'Woonoppervlak - Groot': -0.15,  // Negative: few large homes
         'Transactieprijs - Laag': 0.7,
         'Transactieprijs - Midden': 0.8,
-        'Transactieprijs - Hoog': 0.5,
+        'Transactieprijs - Hoog': -0.55,  // Negative: few high-priced homes
         'Aandeel 0 tot 15 jaar': 0.6,
         'Aandeel 15 tot 25 jaar': 0.7,
         'Aandeel 25 tot 45 jaar': 0.75,
         'Aandeel 45 tot 65 jaar': 0.7,
-        'Aandeel 65 jaar of ouder': 0.6,
+        'Aandeel 65 jaar of ouder': -0.2,  // Negative: aging population
         'Aandeel eenpersoonshuishoudens': 0.7,
         'Aandeel huishoudens zonder kinderen': 0.65,
-        'Aandeel huishoudens met kinderen': 0.7,
+        'Aandeel huishoudens met kinderen': -0.1,
         'Gemiddeld Inkomen Per Inkomensontvanger (low <80% of mediaan)': 0.6,
         'Gemiddeld Inkomen Per Inkomensontvanger (medium >80% <120% of mediaan)': 0.75,
-        'Gemiddeld Inkomen Per Inkomensontvanger (high >120% of mediaan)': 0.5,
+        'Gemiddeld Inkomen Per Inkomensontvanger (high >120% of mediaan)': -0.4,  // Negative: few high earners
       };
       return calculatePersonaScores(personas, dummyScores);
     }
