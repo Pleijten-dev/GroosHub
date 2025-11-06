@@ -108,11 +108,11 @@
 
   /* Primary theme colors */
   --color-black: #000000;
-  --color-cream: #fffbf7;         /* Updated to more subtle cream */
+  --color-cream: #fffbf7;         /* Updated to more subtle cream - for panels/cards */
   --color-white: #ffffff;
 
   /* Base colors (your existing palette) */
-  --background: var(--color-cream);  /* Changed to cream */
+  --background: var(--color-white);  /* White background to show gradient blobs */
   --element-background: #ffffff;
   --foreground: #292929;
   --foreground-hover: #d4d4d4;
@@ -651,7 +651,7 @@ body {
 /* Page background with gradient blobs */
 .page-background {
   position: relative;
-  background-color: var(--color-cream);
+  background-color: var(--color-white);  /* White background to show gradient blobs */
   min-height: 100vh;
   overflow: hidden;
 }
