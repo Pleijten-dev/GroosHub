@@ -39,6 +39,7 @@ Where:
 │  - Safety                            │
 │  - Livability                        │
 │  - Amenities                         │
+│  - Residential                       │
 └──────────┬──────────────────────────┘
            │
            ↓
@@ -47,6 +48,8 @@ Where:
 │ Extracts scores from data:            │
 │ - Uses calculatedScore if available   │
 │ - Falls back to normalized relative % │
+│ - Converts residential data to rows   │
+│ - Splits income into 3 brackets       │
 │ - Range: -1 to +1                     │
 └──────────┬───────────────────────────┘
            │
@@ -82,6 +85,8 @@ Where:
 When you **search for an address** and location data is loaded:
 - `extractLocationScores()` extracts actual scores from UnifiedLocationData
 - Scores include negative values from real location analysis
+- Residential data (housing types, sizes, prices) is converted to scored rows
+- Income is split into 3 brackets (low/medium/high) based on national median
 - Example: If a location has poor upscale dining options, the score for "Upscale Restaurants (€€€€-€€€€€)" will be negative
 
 ### When Dummy Data is Used
