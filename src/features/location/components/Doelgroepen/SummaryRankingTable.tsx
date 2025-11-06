@@ -6,6 +6,8 @@ import { PersonaScore } from '../../utils/targetGroupScoring';
 export interface SummaryRankingTableProps {
   scores: PersonaScore[];
   locale?: 'nl' | 'en';
+  onRowClick?: (personaId: string) => void;
+  selectedIds?: string[];
 }
 
 type SortColumn = 'rRank' | 'zRank' | 'name';
@@ -19,6 +21,8 @@ type SortDirection = 'asc' | 'desc';
 export const SummaryRankingTable: React.FC<SummaryRankingTableProps> = ({
   scores,
   locale = 'nl',
+  onRowClick,
+  selectedIds = [],
 }) => {
   const [sortColumn, setSortColumn] = useState<SortColumn>('rRank');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -27,6 +31,7 @@ export const SummaryRankingTable: React.FC<SummaryRankingTableProps> = ({
     nl: {
       title: 'Totale Score Tabel',
       subtitle: 'Ranking van doelgroepen op basis van R-rank en Z-rank',
+      selectHint: 'Klik op een rij om de doelgroep te selecteren/deselecteren voor de 3D visualisatie',
       rRankPosition: 'R-Rank Positie',
       zRankPosition: 'Z-Rank Positie',
       targetGroup: 'Doelgroep',
@@ -39,6 +44,7 @@ export const SummaryRankingTable: React.FC<SummaryRankingTableProps> = ({
     en: {
       title: 'Total Scoring Table',
       subtitle: 'Ranking of target groups based on R-rank and Z-rank',
+      selectHint: 'Click on a row to select/deselect target groups for 3D visualization',
       rRankPosition: 'R-Rank Position',
       zRankPosition: 'Z-Rank Position',
       targetGroup: 'Target Group',
@@ -127,6 +133,9 @@ export const SummaryRankingTable: React.FC<SummaryRankingTableProps> = ({
       <div className="p-base border-b border-gray-200">
         <h3 className="text-lg font-semibold text-gray-900 mb-1">{t.title}</h3>
         <p className="text-sm text-gray-600">{t.subtitle}</p>
+        {onRowClick && (
+          <p className="text-xs text-blue-600 mt-1">{t.selectHint}</p>
+        )}
       </div>
 
       <div className="overflow-x-auto">
@@ -174,15 +183,31 @@ export const SummaryRankingTable: React.FC<SummaryRankingTableProps> = ({
           <tbody>
             {sortedScores.map((score, index) => {
               const isTopThree = index < 3;
-              const bgClass = isTopThree ? 'bg-blue-50' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+              const isSelected = selectedIds.includes(score.personaId);
+              const bgClass = isSelected
+                ? 'bg-blue-200'
+                : isTopThree
+                ? 'bg-blue-50'
+                : index % 2 === 0
+                ? 'bg-white'
+                : 'bg-gray-50';
 
               return (
                 <tr
                   key={score.personaId}
-                  className={`${bgClass} hover:bg-blue-100 transition-colors`}
+                  onClick={() => onRowClick?.(score.personaId)}
+                  className={`${bgClass} hover:bg-blue-100 transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
                 >
                   <td className="px-4 py-3 border-b border-gray-200">
                     <div className="flex items-center gap-2">
+                      {onRowClick && (
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => {}}
+                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                      )}
                       <span
                         className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold ${
                           score.rRankPosition === 1

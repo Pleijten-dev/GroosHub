@@ -4,8 +4,10 @@ import React, { useState, useMemo } from 'react';
 import { DoelgroepenCard, HousingPersona } from './DoelgroepenCard';
 import { DetailedScoringTable } from './DetailedScoringTable';
 import { SummaryRankingTable } from './SummaryRankingTable';
+import { CubeVisualization } from './CubeVisualization';
 import housingPersonasData from '../../data/sources/housing-personas.json';
 import { calculatePersonaScores, PersonaScore } from '../../utils/targetGroupScoring';
+import { useSelectedDoelgroepen } from '../../hooks/useSelectedDoelgroepen';
 
 export interface DoelgroepenGridProps {
   locale?: 'nl' | 'en';
@@ -34,6 +36,35 @@ export const DoelgroepenGrid: React.FC<DoelgroepenGridProps> = ({
     }
     return calculatePersonaScores(personas, locationScores);
   }, [personas, locationScores, hasLocationData]);
+
+  // Hook for managing selected doelgroepen with caching
+  const {
+    selectedIds,
+    toggleSelection,
+    isSelected,
+    isInitialized,
+  } = useSelectedDoelgroepen(personaScores);
+
+  // Generate cube colors and indices for visualization
+  const { cubeColors, activeIndices } = useMemo(() => {
+    // Map selected personas to cube indices (0-26 for 3x3x3 grid)
+    const colors: string[] = [];
+    const indices: number[] = [];
+
+    selectedIds.forEach((personaId, index) => {
+      if (index >= 27) return; // Max 27 cubes in 3x3x3 grid
+
+      const persona = personaScores.find(p => p.personaId === personaId);
+      if (!persona) return;
+
+      // Generate color based on R-rank
+      const color = getRRankColor(persona.rRank);
+      colors[index] = color;
+      indices.push(index);
+    });
+
+    return { cubeColors: colors, activeIndices: indices };
+  }, [selectedIds, personaScores]);
 
   const translations = {
     nl: {
@@ -280,8 +311,21 @@ export const DoelgroepenGrid: React.FC<DoelgroepenGridProps> = ({
         <>
           {hasLocationData ? (
             <div className="space-y-6">
+              {/* 3D Cube Visualization */}
+              {isInitialized && (
+                <CubeVisualization
+                  activeIndices={activeIndices}
+                  cubeColors={cubeColors}
+                />
+              )}
+
               {/* Summary Ranking Table */}
-              <SummaryRankingTable scores={personaScores} locale={locale} />
+              <SummaryRankingTable
+                scores={personaScores}
+                locale={locale}
+                onRowClick={toggleSelection}
+                selectedIds={selectedIds}
+              />
 
               {/* Detailed Scoring Table */}
               <DetailedScoringTable scores={personaScores} locale={locale} />
@@ -312,3 +356,16 @@ export const DoelgroepenGrid: React.FC<DoelgroepenGridProps> = ({
     </div>
   );
 };
+
+/**
+ * Get color for R-rank score (percentage)
+ * Returns hex color code for cube visualization
+ */
+function getRRankColor(rRank: number): string {
+  const percentage = rRank * 100;
+  if (percentage >= 80) return '#10b981'; // green-500
+  if (percentage >= 60) return '#84cc16'; // lime-500
+  if (percentage >= 40) return '#eab308'; // yellow-500
+  if (percentage >= 20) return '#f97316'; // orange-500
+  return '#ef4444'; // red-500
+}

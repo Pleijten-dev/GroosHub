@@ -17,6 +17,8 @@
     "@ai-sdk/react": "^2.0.82",
     "@ai-sdk/xai": "^2.0.29",
     "@neondatabase/serverless": "^1.0.2",
+    "@react-three/drei": "^10.7.6",
+    "@react-three/fiber": "^9.4.0",
     "@turf/helpers": "^7.2.0",
     "@turf/turf": "^7.2.0",
     "@types/geojson": "^7946.0.16",
@@ -32,6 +34,8 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "tailwind-merge": "^3.3.1",
+    "three": "^0.181.0",
+    "three-stdlib": "^2.36.0",
     "tsx": "^4.20.6",
     "zod": "^4.1.12"
   },
