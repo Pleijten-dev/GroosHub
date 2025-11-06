@@ -575,6 +575,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         position="left"
         expandedWidth="320px"
         collapsedWidth="60px"
+        withNavbar={false}
       />
 
       {/* MAIN CONTENT - Margin adjusted for fixed sidebar */}
@@ -587,7 +588,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
       {/* RIGHT MENU - Fixed in proper position */}
       <aside className={`
-        fixed right-0 top-navbar h-[calc(100vh-var(--navbar-height))] z-40
+        fixed right-0 top-0 h-screen z-40
         bg-white/80 backdrop-blur-md border-l border-gray-200/50
         transition-transform duration-300 w-70 flex flex-col shadow-lg
         ${showRightMenu ? 'translate-x-0' : 'translate-x-full'}

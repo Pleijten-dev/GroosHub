@@ -20,17 +20,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
   customToggleButton,
   title,
   subtitle,
+  withNavbar = true,
 }) => {
   const { classBuilders } = useDesignSystem();
 
   const sidebarWidth = isCollapsed ? collapsedWidth : expandedWidth;
   const positionClass = position === 'left' ? 'left-0' : 'right-0';
 
+  // Conditional positioning based on navbar presence
+  const topClass = withNavbar ? 'top-navbar' : 'top-0';
+  const heightClass = withNavbar ? 'h-[calc(100vh-var(--navbar-height))]' : 'h-screen';
+
   return (
     <aside
       className={cn(
         // Base positioning and layout
-        'fixed top-navbar h-[calc(100vh-var(--navbar-height))] z-fixed',
+        'fixed z-fixed',
+        topClass,
+        heightClass,
         positionClass,
         
         // Glass background effect
