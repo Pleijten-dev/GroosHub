@@ -1,9 +1,9 @@
 // src/features/location/components/LocationWelcome/AnimatedCube.tsx
-// Animated cube component for welcome page - larger and rotating
+// Animated cube component for welcome page - larger and rotating with shape-morphing
 
 "use client";
 
-import React, { useMemo, useRef } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
@@ -112,25 +112,78 @@ function BoundingCube({ size }: { size: number }) {
 }
 
 /**
- * Rotating cube scene
+ * Rotating cube scene with shape-morphing animation
  */
 function RotatingCubeScene({
   spacing = 1,
-  activeIndices = [],
+  allShapes = [],
   cubeColors = [],
 }: {
   spacing?: number;
-  activeIndices?: number[];
+  allShapes?: number[][];
   cubeColors?: string[];
 }) {
   const groupRef = useRef<THREE.Group>(null);
+  const [currentShapeIndex, setCurrentShapeIndex] = useState(0);
+  const [opacity, setOpacity] = useState(1);
+  const timeRef = useRef(0);
+  const rotationSpeedRef = useRef(0.002);
+
   const cubeSize = 1;
   const outerCubeSize = 2 * spacing + cubeSize;
 
-  // Slow rotation animation
-  useFrame(() => {
+  const NORMAL_SPEED = 0.002;
+  const FAST_SPEED = 0.015;
+  const SPIN_DURATION = 10; // 10 seconds of normal spinning
+  const SPEED_UP_DURATION = 1; // 1 second to speed up
+  const FADE_DURATION = 0.5; // 0.5 seconds to fade out/in
+  const SPEED_DOWN_DURATION = 1; // 1 second to slow down
+
+  // Complex animation cycle
+  useFrame((state, delta) => {
     if (groupRef.current) {
-      groupRef.current.rotation.y += 0.002; // Slow rotation around Y axis
+      // Always rotate
+      groupRef.current.rotation.y += rotationSpeedRef.current;
+
+      // Update time
+      timeRef.current += delta;
+
+      const cycleTime = timeRef.current % (SPIN_DURATION + SPEED_UP_DURATION + FADE_DURATION * 2 + SPEED_DOWN_DURATION);
+
+      if (cycleTime < SPIN_DURATION) {
+        // Phase 1: Normal spinning (0-10s)
+        rotationSpeedRef.current = NORMAL_SPEED;
+        setOpacity(1);
+
+      } else if (cycleTime < SPIN_DURATION + SPEED_UP_DURATION) {
+        // Phase 2: Speed up (10-11s)
+        const speedUpProgress = (cycleTime - SPIN_DURATION) / SPEED_UP_DURATION;
+        rotationSpeedRef.current = NORMAL_SPEED + (FAST_SPEED - NORMAL_SPEED) * speedUpProgress;
+        setOpacity(1);
+
+      } else if (cycleTime < SPIN_DURATION + SPEED_UP_DURATION + FADE_DURATION) {
+        // Phase 3: Fade out while spinning fast (11-11.5s)
+        const fadeProgress = (cycleTime - SPIN_DURATION - SPEED_UP_DURATION) / FADE_DURATION;
+        rotationSpeedRef.current = FAST_SPEED;
+        setOpacity(1 - fadeProgress);
+
+        // Switch shape at the end of fade out
+        if (fadeProgress > 0.9 && opacity > 0.5) {
+          setCurrentShapeIndex((prev) => (prev + 1) % allShapes.length);
+        }
+
+      } else if (cycleTime < SPIN_DURATION + SPEED_UP_DURATION + FADE_DURATION * 2) {
+        // Phase 4: Fade in with new shape (11.5-12s)
+        const fadeProgress = (cycleTime - SPIN_DURATION - SPEED_UP_DURATION - FADE_DURATION) / FADE_DURATION;
+        rotationSpeedRef.current = FAST_SPEED;
+        setOpacity(fadeProgress);
+
+      } else {
+        // Phase 5: Slow down (12-13s)
+        const slowDownProgress = (cycleTime - SPIN_DURATION - SPEED_UP_DURATION - FADE_DURATION * 2) / SPEED_DOWN_DURATION;
+        rotationSpeedRef.current = FAST_SPEED - (FAST_SPEED - NORMAL_SPEED) * slowDownProgress;
+        setOpacity(1);
+      }
     }
   });
 
@@ -146,6 +199,8 @@ function RotatingCubeScene({
     return posArray;
   }, [spacing]);
 
+  const activeIndices = allShapes[currentShapeIndex] || [];
+
   return (
     <group ref={groupRef}>
       {/* Lighting */}
@@ -155,16 +210,28 @@ function RotatingCubeScene({
       {/* Bounding cube */}
       <BoundingCube size={outerCubeSize} />
 
-      {/* Small cubes */}
-      {positions.map((pos, i) => (
-        <SmallCube
-          key={i}
-          position={[pos.x, pos.y, pos.z]}
-          color={cubeColors[i] || "#888"}
-          visible={activeIndices.includes(i)}
-          cubeSize={cubeSize}
-        />
-      ))}
+      {/* Small cubes with opacity */}
+      {positions.map((pos, i) => {
+        const isVisible = activeIndices.includes(i);
+        return isVisible ? (
+          <mesh key={i} position={[pos.x, pos.y, pos.z]} castShadow receiveShadow>
+            <boxGeometry args={[cubeSize, cubeSize, cubeSize]} />
+            <meshStandardMaterial
+              color={cubeColors[i] || "#888"}
+              roughness={0}
+              metalness={0}
+              emissive={cubeColors[i] || "#888"}
+              emissiveIntensity={0.1}
+              transparent={true}
+              opacity={opacity}
+            />
+            <lineSegments>
+              <edgesGeometry attach="geometry" args={[new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize)]} />
+              <lineBasicMaterial attach="material" color="white" opacity={opacity} transparent={true} />
+            </lineSegments>
+          </mesh>
+        ) : null;
+      })}
     </group>
   );
 }
@@ -173,15 +240,16 @@ function RotatingCubeScene({
  * Animated cube visualization for welcome page
  * - No border
  * - 250% larger (zoom: 125 instead of 50)
- * - Slowly rotating
+ * - Rotating with shape-morphing animation
+ * - Cycles through all tetris shapes every ~13 seconds
  */
 export interface AnimatedCubeProps {
-  activeIndices: number[];
+  allShapes: number[][];
   cubeColors: string[];
 }
 
 export function AnimatedCube({
-  activeIndices,
+  allShapes,
   cubeColors,
 }: AnimatedCubeProps): React.JSX.Element {
   return (
@@ -211,7 +279,7 @@ export function AnimatedCube({
         >
           <RotatingCubeScene
             spacing={1}
-            activeIndices={activeIndices}
+            allShapes={allShapes}
             cubeColors={cubeColors}
           />
         </Canvas>

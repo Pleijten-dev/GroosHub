@@ -63,61 +63,86 @@ export const Sidebar: React.FC<SidebarProps> = ({
       
       {/* Sidebar Header */}
       <div className={cn(
-        COMMON_CLASSES.flexBetween,
-        'p-base border-b border-gray-200/30 min-h-[70px] bg-white/50 flex-shrink-0'
+        'p-base border-b border-gray-200/30 min-h-[70px] bg-white/50 flex-shrink-0',
+        isCollapsed ? 'flex items-center justify-center' : COMMON_CLASSES.flexBetween
       )}>
-        
-        {/* Header Content or Default Toggle */}
-        {headerContent ? (
-          <div className="flex-1">
-            {headerContent}
-          </div>
+
+        {/* When collapsed, only show toggle button centered */}
+        {isCollapsed ? (
+          <>
+            {showToggleButton && (
+              customToggleButton || (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onToggle}
+                  className="p-sm"
+                  aria-label="Expand sidebar"
+                >
+                  <svg
+                    className={cn(
+                      'w-5 h-5 transition-transform duration-fast',
+                      position === 'left' ? 'rotate-0' : 'rotate-180'
+                    )}
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+                  </svg>
+                </Button>
+              )
+            )}
+          </>
         ) : (
-          <div className={cn(
-            'flex items-center gap-md flex-1',
-            isCollapsed && 'justify-center'
-          )}>
-            {!isCollapsed && title && (
-              <div className="flex-1 min-w-0">
-                <h2 className="text-lg font-semibold text-text-primary truncate">
-                  {title}
-                </h2>
-                {subtitle && (
-                  <p className="text-sm text-text-muted truncate mt-xs">
-                    {subtitle}
-                  </p>
+          <>
+            {/* Header Content or Default Title */}
+            {headerContent ? (
+              <div className="flex-1">
+                {headerContent}
+              </div>
+            ) : (
+              <div className="flex items-center gap-md flex-1">
+                {title && (
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-lg font-semibold text-text-primary truncate">
+                      {title}
+                    </h2>
+                    {subtitle && (
+                      <p className="text-sm text-text-muted truncate mt-xs">
+                        {subtitle}
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             )}
-          </div>
-        )}
-        
-        {/* Toggle Button */}
-        {showToggleButton && (
-          <div className="flex-shrink-0">
-            {customToggleButton || (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onToggle}
-                className="p-sm"
-                aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              >
-                <svg 
-                  className={cn(
-                    'w-4 h-4 transition-transform duration-fast',
-                    position === 'left' 
-                      ? (isCollapsed ? 'rotate-0' : 'rotate-180')
-                      : (isCollapsed ? 'rotate-180' : 'rotate-0')
-                  )}
-                  viewBox="0 0 24 24" 
-                  fill="currentColor"
-                >
-                  <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
-                </svg>
-              </Button>
+
+            {/* Toggle Button when expanded */}
+            {showToggleButton && (
+              <div className="flex-shrink-0">
+                {customToggleButton || (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onToggle}
+                    className="p-sm"
+                    aria-label="Collapse sidebar"
+                  >
+                    <svg
+                      className={cn(
+                        'w-4 h-4 transition-transform duration-fast',
+                        position === 'left' ? 'rotate-180' : 'rotate-0'
+                      )}
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+                    </svg>
+                  </Button>
+                )}
+              </div>
             )}
-          </div>
+          </>
         )}
       </div>
 

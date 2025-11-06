@@ -5,7 +5,7 @@ import React, { useState, useMemo } from 'react';
 import { Locale } from '../../../../lib/i18n/config';
 import { AnimatedCube } from './AnimatedCube';
 import { AddressAutocomplete } from '../AddressAutocomplete/AddressAutocomplete';
-import { getRandomTetrisShape, generateGradientColors } from '../../utils/cubePatterns';
+import { TETRIS_SHAPES, generateGradientColors } from '../../utils/cubePatterns';
 
 interface LocationWelcomeProps {
   locale: Locale;
@@ -39,13 +39,12 @@ export const LocationWelcome: React.FC<LocationWelcomeProps> = ({
     }
   };
 
-  // Generate random tetris shape and gradient colors (memoized to stay consistent)
-  const { activeIndices, cubeColors } = useMemo(() => {
+  // Generate all tetris shapes and gradient colors (memoized)
+  const { allShapes, cubeColors } = useMemo(() => {
     const allColors = generateGradientColors();
-    const shapeIndices = getRandomTetrisShape();
 
     return {
-      activeIndices: shapeIndices,
+      allShapes: TETRIS_SHAPES,
       cubeColors: allColors,
     };
   }, []); // Empty deps = only run once on mount
@@ -53,26 +52,28 @@ export const LocationWelcome: React.FC<LocationWelcomeProps> = ({
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-lg">
       <div className="w-full max-w-4xl space-y-xl">
-        {/* Animated Cube Visualization - No border, larger, rotating */}
+        {/* Animated Cube Visualization - No border, larger, rotating with shape-morphing */}
         <AnimatedCube
-          activeIndices={activeIndices}
+          allShapes={allShapes}
           cubeColors={cubeColors}
         />
 
-        {/* Pill-shaped Search Bar - No panel wrapper */}
-        <div className="max-w-2xl mx-auto">
-          <AddressAutocomplete
-            placeholder={locale === 'nl' ? 'Vind je ideale doelgroep' : 'Find your ideal target audience'}
-            value={searchAddress}
-            onChange={setSearchAddress}
-            onSelect={(address) => {
-              setSearchAddress(address);
-              onAddressSearch(address);
-            }}
-            onKeyPress={handleKeyPress}
-            className="w-full !rounded-full px-lg py-md text-base"
-            disabled={isSearching}
-          />
+        {/* Pill-shaped Search Bar - Centered and taller */}
+        <div className="flex justify-center">
+          <div className="w-full max-w-2xl">
+            <AddressAutocomplete
+              placeholder={locale === 'nl' ? 'Vind je ideale doelgroep' : 'Find your ideal target audience'}
+              value={searchAddress}
+              onChange={setSearchAddress}
+              onSelect={(address) => {
+                setSearchAddress(address);
+                onAddressSearch(address);
+              }}
+              onKeyPress={handleKeyPress}
+              className="w-full !rounded-full px-xl py-xl text-lg"
+              disabled={isSearching}
+            />
+          </div>
         </div>
       </div>
     </div>
