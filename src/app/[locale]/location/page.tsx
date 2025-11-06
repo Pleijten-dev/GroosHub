@@ -563,9 +563,9 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   };
 
   return (
-    <div className="page-background flex h-screen w-screen overflow-hidden relative">
+    <div className="page-background h-screen w-screen overflow-hidden relative">
 
-      {/* SIDEBAR - Using reusable component */}
+      {/* SIDEBAR - Using reusable component (position: fixed, out of flow) */}
       <Sidebar
         isCollapsed={isCollapsed}
         onToggle={toggle}
@@ -577,9 +577,9 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         collapsedWidth="60px"
       />
 
-      {/* MAIN CONTENT - Adjusted margins */}
+      {/* MAIN CONTENT - Margin adjusted for fixed sidebar */}
       <main className={`
-        flex-1 flex flex-col overflow-hidden transition-all duration-300
+        flex flex-col overflow-hidden transition-all duration-300 h-full
         ${mainContentMargin}
       `}>
         {renderMainContent()}

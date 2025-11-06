@@ -14,7 +14,8 @@ export interface PanelOuterProps extends PanelProps {
   hover?: boolean;
 }
 
-export interface PanelInnerProps extends PanelProps {}
+// PanelInnerProps is an alias for PanelProps for consistency
+export type PanelInnerProps = PanelProps;
 
 /**
  * PanelOuter - Frosted glass outer panel

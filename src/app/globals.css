@@ -104,11 +104,11 @@
   --gradient-2-dark: #48806a;     /* Teal green */
   --gradient-3-mid: #477638;      /* Olive green */
   --gradient-4-light: #8a976b;    /* Sage green */
-  --gradient-5-lightest: #f8eee4; /* Cream offwhite */
+  --gradient-5-lightest: #fffbf7; /* Cream offwhite (updated to be more subtle) */
 
   /* Primary theme colors */
   --color-black: #000000;
-  --color-cream: #f8eee4;
+  --color-cream: #fffbf7;         /* Updated to more subtle cream */
   --color-white: #ffffff;
 
   /* Base colors (your existing palette) */
@@ -193,11 +193,11 @@
   --panel-inner-padding: var(--space-lg);
 
   /* ========== BACKGROUND GRADIENT BLOBS ========== */
-  /* Subtle gradient blob colors with low opacity */
-  --blob-1-color: rgba(12, 33, 26, 0.03);    /* darkest green */
-  --blob-2-color: rgba(72, 128, 106, 0.04);  /* teal green */
-  --blob-3-color: rgba(71, 118, 56, 0.03);   /* olive green */
-  --blob-4-color: rgba(138, 151, 107, 0.04); /* sage green */
+  /* Subtle gradient blob colors with increased visibility */
+  --blob-1-color: rgba(12, 33, 26, 0.06);    /* darkest green */
+  --blob-2-color: rgba(72, 128, 106, 0.08);  /* teal green */
+  --blob-3-color: rgba(71, 118, 56, 0.06);   /* olive green */
+  --blob-4-color: rgba(138, 151, 107, 0.08); /* sage green */
   
   /* ========== LAYOUT SYSTEM ========== */
   
