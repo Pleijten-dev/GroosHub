@@ -4,8 +4,11 @@ import React, { useState, useMemo } from 'react';
 import { DoelgroepenCard, HousingPersona } from './DoelgroepenCard';
 import { DetailedScoringTable } from './DetailedScoringTable';
 import { SummaryRankingTable } from './SummaryRankingTable';
+import { CubeVisualization } from './CubeVisualization';
 import housingPersonasData from '../../data/sources/housing-personas.json';
 import { calculatePersonaScores, PersonaScore } from '../../utils/targetGroupScoring';
+import { useSelectedDoelgroepen } from '../../hooks/useSelectedDoelgroepen';
+import { getPersonaCubePosition } from '../../utils/cubePositionMapping';
 
 export interface DoelgroepenGridProps {
   locale?: 'nl' | 'en';
@@ -34,6 +37,42 @@ export const DoelgroepenGrid: React.FC<DoelgroepenGridProps> = ({
     }
     return calculatePersonaScores(personas, locationScores);
   }, [personas, locationScores, hasLocationData]);
+
+  // Hook for managing selected doelgroepen with caching
+  const {
+    selectedIds,
+    toggleSelection,
+    isInitialized,
+  } = useSelectedDoelgroepen(personaScores);
+
+  // Generate cube colors and indices for visualization based on fixed positions
+  const { cubeColors, activeIndices } = useMemo(() => {
+    // Initialize arrays for all 27 possible positions
+    const colors: (string | undefined)[] = new Array(27);
+    const indices: number[] = [];
+
+    // Map each selected persona to its fixed position in the cube
+    selectedIds.forEach((personaId) => {
+      const persona = personas.find(p => p.id === personaId);
+      if (!persona) return;
+
+      // Get the fixed cube position based on characteristics
+      const { index } = getPersonaCubePosition({
+        income_level: persona.income_level,
+        age_group: persona.age_group,
+        household_type: persona.household_type,
+      });
+
+      // Assign unique color and mark position as active
+      colors[index] = getPersonaColor(personaId);
+      indices.push(index);
+    });
+
+    return {
+      cubeColors: colors.map(c => c || '#888888'), // Default gray for inactive
+      activeIndices: indices
+    };
+  }, [selectedIds, personas]);
 
   const translations = {
     nl: {
@@ -280,8 +319,22 @@ export const DoelgroepenGrid: React.FC<DoelgroepenGridProps> = ({
         <>
           {hasLocationData ? (
             <div className="space-y-6">
+              {/* 3D Cube Visualization */}
+              {isInitialized && (
+                <CubeVisualization
+                  activeIndices={activeIndices}
+                  cubeColors={cubeColors}
+                  locale={locale}
+                />
+              )}
+
               {/* Summary Ranking Table */}
-              <SummaryRankingTable scores={personaScores} locale={locale} />
+              <SummaryRankingTable
+                scores={personaScores}
+                locale={locale}
+                onRowClick={toggleSelection}
+                selectedIds={selectedIds}
+              />
 
               {/* Detailed Scoring Table */}
               <DetailedScoringTable scores={personaScores} locale={locale} />
@@ -312,3 +365,55 @@ export const DoelgroepenGrid: React.FC<DoelgroepenGridProps> = ({
     </div>
   );
 };
+
+/**
+ * Green gradient palette with 27 distinct shades
+ * Ranges from light mint to deep forest green
+ */
+const GREEN_GRADIENT_PALETTE = [
+  '#d1fae5', // mint-100
+  '#a7f3d0', // mint-200
+  '#6ee7b7', // mint-300
+  '#34d399', // emerald-400
+  '#10b981', // emerald-500
+  '#059669', // emerald-600
+  '#047857', // emerald-700
+  '#065f46', // emerald-800
+  '#064e3b', // emerald-900
+  '#bbf7d0', // green-200
+  '#86efac', // green-300
+  '#4ade80', // green-400
+  '#22c55e', // green-500
+  '#16a34a', // green-600
+  '#15803d', // green-700
+  '#166534', // green-800
+  '#14532d', // green-900
+  '#d9f99d', // lime-200
+  '#bef264', // lime-300
+  '#a3e635', // lime-400
+  '#84cc16', // lime-500
+  '#65a30d', // lime-600
+  '#4d7c0f', // lime-700
+  '#3f6212', // lime-800
+  '#365314', // lime-900
+  '#1a5a2e', // custom dark green
+  '#0f3d1f', // custom forest green
+];
+
+/**
+ * Get unique color for a persona based on its ID
+ * Uses consistent hashing to ensure same persona always gets same color
+ */
+function getPersonaColor(personaId: string): string {
+  // Simple hash function to convert string to number
+  let hash = 0;
+  for (let i = 0; i < personaId.length; i++) {
+    const char = personaId.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+
+  // Map hash to palette index
+  const index = Math.abs(hash) % GREEN_GRADIENT_PALETTE.length;
+  return GREEN_GRADIENT_PALETTE[index];
+}
