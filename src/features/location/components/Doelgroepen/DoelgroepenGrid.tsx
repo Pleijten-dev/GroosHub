@@ -41,7 +41,6 @@ export const DoelgroepenGrid: React.FC<DoelgroepenGridProps> = ({
   const {
     selectedIds,
     toggleSelection,
-    isSelected,
     isInitialized,
   } = useSelectedDoelgroepen(personaScores);
 
@@ -57,8 +56,8 @@ export const DoelgroepenGrid: React.FC<DoelgroepenGridProps> = ({
       const persona = personaScores.find(p => p.personaId === personaId);
       if (!persona) return;
 
-      // Generate color based on R-rank
-      const color = getRRankColor(persona.rRank);
+      // Assign unique green gradient color based on persona ID
+      const color = getPersonaColor(personaId);
       colors[index] = color;
       indices.push(index);
     });
@@ -358,14 +357,53 @@ export const DoelgroepenGrid: React.FC<DoelgroepenGridProps> = ({
 };
 
 /**
- * Get color for R-rank score (percentage)
- * Returns hex color code for cube visualization
+ * Green gradient palette with 27 distinct shades
+ * Ranges from light mint to deep forest green
  */
-function getRRankColor(rRank: number): string {
-  const percentage = rRank * 100;
-  if (percentage >= 80) return '#10b981'; // green-500
-  if (percentage >= 60) return '#84cc16'; // lime-500
-  if (percentage >= 40) return '#eab308'; // yellow-500
-  if (percentage >= 20) return '#f97316'; // orange-500
-  return '#ef4444'; // red-500
+const GREEN_GRADIENT_PALETTE = [
+  '#d1fae5', // mint-100
+  '#a7f3d0', // mint-200
+  '#6ee7b7', // mint-300
+  '#34d399', // emerald-400
+  '#10b981', // emerald-500
+  '#059669', // emerald-600
+  '#047857', // emerald-700
+  '#065f46', // emerald-800
+  '#064e3b', // emerald-900
+  '#bbf7d0', // green-200
+  '#86efac', // green-300
+  '#4ade80', // green-400
+  '#22c55e', // green-500
+  '#16a34a', // green-600
+  '#15803d', // green-700
+  '#166534', // green-800
+  '#14532d', // green-900
+  '#d9f99d', // lime-200
+  '#bef264', // lime-300
+  '#a3e635', // lime-400
+  '#84cc16', // lime-500
+  '#65a30d', // lime-600
+  '#4d7c0f', // lime-700
+  '#3f6212', // lime-800
+  '#365314', // lime-900
+  '#1a5a2e', // custom dark green
+  '#0f3d1f', // custom forest green
+];
+
+/**
+ * Get unique color for a persona based on its ID
+ * Uses consistent hashing to ensure same persona always gets same color
+ */
+function getPersonaColor(personaId: string): string {
+  // Simple hash function to convert string to number
+  let hash = 0;
+  for (let i = 0; i < personaId.length; i++) {
+    const char = personaId.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+
+  // Map hash to palette index
+  const index = Math.abs(hash) % GREEN_GRADIENT_PALETTE.length;
+  return GREEN_GRADIENT_PALETTE[index];
 }
