@@ -1,0 +1,538 @@
+{
+  "categoryWeights": {
+    "voorzieningen": 1,
+    "leefbaarheid": 1,
+    "woningvooraad": 0.8,
+    "demografie": 0.8
+  },
+  "scoringMappings": [
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Zorg (Huisarts & Apotheek)",
+      "characteristicType": "Leeftijd",
+      "most": "55+",
+      "average": "35-55",
+      "least": "20-35"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Zorg (Paramedische voorzieningen)",
+      "characteristicType": "Leeftijd",
+      "most": "55+",
+      "average": "35-55",
+      "least": "20-35"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Openbaar vervoer (halte)",
+      "characteristicType": "Leeftijd",
+      "most": "20-35",
+      "average": "55+",
+      "least": "35-55"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Openbaar vervoer (halte)",
+      "characteristicType": "Inkomen",
+      "most": "Laag inkomen",
+      "average": "Gemiddeld inkomen",
+      "least": "Hoog inkomen"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Mobiliteit & Parkeren",
+      "characteristicType": "Leeftijd",
+      "most": "35-55",
+      "average": "55+",
+      "least": "20-35"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Onderwijs (Basisschool)",
+      "characteristicType": "Huishouden",
+      "most": "met kinderen",
+      "average": "2persoons",
+      "least": "1persoons"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Onderwijs (Basisschool)",
+      "characteristicType": "Leeftijd",
+      "most": "35-55",
+      "average": "20-35",
+      "least": "55+"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Onderwijs (Voortgezet onderwijs)",
+      "characteristicType": "Huishouden",
+      "most": "met kinderen",
+      "average": "2persoons",
+      "least": "1persoons"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Onderwijs (Hoger onderwijs)",
+      "characteristicType": "Leeftijd",
+      "most": "20-35",
+      "average": "35-55",
+      "least": "55+"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Kinderopvang & Opvang",
+      "characteristicType": "Huishouden",
+      "most": "met kinderen",
+      "average": "2persoons",
+      "least": "1persoons"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Kinderopvang & Opvang",
+      "characteristicType": "Leeftijd",
+      "most": "35-55",
+      "average": "20-35",
+      "least": "55+"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Winkels (Dagelijkse boodschappen)",
+      "characteristicType": "Leeftijd",
+      "most": "20-35",
+      "average": "55+",
+      "least": "35-55"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Winkels (Dagelijkse boodschappen)",
+      "characteristicType": "Huishouden",
+      "most": "met kinderen",
+      "average": "2persoons",
+      "least": "1persoons"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Winkels (Overige retail)",
+      "characteristicType": "Leeftijd",
+      "most": "20-35",
+      "average": "35-55",
+      "least": "55+"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Winkels (Overige retail)",
+      "characteristicType": "Inkomen",
+      "most": "Hoog inkomen",
+      "average": "Gemiddeld inkomen",
+      "least": "Laag inkomen"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Budget Restaurants (€)",
+      "characteristicType": "Inkomen",
+      "most": "Laag inkomen",
+      "average": "Gemiddeld inkomen",
+      "least": "Hoog inkomen"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Mid-range Restaurants (€€€)",
+      "characteristicType": "Inkomen",
+      "most": "Gemiddeld inkomen",
+      "average": "Hoog inkomen",
+      "least": "Laag inkomen"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Upscale Restaurants (€€€€-€€€€€)",
+      "characteristicType": "Inkomen",
+      "most": "Hoog inkomen",
+      "average": "Gemiddeld inkomen",
+      "least": "Laag inkomen"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Cafés en avond programma",
+      "characteristicType": "Leeftijd",
+      "most": "20-35",
+      "average": "35-55",
+      "least": "55+"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Cafés en avond programma",
+      "characteristicType": "Huishouden",
+      "most": "1persoons",
+      "average": "2persoons",
+      "least": "met kinderen"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Sport faciliteiten",
+      "characteristicType": "Leeftijd",
+      "most": "20-35",
+      "average": "35-55",
+      "least": "55+"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Sport faciliteiten",
+      "characteristicType": "Inkomen",
+      "most": "Hoog inkomen",
+      "average": "Gemiddeld inkomen",
+      "least": "Laag inkomen"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Sportschool / Fitnesscentrum",
+      "characteristicType": "Leeftijd",
+      "most": "20-35",
+      "average": "35-55",
+      "least": "55+"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Sportschool / Fitnesscentrum",
+      "characteristicType": "Inkomen",
+      "most": "Hoog inkomen",
+      "average": "Gemiddeld inkomen",
+      "least": "Laag inkomen"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Groen & Recreatie",
+      "characteristicType": "Huishouden",
+      "most": "met kinderen",
+      "average": "1persoons",
+      "least": "2persoons"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Groen & Recreatie",
+      "characteristicType": "Leeftijd",
+      "most": "55+",
+      "average": "35-55",
+      "least": "20-35"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Cultuur & Entertainment",
+      "characteristicType": "Leeftijd",
+      "most": "20-35",
+      "average": "55+",
+      "least": "35-55"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Cultuur & Entertainment",
+      "characteristicType": "Inkomen",
+      "most": "Hoog inkomen",
+      "average": "Gemiddeld inkomen",
+      "least": "Laag inkomen"
+    },
+    {
+      "category": "Voorzieningen",
+      "subcategory": "Wellness & Recreatie",
+      "characteristicType": "Leeftijd",
+      "most": "55+",
+      "average": "35-55",
+      "least": "20-35"
+    },
+    {
+      "category": "Leefbaarheid",
+      "subcategory": "Speelplekken Voor Kinderen",
+      "characteristicType": "Huishouden",
+      "most": "met kinderen",
+      "average": "2persoons",
+      "least": "1persoons"
+    },
+    {
+      "category": "Leefbaarheid",
+      "subcategory": "Voorzieningen Voor Jongeren",
+      "characteristicType": "Huishouden",
+      "most": "met kinderen",
+      "average": "2persoons",
+      "least": "1persoons"
+    },
+    {
+      "category": "Woningvooraad",
+      "subcategory": "Percentage eengezinswoning",
+      "characteristicType": "Inkomen",
+      "most": "Hoog inkomen",
+      "average": "Gemiddeld inkomen",
+      "least": "Laag inkomen"
+    },
+    {
+      "category": "Woningvooraad",
+      "subcategory": "Percentage eengezinswoning",
+      "characteristicType": "Huishouden",
+      "most": "met kinderen",
+      "average": "2persoons",
+      "least": "1persoons"
+    },
+    {
+      "category": "Woningvooraad",
+      "subcategory": "Percentage eengezinswoning",
+      "characteristicType": "Leeftijd",
+      "most": "35-55",
+      "average": "20-35",
+      "least": "55+"
+    },
+    {
+      "category": "Woningvooraad",
+      "subcategory": "Percentage meergezinswoning",
+      "characteristicType": "Inkomen",
+      "most": "Laag inkomen",
+      "average": "Gemiddeld inkomen",
+      "least": "Hoog inkomen"
+    },
+    {
+      "category": "Woningvooraad",
+      "subcategory": "Percentage meergezinswoning",
+      "characteristicType": "Leeftijd",
+      "most": "20-35",
+      "average": "35-55",
+      "least": "55+"
+    },
+    {
+      "category": "Woningvooraad",
+      "subcategory": "Koopwoningen",
+      "characteristicType": "Inkomen",
+      "most": "Hoog inkomen",
+      "average": "Gemiddeld inkomen",
+      "least": "Laag inkomen"
+    },
+    {
+      "category": "Woningvooraad",
+      "subcategory": "Koopwoningen",
+      "characteristicType": "Huishouden",
+      "most": "met kinderen",
+      "average": "2persoons",
+      "least": "1persoons"
+    },
+    {
+      "category": "Woningvooraad",
+      "subcategory": "Koopwoningen",
+      "characteristicType": "Leeftijd",
+      "most": "35-55",
+      "average": "55+",
+      "least": "20-35"
+    },
+    {
+      "category": "Woningvooraad",
+      "subcategory": "In Bezit Overige Verhuurders",
+      "characteristicType": "Inkomen",
+      "most": "Gemiddeld inkomen",
+      "average": "Laag inkomen",
+      "least": "Hoog inkomen"
+    },
+    {
+      "category": "Woningvooraad",
+      "subcategory": "In Bezit Woningcorporatie",
+      "characteristicType": "Inkomen",
+      "most": "Laag inkomen",
+      "average": "Gemiddeld inkomen",
+      "least": "Hoog inkomen"
+    },
+    {
+      "category": "Woningvooraad",
+      "subcategory": "In Bezit Woningcorporatie",
+      "characteristicType": "Huishouden",
+      "most": "1persoons",
+      "average": "2persoons",
+      "least": "met kinderen"
+    },
+    {
+      "category": "Woningvooraad",
+      "subcategory": "Woningtype - Hoogstedelijk",
+      "characteristicType": "Leeftijd",
+      "most": "20-35",
+      "average": "35-55",
+      "least": "55+"
+    },
+    {
+      "category": "Woningvooraad",
+      "subcategory": "Woningtype - Hoogstedelijk",
+      "characteristicType": "Huishouden",
+      "most": "1persoons",
+      "average": "2persoons",
+      "least": "met kinderen"
+    },
+    {
+      "category": "Woningvooraad",
+      "subcategory": "Woningtype - Randstedelijk",
+      "characteristicType": "Leeftijd",
+      "most": "55+",
+      "average": "35-55",
+      "least": "20-35"
+    },
+    {
+      "category": "Woningvooraad",
+      "subcategory": "Woningtype - Randstedelijk",
+      "characteristicType": "Huishouden",
+      "most": "2persoons",
+      "average": "met kinderen",
+      "least": "1persoons"
+    },
+    {
+      "category": "Woningvooraad",
+      "subcategory": "Woningtype - Laagstedelijk",
+      "characteristicType": "Leeftijd",
+      "most": "35-55",
+      "average": "55+",
+      "least": "20-35"
+    },
+    {
+      "category": "Woningvooraad",
+      "subcategory": "Woningtype - Laagstedelijk",
+      "characteristicType": "Huishouden",
+      "most": "met kinderen",
+      "average": "2persoons",
+      "least": "1persoons"
+    },
+    {
+      "category": "Woningvooraad",
+      "subcategory": "Woonoppervlak - Klein",
+      "characteristicType": "Huishouden",
+      "most": "1persoons",
+      "average": "2persoons",
+      "least": "met kinderen"
+    },
+    {
+      "category": "Woningvooraad",
+      "subcategory": "Woonoppervlak - Midden",
+      "characteristicType": "Huishouden",
+      "most": "2persoons",
+      "average": "1persoons",
+      "least": "met kinderen"
+    },
+    {
+      "category": "Woningvooraad",
+      "subcategory": "Woonoppervlak - Groot",
+      "characteristicType": "Huishouden",
+      "most": "met kinderen",
+      "average": "2persoons",
+      "least": "1persoons"
+    },
+    {
+      "category": "Demografie",
+      "subcategory": "Transactieprijs - Laag",
+      "characteristicType": "Inkomen",
+      "most": "Laag inkomen",
+      "average": "Gemiddeld inkomen",
+      "least": "Hoog inkomen"
+    },
+    {
+      "category": "Demografie",
+      "subcategory": "Transactieprijs - Midden",
+      "characteristicType": "Inkomen",
+      "most": "Gemiddeld inkomen",
+      "average": "Laag inkomen",
+      "least": "Hoog inkomen"
+    },
+    {
+      "category": "Demografie",
+      "subcategory": "Transactieprijs - Hoog",
+      "characteristicType": "Inkomen",
+      "most": "Hoog inkomen",
+      "average": "Gemiddeld inkomen",
+      "least": "Laag inkomen"
+    },
+    {
+      "category": "Demografie",
+      "subcategory": "Aandeel 0 tot 15 jaar",
+      "characteristicType": "Huishouden",
+      "most": "met kinderen",
+      "average": "2persoons",
+      "least": "1persoons"
+    },
+    {
+      "category": "Demografie",
+      "subcategory": "Aandeel 15 tot 25 jaar",
+      "characteristicType": "Huishouden",
+      "most": "met kinderen",
+      "average": "2persoons",
+      "least": "1persoons"
+    },
+    {
+      "category": "Demografie",
+      "subcategory": "Aandeel 25 tot 45 jaar",
+      "characteristicType": "Leeftijd",
+      "most": "20-35",
+      "average": "35-55",
+      "least": "55+"
+    },
+    {
+      "category": "Demografie",
+      "subcategory": "Aandeel 45 tot 65 jaar",
+      "characteristicType": "Leeftijd",
+      "most": "35-55",
+      "average": "20-35",
+      "least": "55+"
+    },
+    {
+      "category": "Demografie",
+      "subcategory": "Aandeel 65 jaar of ouder",
+      "characteristicType": "Leeftijd",
+      "most": "55+",
+      "average": "35-55",
+      "least": "20-35"
+    },
+    {
+      "category": "Demografie",
+      "subcategory": "Aandeel eenpersoonshuishoudens",
+      "characteristicType": "Huishouden",
+      "most": "1persoons",
+      "average": "2persoons",
+      "least": "met kinderen"
+    },
+    {
+      "category": "Demografie",
+      "subcategory": "Aandeel eenpersoonshuishoudens",
+      "characteristicType": "Leeftijd",
+      "most": "20-35",
+      "average": "35-55",
+      "least": "55+"
+    },
+    {
+      "category": "Demografie",
+      "subcategory": "Aandeel huishoudens zonder kinderen",
+      "characteristicType": "Huishouden",
+      "most": "2persoons",
+      "average": "1persoons",
+      "least": "met kinderen"
+    },
+    {
+      "category": "Demografie",
+      "subcategory": "Aandeel huishoudens met kinderen",
+      "characteristicType": "Huishouden",
+      "most": "met kinderen",
+      "average": "2persoons",
+      "least": "1persoons"
+    },
+    {
+      "category": "Demografie",
+      "subcategory": "Gemiddeld Inkomen Per Inkomensontvanger (low <80% of mediaan)",
+      "characteristicType": "Inkomen",
+      "most": "Laag inkomen",
+      "average": "Gemiddeld inkomen",
+      "least": "Hoog inkomen"
+    },
+    {
+      "category": "Demografie",
+      "subcategory": "Gemiddeld Inkomen Per Inkomensontvanger (medium >80% <120% of mediaan)",
+      "characteristicType": "Inkomen",
+      "most": "Gemiddeld inkomen",
+      "average": "Laag inkomen",
+      "least": "Hoog inkomen"
+    },
+    {
+      "category": "Demografie",
+      "subcategory": "Gemiddeld Inkomen Per Inkomensontvanger (high >120% of mediaan)",
+      "characteristicType": "Inkomen",
+      "most": "Hoog inkomen",
+      "average": "Gemiddeld inkomen",
+      "least": "Laag inkomen"
+    }
+  ]
+}
