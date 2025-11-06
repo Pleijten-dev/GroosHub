@@ -11,6 +11,7 @@ import { AmenitiesGrid, AmenitiesSummary } from '../../../features/location/comp
 import { ResidentialSummary, ResidentialGrid } from '../../../features/location/components/Residential';
 import { DoelgroepenGrid } from '../../../features/location/components/Doelgroepen';
 import { RadialChart, BarChart, DensityChart } from '../../../shared/components/common';
+import { extractLocationScores } from '../../../features/location/utils/extractLocationScores';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -163,9 +164,12 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     if (data) {
       // For Doelgroepen tab - show housing personas
       if (activeTab === 'doelgroepen') {
+        // Extract location scores for target group calculations
+        const locationScores = extractLocationScores(data);
+
         return (
           <div className="p-lg overflow-auto h-full">
-            <DoelgroepenGrid locale={locale} />
+            <DoelgroepenGrid locale={locale} locationScores={locationScores} />
           </div>
         );
       }
