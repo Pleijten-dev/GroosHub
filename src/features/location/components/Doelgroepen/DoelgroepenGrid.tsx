@@ -24,62 +24,16 @@ export const DoelgroepenGrid: React.FC<DoelgroepenGridProps> = ({
 
   const personas = housingPersonasData[locale].housing_personas as HousingPersona[];
 
-  // Calculate persona scores if location data is available
+  // Check if location data is available
+  const hasLocationData = locationScores && Object.keys(locationScores).length > 0;
+
+  // Calculate persona scores only if location data is available
   const personaScores: PersonaScore[] = useMemo(() => {
-    if (!locationScores || Object.keys(locationScores).length === 0) {
-      // Use dummy data for demonstration (includes negative scores)
-      const dummyScores: Record<string, number> = {
-        'Zorg (Huisarts & Apotheek)': 0.8,
-        'Zorg (Paramedische voorzieningen)': -0.3,  // Negative: poor healthcare access
-        'Openbaar vervoer (halte)': 0.9,
-        'Mobiliteit & Parkeren': -0.5,  // Negative: limited parking
-        'Onderwijs (Basisschool)': 0.85,
-        'Onderwijs (Voortgezet onderwijs)': 0.75,
-        'Onderwijs (Hoger onderwijs)': -0.4,  // Negative: far from universities
-        'Kinderopvang & Opvang': 0.8,
-        'Winkels (Dagelijkse boodschappen)': 0.9,
-        'Winkels (Overige retail)': -0.2,  // Negative: limited shopping options
-        'Budget Restaurants (€)': 0.6,
-        'Mid-range Restaurants (€€€)': 0.7,
-        'Upscale Restaurants (€€€€-€€€€€)': -0.6,  // Negative: no upscale dining
-        'Cafés en avond programma': 0.8,
-        'Sport faciliteiten': 0.75,
-        'Sportschool / Fitnesscentrum': -0.1,
-        'Groen & Recreatie': 0.85,
-        'Cultuur & Entertainment': -0.45,  // Negative: limited cultural venues
-        'Wellness & Recreatie': -0.3,
-        'Speelplekken Voor Kinderen': 0.8,
-        'Voorzieningen Voor Jongeren': 0.7,
-        'Percentage eengezinswoning': 0.6,
-        'Percentage meergezinswoning': 0.7,
-        'Koopwoningen': -0.25,  // Negative: limited homeownership
-        'In Bezit Overige Verhuurders': 0.6,
-        'In Bezit Woningcorporatie': 0.7,
-        'Woningtype - Hoogstedelijk': 0.8,
-        'Woningtype - Randstedelijk': 0.6,
-        'Woningtype - Laagstedelijk': -0.35,
-        'Woonoppervlak - Klein': 0.7,
-        'Woonoppervlak - Midden': 0.8,
-        'Woonoppervlak - Groot': -0.15,  // Negative: few large homes
-        'Transactieprijs - Laag': 0.7,
-        'Transactieprijs - Midden': 0.8,
-        'Transactieprijs - Hoog': -0.55,  // Negative: few high-priced homes
-        'Aandeel 0 tot 15 jaar': 0.6,
-        'Aandeel 15 tot 25 jaar': 0.7,
-        'Aandeel 25 tot 45 jaar': 0.75,
-        'Aandeel 45 tot 65 jaar': 0.7,
-        'Aandeel 65 jaar of ouder': -0.2,  // Negative: aging population
-        'Aandeel eenpersoonshuishoudens': 0.7,
-        'Aandeel huishoudens zonder kinderen': 0.65,
-        'Aandeel huishoudens met kinderen': -0.1,
-        'Gemiddeld Inkomen Per Inkomensontvanger (low <80% of mediaan)': 0.6,
-        'Gemiddeld Inkomen Per Inkomensontvanger (medium >80% <120% of mediaan)': 0.75,
-        'Gemiddeld Inkomen Per Inkomensontvanger (high >120% of mediaan)': -0.4,  // Negative: few high earners
-      };
-      return calculatePersonaScores(personas, dummyScores);
+    if (!hasLocationData) {
+      return [];
     }
     return calculatePersonaScores(personas, locationScores);
-  }, [personas, locationScores]);
+  }, [personas, locationScores, hasLocationData]);
 
   const translations = {
     nl: {
@@ -96,6 +50,8 @@ export const DoelgroepenGrid: React.FC<DoelgroepenGridProps> = ({
       results: 'resultaten',
       noResults: 'Geen doelgroepen gevonden',
       noResultsDescription: 'Probeer andere filters of zoektermen',
+      noLocationData: 'Geen locatiegegevens beschikbaar',
+      noLocationDataDescription: 'Zoek naar een adres om de doelgroepen scores en rankings te zien op basis van echte locatiegegevens.',
       lowIncome: 'Laag inkomen',
       averageIncome: 'Gemiddeld inkomen',
       highIncome: 'Hoog inkomen',
@@ -120,6 +76,8 @@ export const DoelgroepenGrid: React.FC<DoelgroepenGridProps> = ({
       results: 'results',
       noResults: 'No target groups found',
       noResultsDescription: 'Try different filters or search terms',
+      noLocationData: 'No location data available',
+      noLocationDataDescription: 'Search for an address to see target group scores and rankings based on real location data.',
       lowIncome: 'Low income',
       averageIncome: 'Average income',
       highIncome: 'High income',
@@ -319,13 +277,37 @@ export const DoelgroepenGrid: React.FC<DoelgroepenGridProps> = ({
 
       {/* Scoring View */}
       {activeView === 'scoring' && (
-        <div className="space-y-6">
-          {/* Summary Ranking Table */}
-          <SummaryRankingTable scores={personaScores} locale={locale} />
+        <>
+          {hasLocationData ? (
+            <div className="space-y-6">
+              {/* Summary Ranking Table */}
+              <SummaryRankingTable scores={personaScores} locale={locale} />
 
-          {/* Detailed Scoring Table */}
-          <DetailedScoringTable scores={personaScores} locale={locale} />
-        </div>
+              {/* Detailed Scoring Table */}
+              <DetailedScoringTable scores={personaScores} locale={locale} />
+            </div>
+          ) : (
+            <div className="flex items-center justify-center py-20">
+              <div className="text-center max-w-md">
+                <svg
+                  className="mx-auto h-16 w-16 text-gray-400 mb-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                  />
+                </svg>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t.noLocationData}</h3>
+                <p className="text-sm text-gray-600">{t.noLocationDataDescription}</p>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
