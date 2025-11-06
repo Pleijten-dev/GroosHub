@@ -150,7 +150,8 @@ function calculateCategoryScore(
     const weightedScore = baseScore * multiplier;
 
     totalScore += weightedScore;
-    maxPossible += 3; // Max multiplier is always 3
+    // Max possible is if all base scores were +1 with THIS persona's multiplier
+    maxPossible += multiplier;
 
     if (multiplier > 0) {
       details.push({
