@@ -1,4 +1,5 @@
 import type { UnifiedLocationData, UnifiedDataRow } from '../data/aggregator/multiLevelAggregator';
+import { convertResidentialToRows } from '../components/Residential/residentialDataConverter';
 
 /**
  * Mapping from actual data table titles to scoring map subcategory names
@@ -131,6 +132,12 @@ export function extractLocationScores(data: UnifiedLocationData): Record<string,
   // Amenities
   if (data.amenities && data.amenities.length > 0) {
     addScoresFromRows(data.amenities);
+  }
+
+  // Residential data - convert to rows and extract scores
+  if (data.residential && data.residential.hasData) {
+    const residentialRows = convertResidentialToRows(data.residential);
+    addScoresFromRows(residentialRows);
   }
 
   return scores;
