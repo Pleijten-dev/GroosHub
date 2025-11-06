@@ -1,6 +1,52 @@
 import type { UnifiedLocationData, UnifiedDataRow } from '../data/aggregator/multiLevelAggregator';
 
 /**
+ * Mapping from actual data table titles to scoring map subcategory names
+ */
+const TITLE_MAPPING: Record<string, string> = {
+  // Amenities - we'll use the Nabijheid (proximity) score as it's more relevant
+  'Zorg (Huisarts & Apotheek) - Nabijheid (250m)': 'Zorg (Huisarts & Apotheek)',
+  'Zorg (Paramedische voorzieningen) - Nabijheid (250m)': 'Zorg (Paramedische voorzieningen)',
+  'Openbaar vervoer (halte) - Nabijheid (250m)': 'Openbaar vervoer (halte)',
+  'Mobiliteit & Parkeren - Nabijheid (250m)': 'Mobiliteit & Parkeren',
+  'Onderwijs (Basisschool) - Nabijheid (250m)': 'Onderwijs (Basisschool)',
+  'Onderwijs (Voortgezet onderwijs) - Nabijheid (250m)': 'Onderwijs (Voortgezet onderwijs)',
+  'Onderwijs (Hoger onderwijs) - Nabijheid (250m)': 'Onderwijs (Hoger onderwijs)',
+  'Kinderopvang & Opvang - Nabijheid (250m)': 'Kinderopvang & Opvang',
+  'Winkels (Dagelijkse boodschappen) - Nabijheid (250m)': 'Winkels (Dagelijkse boodschappen)',
+  'Winkels (Overige retail) - Nabijheid (250m)': 'Winkels (Overige retail)',
+  'Budget Restaurants (€) - Nabijheid (250m)': 'Budget Restaurants (€)',
+  'Mid-range Restaurants (€€€) - Nabijheid (250m)': 'Mid-range Restaurants (€€€)',
+  'Upscale Restaurants (€€€€-€€€€€) - Nabijheid (250m)': 'Upscale Restaurants (€€€€-€€€€€)',
+  'Cafés en avond programma - Nabijheid (250m)': 'Cafés en avond programma',
+  'Sport faciliteiten - Nabijheid (250m)': 'Sport faciliteiten',
+  'Sportschool / Fitnesscentrum - Nabijheid (250m)': 'Sportschool / Fitnesscentrum',
+  'Groen & Recreatie - Nabijheid (250m)': 'Groen & Recreatie',
+  'Cultuur & Entertainment - Nabijheid (250m)': 'Cultuur & Entertainment',
+  'Wellness & Recreatie - Nabijheid (250m)': 'Wellness & Recreatie',
+
+  // Housing Stock - exact matches with capitalization differences
+  'Percentage Eengezinswoning': 'Percentage eengezinswoning',
+  'Percentage Meergezinswoning': 'Percentage meergezinswoning',
+  'In Bezit Woningcorporatie': 'In Bezit Woningcorporatie', // Already matches
+  'In Bezit Overige Verhuurders': 'In Bezit Overige Verhuurders', // Already matches
+  'Hoog stedelijk': 'Woningtype - Hoogstedelijk',
+  'Rand stedelijk': 'Woningtype - Randstedelijk',
+  'Laag stedelijk': 'Woningtype - Laagstedelijk',
+
+  // Demographics - missing "Aandeel" prefix in data
+  '0 Tot 15 Jaar': 'Aandeel 0 tot 15 jaar',
+  '15 Tot 25 Jaar': 'Aandeel 15 tot 25 jaar',
+  '25 Tot 45 Jaar': 'Aandeel 25 tot 45 jaar',
+  '45 Tot 65 Jaar': 'Aandeel 45 tot 65 jaar',
+  '65 Jaar Of Ouder': 'Aandeel 65 jaar of ouder',
+  'Eenpersoonshuishoudens': 'Aandeel eenpersoonshuishoudens',
+  'Huishoudens Zonder Kinderen': 'Aandeel huishoudens zonder kinderen',
+  'Huishoudens Met Kinderen': 'Aandeel huishoudens met kinderen',
+  'Gemiddeld Inkomen Per Inkomensontvanger': 'Gemiddeld Inkomen Per Inkomensontvanger (medium >80% <120% of mediaan)',
+};
+
+/**
  * Extracts location scores from UnifiedLocationData and maps them to
  * subcategory names used in the target group scoring system
  */
@@ -10,12 +56,15 @@ export function extractLocationScores(data: UnifiedLocationData): Record<string,
   // Helper to add scores from UnifiedDataRows
   const addScoresFromRows = (rows: UnifiedDataRow[]) => {
     rows.forEach(row => {
+      // Map the title to scoring subcategory name
+      const mappedTitle = TITLE_MAPPING[row.title] || row.title;
+
       // Use calculated score if available, otherwise fall back to relative value normalized
       if (row.calculatedScore !== undefined && row.calculatedScore !== null) {
-        scores[row.title] = row.calculatedScore;
+        scores[mappedTitle] = row.calculatedScore;
       } else if (row.relative !== null) {
         // Normalize relative percentage values to -1 to 1 scale
-        scores[row.title] = normalizePercentage(row.relative);
+        scores[mappedTitle] = normalizePercentage(row.relative);
       }
     });
   };
@@ -59,13 +108,10 @@ export function extractLocationScores(data: UnifiedLocationData): Record<string,
   }
 
   // Residential data - extract what's available
-  // Note: ResidentialData structure may vary, so we check for availability
   if (data.residential && data.residential.hasData) {
-    // We'll use dummy normalization for residential data since we don't know the exact structure
-    // In a production system, you'd want to properly map these fields
-
-    // For now, add a note that residential data needs manual mapping
-    console.log('Residential data available but needs manual mapping to scoring subcategories');
+    // Residential data is already included in the rows via convertResidentialToRows
+    // So it should be picked up by the amenities/municipality section
+    console.log('Residential data available - scores extracted from unified rows');
   }
 
   return scores;
