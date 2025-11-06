@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import type { AmenitySearchResult } from './types';
 import { distanceCalculator } from '../../data/sources/google-places/distance-calculator';
+import { calculateAmenityScore, type AmenityScore } from '../../data/scoring/amenityScoring';
+import { AmenityDetailModal } from './AmenityDetailModal';
 
 interface AmenityCardProps {
   result: AmenitySearchResult;
@@ -8,10 +10,33 @@ interface AmenityCardProps {
 }
 
 /**
+ * Helper to get score color and styling
+ */
+function getScoreColor(score: number): string {
+  if (score >= 0.67) return 'bg-green-100 text-green-800 border-green-200';
+  if (score >= 0.33) return 'bg-green-50 text-green-700 border-green-100';
+  if (score > 0) return 'bg-yellow-50 text-yellow-700 border-yellow-100';
+  if (score === 0) return 'bg-gray-100 text-gray-700 border-gray-200';
+  if (score > -0.33) return 'bg-orange-50 text-orange-700 border-orange-100';
+  if (score > -0.67) return 'bg-orange-100 text-orange-800 border-orange-200';
+  return 'bg-red-100 text-red-800 border-red-200';
+}
+
+/**
+ * Format score for display
+ */
+function formatScore(score: number): string {
+  return score >= 0 ? `+${score.toFixed(2)}` : score.toFixed(2);
+}
+
+/**
  * AmenityCard - Displays amenity data for a single category
  */
 export const AmenityCard: React.FC<AmenityCardProps> = ({ result, locale = 'nl' }) => {
   const { category, places, searchStrategy, error } = result;
+
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Calculate statistics
   const hasPlaces = places.length > 0;
@@ -21,11 +46,26 @@ export const AmenityCard: React.FC<AmenityCardProps> = ({ result, locale = 'nl' 
     : 0;
   const withinWalkingDistance = places.filter(p => (p.distance || 0) <= 1000).length;
 
+  // Calculate amenity scores
+  const amenityScore: AmenityScore = useMemo(() => {
+    return calculateAmenityScore(result);
+  }, [result]);
+
   return (
-    <div
-      className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-lg transition-shadow duration-200"
-      style={{ borderLeftColor: category.color, borderLeftWidth: '4px' }}
-    >
+    <>
+      <div
+        className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-lg transition-shadow duration-200 cursor-pointer"
+        style={{ borderLeftColor: category.color, borderLeftWidth: '4px' }}
+        onClick={() => setIsModalOpen(true)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setIsModalOpen(true);
+          }
+        }}
+      >
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
@@ -139,6 +179,60 @@ export const AmenityCard: React.FC<AmenityCardProps> = ({ result, locale = 'nl' 
         </div>
       )}
 
+      {/* Scoring Section */}
+      <div className="mt-3 pt-3 border-t border-gray-200">
+        <p className="text-xs font-semibold text-gray-700 mb-2">
+          {locale === 'nl' ? 'Scores' : 'Scores'}
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          {/* Count Score */}
+          <div>
+            <p className="text-xs text-gray-500 mb-1">
+              {locale === 'nl' ? 'Aantal' : 'Count'}
+            </p>
+            <span className={`inline-block px-2 py-1 text-xs font-semibold rounded border ${getScoreColor(amenityScore.countScore)}`}>
+              {formatScore(amenityScore.countScore)}
+            </span>
+            <p className="text-xs text-gray-400 mt-1">
+              {amenityScore.totalCount} {locale === 'nl' ? 'binnen' : 'within'} {
+                amenityScore.countRadius >= 1000
+                  ? `${(amenityScore.countRadius / 1000).toFixed(1).replace('.0', '')}km`
+                  : `${amenityScore.countRadius}m`
+              }
+            </p>
+          </div>
+
+          {/* Proximity Bonus */}
+          <div>
+            <p className="text-xs text-gray-500 mb-1">
+              {locale === 'nl' ? 'Nabijheid (250m)' : 'Proximity (250m)'}
+            </p>
+            <span className={`inline-block px-2 py-1 text-xs font-semibold rounded border ${
+              amenityScore.proximityBonus === 1
+                ? 'bg-green-100 text-green-800 border-green-200'
+                : 'bg-gray-100 text-gray-700 border-gray-200'
+            }`}>
+              {amenityScore.proximityBonus === 1 ? '+1' : '0'}
+            </span>
+            <p className="text-xs text-gray-400 mt-1">
+              {amenityScore.proximityCount} {locale === 'nl' ? 'binnen 250m' : 'within 250m'}
+            </p>
+          </div>
+        </div>
+
+        {/* Combined Score */}
+        <div className="mt-2 pt-2 border-t border-gray-100">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-gray-600">
+              {locale === 'nl' ? 'Gecombineerde score' : 'Combined score'}
+            </p>
+            <span className={`px-2 py-1 text-xs font-semibold rounded border ${getScoreColor(amenityScore.combinedScore * 2 - 1)}`}>
+              {(amenityScore.combinedScore * 100).toFixed(0)}%
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* Search strategy indicator */}
       <div className="mt-3 pt-2 border-t border-gray-100">
         <p className="text-xs text-gray-400">
@@ -149,6 +243,22 @@ export const AmenityCard: React.FC<AmenityCardProps> = ({ result, locale = 'nl' 
           }
         </p>
       </div>
+
+      {/* Click hint */}
+      <div className="mt-3 pt-2 border-t border-gray-100 text-center">
+        <p className="text-xs text-blue-600 font-medium">
+          {locale === 'nl' ? '👆 Klik voor details' : '👆 Click for details'}
+        </p>
+      </div>
     </div>
+
+    {/* Detail Modal */}
+    <AmenityDetailModal
+      result={result}
+      isOpen={isModalOpen}
+      onClose={() => setIsModalOpen(false)}
+      locale={locale}
+    />
+    </>
   );
 };

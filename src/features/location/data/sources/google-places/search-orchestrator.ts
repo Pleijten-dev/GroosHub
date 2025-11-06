@@ -74,8 +74,10 @@ export class SearchOrchestrator {
         // Execute search based on strategy
         const result = await this.searchCategory(location, category);
 
+        // Always add result, even if no places found (so user can see what was searched)
+        results.push(result);
+
         if (result.places.length > 0) {
-          results.push(result);
           successCount++;
         } else {
           failedCount++;

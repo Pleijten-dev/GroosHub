@@ -1,0 +1,70 @@
+{
+  "demographics": {
+    "WerkloosheidsPercentage": {
+      "direction": "negative",
+      "margin": 15
+    },
+    "Mannen_6": {
+      "comparisonType": "relatief",
+      "margin": 10
+    },
+    "Vrouwen_7": {
+      "comparisonType": "relatief",
+      "margin": 10
+    }
+  },
+  "health": {
+    "ErvarenGezondheidGoedZeerGoed_4": {
+      "direction": "positive",
+      "margin": 15
+    },
+    "Overgewicht_17": {
+      "direction": "negative",
+      "margin": 20
+    },
+    "ZwaarOvergewicht_18": {
+      "direction": "negative",
+      "margin": 20
+    },
+    "Roken_21": {
+      "direction": "negative",
+      "margin": 20
+    },
+    "VoldoendeBeweegt_24": {
+      "direction": "positive",
+      "margin": 15
+    }
+  },
+  "safety": {
+    "DiefstalinbraakWoning_1": {
+      "direction": "negative",
+      "margin": 25
+    },
+    "Straat_auto_en_bromfietsdiefstal_2": {
+      "direction": "negative",
+      "margin": 25
+    },
+    "Vernieling_en_beschadiging": {
+      "direction": "negative",
+      "margin": 25
+    },
+    "Geweldsmisdrijven_4": {
+      "direction": "negative",
+      "margin": 20
+    }
+  },
+  "livability": {
+    "FysiekLeefomgeving_1": {
+      "direction": "positive",
+      "margin": 15
+    },
+    "SociaalLeefomgeving_2": {
+      "direction": "positive",
+      "margin": 15
+    },
+    "VeiligheidslastOverlast_3": {
+      "direction": "negative",
+      "margin": 20
+    }
+  }
+}

@@ -6,6 +6,8 @@ import type { RIVMHealthMultiLevelResponse } from '../sources/rivm-health/client
 import type { CBSLivabilityMultiLevelResponse } from '../sources/cbs-livability/client';
 import type { PolitieSafetyMultiLevelResponse } from '../sources/politie-safety/client';
 import type { ResidentialData } from '../sources/altum-ai/types';
+import type { AmenityMultiCategoryResponse } from '../sources/google-places/types';
+import { convertAmenitiesToRows } from '../../components/Amenities/amenityDataConverter';
 import { getReadableKey as getDemographicsReadableKey } from '../normalizers/demographicsKeyNormalizer';
 import { getReadableKey as getHealthReadableKey } from '../normalizers/healthKeyNormalizer';
 import { getReadableKey as getLivabilityReadableKey } from '../normalizers/livabilityKeyNormalizer';
@@ -14,12 +16,14 @@ import { DemographicsParser } from '../parsers/demographicsParser';
 import { HealthParser } from '../parsers/healthParser';
 import { LivabilityParser } from '../parsers/livabilityParser';
 import { SafetyParser } from '../parsers/safetyParser';
+import type { ScoringConfig } from '../parsers/types';
+import { applyScoringToDataset, loadScoringConfig, type ScoringConfigOverrides } from '../parsers/scoring';
 
 /**
  * Single data row in the unified table
  */
 export interface UnifiedDataRow {
-  source: 'demographics' | 'health' | 'livability' | 'safety' | 'residential';
+  source: 'demographics' | 'health' | 'livability' | 'safety' | 'residential' | 'amenities';
   geographicLevel: 'national' | 'municipality' | 'district' | 'neighborhood';
   geographicCode: string;
   geographicName: string;
@@ -34,6 +38,9 @@ export interface UnifiedDataRow {
   displayValue: string; // Formatted value for display (original behavior)
   displayAbsolute: string; // Formatted absolute value
   displayRelative: string; // Formatted relative value
+  // Scoring fields (only present for non-national levels)
+  scoring?: ScoringConfig;
+  calculatedScore?: number | null;
   metadata?: {
     // Optional metadata for additional info (e.g., distribution for residential data)
     count?: number;
@@ -41,6 +48,12 @@ export interface UnifiedDataRow {
     distribution?: Record<string, number>;
     fieldName?: string;
     fieldValue?: string;
+    // For scored residential categories
+    categoryType?: 'typologie' | 'woonoppervlak' | 'transactieprijs';
+    categoryKey?: string;
+    // For display-only fields
+    isAverage?: boolean;
+    isDistribution?: boolean;
   };
 }
 
@@ -72,6 +85,7 @@ export interface UnifiedLocationData {
     neighborhood: UnifiedDataRow[];
   };
   residential: ResidentialData | null;
+  amenities: UnifiedDataRow[]; // Amenity data (location-specific, no multi-level)
   fetchedAt: Date;
 }
 
@@ -84,6 +98,24 @@ export class MultiLevelAggregator {
   private healthParser = new HealthParser();
   private livabilityParser = new LivabilityParser();
   private safetyParser = new SafetyParser();
+  private scoringConfig: ScoringConfigOverrides | null = null;
+  private scoringConfigPromise: Promise<ScoringConfigOverrides> | null = null;
+
+  /**
+   * Load scoring configuration (called automatically on first use)
+   */
+  private async ensureScoringConfig(): Promise<ScoringConfigOverrides> {
+    if (this.scoringConfig) {
+      return this.scoringConfig;
+    }
+
+    if (!this.scoringConfigPromise) {
+      this.scoringConfigPromise = loadScoringConfig();
+    }
+
+    this.scoringConfig = await this.scoringConfigPromise;
+    return this.scoringConfig;
+  }
 
   /**
    * Extract population count from demographics data
@@ -98,14 +130,31 @@ export class MultiLevelAggregator {
   /**
    * Aggregate all data sources into a unified structure
    */
-  aggregate(
+  async aggregate(
     locationData: LocationData,
     demographics: CBSDemographicsMultiLevelResponse,
     health: RIVMHealthMultiLevelResponse,
     livability: CBSLivabilityMultiLevelResponse,
     safety: PolitieSafetyMultiLevelResponse,
-    residential: ResidentialData | null = null
-  ): UnifiedLocationData {
+    residential: ResidentialData | null = null,
+    amenities: AmenityMultiCategoryResponse | null = null
+  ): Promise<UnifiedLocationData> {
+    // Load scoring configuration
+    const scoringConfig = await this.ensureScoringConfig();
+
+    // Parse national level data for scoring baseline
+    const nationalDemographics = demographics.national
+      ? this.demographicsParser.parse(demographics.national.data)
+      : null;
+    const nationalHealth = health.national
+      ? this.healthParser.parse(health.national.data)
+      : null;
+    const nationalLivability = livability.national
+      ? this.livabilityParser.parse(livability.national.data)
+      : null;
+    const nationalSafety = safety.national
+      ? this.safetyParser.parse(safety.national.data)
+      : null;
     // Extract population at each level from demographics data
     const nationalPopulation = demographics.national
       ? this.getPopulation(demographics.national.data)
@@ -128,7 +177,9 @@ export class MultiLevelAggregator {
               demographics.national.data,
               'national',
               demographics.national.level.code,
-              demographics.national.level.name
+              demographics.national.level.name,
+              null,
+              scoringConfig
             )
           : [],
         municipality: demographics.municipality
@@ -136,7 +187,9 @@ export class MultiLevelAggregator {
               demographics.municipality.data,
               'municipality',
               demographics.municipality.level.code,
-              locationData.municipality.statnaam
+              locationData.municipality.statnaam,
+              nationalDemographics,
+              scoringConfig
             )
           : [],
         district: demographics.district
@@ -144,7 +197,9 @@ export class MultiLevelAggregator {
               demographics.district.data,
               'district',
               demographics.district.level.code,
-              locationData.district?.statnaam || ''
+              locationData.district?.statnaam || '',
+              nationalDemographics,
+              scoringConfig
             )
           : [],
         neighborhood: demographics.neighborhood
@@ -152,7 +207,9 @@ export class MultiLevelAggregator {
               demographics.neighborhood.data,
               'neighborhood',
               demographics.neighborhood.level.code,
-              locationData.neighborhood?.statnaam || ''
+              locationData.neighborhood?.statnaam || '',
+              nationalDemographics,
+              scoringConfig
             )
           : [],
       },
@@ -163,7 +220,9 @@ export class MultiLevelAggregator {
               nationalPopulation,
               'national',
               health.national.level.code,
-              'Nederland'
+              'Nederland',
+              null,
+              scoringConfig
             )
           : [],
         municipality: health.municipality
@@ -172,7 +231,9 @@ export class MultiLevelAggregator {
               municipalityPopulation,
               'municipality',
               health.municipality.level.code,
-              locationData.municipality.statnaam
+              locationData.municipality.statnaam,
+              nationalHealth,
+              scoringConfig
             )
           : [],
         district: health.district
@@ -181,7 +242,9 @@ export class MultiLevelAggregator {
               districtPopulation,
               'district',
               health.district.level.code,
-              locationData.district?.statnaam || ''
+              locationData.district?.statnaam || '',
+              nationalHealth,
+              scoringConfig
             )
           : [],
         neighborhood: health.neighborhood
@@ -190,7 +253,9 @@ export class MultiLevelAggregator {
               neighborhoodPopulation,
               'neighborhood',
               health.neighborhood.level.code,
-              locationData.neighborhood?.statnaam || ''
+              locationData.neighborhood?.statnaam || '',
+              nationalHealth,
+              scoringConfig
             )
           : [],
       },
@@ -201,7 +266,9 @@ export class MultiLevelAggregator {
               nationalPopulation,
               'national',
               livability.national.level.code,
-              'Nederland'
+              'Nederland',
+              null,
+              scoringConfig
             )
           : [],
         municipality: livability.municipality
@@ -210,7 +277,9 @@ export class MultiLevelAggregator {
               municipalityPopulation,
               'municipality',
               livability.municipality.level.code,
-              locationData.municipality.statnaam
+              locationData.municipality.statnaam,
+              nationalLivability,
+              scoringConfig
             )
           : [],
       },
@@ -221,7 +290,9 @@ export class MultiLevelAggregator {
               nationalPopulation,
               'national',
               safety.national.level.code,
-              'Nederland'
+              'Nederland',
+              null,
+              scoringConfig
             )
           : [],
         municipality: safety.municipality
@@ -230,7 +301,9 @@ export class MultiLevelAggregator {
               municipalityPopulation,
               'municipality',
               safety.municipality.level.code,
-              locationData.municipality.statnaam
+              locationData.municipality.statnaam,
+              nationalSafety,
+              scoringConfig
             )
           : [],
         district: safety.district
@@ -239,7 +312,9 @@ export class MultiLevelAggregator {
               districtPopulation,
               'district',
               safety.district.level.code,
-              locationData.district?.statnaam || ''
+              locationData.district?.statnaam || '',
+              nationalSafety,
+              scoringConfig
             )
           : [],
         neighborhood: safety.neighborhood
@@ -248,11 +323,20 @@ export class MultiLevelAggregator {
               neighborhoodPopulation,
               'neighborhood',
               safety.neighborhood.level.code,
-              locationData.neighborhood?.statnaam || ''
+              locationData.neighborhood?.statnaam || '',
+              nationalSafety,
+              scoringConfig
             )
           : [],
       },
       residential,
+      amenities: amenities
+        ? convertAmenitiesToRows(
+            amenities,
+            locationData.municipality.statcode,
+            locationData.municipality.statnaam
+          )
+        : [],
       fetchedAt: new Date(),
     };
   }
@@ -264,12 +348,20 @@ export class MultiLevelAggregator {
     data: Record<string, unknown>,
     geographicLevel: 'national' | 'municipality' | 'district' | 'neighborhood',
     geographicCode: string,
-    geographicName: string
+    geographicName: string,
+    nationalParsed: ReturnType<typeof this.demographicsParser.parse> | null,
+    scoringConfig: ScoringConfigOverrides
   ): UnifiedDataRow[] {
     const parsed = this.demographicsParser.parse(data);
+
+    // Apply scoring for non-national levels
+    const scoredIndicators = geographicLevel !== 'national' && nationalParsed
+      ? applyScoringToDataset(parsed.indicators, nationalParsed.indicators, 'demographics', scoringConfig)
+      : parsed.indicators;
+
     const rows: UnifiedDataRow[] = [];
 
-    parsed.indicators.forEach((parsedValue, key) => {
+    scoredIndicators.forEach((parsedValue, key) => {
       // Skip metadata fields
       if (
         key === 'ID' ||
@@ -280,7 +372,7 @@ export class MultiLevelAggregator {
         return;
       }
 
-      rows.push({
+      const row: UnifiedDataRow = {
         source: 'demographics',
         geographicLevel,
         geographicCode,
@@ -294,7 +386,15 @@ export class MultiLevelAggregator {
         displayValue: this.formatValue(parsedValue.originalValue),
         displayAbsolute: this.formatNumber(parsedValue.absolute),
         displayRelative: this.formatNumber(parsedValue.relative, parsedValue.unit),
-      });
+      };
+
+      // Add scoring fields if present (non-national levels)
+      if (parsedValue.scoring) {
+        row.scoring = parsedValue.scoring;
+        row.calculatedScore = parsedValue.calculatedScore;
+      }
+
+      rows.push(row);
     });
 
     return rows;
@@ -308,12 +408,20 @@ export class MultiLevelAggregator {
     populationCount: number,
     geographicLevel: 'national' | 'municipality' | 'district' | 'neighborhood',
     geographicCode: string,
-    geographicName: string
+    geographicName: string,
+    nationalParsed: ReturnType<typeof this.healthParser.parse> | null,
+    scoringConfig: ScoringConfigOverrides
   ): UnifiedDataRow[] {
     const parsed = this.healthParser.parse(data, { populationCount });
+
+    // Apply scoring for non-national levels
+    const scoredIndicators = geographicLevel !== 'national' && nationalParsed
+      ? applyScoringToDataset(parsed.indicators, nationalParsed.indicators, 'health', scoringConfig)
+      : parsed.indicators;
+
     const rows: UnifiedDataRow[] = [];
 
-    parsed.indicators.forEach((parsedValue, key) => {
+    scoredIndicators.forEach((parsedValue, key) => {
       // Skip metadata fields
       if (
         key === 'Gemeentenaam_1' ||
@@ -328,7 +436,7 @@ export class MultiLevelAggregator {
         return;
       }
 
-      rows.push({
+      const row: UnifiedDataRow = {
         source: 'health',
         geographicLevel,
         geographicCode,
@@ -342,7 +450,15 @@ export class MultiLevelAggregator {
         displayValue: this.formatValue(parsedValue.originalValue),
         displayAbsolute: this.formatNumber(parsedValue.absolute),
         displayRelative: this.formatNumber(parsedValue.relative, parsedValue.unit),
-      });
+      };
+
+      // Add scoring fields if present (non-national levels)
+      if (parsedValue.scoring) {
+        row.scoring = parsedValue.scoring;
+        row.calculatedScore = parsedValue.calculatedScore;
+      }
+
+      rows.push(row);
     });
 
     return rows;
@@ -356,12 +472,20 @@ export class MultiLevelAggregator {
     populationCount: number,
     geographicLevel: 'national' | 'municipality' | 'district' | 'neighborhood',
     geographicCode: string,
-    geographicName: string
+    geographicName: string,
+    nationalParsed: ReturnType<typeof this.livabilityParser.parse> | null,
+    scoringConfig: ScoringConfigOverrides
   ): UnifiedDataRow[] {
     const parsed = this.livabilityParser.parse(data, { populationCount });
+
+    // Apply scoring for non-national levels
+    const scoredIndicators = geographicLevel !== 'national' && nationalParsed
+      ? applyScoringToDataset(parsed.indicators, nationalParsed.indicators, 'livability', scoringConfig)
+      : parsed.indicators;
+
     const rows: UnifiedDataRow[] = [];
 
-    parsed.indicators.forEach((parsedValue, key) => {
+    scoredIndicators.forEach((parsedValue, key) => {
       // Skip metadata fields
       if (
         key === 'ID' ||
@@ -372,7 +496,7 @@ export class MultiLevelAggregator {
         return;
       }
 
-      rows.push({
+      const row: UnifiedDataRow = {
         source: 'livability',
         geographicLevel,
         geographicCode,
@@ -386,7 +510,15 @@ export class MultiLevelAggregator {
         displayValue: this.formatValue(parsedValue.originalValue),
         displayAbsolute: this.formatNumber(parsedValue.absolute),
         displayRelative: this.formatNumber(parsedValue.relative, parsedValue.unit),
-      });
+      };
+
+      // Add scoring fields if present (non-national levels)
+      if (parsedValue.scoring) {
+        row.scoring = parsedValue.scoring;
+        row.calculatedScore = parsedValue.calculatedScore;
+      }
+
+      rows.push(row);
     });
 
     return rows;
@@ -400,13 +532,21 @@ export class MultiLevelAggregator {
     populationCount: number,
     geographicLevel: 'national' | 'municipality' | 'district' | 'neighborhood',
     geographicCode: string,
-    geographicName: string
+    geographicName: string,
+    nationalParsed: ReturnType<typeof this.safetyParser.parse> | null,
+    scoringConfig: ScoringConfigOverrides
   ): UnifiedDataRow[] {
     const parsed = this.safetyParser.parse(data, { populationCount });
+
+    // Apply scoring for non-national levels
+    const scoredIndicators = geographicLevel !== 'national' && nationalParsed
+      ? applyScoringToDataset(parsed.indicators, nationalParsed.indicators, 'safety', scoringConfig)
+      : parsed.indicators;
+
     const rows: UnifiedDataRow[] = [];
 
-    parsed.indicators.forEach((parsedValue, key) => {
-      rows.push({
+    scoredIndicators.forEach((parsedValue, key) => {
+      const row: UnifiedDataRow = {
         source: 'safety',
         geographicLevel,
         geographicCode,
@@ -420,7 +560,15 @@ export class MultiLevelAggregator {
         displayValue: this.formatValue(parsedValue.originalValue),
         displayAbsolute: this.formatNumber(parsedValue.absolute),
         displayRelative: this.formatNumber(parsedValue.relative, parsedValue.unit),
-      });
+      };
+
+      // Add scoring fields if present (non-national levels)
+      if (parsedValue.scoring) {
+        row.scoring = parsedValue.scoring;
+        row.calculatedScore = parsedValue.calculatedScore;
+      }
+
+      rows.push(row);
     });
 
     return rows;
