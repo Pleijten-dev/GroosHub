@@ -8,6 +8,7 @@ import { CubeVisualization } from './CubeVisualization';
 import housingPersonasData from '../../data/sources/housing-personas.json';
 import { calculatePersonaScores, PersonaScore } from '../../utils/targetGroupScoring';
 import { useSelectedDoelgroepen } from '../../hooks/useSelectedDoelgroepen';
+import { getPersonaCubePosition } from '../../utils/cubePositionMapping';
 
 export interface DoelgroepenGridProps {
   locale?: 'nl' | 'en';
@@ -44,26 +45,34 @@ export const DoelgroepenGrid: React.FC<DoelgroepenGridProps> = ({
     isInitialized,
   } = useSelectedDoelgroepen(personaScores);
 
-  // Generate cube colors and indices for visualization
+  // Generate cube colors and indices for visualization based on fixed positions
   const { cubeColors, activeIndices } = useMemo(() => {
-    // Map selected personas to cube indices (0-26 for 3x3x3 grid)
-    const colors: string[] = [];
+    // Initialize arrays for all 27 possible positions
+    const colors: (string | undefined)[] = new Array(27);
     const indices: number[] = [];
 
-    selectedIds.forEach((personaId, index) => {
-      if (index >= 27) return; // Max 27 cubes in 3x3x3 grid
-
-      const persona = personaScores.find(p => p.personaId === personaId);
+    // Map each selected persona to its fixed position in the cube
+    selectedIds.forEach((personaId) => {
+      const persona = personas.find(p => p.id === personaId);
       if (!persona) return;
 
-      // Assign unique green gradient color based on persona ID
-      const color = getPersonaColor(personaId);
-      colors[index] = color;
+      // Get the fixed cube position based on characteristics
+      const { index } = getPersonaCubePosition({
+        income_level: persona.income_level,
+        age_group: persona.age_group,
+        household_type: persona.household_type,
+      });
+
+      // Assign unique color and mark position as active
+      colors[index] = getPersonaColor(personaId);
       indices.push(index);
     });
 
-    return { cubeColors: colors, activeIndices: indices };
-  }, [selectedIds, personaScores]);
+    return {
+      cubeColors: colors.map(c => c || '#888888'), // Default gray for inactive
+      activeIndices: indices
+    };
+  }, [selectedIds, personas]);
 
   const translations = {
     nl: {
@@ -315,6 +324,7 @@ export const DoelgroepenGrid: React.FC<DoelgroepenGridProps> = ({
                 <CubeVisualization
                   activeIndices={activeIndices}
                   cubeColors={cubeColors}
+                  locale={locale}
                 />
               )}
 

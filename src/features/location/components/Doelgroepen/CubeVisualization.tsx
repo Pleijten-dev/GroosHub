@@ -16,6 +16,7 @@ import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 export interface CubeVisualizationProps {
   activeIndices: number[];
   cubeColors: string[];
+  locale?: 'nl' | 'en';
 }
 
 /* ------------------------------------------------------------------
@@ -213,12 +214,45 @@ function SnapBackOrbitControls(props: OrbitControlsProps) {
 }
 
 /**
- * Main CubeVisualization component with restored original styling
+ * Main CubeVisualization component with axis labels
  */
 export function CubeVisualization({
   activeIndices,
-  cubeColors
+  cubeColors,
+  locale = 'nl'
 }: CubeVisualizationProps): React.JSX.Element {
+  const labels = locale === 'nl' ? {
+    title: '3D Doelgroepen Visualisatie',
+    xAxis: 'Inkomen',
+    xLow: 'Laag',
+    xMid: 'Gemiddeld',
+    xHigh: 'Hoog',
+    yAxis: 'Leeftijd',
+    yYoung: '20-35 jr',
+    yMiddle: '35-55 jr',
+    ySenior: '55+ jr',
+    zAxis: 'Huishouden',
+    zSingle: '1-pers',
+    zCouple: '2-pers',
+    zFamily: 'Gezin',
+    controls: 'Sleep om te roteren',
+  } : {
+    title: '3D Target Groups Visualization',
+    xAxis: 'Income',
+    xLow: 'Low',
+    xMid: 'Medium',
+    xHigh: 'High',
+    yAxis: 'Age',
+    yYoung: '20-35 yrs',
+    yMiddle: '35-55 yrs',
+    ySenior: '55+ yrs',
+    zAxis: 'Household',
+    zSingle: 'Single',
+    zCouple: 'Couple',
+    zFamily: 'Family',
+    controls: 'Drag to rotate',
+  };
+
   return (
     <div className="cube-visualization">
       <style jsx>{`
@@ -253,9 +287,38 @@ export function CubeVisualization({
           color: #666;
           font-size: 12px;
         }
+
+        .cube-legend {
+          margin-top: 15px;
+          display: flex;
+          justify-content: space-around;
+          flex-wrap: wrap;
+          gap: 10px;
+          padding: 10px;
+          background: #f8f9fa;
+          border-radius: 6px;
+          font-size: 11px;
+        }
+
+        .legend-axis {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .legend-title {
+          font-weight: 600;
+          color: #333;
+          margin-bottom: 2px;
+        }
+
+        .legend-value {
+          color: #666;
+          padding-left: 8px;
+        }
       `}</style>
 
-      <h3 className="cube-section-title">3D Doelgroepen Visualisatie</h3>
+      <h3 className="cube-section-title">{labels.title}</h3>
 
       <div className="cube-container">
         <Canvas
@@ -273,7 +336,22 @@ export function CubeVisualization({
       </div>
 
       <div className="cube-controls">
-        Sleep om te roteren
+        {labels.controls}
+      </div>
+
+      <div className="cube-legend">
+        <div className="legend-axis">
+          <div className="legend-title">← {labels.xAxis} →</div>
+          <div className="legend-value">{labels.xLow} | {labels.xMid} | {labels.xHigh}</div>
+        </div>
+        <div className="legend-axis">
+          <div className="legend-title">↓ {labels.yAxis} ↑</div>
+          <div className="legend-value">{labels.yYoung} | {labels.yMiddle} | {labels.ySenior}</div>
+        </div>
+        <div className="legend-axis">
+          <div className="legend-title">⊙ {labels.zAxis} ⊙</div>
+          <div className="legend-value">{labels.zSingle} | {labels.zCouple} | {labels.zFamily}</div>
+        </div>
       </div>
     </div>
   );
