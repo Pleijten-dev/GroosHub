@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import type { UnifiedLocationData, UnifiedDataRow } from '../../data/aggregator/multiLevelAggregator';
 import { convertResidentialToRows } from '../Residential/residentialDataConverter';
+import { PanelInner } from '../../../../shared/components/UI/Panel';
 
 export interface MultiLevelDataTableProps {
   data: UnifiedLocationData;
@@ -174,8 +175,8 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
   return (
     <div className="w-full">
       {/* Location info */}
-      <div className="mb-lg p-base bg-gray-50 rounded-lg">
-        <h3 className="text-lg font-semibold mb-sm">
+      <PanelInner className="mb-lg">
+        <h3 className="text-lg font-semibold mb-sm text-black">
           {locale === 'nl' ? 'Locatie Informatie' : 'Location Information'}
         </h3>
         <div className="grid grid-cols-2 gap-sm text-sm">
@@ -232,7 +233,7 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
             </span>
           </div>
         </div>
-      </div>
+      </PanelInner>
 
       {/* Filters */}
       <div className="mb-lg flex gap-base items-center">
@@ -288,9 +289,9 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
       </div>
 
       {/* Data table */}
-      <div className="overflow-x-auto rounded-lg border border-gray-200">
+      <div className="card-glass overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-cream">
             <tr>
               <th className="text-left p-sm text-sm font-semibold text-text-primary border-b">
                 {locale === 'nl' ? 'Bron' : 'Source'}
