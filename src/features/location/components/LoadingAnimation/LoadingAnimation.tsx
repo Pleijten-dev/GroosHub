@@ -4,10 +4,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Locale } from '../../../../lib/i18n/config';
 import { AnimatedCube } from '../LocationWelcome/AnimatedCube';
-import { TETRIS_SHAPES, generateGradientColors } from '../../utils/cubePatterns';
+import { TETRIS_SHAPES } from '../../utils/cubePatterns';
 
 interface LoadingAnimationProps {
   locale: Locale;
+  cubeColors: string[]; // Shared cube colors for consistency
 }
 
 const LOADING_MESSAGES = {
@@ -40,7 +41,8 @@ const LOADING_MESSAGES = {
  * 4. When data ready, cube completes cycle and transitions to target groups
  */
 export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
-  locale
+  locale,
+  cubeColors
 }) => {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [messageOpacity, setMessageOpacity] = useState(1);
@@ -67,18 +69,13 @@ export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
         setCurrentMessageIndex(prev => (prev + 1) % shuffledMessages.length);
         // Fade in
         setMessageOpacity(1);
-      }, 300); // Half of transition duration
-    }, 2000); // Show each message for 2 seconds
+      }, 400); // Half of transition duration (800ms / 2)
+    }, 3500); // Show each message for 3.5 seconds
 
     return () => clearInterval(messageInterval);
   }, [shuffledMessages.length]);
 
-  const { allShapes, cubeColors } = useMemo(() => {
-    return {
-      allShapes: TETRIS_SHAPES,
-      cubeColors: generateGradientColors(),
-    };
-  }, []);
+  const allShapes = useMemo(() => TETRIS_SHAPES, []);
 
   return (
     <div className="relative h-full w-full flex flex-col items-center justify-center">
@@ -93,7 +90,7 @@ export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
       {/* Loading message - cycles randomly */}
       <div className="text-center">
         <p
-          className="text-lg text-text-secondary transition-opacity duration-600"
+          className="text-lg text-text-secondary transition-opacity duration-[800ms]"
           style={{ opacity: messageOpacity }}
         >
           {shuffledMessages[currentMessageIndex]}

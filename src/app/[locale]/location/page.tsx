@@ -15,6 +15,7 @@ import { extractLocationScores } from '../../../features/location/utils/extractL
 import { LocationWelcome } from '../../../features/location/components/LocationWelcome';
 import { LoadingAnimation } from '../../../features/location/components/LoadingAnimation';
 import { DoelgroepenResult } from '../../../features/location/components/DoelgroepenResult';
+import { generateGradientColors } from '../../../features/location/utils/cubePatterns';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -49,6 +50,10 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   const [locale, setLocale] = useState<Locale>('nl');
   const [showRightMenu, setShowRightMenu] = useState<boolean>(false);
   const [fadeOutWelcome, setFadeOutWelcome] = useState<boolean>(false);
+  const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
+
+  // Generate cube colors once and share across all components for consistency
+  const cubeColors = React.useMemo(() => generateGradientColors(), []);
 
   // Use location data hook
   const { data, amenities, loading, error, isLoading, hasError, fetchData, clearData } = useLocationData();
@@ -66,8 +71,22 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     if (!data && !isLoading) {
       setCollapsed(true);
       setFadeOutWelcome(false);
+      setIsTransitioning(false);
     }
   }, [data, isLoading, setCollapsed]);
+
+  // Handle transition from loading to result
+  // Give the cube time to complete its animation cycle (12.3 seconds total cycle)
+  // Wait for 3 seconds to let the current phase complete naturally
+  React.useEffect(() => {
+    if (data && !isTransitioning) {
+      setIsTransitioning(true);
+      const transitionTimer = setTimeout(() => {
+        setIsTransitioning(false);
+      }, 3000); // 3 seconds for smooth transition
+      return () => clearTimeout(transitionTimer);
+    }
+  }, [data, isTransitioning]);
 
   // Resolve params on mount
   React.useEffect(() => {
@@ -88,8 +107,8 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     // Trigger fade-out animation first
     setFadeOutWelcome(true);
 
-    // Small delay to let fade-out start before data fetch
-    await new Promise(resolve => setTimeout(resolve, 300));
+    // Wait for cube to complete its movement to center (1000ms animation duration)
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     await fetchData(address);
     // Auto-switch to doelgroepen tab when data is loaded
@@ -112,11 +131,12 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
    * Render main content based on active tab and data state
    */
   const renderMainContent = (): JSX.Element => {
-    // Show loading state with new animation
-    if (isLoading) {
+    // Show loading state with new animation (including during transition)
+    if (isLoading || isTransitioning) {
       return (
         <LoadingAnimation
           locale={locale}
+          cubeColors={cubeColors}
         />
       );
     }
@@ -165,6 +185,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
           <DoelgroepenResult
             locale={locale}
             targetGroupIndices={targetGroupIndices}
+            cubeColors={cubeColors}
             onScenarioChange={(scenario) => {
               console.log('Selected scenario:', scenario);
               // TODO: Handle scenario selection
@@ -387,6 +408,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         onAddressSearch={handleAddressSearch}
         isSearching={isLoading}
         fadeOut={fadeOutWelcome}
+        cubeColors={cubeColors}
       />
     );
   };

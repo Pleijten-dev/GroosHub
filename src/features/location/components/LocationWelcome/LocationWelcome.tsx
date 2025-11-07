@@ -5,13 +5,14 @@ import React, { useState, useMemo } from 'react';
 import { Locale } from '../../../../lib/i18n/config';
 import { AnimatedCube } from './AnimatedCube';
 import { AddressAutocomplete } from '../AddressAutocomplete/AddressAutocomplete';
-import { TETRIS_SHAPES, generateGradientColors } from '../../utils/cubePatterns';
+import { TETRIS_SHAPES } from '../../utils/cubePatterns';
 
 interface LocationWelcomeProps {
   locale: Locale;
   onAddressSearch: (address: string) => void;
   isSearching?: boolean;
   fadeOut?: boolean; // Control fade out animation
+  cubeColors: string[]; // Shared cube colors for consistency
 }
 
 /**
@@ -26,7 +27,8 @@ export const LocationWelcome: React.FC<LocationWelcomeProps> = ({
   locale,
   onAddressSearch,
   isSearching = false,
-  fadeOut = false
+  fadeOut = false,
+  cubeColors
 }) => {
   const [searchAddress, setSearchAddress] = useState<string>('');
 
@@ -42,24 +44,17 @@ export const LocationWelcome: React.FC<LocationWelcomeProps> = ({
     }
   };
 
-  // Generate all tetris shapes and gradient colors (memoized)
-  const { allShapes, cubeColors } = useMemo(() => {
-    const allColors = generateGradientColors();
-
-    return {
-      allShapes: TETRIS_SHAPES,
-      cubeColors: allColors,
-    };
-  }, []); // Empty deps = only run once on mount
+  // Get all tetris shapes (memoized, colors passed from parent)
+  const allShapes = useMemo(() => TETRIS_SHAPES, []);
 
   return (
     <div className="relative h-full w-full">
-      {/* Cube - centered in the space above search bar */}
+      {/* Cube - centered in the space above search bar, moves to center when fading out */}
       <div
         className={`
-          absolute left-1/2 top-[25%] -translate-x-1/2 -translate-y-1/2
-          transition-opacity duration-500
-          ${fadeOut ? 'opacity-0' : 'opacity-100'}
+          absolute left-1/2 -translate-x-1/2 -translate-y-1/2
+          transition-all duration-1000 ease-in-out
+          ${fadeOut ? 'top-[50%] opacity-100' : 'top-[25%] opacity-100'}
         `}
         style={{ height: '40vh', width: '100%', maxWidth: '800px' }}
       >

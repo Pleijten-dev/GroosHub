@@ -1,14 +1,14 @@
 // src/features/location/components/DoelgroepenResult/DoelgroepenResult.tsx
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Locale } from '../../../../lib/i18n/config';
 import { StaticCube } from './StaticCube';
-import { generateGradientColors } from '../../utils/cubePatterns';
 
 interface DoelgroepenResultProps {
   locale: Locale;
   targetGroupIndices: number[];
+  cubeColors: string[]; // Shared cube colors for consistency
   onScenarioChange?: (scenario: string) => void;
 }
 
@@ -24,12 +24,11 @@ type Scenario = 'scenario1' | 'scenario2' | 'scenario3' | 'custom';
 export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
   locale,
   targetGroupIndices,
+  cubeColors,
   onScenarioChange
 }) => {
   const [selectedScenario, setSelectedScenario] = useState<Scenario>('scenario1');
   const [isVisible, setIsVisible] = useState(false);
-
-  const cubeColors = useMemo(() => generateGradientColors(), []);
 
   // Fade in on mount
   useEffect(() => {
