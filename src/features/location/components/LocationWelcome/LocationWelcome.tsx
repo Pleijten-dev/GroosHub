@@ -59,8 +59,8 @@ export const LocationWelcome: React.FC<LocationWelcomeProps> = ({
         />
       </div>
 
-      {/* Search Bar - absolutely centered in viewport */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl px-lg">
+      {/* Search Bar - absolutely centered in viewport, 75% width */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[75%] max-w-5xl px-lg">
         <AddressAutocomplete
           placeholder={locale === 'nl' ? 'Vind de ideale doelgroep voor iedere locatie' : 'Find the ideal target audience for any location'}
           value={searchAddress}

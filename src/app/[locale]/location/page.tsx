@@ -412,7 +412,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         position="left"
         expandedWidth="320px"
         collapsedWidth="60px"
-        className="!top-0 !h-screen"
+        className="!top-[var(--navbar-height)] !h-[calc(100vh-var(--navbar-height))]"
       />
 
       {/* MAIN CONTENT - Margin adjusted for fixed sidebar */}
