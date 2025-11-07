@@ -12,8 +12,7 @@ import { ResidentialSummary, ResidentialGrid } from '../../../features/location/
 import { DoelgroepenGrid } from '../../../features/location/components/Doelgroepen';
 import { RadialChart, BarChart, DensityChart } from '../../../shared/components/common';
 import { extractLocationScores } from '../../../features/location/utils/extractLocationScores';
-import { LocationWelcome } from '../../../features/location/components/LocationWelcome';
-import { LoadingAnimation } from '../../../features/location/components/LoadingAnimation';
+import { LocationAnimation } from '../../../features/location/components/LocationAnimation';
 import { DoelgroepenResult } from '../../../features/location/components/DoelgroepenResult';
 import { generateGradientColors } from '../../../features/location/utils/cubePatterns';
 
@@ -49,8 +48,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   const [activeTab, setActiveTab] = useState<TabName>('doelgroepen');
   const [locale, setLocale] = useState<Locale>('nl');
   const [showRightMenu, setShowRightMenu] = useState<boolean>(false);
-  const [fadeOutWelcome, setFadeOutWelcome] = useState<boolean>(false);
-  const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
+  const [animationStage, setAnimationStage] = useState<'welcome' | 'loading' | 'result'>('welcome');
 
   // Generate cube colors once and share across all components for consistency
   const cubeColors = React.useMemo(() => generateGradientColors(), []);
@@ -66,27 +64,32 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     autoCollapseMobile: true,
   });
 
-  // Force sidebar to collapse when no data, reset fadeOut
+  // Force sidebar to collapse when no data, reset animation stage
   React.useEffect(() => {
     if (!data && !isLoading) {
       setCollapsed(true);
-      setFadeOutWelcome(false);
-      setIsTransitioning(false);
+      setAnimationStage('welcome');
     }
   }, [data, isLoading, setCollapsed]);
 
-  // Handle transition from loading to result
-  // Give the cube time to complete its animation cycle (12.3 seconds total cycle)
-  // Wait for 3 seconds to let the current phase complete naturally
+  // Handle animation stage transitions
   React.useEffect(() => {
-    if (data && !isTransitioning) {
-      setIsTransitioning(true);
-      const transitionTimer = setTimeout(() => {
-        setIsTransitioning(false);
-      }, 3000); // 3 seconds for smooth transition
-      return () => clearTimeout(transitionTimer);
+    if (isLoading && animationStage !== 'loading') {
+      // Start loading animation when data fetching begins
+      setAnimationStage('loading');
+    } else if (data && !isLoading) {
+      if (animationStage === 'loading') {
+        // When data loads after loading animation, wait 3 seconds for cube to complete its cycle
+        const transitionTimer = setTimeout(() => {
+          setAnimationStage('result');
+        }, 3000);
+        return () => clearTimeout(transitionTimer);
+      } else if (animationStage === 'welcome') {
+        // Data loaded from cache - go directly to result (no animation needed)
+        setAnimationStage('result');
+      }
     }
-  }, [data, isTransitioning]);
+  }, [isLoading, data, animationStage]);
 
   // Resolve params on mount
   React.useEffect(() => {
@@ -104,8 +107,8 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   };
 
   const handleAddressSearch = async (address: string): Promise<void> => {
-    // Trigger fade-out animation first
-    setFadeOutWelcome(true);
+    // Trigger loading stage which will move cube to center
+    setAnimationStage('loading');
 
     // Wait for cube to complete its movement to center (1000ms animation duration)
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -131,12 +134,15 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
    * Render main content based on active tab and data state
    */
   const renderMainContent = (): JSX.Element => {
-    // Show loading state with new animation (including during transition)
-    if (isLoading || isTransitioning) {
+    // Show welcome or loading animation (single cube instance)
+    if (animationStage === 'welcome' || animationStage === 'loading') {
       return (
-        <LoadingAnimation
+        <LocationAnimation
           locale={locale}
           cubeColors={cubeColors}
+          stage={animationStage}
+          onAddressSearch={handleAddressSearch}
+          isSearching={isLoading}
         />
       );
     }
@@ -401,15 +407,13 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
       );
     }
 
-    // Show welcome state when no data is available
+    // Fallback - should not normally be reached
     return (
-      <LocationWelcome
-        locale={locale}
-        onAddressSearch={handleAddressSearch}
-        isSearching={isLoading}
-        fadeOut={fadeOutWelcome}
-        cubeColors={cubeColors}
-      />
+      <div className="flex items-center justify-center h-full">
+        <p className="text-lg text-text-secondary">
+          {locale === 'nl' ? 'Laden...' : 'Loading...'}
+        </p>
+      </div>
     );
   };
 
