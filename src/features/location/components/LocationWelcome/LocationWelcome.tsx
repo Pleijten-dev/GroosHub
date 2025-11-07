@@ -50,31 +50,29 @@ export const LocationWelcome: React.FC<LocationWelcomeProps> = ({
   }, []); // Empty deps = only run once on mount
 
   return (
-    <div className="flex flex-col items-center justify-center h-full w-full">
-      <div className="flex flex-col items-center justify-center gap-8">
-        {/* Animated Cube Visualization - 40% of viewport height */}
-        <div style={{ height: '40vh' }} className="flex items-center justify-center">
-          <AnimatedCube
-            allShapes={allShapes}
-            cubeColors={cubeColors}
-          />
-        </div>
+    <div className="relative h-full w-full">
+      {/* Cube - positioned above center, 40vh height, properly scaled */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full pb-8" style={{ height: '40vh', width: '100%', maxWidth: '800px' }}>
+        <AnimatedCube
+          allShapes={allShapes}
+          cubeColors={cubeColors}
+        />
+      </div>
 
-        {/* Pill-shaped Search Bar - Centered */}
-        <div className="w-full max-w-2xl px-lg">
-          <AddressAutocomplete
-            placeholder={locale === 'nl' ? 'Vind de ideale doelgroep voor iedere locatie' : 'Find the ideal target audience for any location'}
-            value={searchAddress}
-            onChange={setSearchAddress}
-            onSelect={(address) => {
-              setSearchAddress(address);
-              onAddressSearch(address);
-            }}
-            onKeyPress={handleKeyPress}
-            className="w-full !rounded-full px-xl py-xl text-lg"
-            disabled={isSearching}
-          />
-        </div>
+      {/* Search Bar - absolutely centered in viewport */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl px-lg">
+        <AddressAutocomplete
+          placeholder={locale === 'nl' ? 'Vind de ideale doelgroep voor iedere locatie' : 'Find the ideal target audience for any location'}
+          value={searchAddress}
+          onChange={setSearchAddress}
+          onSelect={(address) => {
+            setSearchAddress(address);
+            onAddressSearch(address);
+          }}
+          onKeyPress={handleKeyPress}
+          className="w-full !rounded-full px-xl py-xl text-lg"
+          disabled={isSearching}
+        />
       </div>
     </div>
   );

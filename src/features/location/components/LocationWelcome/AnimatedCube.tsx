@@ -285,7 +285,7 @@ export function AnimatedCube({
       <div className="cube-canvas">
         <Canvas
           orthographic
-          camera={{ zoom: 125, position: [-10, 10, -10], near: -100, far: 100 }}
+          camera={{ zoom: 70, position: [-10, 10, -10], near: -100, far: 100 }}
           shadows
         >
           <RotatingCubeScene
