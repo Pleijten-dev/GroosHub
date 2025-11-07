@@ -40,32 +40,39 @@ function interpolateColor(color1: string, color2: string, factor: number): strin
 }
 
 /**
- * Generate 27 gradient colors from the 5-color palette
+ * Generate 27 specific colors for the cube
+ * Returns a fixed palette of green shades
  */
 export function generateGradientColors(): string[] {
-  const baseColors = ['#0c211a', '#48806a', '#477638', '#8a976b', '#f8eee4'];
-  const colors: string[] = [];
-
-  // We need 27 colors, distribute across 4 segments (5 colors = 4 segments)
-  const colorsPerSegment = 27 / (baseColors.length - 1);
-
-  for (let i = 0; i < 27; i++) {
-    const position = i / 26; // 0 to 1
-    const segmentIndex = Math.floor(position * (baseColors.length - 1));
-    const segmentStart = segmentIndex / (baseColors.length - 1);
-    const segmentEnd = (segmentIndex + 1) / (baseColors.length - 1);
-    const segmentFactor = (position - segmentStart) / (segmentEnd - segmentStart);
-
-    const color = interpolateColor(
-      baseColors[segmentIndex],
-      baseColors[Math.min(segmentIndex + 1, baseColors.length - 1)],
-      segmentFactor
-    );
-
-    colors.push(color);
-  }
-
-  return colors;
+  return [
+    '#abb474',
+    '#5a714a',
+    '#576e48',
+    '#b5bc79',
+    '#486341',
+    '#6e8154',
+    '#7e8e5d',
+    '#718456',
+    '#5e744c',
+    '#4f6944',
+    '#8f9c66',
+    '#869561',
+    '#536c46',
+    '#a1ac6f',
+    '#8a9864',
+    '#62774e',
+    '#82915f',
+    '#6a7d52',
+    '#a6b072',
+    '#4b6643',
+    '#667a50',
+    '#798a5b',
+    '#9ca86d',
+    '#93a068',
+    '#98a46b',
+    '#758758',
+    '#b0b877',
+  ];
 }
 
 /**
