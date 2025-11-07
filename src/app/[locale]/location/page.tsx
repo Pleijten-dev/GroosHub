@@ -400,7 +400,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   };
 
   return (
-    <div className="page-background h-screen w-screen overflow-hidden relative">
+    <div className="page-background h-[calc(100vh-var(--navbar-height))] w-screen overflow-hidden relative">
 
       {/* SIDEBAR - Using reusable component (position: fixed, out of flow) */}
       <Sidebar
