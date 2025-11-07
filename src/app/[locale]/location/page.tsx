@@ -238,6 +238,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
             locale={locale}
             cubeColors={cubeColors}
             allPersonas={personas}
+            allPersonaScores={sortedPersonas}
             getScenarioData={getScenarioData}
           />
         );
