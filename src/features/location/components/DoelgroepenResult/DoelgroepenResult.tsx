@@ -178,15 +178,14 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
                 xmlns="http://www.w3.org/2000/svg"
                 className="transition-colors duration-200"
               >
-                {/* Simple > corner element pointing downwards - wider horizontally */}
+                {/* Simple V-shaped arrow pointing downwards - wide horizontally */}
                 <path
-                  d="M16 8 L32 12 L16 16"
+                  d="M12 8 L24 20 L36 8"
                   stroke="currentColor"
                   strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   className="text-gray-700 group-hover:text-gray-900"
-                  transform="rotate(90 24 12)"
                 />
               </svg>
             </button>
@@ -283,15 +282,15 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
                 xmlns="http://www.w3.org/2000/svg"
                 className="transition-colors duration-200"
               >
-                {/* Simple > corner element - wider horizontally */}
+                {/* Simple V-shaped arrow - pointing down or up */}
                 <path
-                  d="M16 8 L32 12 L16 16"
+                  d="M12 8 L24 20 L36 8"
                   stroke="currentColor"
                   strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   className="text-gray-700 group-hover:text-gray-900"
-                  transform={showDetailedScoring ? "rotate(-90 24 12)" : "rotate(90 24 12)"}
+                  transform={showDetailedScoring ? "rotate(180 24 12)" : ""}
                 />
               </svg>
             </button>
