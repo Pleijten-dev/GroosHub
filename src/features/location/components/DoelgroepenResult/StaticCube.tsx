@@ -33,60 +33,61 @@ function SmallCube({
   visible,
   cubeSize = 1,
   personaName,
-  onPointerOver,
-  onPointerOut,
 }: {
   position: [number, number, number];
   color: string;
   visible: boolean;
   cubeSize?: number;
   personaName?: string;
-  onPointerOver?: (e: ThreeEvent<PointerEvent>) => void;
-  onPointerOut?: (e: ThreeEvent<PointerEvent>) => void;
 }) {
   const [hovered, setHovered] = useState(false);
-  const boxGeo = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
 
   if (!visible) return null;
 
   return (
-    <mesh
-      position={position}
-      castShadow
-      receiveShadow
-      onPointerOver={(e) => {
-        e.stopPropagation();
-        setHovered(true);
-        if (onPointerOver) onPointerOver(e);
-      }}
-      onPointerOut={(e) => {
-        e.stopPropagation();
-        setHovered(false);
-        if (onPointerOut) onPointerOut(e);
-      }}
-    >
-      <boxGeometry args={[cubeSize, cubeSize, cubeSize]} />
-      <meshStandardMaterial
-        color={color}
-        roughness={0}
-        metalness={0}
-        emissive={color}
-        emissiveIntensity={hovered ? 0.3 : 0.1}
-      />
+    <group position={position}>
+      <mesh
+        castShadow
+        receiveShadow
+        onPointerEnter={() => setHovered(true)}
+        onPointerLeave={() => setHovered(false)}
+      >
+        <boxGeometry args={[cubeSize, cubeSize, cubeSize]} />
+        <meshStandardMaterial
+          color={color}
+          roughness={0}
+          metalness={0}
+          emissive={color}
+          emissiveIntensity={hovered ? 0.5 : 0.1}
+        />
+      </mesh>
+
+      {/* Edge lines - separate from mesh to avoid pointer conflicts */}
       <lineSegments>
-        <edgesGeometry attach="geometry" args={[boxGeo]} />
-        <lineBasicMaterial attach="material" color="white" />
+        <edgesGeometry args={[new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize)]} />
+        <lineBasicMaterial color="white" linewidth={1} />
       </lineSegments>
 
       {/* Tooltip */}
       {hovered && personaName && (
-        <Html distanceFactor={10}>
-          <div className="bg-gray-900 text-white px-3 py-2 rounded-lg shadow-lg text-sm whitespace-nowrap pointer-events-none">
+        <Html
+          position={[0, cubeSize / 2 + 0.5, 0]}
+          center
+          distanceFactor={6}
+          style={{ pointerEvents: 'none' }}
+        >
+          <div
+            className="bg-gray-900 text-white px-3 py-2 rounded-lg shadow-lg text-sm whitespace-nowrap"
+            style={{
+              transform: 'translateY(-100%)',
+              marginTop: '-8px'
+            }}
+          >
             {personaName}
           </div>
         </Html>
       )}
-    </mesh>
+    </group>
   );
 }
 
