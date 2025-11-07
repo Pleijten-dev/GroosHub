@@ -226,6 +226,7 @@ export interface StaticCubeProps {
   allPersonas: HousingPersona[];
   selectedPersonas: PersonaScore[];
   locale: Locale;
+  zoom?: number;
 }
 
 export function StaticCube({
@@ -234,6 +235,7 @@ export function StaticCube({
   allPersonas,
   selectedPersonas,
   locale,
+  zoom = 80,
 }: StaticCubeProps): React.JSX.Element {
   const [hoveredPersona, setHoveredPersona] = useState<string | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -277,7 +279,7 @@ export function StaticCube({
       >
         <Canvas
           orthographic
-          camera={{ zoom: 80, position: [-10, 10, -10], near: -100, far: 100 }}
+          camera={{ zoom, position: [-10, 10, -10], near: -100, far: 100 }}
           shadows
         >
           <OrbitControls

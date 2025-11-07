@@ -133,6 +133,7 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
             allPersonas={allPersonas}
             selectedPersonas={scenarioData.personas}
             locale={locale}
+            zoom={isExpanded ? 50 : 80}
           />
         </div>
 
@@ -142,7 +143,7 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
             className={`
               flex items-center gap-2 p-2 bg-white/80 backdrop-blur-md rounded-full border border-gray-200 shadow-lg
               transition-all duration-700 ease-in-out
-              ${isExpanded ? 'flex-col gap-1 p-1' : ''}
+              ${isExpanded ? 'scale-75' : 'scale-100'}
             `}
           >
             {scenarios.map((scenario) => (
@@ -150,8 +151,7 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
                 key={scenario.id}
                 onClick={() => handleScenarioClick(scenario.id)}
                 className={`
-                  rounded-full font-medium text-sm transition-all duration-300
-                  ${isExpanded ? 'px-3 py-2 w-full text-xs' : 'px-6 py-3'}
+                  px-6 py-3 rounded-full font-medium text-sm transition-all duration-300
                   ${
                     selectedScenario === scenario.id
                       ? 'bg-gradient-3-mid text-gray-900 shadow-md'
@@ -164,31 +164,33 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
             ))}
           </div>
 
-          {/* Downward Arrow Button - 200% wider */}
-          <button
-            className="group cursor-pointer bg-transparent border-none p-0 m-0 focus:outline-none transition-transform duration-200 hover:scale-110"
-            onClick={handleExpandClick}
-          >
-            <svg
-              width="32"
-              height="32"
-              viewBox="0 0 32 32"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="transition-colors duration-200"
+          {/* Downward Arrow Button - Only show when not expanded */}
+          {!isExpanded && (
+            <button
+              className="group cursor-pointer bg-transparent border-none p-0 m-0 focus:outline-none transition-transform duration-200 hover:scale-110"
+              onClick={handleExpandClick}
             >
-              {/* Simple > corner element pointing downwards - 200% wider */}
-              <path
-                d="M8 12 L24 16 L8 20"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-gray-700 group-hover:text-gray-900"
-                transform={isExpanded ? "rotate(-90 16 16)" : "rotate(90 16 16)"}
-              />
-            </svg>
-          </button>
+              <svg
+                width="48"
+                height="24"
+                viewBox="0 0 48 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="transition-colors duration-200"
+              >
+                {/* Simple > corner element pointing downwards - wider horizontally */}
+                <path
+                  d="M16 8 L32 12 L16 16"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-gray-700 group-hover:text-gray-900"
+                  transform="rotate(90 24 12)"
+                />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 
@@ -204,15 +206,15 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
           {/* Content Switcher - Hidden when detailed scoring is shown */}
           {!showDetailedScoring && (
             <div className="flex items-center justify-center mb-4">
-              <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-lg">
+              <div className="flex items-center gap-2 p-2 bg-white/80 backdrop-blur-md rounded-full border border-gray-200 shadow-lg">
                 <button
                   onClick={() => setContentView('table')}
                   className={`
-                    px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
+                    px-6 py-3 rounded-full font-medium text-sm transition-all duration-300
                     ${
                       contentView === 'table'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900'
+                        ? 'bg-gradient-3-mid text-gray-900 shadow-md'
+                        : 'text-gray-700 hover:bg-gray-100'
                     }
                   `}
                 >
@@ -221,11 +223,11 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
                 <button
                   onClick={() => setContentView('cards')}
                   className={`
-                    px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
+                    px-6 py-3 rounded-full font-medium text-sm transition-all duration-300
                     ${
                       contentView === 'cards'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900'
+                        ? 'bg-gradient-3-mid text-gray-900 shadow-md'
+                        : 'text-gray-700 hover:bg-gray-100'
                     }
                   `}
                 >
@@ -267,29 +269,29 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
             </div>
           )}
 
-          {/* Second Arrow for Detailed Scoring - 200% wider */}
+          {/* Second Arrow for Detailed Scoring */}
           <div className="flex flex-col items-center gap-4 border-t border-gray-200 pt-4">
             <button
               className="group cursor-pointer bg-transparent border-none p-0 m-0 focus:outline-none transition-transform duration-200 hover:scale-110"
               onClick={() => setShowDetailedScoring(!showDetailedScoring)}
             >
               <svg
-                width="32"
-                height="32"
-                viewBox="0 0 32 32"
+                width="48"
+                height="24"
+                viewBox="0 0 48 24"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
                 className="transition-colors duration-200"
               >
-                {/* Simple > corner element pointing downwards or upwards - 200% wider */}
+                {/* Simple > corner element - wider horizontally */}
                 <path
-                  d="M8 12 L24 16 L8 20"
+                  d="M16 8 L32 12 L16 16"
                   stroke="currentColor"
                   strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   className="text-gray-700 group-hover:text-gray-900"
-                  transform={showDetailedScoring ? "rotate(-90 16 16)" : "rotate(90 16 16)"}
+                  transform={showDetailedScoring ? "rotate(-90 24 12)" : "rotate(90 24 12)"}
                 />
               </svg>
             </button>

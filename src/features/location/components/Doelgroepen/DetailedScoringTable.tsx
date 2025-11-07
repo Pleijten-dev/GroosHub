@@ -115,14 +115,14 @@ export const DetailedScoringTable: React.FC<DetailedScoringTableProps> = ({
         <p className="text-sm text-gray-600">{t.subtitle}</p>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-auto max-h-[600px]">
         <table className="w-full border-collapse text-xs">
-          <thead className="bg-gray-50 sticky top-0 z-10">
+          <thead className="bg-gray-50 sticky top-0 z-20">
             <tr>
-              <th className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r border-gray-200 bg-gray-50 sticky left-0 z-20 min-w-[120px]">
+              <th className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r border-gray-200 bg-gray-50 sticky left-0 z-30 min-w-[120px]">
                 {t.category}
               </th>
-              <th className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r border-gray-200 bg-gray-50 sticky left-[120px] z-20 min-w-[200px]">
+              <th className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-r border-gray-200 bg-gray-50 sticky left-[120px] z-30 min-w-[200px]">
                 {t.subcategory}
               </th>
               {scores.map(score => (
