@@ -221,7 +221,7 @@ function RotatingCubeScene({
       {/* Bounding cube */}
       <BoundingCube size={outerCubeSize} />
 
-      {/* Small cubes with opacity */}
+      {/* Small cubes with opacity - only colored material fades, white edges stay visible */}
       {positions.map((pos, i) => {
         const isVisible = activeIndices.includes(i);
         return isVisible ? (
@@ -238,7 +238,7 @@ function RotatingCubeScene({
             />
             <lineSegments>
               <edgesGeometry attach="geometry" args={[new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize)]} />
-              <lineBasicMaterial attach="material" color="white" opacity={opacity} transparent={true} />
+              <lineBasicMaterial attach="material" color="white" />
             </lineSegments>
           </mesh>
         ) : null;
