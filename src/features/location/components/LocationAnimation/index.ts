@@ -1,0 +1,1 @@
+export { LocationAnimation } from './LocationAnimation';

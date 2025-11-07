@@ -13,6 +13,10 @@ export { default as Input } from './Input/Input';
 export { default as Card } from './Card/Card';
 export { default as StatusBadge } from './StatusBadge/StatusBadge';
 
+// Panel system components
+export { Panel, PanelOuter, PanelInner } from './Panel';
+export type { PanelProps, PanelOuterProps, PanelInnerProps, CombinedPanelProps } from './Panel';
+
 // Sidebar component
 export { default as Sidebar } from './Sidebar/Sidebar';
 export * from './Sidebar/types';

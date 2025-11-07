@@ -42,7 +42,10 @@ export interface SidebarProps {
   
   /** Sidebar title when expanded */
   title?: string;
-  
+
   /** Sidebar subtitle when expanded */
   subtitle?: string;
+
+  /** Whether the sidebar should account for a navbar at the top (defaults to true) */
+  withNavbar?: boolean;
 }
