@@ -117,13 +117,13 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
           absolute left-0 top-0 h-full
           flex flex-col items-center justify-center gap-8
           transition-all duration-700 ease-in-out
-          ${isExpanded ? 'w-[25%]' : 'w-full'}
+          ${isExpanded ? 'w-[25%] z-50' : 'w-full z-10'}
         `}
       >
         {/* Static Cube */}
         <div
           className={`
-            flex items-center justify-center transition-all duration-700 ease-in-out
+            flex items-center justify-center transition-all duration-700 ease-in-out overflow-visible
             ${isExpanded ? 'h-[40vh] w-full' : 'h-[60vh] w-full max-w-[1000px]'}
           `}
         >
@@ -133,7 +133,7 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
             allPersonas={allPersonas}
             selectedPersonas={scenarioData.personas}
             locale={locale}
-            zoom={isExpanded ? 50 : 80}
+            zoom={isExpanded ? 40 : 80}
           />
         </div>
 
