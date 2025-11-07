@@ -87,23 +87,52 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
       </div>
 
       {/* Segmented Button */}
-      <div className="flex items-center gap-2 p-2 bg-white/80 backdrop-blur-md rounded-full border border-gray-200 shadow-lg">
-        {scenarios.map((scenario) => (
-          <button
-            key={scenario.id}
-            onClick={() => handleScenarioClick(scenario.id)}
-            className={`
-              px-6 py-3 rounded-full font-medium text-sm transition-all duration-300
-              ${
-                selectedScenario === scenario.id
-                  ? 'bg-gradient-3-mid text-gray-900 shadow-md'
-                  : 'text-gray-700 hover:bg-gray-100'
-              }
-            `}
+      <div className="flex flex-col items-center gap-4">
+        <div className="flex items-center gap-2 p-2 bg-white/80 backdrop-blur-md rounded-full border border-gray-200 shadow-lg">
+          {scenarios.map((scenario) => (
+            <button
+              key={scenario.id}
+              onClick={() => handleScenarioClick(scenario.id)}
+              className={`
+                px-6 py-3 rounded-full font-medium text-sm transition-all duration-300
+                ${
+                  selectedScenario === scenario.id
+                    ? 'bg-gradient-3-mid text-gray-900 shadow-md'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }
+              `}
+            >
+              {scenario.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Downward Arrow Button */}
+        <button
+          className="group cursor-pointer bg-transparent border-none p-0 m-0 focus:outline-none transition-transform duration-200 hover:scale-110"
+          onClick={() => {
+            // TODO: Add scroll or expand functionality here
+            console.log('Arrow clicked');
+          }}
+        >
+          <svg
+            width="32"
+            height="32"
+            viewBox="0 0 32 32"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className="transition-colors duration-200"
           >
-            {scenario.label}
-          </button>
-        ))}
+            <path
+              d="M16 8 L16 24 M16 24 L10 18 M16 24 L22 18"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-gray-700 group-hover:text-gray-900"
+            />
+          </svg>
+        </button>
       </div>
     </div>
   );

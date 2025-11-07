@@ -306,7 +306,7 @@ export function StaticCube({
             zIndex: 9999,
           }}
         >
-          <div className="bg-gray-900 text-white px-3 py-2 rounded-lg shadow-lg text-sm whitespace-nowrap">
+          <div className="bg-white text-black px-3 py-2 rounded-lg shadow-lg text-sm whitespace-nowrap border border-gray-200">
             {hoveredPersona}
           </div>
         </div>
