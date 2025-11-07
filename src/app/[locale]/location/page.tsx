@@ -13,6 +13,8 @@ import { DoelgroepenGrid } from '../../../features/location/components/Doelgroep
 import { RadialChart, BarChart, DensityChart } from '../../../shared/components/common';
 import { extractLocationScores } from '../../../features/location/utils/extractLocationScores';
 import { LocationWelcome } from '../../../features/location/components/LocationWelcome';
+import { LoadingAnimation } from '../../../features/location/components/LoadingAnimation';
+import { DoelgroepenResult } from '../../../features/location/components/DoelgroepenResult';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -46,6 +48,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   const [activeTab, setActiveTab] = useState<TabName>('doelgroepen');
   const [locale, setLocale] = useState<Locale>('nl');
   const [showRightMenu, setShowRightMenu] = useState<boolean>(false);
+  const [fadeOutWelcome, setFadeOutWelcome] = useState<boolean>(false);
 
   // Use location data hook
   const { data, amenities, loading, error, isLoading, hasError, fetchData, clearData } = useLocationData();
@@ -58,10 +61,11 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     autoCollapseMobile: true,
   });
 
-  // Force sidebar to collapse when no data
+  // Force sidebar to collapse when no data, reset fadeOut
   React.useEffect(() => {
     if (!data && !isLoading) {
       setCollapsed(true);
+      setFadeOutWelcome(false);
     }
   }, [data, isLoading, setCollapsed]);
 
@@ -81,9 +85,15 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   };
 
   const handleAddressSearch = async (address: string): Promise<void> => {
+    // Trigger fade-out animation first
+    setFadeOutWelcome(true);
+
+    // Small delay to let fade-out start before data fetch
+    await new Promise(resolve => setTimeout(resolve, 300));
+
     await fetchData(address);
-    // Auto-switch to score overview tab when data is loaded
-    setActiveTab('score');
+    // Auto-switch to doelgroepen tab when data is loaded
+    setActiveTab('doelgroepen');
   };
 
   // Get sidebar sections from useLocationSidebarSections hook
@@ -102,40 +112,12 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
    * Render main content based on active tab and data state
    */
   const renderMainContent = (): JSX.Element => {
-    // Show loading state
+    // Show loading state with new animation
     if (isLoading) {
       return (
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-base"></div>
-            <p className="text-lg text-text-secondary">
-              {locale === 'nl' ? 'Gegevens ophalen...' : 'Fetching data...'}
-            </p>
-            <div className="mt-base space-y-xs text-sm text-text-muted">
-              {loading.geocoding && (
-                <p>✓ {locale === 'nl' ? 'Adres geocoderen...' : 'Geocoding address...'}</p>
-              )}
-              {loading.demographics && (
-                <p>→ {locale === 'nl' ? 'CBS Demografie ophalen...' : 'Fetching CBS Demographics...'}</p>
-              )}
-              {loading.health && (
-                <p>→ {locale === 'nl' ? 'RIVM Gezondheid ophalen...' : 'Fetching RIVM Health...'}</p>
-              )}
-              {loading.livability && (
-                <p>→ {locale === 'nl' ? 'CBS Leefbaarheid ophalen...' : 'Fetching CBS Livability...'}</p>
-              )}
-              {loading.safety && (
-                <p>→ {locale === 'nl' ? 'Politie Veiligheid ophalen...' : 'Fetching Police Safety...'}</p>
-              )}
-              {loading.amenities && (
-                <p>→ {locale === 'nl' ? 'Google Voorzieningen ophalen...' : 'Fetching Google Amenities...'}</p>
-              )}
-              {loading.residential && (
-                <p>→ {locale === 'nl' ? 'Altum AI Woningmarkt ophalen...' : 'Fetching Altum AI Housing Data...'}</p>
-              )}
-            </div>
-          </div>
-        </div>
+        <LoadingAnimation
+          locale={locale}
+        />
       );
     }
 
@@ -170,15 +152,24 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
     // Show data if available
     if (data) {
-      // For Doelgroepen tab - show housing personas
+      // For Doelgroepen tab - show result with cube and scenarios
       if (activeTab === 'doelgroepen') {
         // Extract location scores for target group calculations
         const locationScores = extractLocationScores(data);
 
+        // Calculate top 3 target group indices (placeholder logic)
+        // TODO: Implement actual scoring algorithm based on location data
+        const targetGroupIndices = [0, 1, 2];
+
         return (
-          <div className="p-lg overflow-auto h-full">
-            <DoelgroepenGrid locale={locale} locationScores={locationScores} />
-          </div>
+          <DoelgroepenResult
+            locale={locale}
+            targetGroupIndices={targetGroupIndices}
+            onScenarioChange={(scenario) => {
+              console.log('Selected scenario:', scenario);
+              // TODO: Handle scenario selection
+            }}
+          />
         );
       }
 
@@ -395,6 +386,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         locale={locale}
         onAddressSearch={handleAddressSearch}
         isSearching={isLoading}
+        fadeOut={fadeOutWelcome}
       />
     );
   };

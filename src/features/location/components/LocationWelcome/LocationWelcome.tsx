@@ -11,6 +11,7 @@ interface LocationWelcomeProps {
   locale: Locale;
   onAddressSearch: (address: string) => void;
   isSearching?: boolean;
+  fadeOut?: boolean; // Control fade out animation
 }
 
 /**
@@ -19,11 +20,13 @@ interface LocationWelcomeProps {
  * - Centered animated cube visualization with random tetris shape
  * - Pill-shaped address search bar
  * - Clean, minimal design
+ * - Supports fade out animation when transitioning to loading state
  */
 export const LocationWelcome: React.FC<LocationWelcomeProps> = ({
   locale,
   onAddressSearch,
   isSearching = false,
+  fadeOut = false
 }) => {
   const [searchAddress, setSearchAddress] = useState<string>('');
 
@@ -52,15 +55,28 @@ export const LocationWelcome: React.FC<LocationWelcomeProps> = ({
   return (
     <div className="relative h-full w-full">
       {/* Cube - centered in the space above search bar */}
-      <div className="absolute left-1/2 top-[25%] -translate-x-1/2 -translate-y-1/2" style={{ height: '40vh', width: '100%', maxWidth: '800px' }}>
+      <div
+        className={`
+          absolute left-1/2 top-[25%] -translate-x-1/2 -translate-y-1/2
+          transition-opacity duration-500
+          ${fadeOut ? 'opacity-0' : 'opacity-100'}
+        `}
+        style={{ height: '40vh', width: '100%', maxWidth: '800px' }}
+      >
         <AnimatedCube
           allShapes={allShapes}
           cubeColors={cubeColors}
         />
       </div>
 
-      {/* Search Bar - absolutely centered in viewport, 75% width */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[75%] max-w-5xl px-lg">
+      {/* Search Bar - fades out when loading starts */}
+      <div
+        className={`
+          absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[75%] max-w-5xl px-lg
+          transition-opacity duration-500
+          ${fadeOut ? 'opacity-0 pointer-events-none' : 'opacity-100'}
+        `}
+      >
         <AddressAutocomplete
           placeholder={locale === 'nl' ? 'Vind de ideale doelgroep voor iedere locatie' : 'Find the ideal target audience for any location'}
           value={searchAddress}
