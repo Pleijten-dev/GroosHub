@@ -6,10 +6,23 @@ import { Locale } from '../../../../lib/i18n/config';
 import { StaticCube } from './StaticCube';
 import { PersonaScore } from '../../utils/targetGroupScoring';
 
+interface HousingPersona {
+  id: string;
+  name: string;
+  income_level: string;
+  household_type: string;
+  age_group: string;
+  description: string;
+  current_situation: string;
+  desired_situation: string;
+  current_property_types: string[];
+  desired_property_types: string[];
+}
+
 interface DoelgroepenResultProps {
   locale: Locale;
   cubeColors: string[]; // Shared cube colors for consistency
-  allPersonas: any[]; // All persona data for tooltip mapping
+  allPersonas: HousingPersona[]; // All persona data for tooltip mapping
   getScenarioData: (scenario: string) => {
     cubeIndices: number[];
     personas: PersonaScore[];

@@ -11,6 +11,19 @@ import { Locale } from "../../../../lib/i18n/config";
 import { PersonaScore } from "../../utils/targetGroupScoring";
 import { getPersonaCubePosition } from "../../utils/cubePositionMapping";
 
+interface HousingPersona {
+  id: string;
+  name: string;
+  income_level: string;
+  household_type: string;
+  age_group: string;
+  description: string;
+  current_situation: string;
+  desired_situation: string;
+  current_property_types: string[];
+  desired_property_types: string[];
+}
+
 /**
  * Individual small cube component with hover tooltip
  */
@@ -31,9 +44,10 @@ function SmallCube({
   onPointerOver?: (e: ThreeEvent<PointerEvent>) => void;
   onPointerOut?: (e: ThreeEvent<PointerEvent>) => void;
 }) {
-  if (!visible) return null;
   const [hovered, setHovered] = useState(false);
   const boxGeo = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
+
+  if (!visible) return null;
 
   return (
     <mesh
@@ -209,7 +223,7 @@ function StaticCubeScene({
 export interface StaticCubeProps {
   targetGroupIndices: number[];
   cubeColors: string[];
-  allPersonas: any[];
+  allPersonas: HousingPersona[];
   selectedPersonas: PersonaScore[];
   locale: Locale;
 }
