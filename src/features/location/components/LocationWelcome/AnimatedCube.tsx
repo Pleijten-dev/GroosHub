@@ -133,11 +133,11 @@ function RotatingCubeScene({
   const outerCubeSize = 2 * spacing + cubeSize;
 
   const NORMAL_SPEED = 0.002;
-  const FAST_SPEED = 0.015;
+  const FAST_SPEED = 0.08; // Very fast spin - creates blur effect
   const SPIN_DURATION = 10; // 10 seconds of normal spinning
-  const SPEED_UP_DURATION = 1; // 1 second to speed up
-  const FADE_DURATION = 0.5; // 0.5 seconds to fade out/in
-  const SPEED_DOWN_DURATION = 1; // 1 second to slow down
+  const SPEED_UP_DURATION = 0.8; // 0.8 seconds to speed up dramatically
+  const MORPH_DURATION = 0.3; // 0.3 seconds for quick morph during fast spin
+  const SPEED_DOWN_DURATION = 1.2; // 1.2 seconds to slow down
 
   // Complex animation cycle
   useFrame((state, delta) => {
@@ -148,7 +148,7 @@ function RotatingCubeScene({
       // Update time
       timeRef.current += delta;
 
-      const cycleTime = timeRef.current % (SPIN_DURATION + SPEED_UP_DURATION + FADE_DURATION * 2 + SPEED_DOWN_DURATION);
+      const cycleTime = timeRef.current % (SPIN_DURATION + SPEED_UP_DURATION + MORPH_DURATION + SPEED_DOWN_DURATION);
 
       if (cycleTime < SPIN_DURATION) {
         // Phase 1: Normal spinning (0-10s)
@@ -156,32 +156,36 @@ function RotatingCubeScene({
         setOpacity(1);
 
       } else if (cycleTime < SPIN_DURATION + SPEED_UP_DURATION) {
-        // Phase 2: Speed up (10-11s)
+        // Phase 2: Dramatic speed up (10-10.8s)
         const speedUpProgress = (cycleTime - SPIN_DURATION) / SPEED_UP_DURATION;
-        rotationSpeedRef.current = NORMAL_SPEED + (FAST_SPEED - NORMAL_SPEED) * speedUpProgress;
+        const easedProgress = speedUpProgress * speedUpProgress * speedUpProgress; // Cubic ease for dramatic acceleration
+        rotationSpeedRef.current = NORMAL_SPEED + (FAST_SPEED - NORMAL_SPEED) * easedProgress;
         setOpacity(1);
 
-      } else if (cycleTime < SPIN_DURATION + SPEED_UP_DURATION + FADE_DURATION) {
-        // Phase 3: Fade out while spinning fast (11-11.5s)
-        const fadeProgress = (cycleTime - SPIN_DURATION - SPEED_UP_DURATION) / FADE_DURATION;
+      } else if (cycleTime < SPIN_DURATION + SPEED_UP_DURATION + MORPH_DURATION) {
+        // Phase 3: Quick morph during fast spin (10.8-11.1s)
+        const morphProgress = (cycleTime - SPIN_DURATION - SPEED_UP_DURATION) / MORPH_DURATION;
         rotationSpeedRef.current = FAST_SPEED;
-        setOpacity(1 - fadeProgress);
 
-        // Switch shape at the end of fade out
-        if (fadeProgress > 0.9 && opacity > 0.5) {
+        // Quick fade out and in - happens so fast during blur it's barely noticeable
+        if (morphProgress < 0.5) {
+          // First half: fade out
+          setOpacity(1 - (morphProgress * 2));
+        } else {
+          // Second half: fade in with new shape
+          setOpacity((morphProgress - 0.5) * 2);
+        }
+
+        // Switch shape at midpoint
+        if (morphProgress >= 0.5 && opacity < 0.5) {
           setCurrentShapeIndex((prev) => (prev + 1) % allShapes.length);
         }
 
-      } else if (cycleTime < SPIN_DURATION + SPEED_UP_DURATION + FADE_DURATION * 2) {
-        // Phase 4: Fade in with new shape (11.5-12s)
-        const fadeProgress = (cycleTime - SPIN_DURATION - SPEED_UP_DURATION - FADE_DURATION) / FADE_DURATION;
-        rotationSpeedRef.current = FAST_SPEED;
-        setOpacity(fadeProgress);
-
       } else {
-        // Phase 5: Slow down (12-13s)
-        const slowDownProgress = (cycleTime - SPIN_DURATION - SPEED_UP_DURATION - FADE_DURATION * 2) / SPEED_DOWN_DURATION;
-        rotationSpeedRef.current = FAST_SPEED - (FAST_SPEED - NORMAL_SPEED) * slowDownProgress;
+        // Phase 4: Slow down to reveal new shape (11.1-12.3s)
+        const slowDownProgress = (cycleTime - SPIN_DURATION - SPEED_UP_DURATION - MORPH_DURATION) / SPEED_DOWN_DURATION;
+        const easedProgress = 1 - Math.pow(1 - slowDownProgress, 3); // Cubic ease out for smooth deceleration
+        rotationSpeedRef.current = FAST_SPEED - (FAST_SPEED - NORMAL_SPEED) * easedProgress;
         setOpacity(1);
       }
     }
