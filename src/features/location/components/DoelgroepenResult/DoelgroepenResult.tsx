@@ -106,7 +106,7 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
   return (
     <div
       className={`
-        relative h-full w-full flex items-center justify-center
+        relative h-full w-full
         transition-opacity duration-1000
         ${isVisible ? 'opacity-100' : 'opacity-0'}
       `}
@@ -114,6 +114,7 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
       {/* Left Side - Cube and Segmented Button */}
       <div
         className={`
+          absolute left-0 top-0 h-full
           flex flex-col items-center justify-center gap-8
           transition-all duration-700 ease-in-out
           ${isExpanded ? 'w-[25%]' : 'w-full'}
@@ -163,7 +164,7 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
             ))}
           </div>
 
-          {/* Downward Arrow Button */}
+          {/* Downward Arrow Button - 200% wider */}
           <button
             className="group cursor-pointer bg-transparent border-none p-0 m-0 focus:outline-none transition-transform duration-200 hover:scale-110"
             onClick={handleExpandClick}
@@ -176,9 +177,9 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
               xmlns="http://www.w3.org/2000/svg"
               className="transition-colors duration-200"
             >
-              {/* Simple > corner element pointing downwards */}
+              {/* Simple > corner element pointing downwards - 200% wider */}
               <path
-                d="M12 12 L20 16 L12 20"
+                d="M8 12 L24 16 L8 20"
                 stroke="currentColor"
                 strokeWidth="2.5"
                 strokeLinecap="round"
@@ -200,59 +201,73 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
         `}
       >
         <div className="h-full flex flex-col p-6">
-          {/* Content Switcher */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-lg">
-              <button
-                onClick={() => setContentView('table')}
-                className={`
-                  px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
-                  ${
-                    contentView === 'table'
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }
-                `}
-              >
-                {t.table}
-              </button>
-              <button
-                onClick={() => setContentView('cards')}
-                className={`
-                  px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
-                  ${
-                    contentView === 'cards'
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }
-                `}
-              >
-                {t.cards}
-              </button>
+          {/* Content Switcher - Hidden when detailed scoring is shown */}
+          {!showDetailedScoring && (
+            <div className="flex items-center justify-center mb-4">
+              <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-lg">
+                <button
+                  onClick={() => setContentView('table')}
+                  className={`
+                    px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
+                    ${
+                      contentView === 'table'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }
+                  `}
+                >
+                  {t.table}
+                </button>
+                <button
+                  onClick={() => setContentView('cards')}
+                  className={`
+                    px-4 py-2 rounded-md font-medium text-sm transition-all duration-200
+                    ${
+                      contentView === 'cards'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }
+                  `}
+                >
+                  {t.cards}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Main Content Window */}
-          <div className="flex-1 overflow-auto mb-4">
-            {contentView === 'table' ? (
-              <SummaryRankingTable
+          {/* Main Content Window - Hidden when detailed scoring is shown */}
+          {!showDetailedScoring && (
+            <div className="flex-1 overflow-auto mb-4">
+              {contentView === 'table' ? (
+                <SummaryRankingTable
+                  scores={allPersonaScores}
+                  locale={locale}
+                />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {selectedPersonasForCards.map(persona => (
+                    <DoelgroepenCard
+                      key={persona.id}
+                      persona={persona}
+                      locale={locale}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Detailed Scoring Table - Replaces all content above when shown */}
+          {showDetailedScoring && (
+            <div className="flex-1 overflow-auto mb-4">
+              <DetailedScoringTable
                 scores={allPersonaScores}
                 locale={locale}
               />
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {selectedPersonasForCards.map(persona => (
-                  <DoelgroepenCard
-                    key={persona.id}
-                    persona={persona}
-                    locale={locale}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* Second Arrow for Detailed Scoring */}
+          {/* Second Arrow for Detailed Scoring - 200% wider */}
           <div className="flex flex-col items-center gap-4 border-t border-gray-200 pt-4">
             <button
               className="group cursor-pointer bg-transparent border-none p-0 m-0 focus:outline-none transition-transform duration-200 hover:scale-110"
@@ -266,9 +281,9 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
                 xmlns="http://www.w3.org/2000/svg"
                 className="transition-colors duration-200"
               >
-                {/* Simple > corner element pointing downwards or upwards */}
+                {/* Simple > corner element pointing downwards or upwards - 200% wider */}
                 <path
-                  d="M12 12 L20 16 L12 20"
+                  d="M8 12 L24 16 L8 20"
                   stroke="currentColor"
                   strokeWidth="2.5"
                   strokeLinecap="round"
@@ -278,16 +293,6 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
                 />
               </svg>
             </button>
-
-            {/* Detailed Scoring Table */}
-            {showDetailedScoring && (
-              <div className="w-full max-h-[400px] overflow-auto">
-                <DetailedScoringTable
-                  scores={allPersonaScores}
-                  locale={locale}
-                />
-              </div>
-            )}
           </div>
         </div>
       </div>
