@@ -4,8 +4,8 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { Canvas, ThreeEvent } from "@react-three/fiber";
-import { OrbitControls, Html } from "@react-three/drei";
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { Locale } from "../../../../lib/i18n/config";
 import { PersonaScore } from "../../utils/targetGroupScoring";
@@ -25,7 +25,7 @@ interface HousingPersona {
 }
 
 /**
- * Individual small cube component with hover tooltip
+ * Individual small cube component with hover effect
  */
 function SmallCube({
   position,
@@ -33,12 +33,14 @@ function SmallCube({
   visible,
   cubeSize = 1,
   personaName,
+  onHoverChange,
 }: {
   position: [number, number, number];
   color: string;
   visible: boolean;
   cubeSize?: number;
   personaName?: string;
+  onHoverChange?: (hovered: boolean, name: string | null) => void;
 }) {
   const [hovered, setHovered] = useState(false);
 
@@ -49,8 +51,18 @@ function SmallCube({
       <mesh
         castShadow
         receiveShadow
-        onPointerEnter={() => setHovered(true)}
-        onPointerLeave={() => setHovered(false)}
+        onPointerEnter={() => {
+          setHovered(true);
+          if (onHoverChange && personaName) {
+            onHoverChange(true, personaName);
+          }
+        }}
+        onPointerLeave={() => {
+          setHovered(false);
+          if (onHoverChange) {
+            onHoverChange(false, null);
+          }
+        }}
       >
         <boxGeometry args={[cubeSize, cubeSize, cubeSize]} />
         <meshStandardMaterial
@@ -67,26 +79,6 @@ function SmallCube({
         <edgesGeometry args={[new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize)]} />
         <lineBasicMaterial color="white" linewidth={1} />
       </lineSegments>
-
-      {/* Tooltip */}
-      {hovered && personaName && (
-        <Html
-          position={[0, cubeSize / 2 + 0.5, 0]}
-          center
-          distanceFactor={6}
-          style={{ pointerEvents: 'none' }}
-        >
-          <div
-            className="bg-gray-900 text-white px-3 py-2 rounded-lg shadow-lg text-sm whitespace-nowrap"
-            style={{
-              transform: 'translateY(-100%)',
-              marginTop: '-8px'
-            }}
-          >
-            {personaName}
-          </div>
-        </Html>
-      )}
     </group>
   );
 }
@@ -168,11 +160,13 @@ function StaticCubeScene({
   targetGroupIndices = [],
   cubeColors = [],
   indexToPersonaMap = {},
+  onCubeHover,
 }: {
   spacing?: number;
   targetGroupIndices?: number[];
   cubeColors?: string[];
   indexToPersonaMap?: Record<number, string>;
+  onCubeHover?: (personaName: string | null) => void;
 }) {
   const cubeSize = 1;
   const outerCubeSize = 2 * spacing + cubeSize;
@@ -207,6 +201,11 @@ function StaticCubeScene({
           visible={targetGroupIndices.includes(i)}
           cubeSize={cubeSize}
           personaName={indexToPersonaMap[i]}
+          onHoverChange={(hovered, name) => {
+            if (onCubeHover) {
+              onCubeHover(hovered ? name : null);
+            }
+          }}
         />
       ))}
     </group>
@@ -236,6 +235,9 @@ export function StaticCube({
   selectedPersonas,
   locale,
 }: StaticCubeProps): React.JSX.Element {
+  const [hoveredPersona, setHoveredPersona] = useState<string | null>(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
   // Create mapping from cube index to persona name
   const indexToPersonaMap = useMemo(() => {
     const map: Record<number, string> = {};
@@ -255,26 +257,24 @@ export function StaticCube({
 
     return map;
   }, [selectedPersonas, allPersonas]);
+
+  // Track mouse position for tooltip
+  const handleMouseMove = (e: React.MouseEvent) => {
+    setMousePosition({ x: e.clientX, y: e.clientY });
+  };
   return (
-    <div className="static-cube">
-      <style jsx>{`
-        .static-cube {
-          background: transparent;
-          padding: 0;
-          width: 100%;
-          height: 100%;
-        }
-
-        .cube-canvas {
-          width: 100%;
-          height: 100%;
-          border-radius: 8px;
-          background: transparent;
-          overflow: hidden;
-        }
-      `}</style>
-
-      <div className="cube-canvas">
+    <div className="static-cube" style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <div
+        className="cube-canvas"
+        onMouseMove={handleMouseMove}
+        style={{
+          width: '100%',
+          height: '100%',
+          borderRadius: '8px',
+          background: 'transparent',
+          overflow: 'hidden'
+        }}
+      >
         <Canvas
           orthographic
           camera={{ zoom: 80, position: [-10, 10, -10], near: -100, far: 100 }}
@@ -290,9 +290,27 @@ export function StaticCube({
             targetGroupIndices={targetGroupIndices}
             cubeColors={cubeColors}
             indexToPersonaMap={indexToPersonaMap}
+            onCubeHover={setHoveredPersona}
           />
         </Canvas>
       </div>
+
+      {/* Mouse-following tooltip */}
+      {hoveredPersona && (
+        <div
+          style={{
+            position: 'fixed',
+            left: mousePosition.x + 15,
+            top: mousePosition.y + 15,
+            pointerEvents: 'none',
+            zIndex: 9999,
+          }}
+        >
+          <div className="bg-gray-900 text-white px-3 py-2 rounded-lg shadow-lg text-sm whitespace-nowrap">
+            {hoveredPersona}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
