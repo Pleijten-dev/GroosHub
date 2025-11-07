@@ -51,8 +51,8 @@ export const LocationWelcome: React.FC<LocationWelcomeProps> = ({
 
   return (
     <div className="relative h-full w-full">
-      {/* Cube - positioned above center, 40vh height, properly scaled */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full pb-8" style={{ height: '40vh', width: '100%', maxWidth: '800px' }}>
+      {/* Cube - centered in the space above search bar */}
+      <div className="absolute left-1/2 top-[25%] -translate-x-1/2 -translate-y-1/2" style={{ height: '40vh', width: '100%', maxWidth: '800px' }}>
         <AnimatedCube
           allShapes={allShapes}
           cubeColors={cubeColors}
