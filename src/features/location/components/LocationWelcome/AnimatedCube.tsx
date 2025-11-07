@@ -128,6 +128,7 @@ function RotatingCubeScene({
   const [opacity, setOpacity] = useState(1);
   const timeRef = useRef(0);
   const rotationSpeedRef = useRef(0.002);
+  const hasShapeSwitchedRef = useRef(false); // Track if we've switched shapes in this cycle
 
   const cubeSize = 1;
   const outerCubeSize = 2 * spacing + cubeSize;
@@ -154,6 +155,7 @@ function RotatingCubeScene({
         // Phase 1: Normal spinning (0-10s)
         rotationSpeedRef.current = NORMAL_SPEED;
         setOpacity(1);
+        hasShapeSwitchedRef.current = false; // Reset flag for next cycle
 
       } else if (cycleTime < SPIN_DURATION + SPEED_UP_DURATION) {
         // Phase 2: Dramatic speed up (10-10.8s)
@@ -176,9 +178,14 @@ function RotatingCubeScene({
           setOpacity((morphProgress - 0.5) * 2);
         }
 
-        // Switch shape at midpoint
-        if (morphProgress >= 0.5 && opacity < 0.5) {
-          setCurrentShapeIndex((prev) => (prev + 1) % allShapes.length);
+        // Switch shape at midpoint - only once per cycle
+        if (morphProgress >= 0.5 && !hasShapeSwitchedRef.current) {
+          hasShapeSwitchedRef.current = true;
+          setCurrentShapeIndex((prev) => {
+            const nextIndex = (prev + 1) % allShapes.length;
+            console.log(`Switching from shape ${prev} to ${nextIndex}`); // Debug log
+            return nextIndex;
+          });
         }
 
       } else {
