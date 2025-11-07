@@ -15,6 +15,9 @@ import { extractLocationScores } from '../../../features/location/utils/extractL
 import { LocationAnimation } from '../../../features/location/components/LocationAnimation';
 import { DoelgroepenResult } from '../../../features/location/components/DoelgroepenResult';
 import { generateGradientColors } from '../../../features/location/utils/cubePatterns';
+import { calculatePersonaScores } from '../../../features/location/utils/targetGroupScoring';
+import { getPersonaCubePosition } from '../../../features/location/utils/cubePositionMapping';
+import housingPersonasData from '../../../features/location/data/sources/housing-personas.json';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -180,22 +183,62 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     if (data) {
       // For Doelgroepen tab - show result with cube and scenarios
       if (activeTab === 'doelgroepen') {
-        // Extract location scores for target group calculations
+        // Extract location scores and calculate persona scores
         const locationScores = extractLocationScores(data);
+        const personas = housingPersonasData[locale].housing_personas;
+        const personaScores = calculatePersonaScores(personas, locationScores);
 
-        // Calculate top 3 target group indices (placeholder logic)
-        // TODO: Implement actual scoring algorithm based on location data
-        const targetGroupIndices = [0, 1, 2];
+        // Sort by R-rank position (1 = best)
+        const sortedPersonas = [...personaScores].sort((a, b) => a.rRankPosition - b.rRankPosition);
+
+        // Create scenario mappings based on R-rank positions
+        const getScenarioData = (scenario: string) => {
+          let positions: number[] = [];
+
+          switch (scenario) {
+            case 'scenario1':
+              positions = [1, 2, 3, 4]; // Top 4
+              break;
+            case 'scenario2':
+              positions = [1, 2, 6, 8];
+              break;
+            case 'scenario3':
+              positions = [3, 4, 9, 12];
+              break;
+            case 'custom':
+              positions = []; // None selected
+              break;
+          }
+
+          // Get persona IDs and cube indices for selected positions
+          const selectedPersonas = positions
+            .map(pos => sortedPersonas[pos - 1]) // Convert 1-based to 0-based
+            .filter(p => p !== undefined);
+
+          const cubeIndices = selectedPersonas.map(persona => {
+            const personaData = personas.find(p => p.id === persona.personaId);
+            if (!personaData) return -1;
+
+            const { index } = getPersonaCubePosition({
+              income_level: personaData.income_level,
+              age_group: personaData.age_group,
+              household_type: personaData.household_type,
+            });
+            return index;
+          }).filter(idx => idx !== -1);
+
+          return {
+            cubeIndices,
+            personas: selectedPersonas,
+          };
+        };
 
         return (
           <DoelgroepenResult
             locale={locale}
-            targetGroupIndices={targetGroupIndices}
             cubeColors={cubeColors}
-            onScenarioChange={(scenario) => {
-              console.log('Selected scenario:', scenario);
-              // TODO: Handle scenario selection
-            }}
+            allPersonas={personas}
+            getScenarioData={getScenarioData}
           />
         );
       }

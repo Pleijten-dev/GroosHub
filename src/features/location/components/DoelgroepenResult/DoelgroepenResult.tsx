@@ -4,12 +4,16 @@
 import React, { useState, useEffect } from 'react';
 import { Locale } from '../../../../lib/i18n/config';
 import { StaticCube } from './StaticCube';
+import { PersonaScore } from '../../utils/targetGroupScoring';
 
 interface DoelgroepenResultProps {
   locale: Locale;
-  targetGroupIndices: number[];
   cubeColors: string[]; // Shared cube colors for consistency
-  onScenarioChange?: (scenario: string) => void;
+  allPersonas: any[]; // All persona data for tooltip mapping
+  getScenarioData: (scenario: string) => {
+    cubeIndices: number[];
+    personas: PersonaScore[];
+  };
 }
 
 type Scenario = 'scenario1' | 'scenario2' | 'scenario3' | 'custom';
@@ -23,9 +27,9 @@ type Scenario = 'scenario1' | 'scenario2' | 'scenario3' | 'custom';
  */
 export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
   locale,
-  targetGroupIndices,
   cubeColors,
-  onScenarioChange
+  allPersonas,
+  getScenarioData
 }) => {
   const [selectedScenario, setSelectedScenario] = useState<Scenario>('scenario1');
   const [isVisible, setIsVisible] = useState(false);
@@ -38,10 +42,10 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
 
   const handleScenarioClick = (scenario: Scenario) => {
     setSelectedScenario(scenario);
-    if (onScenarioChange) {
-      onScenarioChange(scenario);
-    }
   };
+
+  // Get current scenario data
+  const scenarioData = getScenarioData(selectedScenario);
 
   const scenarios: { id: Scenario; label: string }[] = [
     { id: 'scenario1', label: locale === 'nl' ? 'Scenario 1' : 'Scenario 1' },
@@ -61,8 +65,11 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
       {/* Static Cube - 60vh height, no spinning */}
       <div style={{ height: '60vh', width: '100%', maxWidth: '1000px' }} className="flex items-center justify-center">
         <StaticCube
-          targetGroupIndices={targetGroupIndices}
+          targetGroupIndices={scenarioData.cubeIndices}
           cubeColors={cubeColors}
+          allPersonas={allPersonas}
+          selectedPersonas={scenarioData.personas}
+          locale={locale}
         />
       </div>
 
@@ -76,7 +83,7 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
               px-6 py-3 rounded-full font-medium text-sm transition-all duration-300
               ${
                 selectedScenario === scenario.id
-                  ? 'bg-gradient-3-mid text-white shadow-md'
+                  ? 'bg-gradient-3-mid text-gray-900 shadow-md'
                   : 'text-gray-700 hover:bg-gray-100'
               }
             `}

@@ -3,42 +3,75 @@
 
 "use client";
 
-import React, { useMemo } from "react";
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import React, { useMemo, useState } from "react";
+import { Canvas, ThreeEvent } from "@react-three/fiber";
+import { OrbitControls, Html } from "@react-three/drei";
 import * as THREE from "three";
+import { Locale } from "../../../../lib/i18n/config";
+import { PersonaScore } from "../../utils/targetGroupScoring";
+import { getPersonaCubePosition } from "../../utils/cubePositionMapping";
 
 /**
- * Individual small cube component
+ * Individual small cube component with hover tooltip
  */
 function SmallCube({
   position,
   color,
   visible,
   cubeSize = 1,
+  personaName,
+  onPointerOver,
+  onPointerOut,
 }: {
   position: [number, number, number];
   color: string;
   visible: boolean;
   cubeSize?: number;
+  personaName?: string;
+  onPointerOver?: (e: ThreeEvent<PointerEvent>) => void;
+  onPointerOut?: (e: ThreeEvent<PointerEvent>) => void;
 }) {
   if (!visible) return null;
+  const [hovered, setHovered] = useState(false);
   const boxGeo = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
 
   return (
-    <mesh position={position} castShadow receiveShadow>
+    <mesh
+      position={position}
+      castShadow
+      receiveShadow
+      onPointerOver={(e) => {
+        e.stopPropagation();
+        setHovered(true);
+        if (onPointerOver) onPointerOver(e);
+      }}
+      onPointerOut={(e) => {
+        e.stopPropagation();
+        setHovered(false);
+        if (onPointerOut) onPointerOut(e);
+      }}
+    >
       <boxGeometry args={[cubeSize, cubeSize, cubeSize]} />
       <meshStandardMaterial
         color={color}
         roughness={0}
         metalness={0}
         emissive={color}
-        emissiveIntensity={0.1}
+        emissiveIntensity={hovered ? 0.3 : 0.1}
       />
       <lineSegments>
         <edgesGeometry attach="geometry" args={[boxGeo]} />
         <lineBasicMaterial attach="material" color="white" />
       </lineSegments>
+
+      {/* Tooltip */}
+      {hovered && personaName && (
+        <Html distanceFactor={10}>
+          <div className="bg-gray-900 text-white px-3 py-2 rounded-lg shadow-lg text-sm whitespace-nowrap pointer-events-none">
+            {personaName}
+          </div>
+        </Html>
+      )}
     </mesh>
   );
 }
@@ -119,10 +152,12 @@ function StaticCubeScene({
   spacing = 1,
   targetGroupIndices = [],
   cubeColors = [],
+  indexToPersonaMap = {},
 }: {
   spacing?: number;
   targetGroupIndices?: number[];
   cubeColors?: string[];
+  indexToPersonaMap?: Record<number, string>;
 }) {
   const cubeSize = 1;
   const outerCubeSize = 2 * spacing + cubeSize;
@@ -156,6 +191,7 @@ function StaticCubeScene({
           color={cubeColors[i] || "#888"}
           visible={targetGroupIndices.includes(i)}
           cubeSize={cubeSize}
+          personaName={indexToPersonaMap[i]}
         />
       ))}
     </group>
@@ -168,16 +204,42 @@ function StaticCubeScene({
  * - Shows specific target group configuration
  * - Larger size (80 zoom vs 70)
  * - User can orbit with mouse
+ * - Hover tooltips showing persona names
  */
 export interface StaticCubeProps {
   targetGroupIndices: number[];
   cubeColors: string[];
+  allPersonas: any[];
+  selectedPersonas: PersonaScore[];
+  locale: Locale;
 }
 
 export function StaticCube({
   targetGroupIndices,
   cubeColors,
+  allPersonas,
+  selectedPersonas,
+  locale,
 }: StaticCubeProps): React.JSX.Element {
+  // Create mapping from cube index to persona name
+  const indexToPersonaMap = useMemo(() => {
+    const map: Record<number, string> = {};
+
+    selectedPersonas.forEach((personaScore) => {
+      const persona = allPersonas.find(p => p.id === personaScore.personaId);
+      if (!persona) return;
+
+      const { index } = getPersonaCubePosition({
+        income_level: persona.income_level,
+        age_group: persona.age_group,
+        household_type: persona.household_type,
+      });
+
+      map[index] = persona.name;
+    });
+
+    return map;
+  }, [selectedPersonas, allPersonas]);
   return (
     <div className="static-cube">
       <style jsx>{`
@@ -212,6 +274,7 @@ export function StaticCube({
             spacing={1}
             targetGroupIndices={targetGroupIndices}
             cubeColors={cubeColors}
+            indexToPersonaMap={indexToPersonaMap}
           />
         </Canvas>
       </div>
