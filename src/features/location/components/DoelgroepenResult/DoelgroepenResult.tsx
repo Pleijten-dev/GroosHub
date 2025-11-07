@@ -114,10 +114,10 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
       {/* Left Side - Cube and Segmented Button */}
       <div
         className={`
-          absolute left-0 top-0 h-full
+          absolute top-0 h-full
           flex flex-col items-center justify-center gap-8
           transition-all duration-700 ease-in-out
-          ${isExpanded ? 'w-[25%] z-50' : 'w-full z-10'}
+          ${isExpanded ? 'left-[5%] w-[25%] z-50' : 'left-0 w-full z-10'}
         `}
       >
         {/* Static Cube */}

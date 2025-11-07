@@ -274,7 +274,7 @@ export function StaticCube({
           height: '100%',
           borderRadius: '8px',
           background: 'transparent',
-          overflow: 'hidden'
+          overflow: 'visible'
         }}
       >
         <Canvas
