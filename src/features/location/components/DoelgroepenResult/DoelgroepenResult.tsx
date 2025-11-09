@@ -255,6 +255,7 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
                 <SummaryRankingTable
                   scores={allPersonaScores}
                   locale={locale}
+                  highlightedIds={scenarioData.personas.map(ps => ps.personaId)}
                 />
               ) : contentView === 'verbanden' ? (
                 <TargetGroupConnectionGraph

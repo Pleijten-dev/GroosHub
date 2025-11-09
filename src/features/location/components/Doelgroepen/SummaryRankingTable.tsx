@@ -8,6 +8,7 @@ export interface SummaryRankingTableProps {
   locale?: 'nl' | 'en';
   onRowClick?: (personaId: string) => void;
   selectedIds?: string[];
+  highlightedIds?: string[]; // IDs to highlight in blue (e.g., current scenario)
 }
 
 type SortColumn = 'rRank' | 'zRank' | 'name';
@@ -23,6 +24,7 @@ export const SummaryRankingTable: React.FC<SummaryRankingTableProps> = ({
   locale = 'nl',
   onRowClick,
   selectedIds = [],
+  highlightedIds = [],
 }) => {
   const [sortColumn, setSortColumn] = useState<SortColumn>('rRank');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -182,11 +184,11 @@ export const SummaryRankingTable: React.FC<SummaryRankingTableProps> = ({
           </thead>
           <tbody>
             {sortedScores.map((score, index) => {
-              const isTopThree = index < 3;
+              const isHighlighted = highlightedIds.includes(score.personaId);
               const isSelected = selectedIds.includes(score.personaId);
               const bgClass = isSelected
                 ? 'bg-blue-200'
-                : isTopThree
+                : isHighlighted
                 ? 'bg-blue-50'
                 : index % 2 === 0
                 ? 'bg-white'
