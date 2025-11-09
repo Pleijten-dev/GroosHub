@@ -121,7 +121,7 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
       >
         {/* Static Cube - takes available space */}
         <div className={`flex-1 flex items-center justify-center w-full transition-all duration-700 ease-in-out ${isExpanded ? 'max-h-[50vh]' : 'max-h-[70vh]'}`}>
-          <div className="w-full h-full max-w-[1000px]">
+          <div className={`w-full h-full ${!isExpanded ? 'max-w-[1000px]' : ''}`}>
             <StaticCube
               targetGroupIndices={scenarioData.cubeIndices}
               cubeColors={cubeColors}
