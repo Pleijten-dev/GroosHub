@@ -1,7 +1,7 @@
 // src/features/location/components/DoelgroepenResult/TargetGroupConnectionGraph.tsx
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Locale } from '../../../../lib/i18n/config';
 import { PersonaScore } from '../../utils/targetGroupScoring';
 
@@ -34,6 +34,9 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
   allPersonaScores,
   locale
 }) => {
+  const [hoveredNode, setHoveredNode] = useState<number | null>(null);
+  const [selectedNode, setSelectedNode] = useState<number | null>(null);
+
   // Calculate connections between target groups based on similarity
   const connections = useMemo(() => {
     const connectionMap = new Map<string, number>();
@@ -102,6 +105,25 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
     return Math.max(...connections.map(c => c.count), 1);
   }, [connections]);
 
+  // Get top 5 connections for selected node
+  const topConnections = useMemo(() => {
+    if (selectedNode === null) return null;
+
+    const nodeConnections = connections
+      .filter(c => c.from === selectedNode || c.to === selectedNode)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    return nodeConnections.map(conn => {
+      const otherIndex = conn.from === selectedNode ? conn.to : conn.from;
+      return {
+        persona: allPersonas[otherIndex],
+        count: conn.count,
+        index: otherIndex
+      };
+    });
+  }, [selectedNode, connections, allPersonas]);
+
   const translations = {
     nl: {
       title: 'Verbanden tussen Doelgroepen',
@@ -131,8 +153,20 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
             {connections.map((conn, idx) => {
               const from = nodePositions[conn.from];
               const to = nodePositions[conn.to];
-              const thickness = 0.5 + (conn.count / maxConnections) * 4; // 0.5 to 4.5px
-              const opacity = 0.1 + (conn.count / maxConnections) * 0.4; // 0.1 to 0.5
+
+              // Use exponential scale for thickness - makes weak connections much thinner
+              const normalizedStrength = conn.count / maxConnections;
+              const thickness = 0.2 + Math.pow(normalizedStrength, 2) * 5; // 0.2 to 5.2px (exponential)
+              const baseOpacity = 0.05 + Math.pow(normalizedStrength, 1.5) * 0.5; // 0.05 to 0.55 (power scale)
+
+              // Check if this connection is related to hovered or selected node
+              const activeNode = selectedNode !== null ? selectedNode : hoveredNode;
+              const isRelated = activeNode !== null && (conn.from === activeNode || conn.to === activeNode);
+              const shouldFade = activeNode !== null && !isRelated;
+
+              // Reduce opacity for non-related connections when hovering/selecting
+              const opacity = shouldFade ? baseOpacity * 0.1 : baseOpacity;
+              const strokeColor = isRelated ? '#8f9c66' : '#6e8154';
 
               return (
                 <line
@@ -141,10 +175,11 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
                   y1={from.y}
                   x2={to.x}
                   y2={to.y}
-                  stroke="#6e8154"
+                  stroke={strokeColor}
                   strokeWidth={thickness}
                   opacity={opacity}
                   strokeLinecap="round"
+                  className="transition-opacity duration-300"
                 />
               );
             })}
@@ -157,10 +192,12 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
               const personaScore = allPersonaScores.find(ps => ps.personaId === persona.id);
               const rankPosition = personaScore?.rRankPosition || 999;
 
-              // Color based on rank
-              const fillColor = rankPosition <= 4
+              // Color based on rank and selection state
+              const isActive = index === hoveredNode || index === selectedNode;
+              const baseColor = rankPosition <= 4
                 ? '#8f9c66' // Top 4 - brighter green
                 : '#6e8154'; // Others - medium green
+              const fillColor = isActive ? '#b0b877' : baseColor;
 
               return (
                 <g key={persona.id}>
@@ -168,11 +205,14 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
                   <circle
                     cx={pos.x}
                     cy={pos.y}
-                    r={12}
+                    r={isActive ? 14 : 12}
                     fill={fillColor}
                     stroke="white"
-                    strokeWidth={2}
-                    className="cursor-pointer hover:opacity-80 transition-opacity"
+                    strokeWidth={isActive ? 3 : 2}
+                    className="cursor-pointer transition-all duration-300"
+                    onMouseEnter={() => setHoveredNode(index)}
+                    onMouseLeave={() => setHoveredNode(null)}
+                    onClick={() => setSelectedNode(index === selectedNode ? null : index)}
                   >
                     <title>{persona.name}</title>
                   </circle>
@@ -185,7 +225,7 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
                     fontSize="11"
                     fill="#374151"
                     className="pointer-events-none select-none"
-                    style={{ fontWeight: rankPosition <= 4 ? 600 : 400 }}
+                    style={{ fontWeight: isActive || rankPosition <= 4 ? 600 : 400 }}
                   >
                     {persona.name}
                   </text>
@@ -208,7 +248,50 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
           </svg>
           <span>{locale === 'nl' ? 'Sterkere overeenkomsten' : 'Stronger similarity'}</span>
         </div>
+        <div className="flex items-center gap-2 text-xs text-gray-500">
+          <span>{locale === 'nl' ? 'Tip: Klik op een groep voor top 5 verbindingen' : 'Tip: Click a group for top 5 connections'}</span>
+        </div>
       </div>
+
+      {/* Top connections panel */}
+      {topConnections && selectedNode !== null && (
+        <div className="mt-6 w-full max-w-md bg-white/80 backdrop-blur-md rounded-lg border border-gray-200 p-4 shadow-lg">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-semibold text-gray-900">
+              {locale === 'nl' ? 'Top 5 verbindingen voor' : 'Top 5 connections for'} {allPersonas[selectedNode].name}
+            </h4>
+            <button
+              onClick={() => setSelectedNode(null)}
+              className="text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor">
+                <path d="M4 4L12 12M12 4L4 12" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </button>
+          </div>
+          <div className="space-y-2">
+            {topConnections.map((conn, idx) => (
+              <div
+                key={conn.index}
+                className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
+                onClick={() => setSelectedNode(conn.index)}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-semibold text-gray-500 w-4">#{idx + 1}</span>
+                  <span className="text-sm text-gray-900">{conn.persona.name}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div
+                    className="h-1 bg-[#8f9c66] rounded-full"
+                    style={{ width: `${(conn.count / maxConnections) * 40}px` }}
+                  ></div>
+                  <span className="text-xs text-gray-600">{conn.count}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
