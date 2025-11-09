@@ -4,6 +4,7 @@
 import React, { useMemo, useState } from 'react';
 import { Locale } from '../../../../lib/i18n/config';
 import { PersonaScore } from '../../utils/targetGroupScoring';
+import { calculateConnections, getTopConnectionsForPersona, Connection } from '../../utils/connectionCalculations';
 
 interface HousingPersona {
   id: string;
@@ -17,12 +18,6 @@ interface TargetGroupConnectionGraphProps {
   allPersonas: HousingPersona[];
   allPersonaScores: PersonaScore[];
   locale: Locale;
-}
-
-interface Connection {
-  from: number;
-  to: number;
-  count: number;
 }
 
 /**
@@ -39,49 +34,7 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
 
   // Calculate connections between target groups based on similarity
   const connections = useMemo(() => {
-    const connectionMap = new Map<string, number>();
-
-    // Calculate connections based on similar characteristics
-    for (let i = 0; i < allPersonas.length; i++) {
-      for (let j = i + 1; j < allPersonas.length; j++) {
-        const persona1 = allPersonas[i];
-        const persona2 = allPersonas[j];
-
-        // Count shared characteristics
-        let sharedCount = 0;
-
-        if (persona1.income_level === persona2.income_level) sharedCount += 3;
-        if (persona1.household_type === persona2.household_type) sharedCount += 3;
-        if (persona1.age_group === persona2.age_group) sharedCount += 3;
-
-        // Also consider scoring similarity
-        const score1 = allPersonaScores.find(ps => ps.personaId === persona1.id);
-        const score2 = allPersonaScores.find(ps => ps.personaId === persona2.id);
-
-        if (score1 && score2) {
-          // Normalize scores and calculate similarity (closer scores = stronger connection)
-          const scoreDiff = Math.abs(score1.weightedTotal - score2.weightedTotal);
-          const maxDiff = 100; // Assume max difference is 100
-          const scoreSimilarity = Math.max(0, maxDiff - scoreDiff) / maxDiff;
-          sharedCount += Math.floor(scoreSimilarity * 5); // Add 0-5 points based on score similarity
-        }
-
-        // Only add connection if there's some similarity
-        if (sharedCount > 0) {
-          const key = `${i}-${j}`;
-          connectionMap.set(key, sharedCount);
-        }
-      }
-    }
-
-    // Convert to array
-    const connectionsArray: Connection[] = [];
-    connectionMap.forEach((count, key) => {
-      const [from, to] = key.split('-').map(Number);
-      connectionsArray.push({ from, to, count });
-    });
-
-    return connectionsArray;
+    return calculateConnections(allPersonas, allPersonaScores);
   }, [allPersonas, allPersonaScores]);
 
   // Calculate positions for nodes in a circle
@@ -109,17 +62,13 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
   const topConnections = useMemo(() => {
     if (selectedNode === null) return null;
 
-    const nodeConnections = connections
-      .filter(c => c.from === selectedNode || c.to === selectedNode)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
+    const nodeConnections = getTopConnectionsForPersona(selectedNode, connections, 5);
 
     return nodeConnections.map(conn => {
-      const otherIndex = conn.from === selectedNode ? conn.to : conn.from;
       return {
-        persona: allPersonas[otherIndex],
+        persona: allPersonas[conn.index],
         count: conn.count,
-        index: otherIndex
+        index: conn.index
       };
     });
   }, [selectedNode, connections, allPersonas]);
@@ -156,6 +105,13 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
               const from = nodePositions[conn.from];
               const to = nodePositions[conn.to];
 
+              // Check if both nodes are in top 5
+              const fromScore = allPersonaScores.find(ps => ps.personaId === allPersonas[conn.from].id);
+              const toScore = allPersonaScores.find(ps => ps.personaId === allPersonas[conn.to].id);
+              const fromRank = fromScore?.rRankPosition || 999;
+              const toRank = toScore?.rRankPosition || 999;
+              const bothInTop5 = fromRank <= 5 && toRank <= 5;
+
               // Use exponential scale for thickness - makes weak connections much thinner
               const normalizedStrength = conn.count / maxConnections;
               const thickness = 0.2 + Math.pow(normalizedStrength, 2) * 5; // 0.2 to 5.2px (exponential)
@@ -166,8 +122,15 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
               const isRelated = activeNode !== null && (conn.from === activeNode || conn.to === activeNode);
               const shouldFade = activeNode !== null && !isRelated;
 
-              // Reduce opacity for non-related connections when hovering/selecting
-              const opacity = shouldFade ? baseOpacity * 0.1 : baseOpacity;
+              // Apply opacity based on top 5 status and hover state
+              let opacity = baseOpacity;
+              if (!bothInTop5) {
+                opacity = opacity * 0.1; // Reduce opacity for non-top 5 connections
+              }
+              if (shouldFade) {
+                opacity = opacity * 0.1; // Further reduce when not related to hovered/selected
+              }
+
               const strokeColor = isRelated ? '#8f9c66' : '#6e8154';
 
               return (
