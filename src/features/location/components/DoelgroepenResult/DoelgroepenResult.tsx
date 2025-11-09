@@ -106,7 +106,7 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
   return (
     <div
       className={`
-        relative h-full w-full
+        h-full w-full flex
         transition-opacity duration-1000
         ${isVisible ? 'opacity-100' : 'opacity-0'}
       `}
@@ -114,31 +114,27 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
       {/* Left Side - Cube and Segmented Button */}
       <div
         className={`
-          absolute top-0 h-full
           flex flex-col items-center justify-center gap-8
-          transition-all duration-700 ease-in-out
-          ${isExpanded ? 'left-[5%] w-[25%] z-50' : 'left-0 w-full z-10'}
+          transition-all duration-700 ease-in-out z-50
+          ${isExpanded ? 'w-[30%]' : 'w-full'}
         `}
       >
-        {/* Static Cube */}
-        <div
-          className={`
-            flex items-center justify-center transition-all duration-700 ease-in-out overflow-visible
-            ${isExpanded ? 'h-[40vh] w-full' : 'h-[60vh] w-full max-w-[1000px]'}
-          `}
-        >
-          <StaticCube
-            targetGroupIndices={scenarioData.cubeIndices}
-            cubeColors={cubeColors}
-            allPersonas={allPersonas}
-            selectedPersonas={scenarioData.personas}
-            locale={locale}
-            zoom={isExpanded ? 40 : 80}
-          />
+        {/* Static Cube - takes available space */}
+        <div className={`flex-1 flex items-center justify-center w-full transition-all duration-700 ease-in-out ${isExpanded ? 'max-h-[50vh]' : 'max-h-[70vh]'}`}>
+          <div className="w-full h-full max-w-[1000px]">
+            <StaticCube
+              targetGroupIndices={scenarioData.cubeIndices}
+              cubeColors={cubeColors}
+              allPersonas={allPersonas}
+              selectedPersonas={scenarioData.personas}
+              locale={locale}
+              zoom={isExpanded ? 40 : 80}
+            />
+          </div>
         </div>
 
         {/* Segmented Button */}
-        <div className="flex flex-col items-center gap-4">
+        <div className="flex-shrink-0 flex flex-col items-center gap-4 pb-8">
           <div
             className={`
               flex items-center gap-2 p-2 bg-white/80 backdrop-blur-md rounded-full border border-gray-200 shadow-lg
@@ -193,18 +189,18 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
         </div>
       </div>
 
-      {/* Right Side - Sliding Panel (70% width) */}
+      {/* Right Side - Sliding Panel */}
       <div
         className={`
-          absolute right-0 top-0 h-full bg-white border-l border-gray-200 shadow-xl
+          flex flex-col bg-white border-l border-gray-200 shadow-xl
           transition-all duration-700 ease-in-out overflow-hidden
           ${isExpanded ? 'w-[70%] opacity-100' : 'w-0 opacity-0'}
         `}
       >
-        <div className="h-full flex flex-col p-6">
+        <div className="flex-1 flex flex-col p-6 min-h-0">
           {/* Content Switcher - Hidden when detailed scoring is shown */}
           {!showDetailedScoring && (
-            <div className="flex items-center justify-center mb-4">
+            <div className="flex-shrink-0 flex items-center justify-center mb-4">
               <div className="flex items-center gap-2 p-2 bg-white/80 backdrop-blur-md rounded-full border border-gray-200 shadow-lg">
                 <button
                   onClick={() => setContentView('table')}
@@ -238,7 +234,7 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
 
           {/* Main Content Window - Hidden when detailed scoring is shown */}
           {!showDetailedScoring && (
-            <div className="flex-1 overflow-auto mb-4">
+            <div className="flex-1 overflow-auto mb-4 min-h-0">
               {contentView === 'table' ? (
                 <SummaryRankingTable
                   scores={allPersonaScores}
@@ -260,7 +256,7 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
 
           {/* Detailed Scoring Table - Replaces all content above when shown */}
           {showDetailedScoring && (
-            <div className="flex-1 overflow-auto mb-4">
+            <div className="flex-1 overflow-auto mb-4 min-h-0">
               <DetailedScoringTable
                 scores={allPersonaScores}
                 locale={locale}
@@ -269,7 +265,7 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
           )}
 
           {/* Second Arrow for Detailed Scoring */}
-          <div className="flex flex-col items-center gap-4 border-t border-gray-200 pt-4">
+          <div className="flex-shrink-0 flex flex-col items-center gap-4 border-t border-gray-200 pt-4">
             <button
               className="group cursor-pointer bg-transparent border-none p-0 m-0 focus:outline-none transition-transform duration-200 hover:scale-110"
               onClick={() => setShowDetailedScoring(!showDetailedScoring)}
