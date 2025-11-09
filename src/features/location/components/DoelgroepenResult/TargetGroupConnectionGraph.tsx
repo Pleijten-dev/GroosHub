@@ -27,47 +27,49 @@ interface Connection {
 
 /**
  * Circular connection graph showing relationships between all 27 target groups
- * based on shared facilities from gemeenschappelijke-voorzieningen.json
+ * based on shared characteristics and scoring similarity
  */
 export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProps> = ({
   allPersonas,
   allPersonaScores,
   locale
 }) => {
-  // Calculate connections between target groups based on shared facilities
+  // Calculate connections between target groups based on similarity
   const connections = useMemo(() => {
-    // Import facilities data
-    const facilities = require('../../data/sources/gemeenschappelijke-voorzieningen.json');
-
     const connectionMap = new Map<string, number>();
 
-    facilities.forEach((facility: any) => {
-      if (facility.suitableForAll) {
-        // Connect all groups to each other
-        for (let i = 0; i < allPersonas.length; i++) {
-          for (let j = i + 1; j < allPersonas.length; j++) {
-            const key = `${i}-${j}`;
-            connectionMap.set(key, (connectionMap.get(key) || 0) + 1);
-          }
-        }
-      } else {
-        // Connect groups mentioned in targetGroups
-        const targetGroups = facility.targetGroups || [];
-        const indices = targetGroups
-          .map((tg: string) => allPersonas.findIndex(p => p.name === tg))
-          .filter((idx: number) => idx !== -1);
+    // Calculate connections based on similar characteristics
+    for (let i = 0; i < allPersonas.length; i++) {
+      for (let j = i + 1; j < allPersonas.length; j++) {
+        const persona1 = allPersonas[i];
+        const persona2 = allPersonas[j];
 
-        for (let i = 0; i < indices.length; i++) {
-          for (let j = i + 1; j < indices.length; j++) {
-            const [from, to] = indices[i] < indices[j]
-              ? [indices[i], indices[j]]
-              : [indices[j], indices[i]];
-            const key = `${from}-${to}`;
-            connectionMap.set(key, (connectionMap.get(key) || 0) + 1);
-          }
+        // Count shared characteristics
+        let sharedCount = 0;
+
+        if (persona1.income_level === persona2.income_level) sharedCount += 3;
+        if (persona1.household_type === persona2.household_type) sharedCount += 3;
+        if (persona1.age_group === persona2.age_group) sharedCount += 3;
+
+        // Also consider scoring similarity
+        const score1 = allPersonaScores.find(ps => ps.personaId === persona1.id);
+        const score2 = allPersonaScores.find(ps => ps.personaId === persona2.id);
+
+        if (score1 && score2) {
+          // Normalize scores and calculate similarity (closer scores = stronger connection)
+          const scoreDiff = Math.abs(score1.weightedTotal - score2.weightedTotal);
+          const maxDiff = 100; // Assume max difference is 100
+          const scoreSimilarity = Math.max(0, maxDiff - scoreDiff) / maxDiff;
+          sharedCount += Math.floor(scoreSimilarity * 5); // Add 0-5 points based on score similarity
+        }
+
+        // Only add connection if there's some similarity
+        if (sharedCount > 0) {
+          const key = `${i}-${j}`;
+          connectionMap.set(key, sharedCount);
         }
       }
-    });
+    }
 
     // Convert to array
     const connectionsArray: Connection[] = [];
@@ -77,7 +79,7 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
     });
 
     return connectionsArray;
-  }, [allPersonas]);
+  }, [allPersonas, allPersonaScores]);
 
   // Calculate positions for nodes in a circle
   const nodePositions = useMemo(() => {
@@ -103,12 +105,12 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
   const translations = {
     nl: {
       title: 'Verbanden tussen Doelgroepen',
-      subtitle: 'Gedeelde voorzieningen tussen alle doelgroepen',
+      subtitle: 'Verbindingen op basis van gedeelde kenmerken en score-overeenkomsten',
       connections: 'verbindingen',
     },
     en: {
       title: 'Target Group Connections',
-      subtitle: 'Shared facilities between all target groups',
+      subtitle: 'Connections based on shared characteristics and score similarity',
       connections: 'connections',
     }
   };
@@ -204,7 +206,7 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
           <svg width="40" height="4">
             <line x1="0" y1="2" x2="40" y2="2" stroke="#6e8154" strokeWidth="4" opacity="0.5" strokeLinecap="round" />
           </svg>
-          <span>{locale === 'nl' ? 'Meer gedeelde voorzieningen' : 'More shared facilities'}</span>
+          <span>{locale === 'nl' ? 'Sterkere overeenkomsten' : 'Stronger similarity'}</span>
         </div>
       </div>
     </div>
