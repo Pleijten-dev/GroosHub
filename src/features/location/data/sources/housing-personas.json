@@ -18,8 +18,8 @@
         ]
       },
       {
-        "id": "zelfstandige-doorzetters",
-        "name": "Zelfstandige Doorzetters",
+        "id": "de-doorzetter",
+        "name": "De Doorzetter",
         "income_level": "Laag inkomen",
         "household_type": "1-persoonshuishouden",
         "age_group": "35-55 jaar",
@@ -34,8 +34,8 @@
         ]
       },
       {
-        "id": "senioren-op-budget",
-        "name": "Senioren op Budget",
+        "id": "senior-op-budget",
+        "name": "Senior op Budget",
         "income_level": "Laag inkomen",
         "household_type": "1-persoonshuishouden",
         "age_group": "55+ jaar",
@@ -52,8 +52,8 @@
         ]
       },
       {
-        "id": "praktische-duos",
-        "name": "Praktische Duo's",
+        "id": "de-groeiers",
+        "name": "De Groeiers",
         "income_level": "Laag inkomen",
         "household_type": "2-persoonshuishouden",
         "age_group": "20-35 jaar",
@@ -86,8 +86,8 @@
         ]
       },
       {
-        "id": "zuinig-genieten",
-        "name": "Zuinig Genieten",
+        "id": "de-levensgenieters",
+        "name": "De Levensgenieters",
         "income_level": "Laag inkomen",
         "household_type": "2-persoonshuishouden",
         "age_group": "55+ jaar",
@@ -104,8 +104,8 @@
         ]
       },
       {
-        "id": "jonge-gezinnen-in-groei",
-        "name": "Jonge Gezinnen in Groei",
+        "id": "de-groeigezinnen",
+        "name": "De Groeigezinnen",
         "income_level": "Laag inkomen",
         "household_type": "met kinderen",
         "age_group": "20-35 jaar",
@@ -120,8 +120,8 @@
         ]
       },
       {
-        "id": "pragmatische-gezinnen",
-        "name": "Pragmatische Gezinnen",
+        "id": "knusse-gezinnen",
+        "name": "Knusse Gezinnen",
         "income_level": "Laag inkomen",
         "household_type": "met kinderen",
         "age_group": "35-55 jaar",
@@ -186,8 +186,8 @@
         ]
       },
       {
-        "id": "actieve-senioren",
-        "name": "Actieve Senioren",
+        "id": "zelfstandige-senior",
+        "name": "Zelfstandige Senior",
         "income_level": "Gemiddeld inkomen",
         "household_type": "1-persoonshuishouden",
         "age_group": "55+ jaar",
@@ -202,8 +202,8 @@
         ]
       },
       {
-        "id": "gevestigde-duos",
-        "name": "Gevestigde Duo's",
+        "id": "samen-starters",
+        "name": "Samen Starters",
         "income_level": "Gemiddeld inkomen",
         "household_type": "2-persoonshuishouden",
         "age_group": "20-35 jaar",
@@ -218,8 +218,8 @@
         ]
       },
       {
-        "id": "comfortabele-koppels",
-        "name": "Comfortabele Koppels",
+        "id": "de-balanszoekers",
+        "name": "De Balanszoekers",
         "income_level": "Gemiddeld inkomen",
         "household_type": "2-persoonshuishouden",
         "age_group": "35-55 jaar",
@@ -236,8 +236,8 @@
         ]
       },
       {
-        "id": "stabiele-duogenieters",
-        "name": "Stabiele Duogenieters",
+        "id": "de-zwitserlevers",
+        "name": "De Zwitserlevers",
         "income_level": "Gemiddeld inkomen",
         "household_type": "2-persoonshuishouden",
         "age_group": "55+ jaar",
@@ -253,8 +253,8 @@
         ]
       },
       {
-        "id": "groeiende-gezinnen",
-        "name": "Groeiende Gezinnen",
+        "id": "actieve-jonge-gezinnen",
+        "name": "Actieve Jonge Gezinnen",
         "income_level": "Gemiddeld inkomen",
         "household_type": "met kinderen",
         "age_group": "20-35 jaar",
@@ -270,8 +270,8 @@
         ]
       },
       {
-        "id": "gezinnen-in-balans",
-        "name": "Gezinnen in Balans",
+        "id": "stabiele-gezinnen",
+        "name": "Stabiele Gezinnen",
         "income_level": "Gemiddeld inkomen",
         "household_type": "met kinderen",
         "age_group": "35-55 jaar",
@@ -286,8 +286,8 @@
         ]
       },
       {
-        "id": "lege-nesters",
-        "name": "Lege-Nesters",
+        "id": "gezellige-nesthouders",
+        "name": "Gezellige Nesthouders",
         "income_level": "Gemiddeld inkomen",
         "household_type": "met kinderen",
         "age_group": "55+ jaar",
@@ -302,8 +302,8 @@
         ]
       },
       {
-        "id": "carrierestarters",
-        "name": "Carrièrestarters",
+        "id": "carrierestarter",
+        "name": "Carrièrestarter",
         "income_level": "Hoog inkomen",
         "household_type": "1-persoonshuishouden",
         "age_group": "20-35 jaar",
@@ -337,8 +337,8 @@
         ]
       },
       {
-        "id": "onafhankelijke-levensgenieters",
-        "name": "Onafhankelijke Levensgenieters",
+        "id": "de-rentenier",
+        "name": "De Rentenier",
         "income_level": "Hoog inkomen",
         "household_type": "1-persoonshuishouden",
         "age_group": "55+ jaar",
@@ -355,8 +355,8 @@
         ]
       },
       {
-        "id": "stedelijke-trendsetters",
-        "name": "Stedelijke Trendsetters",
+        "id": "grenzeloos-duo",
+        "name": "Grenzeloos Duo",
         "income_level": "Hoog inkomen",
         "household_type": "2-persoonshuishouden",
         "age_group": "20-35 jaar",
@@ -371,8 +371,8 @@
         ]
       },
       {
-        "id": "comfortabele-professionals",
-        "name": "Comfortabele Professionals",
+        "id": "carriere-stampers",
+        "name": "Carrière Stampers",
         "income_level": "Hoog inkomen",
         "household_type": "2-persoonshuishouden",
         "age_group": "35-55 jaar",
@@ -389,8 +389,8 @@
         ]
       },
       {
-        "id": "welvarende-levensgenieters",
-        "name": "Welvarende Levensgenieters",
+        "id": "welvarende-bourgondiers",
+        "name": "Welvarende Bourgondiërs",
         "income_level": "Hoog inkomen",
         "household_type": "2-persoonshuishouden",
         "age_group": "55+ jaar",
@@ -407,8 +407,8 @@
         ]
       },
       {
-        "id": "jonge-gezinnen-met-ambitie",
-        "name": "Jonge Gezinnen met Ambitie",
+        "id": "hard-van-start",
+        "name": "Hard van Start",
         "income_level": "Hoog inkomen",
         "household_type": "met kinderen",
         "age_group": "20-35 jaar",
@@ -424,8 +424,8 @@
         ]
       },
       {
-        "id": "succesvolle-gezinnen",
-        "name": "Succesvolle Gezinnen",
+        "id": "vermogende-gezinnen",
+        "name": "Vermogende Gezinnen",
         "income_level": "Hoog inkomen",
         "household_type": "met kinderen",
         "age_group": "35-55 jaar",
@@ -442,8 +442,8 @@
         ]
       },
       {
-        "id": "welgestelde-nestblijvers",
-        "name": "Welgestelde Nestblijvers",
+        "id": "laat-bloeiers",
+        "name": "Laat Bloeiers",
         "income_level": "Hoog inkomen",
         "household_type": "met kinderen",
         "age_group": "55+ jaar",
@@ -463,14 +463,14 @@
   "en": {
     "housing_personas": [
       {
-        "id": "young-starters",
+        "id": "jonge-starters",
         "name": "Young Starters",
         "income_level": "Low income",
         "household_type": "1-person household",
         "age_group": "20-35 years",
-        "description": "Young adults with limited financial means, just starting work or still studying, looking for affordable small housing close to amenities.",
-        "current_situation": "Small rented apartment or studio in the city; possibly living with parents; very limited space.",
-        "desired_situation": "Continues renting; wants a slightly larger affordable own home, preferably still in urban area (ownership largely out of reach).",
+        "description": "Young adults with limited financial resources, just starting work or still studying, looking for affordable small homes close to amenities.",
+        "current_situation": "Small rented home or studio in the city; possibly living with parents; very limited space.",
+        "desired_situation": "Continues renting; wishes for a slightly larger affordable own home, preferably still in urban area (ownership largely out of reach).",
         "current_property_types": [
           "Affordable 1-room apartment"
         ],
@@ -479,14 +479,14 @@
         ]
       },
       {
-        "id": "independent-perseverers",
-        "name": "Independent Perseverers",
+        "id": "de-doorzetter",
+        "name": "The Perseverer",
         "income_level": "Low income",
         "household_type": "1-person household",
         "age_group": "35-55 years",
-        "description": "Single adults with modest income, often long-term employed in part-time or lower positions, seeking affordable housing with peace and convenience.",
-        "current_situation": "Small social or private rental home (1 bedroom); basic amenities; possibly long-term rental in the same home.",
-        "desired_situation": "Improve quality while staying affordable - e.g., move to a more suitable social rental home (ground floor or newer apartment). Continues renting (ownership not expected).",
+        "description": "Single adults with modest income, often working long-term in part-time or lower positions, seeking affordable homes with peace and convenience.",
+        "current_situation": "Small social or private rental (1 bedroom); basic amenities; possibly long-term rental in the same home.",
+        "desired_situation": "Improve quality while staying affordable - e.g. move to a more suitable social rental (ground floor or newer apartment). Continues renting (ownership not expected).",
         "current_property_types": [
           "Affordable 2-room apartment"
         ],
@@ -495,134 +495,134 @@
         ]
       },
       {
-        "id": "seniors-on-budget",
-        "name": "Seniors on Budget",
+        "id": "senior-op-budget",
+        "name": "Senior on a Budget",
         "income_level": "Low income",
         "household_type": "1-person household",
         "age_group": "55+ years",
-        "description": "Elderly with small pension or benefit, seeking cheap, accessible housing near amenities and public transport.",
+        "description": "Elderly with small pension or benefits, seeking cheap, accessible homes near amenities and public transport.",
         "current_situation": "Small social rental or senior housing; ~1 bedroom; close to amenities.",
         "desired_situation": "Continue living independently in affordable, age-friendly housing. Preference for safe senior complex (ground floor or with elevator) in same community. Continues renting, seeking basic comfort and support.",
         "current_property_types": [
           "Affordable 2-room apartment",
-          "Affordable 2-room ground-level home"
+          "Affordable 2-room ground-level dwelling"
         ],
         "desired_property_types": [
           "Affordable 2-room apartment",
-          "Affordable 2-room ground-level home"
+          "Affordable 2-room ground-level dwelling"
         ]
       },
       {
-        "id": "practical-duos",
-        "name": "Practical Duos",
+        "id": "de-groeiers",
+        "name": "The Growers",
         "income_level": "Low income",
         "household_type": "2-person household",
         "age_group": "20-35 years",
         "description": "Young couples or housemates with limited income, often starters or students combining affordability with good accessibility.",
         "current_situation": "Small flat (1 bedroom) in affordable neighborhood or social housing; just enough space for two.",
-        "desired_situation": "Ideally move to larger accommodation (2 bedrooms) or small terraced house; continues renting (buying unlikely). Preference for more space in quieter, budget-friendly area.",
+        "desired_situation": "Ideally move to larger home (2 bedrooms) or small terraced house; continues renting (buying unlikely). Preference for more space in quieter, budget-friendly area.",
         "current_property_types": [
           "Affordable 2-room apartment"
         ],
         "desired_property_types": [
-          "Affordable 3-room ground-level home"
+          "Affordable 3-room ground-level dwelling"
         ]
       },
       {
-        "id": "modest-couples",
+        "id": "bescheiden-stellen",
         "name": "Modest Couples",
         "income_level": "Low income",
         "household_type": "2-person household",
         "age_group": "35-55 years",
         "description": "Couples with stable but modest income, valuing affordability, comfort and proximity to amenities.",
-        "current_situation": "Small, modest house (social rental or small terraced house); just enough space for two.",
-        "desired_situation": "Secure stable, low-maintenance housing for aging – e.g., ground floor apartment or senior-suitable small home with affordable rent. Emphasis on affordability and convenience.",
+        "current_situation": "Small, modest home (social rental or small terraced house); just enough space for two.",
+        "desired_situation": "Secure stable, low-maintenance housing for aging - e.g. ground floor apartment or senior-suitable small home with affordable rent. Emphasis on affordability and convenience.",
         "current_property_types": [
-          "Affordable 2-room ground-level home",
-          "Affordable 2-room ground-level home"
+          "Affordable 2-room ground-level dwelling",
+          "Affordable 2-room ground-level dwelling"
         ],
         "desired_property_types": [
           "Affordable 2-room apartment",
-          "Affordable 3-room ground-level home"
+          "Affordable 3-room ground-level dwelling"
         ]
       },
       {
-        "id": "frugal-enjoyers",
-        "name": "Frugal Enjoyers",
+        "id": "de-levensgenieters",
+        "name": "The Life Enjoyers",
         "income_level": "Low income",
         "household_type": "2-person household",
         "age_group": "55+ years",
-        "description": "Elderly couples with limited budget seeking simple but comfortable and low-maintenance housing.",
-        "current_situation": "Modest social rental home (e.g., flat with 2 bedrooms or small terraced house); possibly same home as in younger years; simple and aging.",
-        "desired_situation": "Senior-friendly social housing that is smaller and simpler (e.g., senior flat or bungalow with 1-2 bedrooms). Wish for affordable single-level living to enable aging together. Likely permanent renters.",
+        "description": "Older couples with limited budget seeking simple but comfortable and low-maintenance homes.",
+        "current_situation": "Modest social rental (e.g. flat with 2 bedrooms or small terraced house); possibly same home as in younger years; simple and aging.",
+        "desired_situation": "Senior-friendly social housing that is smaller and simpler (e.g. senior flat or bungalow with 1-2 bedrooms). Wish for affordable single-level living to enable aging together. Likely continuing renters.",
         "current_property_types": [
           "Affordable 3-room apartment",
-          "Affordable 3-room ground-level home"
+          "Affordable 3-room ground-level dwelling"
         ],
         "desired_property_types": [
           "Affordable 3-room apartment",
-          "Affordable 2-room ground-level home"
+          "Affordable 2-room ground-level dwelling"
         ]
       },
       {
-        "id": "young-growing-families",
-        "name": "Young Growing Families",
+        "id": "de-groeigezinnen",
+        "name": "Growing Families",
         "income_level": "Low income",
         "household_type": "with children",
         "age_group": "20-35 years",
-        "description": "Young parents with limited financial means seeking affordable house with play space and near schools.",
-        "current_situation": "Busy flat or small rental home; often urban; insufficient rooms for family.",
-        "desired_situation": "Secure social rental housing for families (3+ bedrooms) with garden in child-friendly neighborhood. Likely move out of city for more space.",
+        "description": "Young parents with limited financial means seeking affordable home with play space and near schools.",
+        "current_situation": "Crowded flat or small rental; often urban; insufficient rooms for family.",
+        "desired_situation": "Secure social family housing (3+ bedrooms) with garden in child-friendly neighborhood. Likely move out of city for more space.",
         "current_property_types": [
           "Affordable 3-room apartment"
         ],
         "desired_property_types": [
-          "Affordable 3-room ground-level home"
+          "Affordable 3-room ground-level dwelling"
         ]
       },
       {
-        "id": "pragmatic-families",
-        "name": "Pragmatic Families",
+        "id": "knusse-gezinnen",
+        "name": "Cozy Families",
         "income_level": "Low income",
         "household_type": "with children",
         "age_group": "35-55 years",
         "description": "Families with children, stable but limited incomes, seeking affordable family homes close to schools and amenities.",
-        "current_situation": "Small social rental or flat; possibly overcrowded with many children; urban or rural areas with low costs.",
-        "desired_situation": "Larger affordable family home. Aim for social housing with 3+ bedrooms and garden in safe neighborhood. If children nearly independent, aim for stability now and perhaps slightly larger home to reduce crowding.",
+        "current_situation": "Small social rental or flat; possibly overcrowded with many children; urban or rural low-cost areas.",
+        "desired_situation": "Larger affordable family home. Strive for social housing with 3+ bedrooms and garden in safe neighborhood. If children nearly independent, strive for stability for now and perhaps slightly larger home to reduce crowding.",
         "current_property_types": [
           "Affordable 3-room apartment",
-          "Affordable 3-room ground-level home"
+          "Affordable 3-room ground-level dwelling"
         ],
         "desired_property_types": [
-          "Affordable 3-room ground-level home"
+          "Affordable 3-room ground-level dwelling"
         ]
       },
       {
-        "id": "seniors-with-resident-children",
-        "name": "Seniors with Resident Children",
+        "id": "senioren-met-thuiswonende-kinderen",
+        "name": "Seniors with Children at Home",
         "income_level": "Low income",
         "household_type": "with children",
         "age_group": "55+ years",
-        "description": "Elderly families with (adult) children at home, little financial room, looking for spacious but cheap housing.",
-        "current_situation": "Elderly parent(s) with adult child at home in small social rental; home not downsized due to child's needs; tight but managing.",
-        "desired_situation": "Continue current arrangement until child can move. Long-term, after child leaves, transition to typical senior housing (small affordable flat). Short-term priority is housing for child rather than own relocation.",
+        "description": "Older families with (adult) children at home, little financial flexibility, seeking spacious but cheap housing.",
+        "current_situation": "Older parent(s) with adult child at home in small social rental; house not downsized due to child's needs; tight but managing.",
+        "desired_situation": "Continue current arrangement until child can move out. Long-term, after child leaves, transition to typical senior housing (small affordable flat). Short-term priority is housing for child rather than moving themselves.",
         "current_property_types": [
           "Affordable 3-room apartment",
-          "Affordable 3-room ground-level home"
+          "Affordable 3-room ground-level dwelling"
         ],
         "desired_property_types": [
-          "Affordable 3-room ground-level home"
+          "Affordable 3-room ground-level dwelling"
         ]
       },
       {
-        "id": "ambitious-singles",
+        "id": "ambitieuze-singles",
         "name": "Ambitious Singles",
-        "income_level": "Average income",
+        "income_level": "Middle income",
         "household_type": "1-person household",
         "age_group": "20-35 years",
-        "description": "Young adults with average income, career-focused and looking for comfortable apartments in attractive neighborhoods.",
-        "current_situation": "Medium-sized home (1-2 bedrooms) in urban/suburban area; possibly first purchased home.",
-        "desired_situation": "Strong aspiration to buy starter home; likely apartment in city or small home in suburb, balancing costs and location.",
+        "description": "Young adults with middle income, career-focused and seeking comfortable apartments in attractive neighborhoods.",
+        "current_situation": "Medium-sized home (1-2 bedrooms) in urban/suburban area; possibly first owner-occupied home.",
+        "desired_situation": "Strong aspiration to buy starter home; likely city apartment or small suburban home, balancing cost and location.",
         "current_property_types": [
           "Mid-range 2-room apartment"
         ],
@@ -631,14 +631,14 @@
         ]
       },
       {
-        "id": "confident-soloists",
-        "name": "Confident Soloists",
-        "income_level": "Average income",
+        "id": "zelfbewuste-solisten",
+        "name": "Self-Assured Soloists",
+        "income_level": "Middle income",
         "household_type": "1-person household",
         "age_group": "35-55 years",
-        "description": "Singles with stable average income, seeking comfortable homes with good connections to work and leisure facilities.",
+        "description": "Singles with stable middle income, seeking comfortable homes with good connections to work and leisure facilities.",
         "current_situation": "Owns or rents medium-sized home (apartment or small house); stable situation with 1-2 bedrooms.",
-        "desired_situation": "If renting, aim to buy. If owner of oversized home (after separation), possibly downsize. Seeks comfortable, independent living – perhaps modern 2-bedroom apartment for convenience.",
+        "desired_situation": "If renter, strive to buy a home. If owner of too-large home (after divorce), possibly downsize. Seeks comfortable, independent living - perhaps modern 2-bedroom apartment for convenience.",
         "current_property_types": [
           "Mid-range 2-room apartment"
         ],
@@ -647,276 +647,276 @@
         ]
       },
       {
-        "id": "active-seniors",
-        "name": "Active Seniors",
-        "income_level": "Average income",
+        "id": "zelfstandige-senior",
+        "name": "Independent Senior",
+        "income_level": "Middle income",
         "household_type": "1-person household",
         "age_group": "55+ years",
-        "description": "Single elderly with average pension, seeking homes with comfort and convenience, close to shops and recreation facilities.",
-        "current_situation": "Often in long-term home (owned or rented); may be larger than needed or already downsized to medium apartment.",
-        "desired_situation": "Downsize to comfortable home (e.g., small house or spacious senior complex) without stairs. Many prefer ground-floor home with some outdoor space. Goal is to age in place with necessary amenities, possibly after some home modifications if staying.",
+        "description": "Single elderly with middle pension, seeking homes with comfort and convenience, close to shops and recreational facilities.",
+        "current_situation": "Often in long-occupied home (owned or rented); may be larger than needed or already downsized to medium apartment.",
+        "desired_situation": "Downsize to comfortable home (e.g. small house or spacious senior complex) without stairs. Many prefer ground floor home with bit of outdoor space. Goal is to age in place with necessary amenities, possibly after some home modifications if staying put.",
         "current_property_types": [
           "Mid-range 2-room apartment"
         ],
         "desired_property_types": [
-          "Mid-range 2-room ground-level home"
+          "Mid-range 2-room ground-level dwelling"
         ]
       },
       {
-        "id": "established-duos",
-        "name": "Established Duos",
-        "income_level": "Average income",
+        "id": "samen-starters",
+        "name": "Starting Together",
+        "income_level": "Middle income",
         "household_type": "2-person household",
         "age_group": "20-35 years",
-        "description": "Young couples with average income, seeking comfortable homes in attractive neighborhoods with good amenities.",
-        "current_situation": "Medium-sized flat or starter home in purchase market; not too large but comfortable for two.",
-        "desired_situation": "Larger purchased home (semi-detached or detached); balance between price and appeal. Preference for garden and nearby amenities.",
+        "description": "Young couples with middle income, seeking comfortable homes in attractive neighborhoods with good amenities.",
+        "current_situation": "Medium-sized flat or starter home in owner market; not too large but comfortable for two.",
+        "desired_situation": "Larger owner-occupied home (semi-detached or detached); balance between price and appeal. Preference for garden and nearby amenities.",
         "current_property_types": [
           "Mid-range 2-room apartment"
         ],
         "desired_property_types": [
-          "Mid-range 3-room ground-level home"
+          "Mid-range 3-room ground-level dwelling"
         ]
       },
       {
-        "id": "comfortable-couples",
-        "name": "Comfortable Couples",
-        "income_level": "Average income",
+        "id": "de-balanszoekers",
+        "name": "The Balance Seekers",
+        "income_level": "Middle income",
         "household_type": "2-person household",
         "age_group": "35-55 years",
-        "description": "Couples with stable income, seeking residential comfort and convenience in quiet, child-friendly environments (even if childless).",
-        "current_situation": "Medium to large purchased home (single-family home or apartment) in urban or rural setting; comfortable lifestyle.",
-        "desired_situation": "Continue stability. Possibly downsize to low-maintenance home for retirement (e.g., modern bungalow or ground-floor apartment) later in this life phase.",
+        "description": "Couples with stable income, seeking living comfort and convenience in quiet, child-friendly environments (even without children).",
+        "current_situation": "Medium to large owner-occupied home (single-family house or apartment) in urban or rural setting; comfortable lifestyle.",
+        "desired_situation": "Continue stability. Possibly downsize to lower-maintenance home for retirement (e.g. modern bungalow or ground floor apartment) later in this life stage.",
         "current_property_types": [
           "Mid-range 3-room apartment",
-          "Mid-range 3-room ground-level home"
+          "Mid-range 3-room ground-level dwelling"
         ],
         "desired_property_types": [
           "Mid-range 2-room apartment",
-          "Mid-range 2-room ground-level home"
+          "Mid-range 2-room ground-level dwelling"
         ]
       },
       {
-        "id": "stable-duo-enjoyers",
-        "name": "Stable Duo Enjoyers",
-        "income_level": "Average income",
+        "id": "de-zwitserlevers",
+        "name": "The Comfortable Livers",
+        "income_level": "Middle income",
         "household_type": "2-person household",
         "age_group": "55+ years",
-        "description": "Elderly couples with average pension, seeking simple but comfortable and low-maintenance living with all amenities within reach.",
-        "current_situation": "Long-term family home (often 3 bedrooms); meanwhile too large but familiar.",
-        "desired_situation": "Downsize to senior-friendly home: 2-bedroom bungalow or ground-floor apartment in quiet community. Priority on reducing maintenance and accessibility to amenities.",
+        "description": "Older couples with middle pension, seeking simple but comfortable and low-maintenance living with all amenities within reach.",
+        "current_situation": "Long-occupied family home (often 3 bedrooms); meanwhile too large but familiar.",
+        "desired_situation": "Downsize to senior-friendly home: 2-bedroom bungalow or ground floor apartment in quiet community. Priority on reducing maintenance and accessibility to amenities.",
         "current_property_types": [
-          "Mid-range 3-room ground-level home"
+          "Mid-range 3-room ground-level dwelling"
         ],
         "desired_property_types": [
           "Mid-range 2-room apartment",
-          "Mid-range 2-room ground-level home"
+          "Mid-range 2-room ground-level dwelling"
         ]
       },
       {
-        "id": "growing-families",
-        "name": "Growing Families",
-        "income_level": "Average income",
+        "id": "actieve-jonge-gezinnen",
+        "name": "Active Young Families",
+        "income_level": "Middle income",
         "household_type": "with children",
         "age_group": "20-35 years",
         "description": "Young families with growing income, seeking pleasant family homes with access to schools, sports and green spaces.",
         "current_situation": "Starter family home (small house or large flat); modest space, possibly owned.",
-        "desired_situation": "Own larger family home (terraced or semi-detached) in suburb or city; 3-4 bedrooms and garden for growing family.",
+        "desired_situation": "Own larger family home (terraced house or semi-detached) in suburb or city; 3-4 bedrooms and garden for growing family.",
         "current_property_types": [
           "Mid-range 3-room apartment",
-          "Mid-range 3-room ground-level home"
+          "Mid-range 3-room ground-level dwelling"
         ],
         "desired_property_types": [
-          "Mid-range 3-room ground-level home"
+          "Mid-range 3-room ground-level dwelling"
         ]
       },
       {
-        "id": "balanced-families",
-        "name": "Balanced Families",
-        "income_level": "Average income",
+        "id": "stabiele-gezinnen",
+        "name": "Stable Families",
+        "income_level": "Middle income",
         "household_type": "with children",
         "age_group": "35-55 years",
-        "description": "Families with school-age children and average income, seeking comfortable and safe homes with space for children.",
-        "current_situation": "Purchased or rental family home (often 3-bedroom house) in suburb/city; sufficient space for children.",
-        "desired_situation": "Largely maintain until children grown. If needed, upgrade to larger house for more space. Long-term plan to eventually downsize after children leave, but not before. Buying preferred if not yet owner.",
+        "description": "Families with school-age children and middle income, seeking comfortable and safe homes with space for children.",
+        "current_situation": "Owner-occupied or rental family home (often 3-bedroom house) in suburb/city; sufficient space for children.",
+        "desired_situation": "Largely maintain until children are adults. If needed, upgrade to larger house for more space. Long-term plan to eventually downsize after children leave, but not before. Ownership preferred if not yet owner.",
         "current_property_types": [
-          "Mid-range 3-room ground-level home"
+          "Mid-range 3-room ground-level dwelling"
         ],
         "desired_property_types": [
-          "Mid-range 3-room ground-level home"
+          "Mid-range 3-room ground-level dwelling"
         ]
       },
       {
-        "id": "empty-nesters",
-        "name": "Empty Nesters",
-        "income_level": "Average income",
+        "id": "gezellige-nesthouders",
+        "name": "Cozy Nesters",
+        "income_level": "Middle income",
         "household_type": "with children",
         "age_group": "55+ years",
-        "description": "Elderly families with teenagers or adult children at home, seeking homes with space and amenities fitting lively family life.",
-        "current_situation": "Elderly parent(s) with adult child at home in comfortable house; likely owned; postponing downsizing.",
-        "desired_situation": "Maintain status quo until child independent (no rush to move). Future plan: sell family home and downsize to suitable senior home (nice senior-friendly house or apartment) once children no longer at home.",
+        "description": "Older families with teenagers or adult children at home, seeking homes with space and amenities suited to lively family life.",
+        "current_situation": "Older parent(s) with adult child at home in comfortable house; likely owned; postponing downsizing.",
+        "desired_situation": "Maintain status quo until child is independent (no rush to move). Future plan: sell family home and downsize to suitable senior housing (nice senior-friendly house or apartment) once no children at home.",
         "current_property_types": [
-          "Mid-range 3-room ground-level home"
+          "Mid-range 3-room ground-level dwelling"
         ],
         "desired_property_types": [
           "Mid-range 2-room apartment"
         ]
       },
       {
-        "id": "career-starters",
-        "name": "Career Starters",
+        "id": "carrierestarter",
+        "name": "Career Starter",
         "income_level": "High income",
         "household_type": "1-person household",
         "age_group": "20-35 years",
         "description": "Young professionals with high income, seeking stylish and luxury apartments in city centers or trendy neighborhoods.",
-        "current_situation": "Private rental or own apartment in prominent city area; good amenities, 1-2 bedrooms.",
+        "current_situation": "Private rental or own apartment in prime urban area; good amenities, 1-2 bedrooms.",
         "desired_situation": "Buy spacious apartment or townhouse; stay in urban area or high-quality suburb. Emphasis on owning comfortable, centrally located home.",
         "current_property_types": [
           "Luxury 2-room apartment"
         ],
         "desired_property_types": [
           "Luxury 3-room apartment",
-          "Luxury 3-room ground-level home"
+          "Luxury 3-room ground-level dwelling"
         ]
       },
       {
-        "id": "successful-singles",
+        "id": "succesvolle-singles",
         "name": "Successful Singles",
         "income_level": "High income",
         "household_type": "1-person household",
         "age_group": "35-55 years",
-        "description": "Singles with high income and intensive working life, seeking luxury, convenience and central locations with high-quality amenities.",
+        "description": "Singles with high income and intensive work life, seeking luxury, convenience and central locations with high-quality amenities.",
         "current_situation": "Spacious, high-quality housing (luxury apartment or even house) owned; multiple rooms for personal use.",
         "desired_situation": "Continue owning and possibly upgrade or adapt home to lifestyle. Perhaps move to desired environment (city penthouse vs country house) but maintain luxury and space.",
         "current_property_types": [
           "Luxury 3-room apartment",
-          "Luxury 3-room ground-level home"
+          "Luxury 3-room ground-level dwelling"
         ],
         "desired_property_types": [
           "Luxury 3-room apartment",
-          "Luxury 3-room ground-level home"
+          "Luxury 3-room ground-level dwelling"
         ]
       },
       {
-        "id": "independent-life-enjoyers",
-        "name": "Independent Life Enjoyers",
+        "id": "de-rentenier",
+        "name": "The Person of Independent Means",
         "income_level": "High income",
         "household_type": "1-person household",
         "age_group": "55+ years",
-        "description": "Wealthy single seniors, seeking spacious, luxury and comfortable homes with excellent services and security.",
-        "current_situation": "Likely in spacious owned home (family home or luxury apartment) even as single; very comfortable but possibly too large.",
-        "desired_situation": "\"Downsize in luxury\" – move to high-quality retirement-suitable home (luxury apartment, penthouse or smaller villa). Maintain ownership and privacy, but eliminate maintenance hassle. Seeks top quality, convenience and independence.",
+        "description": "Affluent single seniors, seeking spacious, luxury and comfortable homes with excellent services and security.",
+        "current_situation": "Likely in spacious owner-occupied home (family house or luxury apartment) even as single; very comfortable but possibly too large.",
+        "desired_situation": "\"Downsize in luxury\" - move to high-quality retirement-suitable home (luxury apartment, penthouse or smaller villa). Maintain ownership and privacy, but eliminate maintenance hassle. Seeks top quality, convenience and independence.",
         "current_property_types": [
           "Luxury 3-room apartment",
-          "Luxury 3-room ground-level home"
+          "Luxury 3-room ground-level dwelling"
         ],
         "desired_property_types": [
           "Luxury 2-room apartment",
-          "Luxury 2-room ground-level home"
+          "Luxury 2-room ground-level dwelling"
         ]
       },
       {
-        "id": "urban-trendsetters",
-        "name": "Urban Trendsetters",
+        "id": "grenzeloos-duo",
+        "name": "Limitless Duo",
         "income_level": "High income",
         "household_type": "2-person household",
         "age_group": "20-35 years",
-        "description": "Young couples with above-average income, love luxury apartments or stylish homes near entertainment venues.",
+        "description": "Young couples with above-average income, enjoy luxury apartments or stylish homes near entertainment venues.",
         "current_situation": "Spacious apartment or starter home; good neighborhood, often owned.",
-        "desired_situation": "Upgrade to larger purchased home (semi-detached or detached); high-quality location. Possibly suburban house with garden or luxury townhouse.",
+        "desired_situation": "Upgrade to larger owner-occupied home (semi-detached or detached); high-quality location. Possibly suburban house with garden or luxury city home.",
         "current_property_types": [
           "Mid-range 2-room apartment"
         ],
         "desired_property_types": [
-          "Luxury 3-room ground-level home"
+          "Luxury 3-room ground-level dwelling"
         ]
       },
       {
-        "id": "comfortable-professionals",
-        "name": "Comfortable Professionals",
+        "id": "carriere-stampers",
+        "name": "Career Stampers",
         "income_level": "High income",
         "household_type": "2-person household",
         "age_group": "35-55 years",
-        "description": "Wealthy couples with good careers, seeking spacious homes with high comfort level and quality, quietly located but central.",
+        "description": "Affluent couples with good careers, seeking spacious homes with high comfort level and quality, quiet yet central location.",
         "current_situation": "Large, comfortable home (owned); may be detached with garden or luxury city apartment.",
-        "desired_situation": "Maintain home ownership and high comfort. Perhaps downsize to luxury bungalow or penthouse for retirement, but still high-quality. No major change unless for lifestyle improvement (e.g., more scenic location).",
+        "desired_situation": "Maintain home ownership and high comfort. Perhaps downsize to luxury bungalow or penthouse for retirement, but still high-quality. No major change unless for lifestyle improvement (e.g. more scenic location).",
         "current_property_types": [
           "Luxury 3-room apartment",
-          "Luxury 3-room ground-level home"
+          "Luxury 3-room ground-level dwelling"
         ],
         "desired_property_types": [
           "Luxury 2-room apartment",
-          "Luxury 2-room ground-level home"
+          "Luxury 2-room ground-level dwelling"
         ]
       },
       {
-        "id": "wealthy-life-enjoyers",
-        "name": "Wealthy Life Enjoyers",
+        "id": "welvarende-bourgondiers",
+        "name": "Affluent Bon Vivants",
         "income_level": "High income",
         "household_type": "2-person household",
         "age_group": "55+ years",
-        "description": "Elderly couples with high incomes and ample wealth, desire luxury, spacious homes in attractive residential areas with high-quality amenities.",
+        "description": "Older couples with high incomes and ample wealth, desiring luxury, spacious homes in attractive residential areas with high-quality amenities.",
         "current_situation": "Large, high-quality home (detached house or spacious apartment) likely owned; very comfortable, perhaps more than needed.",
-        "desired_situation": "Custom downsize with style – eventually trade large house for luxury apartment or smaller exclusive home (e.g., luxury senior community). Maintain high standard of living with fewer burdens. Possibly divide time between multiple homes, but primary Dutch home must be easy and elegant.",
+        "desired_situation": "Downsize with style - eventually trade large house for luxury apartment or smaller exclusive home (e.g. luxury senior community). Maintain high standard of living with fewer burdens. Possibly divide time between multiple homes, but primary Dutch residence must be easy and elegant.",
         "current_property_types": [
           "Luxury 3-room apartment",
-          "Luxury 3-room ground-level home"
+          "Luxury 3-room ground-level dwelling"
         ],
         "desired_property_types": [
           "Luxury 2-room apartment",
-          "Luxury 2-room ground-level home"
+          "Luxury 2-room ground-level dwelling"
         ]
       },
       {
-        "id": "young-ambitious-families",
-        "name": "Young Ambitious Families",
+        "id": "hard-van-start",
+        "name": "Fast Starters",
         "income_level": "High income",
         "household_type": "with children",
         "age_group": "20-35 years",
         "description": "Young parents with excellent income, seeking spacious, comfortable homes near schools, green spaces and urban amenities.",
         "current_situation": "Comfortable home (own apartment or house) with sufficient space; in desired neighborhood.",
-        "desired_situation": "Acquire \"forever\" home – e.g., detached house in high-quality, green environment. Maximum space, privacy and top amenities for family life.",
+        "desired_situation": "Acquire \"forever\" home - e.g. detached house in high-quality, green environment. Maximum space, privacy and top amenities for family life.",
         "current_property_types": [
           "Mid-range 3-room apartment",
-          "Mid-range 3-room ground-level home"
+          "Mid-range 3-room ground-level dwelling"
         ],
         "desired_property_types": [
-          "Luxury 3-room ground-level home"
+          "Luxury 3-room ground-level dwelling"
         ]
       },
       {
-        "id": "successful-families",
-        "name": "Successful Families",
+        "id": "vermogende-gezinnen",
+        "name": "Wealthy Families",
         "income_level": "High income",
         "household_type": "with children",
         "age_group": "35-55 years",
-        "description": "Wealthy families investing in spacious living, security and excellent amenities for education and recreation.",
+        "description": "Affluent families investing in spacious living, safety and excellent amenities for education and recreation.",
         "current_situation": "Spacious family home (detached or luxury large apartment) owned in high-quality neighborhood; sufficient space.",
-        "desired_situation": "Maintain current luxury home while raising children. Later, perhaps trade for equally luxurious but smaller retirement-friendly home (e.g., high-quality apartment or smaller villa). Always high-quality and often unique properties.",
+        "desired_situation": "Maintain current luxury home while raising children. Later, perhaps trade for equally luxurious but smaller retirement-friendly home (e.g. high-quality apartment or smaller villa). Always high-quality and often unique properties.",
         "current_property_types": [
           "Luxury 3-room apartment",
-          "Luxury 3-room ground-level home"
+          "Luxury 3-room ground-level dwelling"
         ],
         "desired_property_types": [
           "Luxury 2-room apartment",
-          "Luxury 2-room ground-level home"
+          "Luxury 2-room ground-level dwelling"
         ]
       },
       {
-        "id": "wealthy-nest-dwellers",
-        "name": "Wealthy Nest Dwellers",
+        "id": "laat-bloeiers",
+        "name": "Late Bloomers",
         "income_level": "High income",
         "household_type": "with children",
         "age_group": "55+ years",
-        "description": "Elderly families with adult children still at home or regular visits from grandchildren, seeking luxury homes with space, comfort and privacy, often equipped with extra facilities.",
-        "current_situation": "Wealthy parents in large family estate with adult/young children still living at home (by choice or late parenthood); ample space.",
-        "desired_situation": "No urgent change; maintain large house while children at home. Eventually, once children gone, pursue same goals as high-income couples – luxury downsize to ideal retirement residence.",
+        "description": "Older families with adult children still at home or regular visits from grandchildren, seeking luxury homes with space, comfort and privacy, often equipped with extra facilities.",
+        "current_situation": "Affluent parents in large family estate with adult/young children still living at home (by choice or late parenthood); sufficient space.",
+        "desired_situation": "No urgent change; maintain large house while children at home. Eventually, once children leave, pursue same goals as high-income couples - luxury downsize to ideal retirement residence.",
         "current_property_types": [
-          "Luxury 3-room ground-level home"
+          "Luxury 3-room ground-level dwelling"
         ],
         "desired_property_types": [
           "Luxury 2-room apartment",
-          "Luxury 2-room ground-level home"
+          "Luxury 2-room ground-level dwelling"
         ]
       }
     ]
