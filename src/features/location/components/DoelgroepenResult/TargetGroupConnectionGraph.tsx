@@ -140,14 +140,16 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
   const t = translations[locale];
 
   return (
-    <div className="w-full h-full flex flex-col items-center p-6">
+    <div className="w-full h-full flex flex-col p-6">
       <div className="mb-4 text-center">
         <h3 className="text-lg font-semibold text-gray-900">{t.title}</h3>
         <p className="text-sm text-gray-600">{t.subtitle}</p>
       </div>
 
-      <div className="flex-1 flex items-center justify-center w-full">
-        <svg width="800" height="800" viewBox="0 0 800 800" className="max-w-full max-h-full">
+      <div className="flex-1 flex items-start gap-6 w-full min-h-0">
+        {/* Graph container */}
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <svg width="800" height="800" viewBox="0 0 800 800" className="max-w-full max-h-full">
           {/* Draw connections first (behind nodes) */}
           <g>
             {connections.map((conn, idx) => {
@@ -194,13 +196,15 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
 
               // Color based on rank and selection state
               const isActive = index === hoveredNode || index === selectedNode;
-              const baseColor = rankPosition <= 4
-                ? '#8f9c66' // Top 4 - brighter green
+              const isTopRanked = rankPosition <= 5;
+              const baseColor = isTopRanked
+                ? '#8f9c66' // Top 5 - brighter green
                 : '#6e8154'; // Others - medium green
               const fillColor = isActive ? '#b0b877' : baseColor;
+              const nodeOpacity = isTopRanked ? 1 : 0.1;
 
               return (
-                <g key={persona.id}>
+                <g key={persona.id} opacity={nodeOpacity}>
                   {/* Node circle */}
                   <circle
                     cx={pos.x}
@@ -225,7 +229,7 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
                     fontSize="11"
                     fill="#374151"
                     className="pointer-events-none select-none"
-                    style={{ fontWeight: isActive || rankPosition <= 4 ? 600 : 400 }}
+                    style={{ fontWeight: isActive || isTopRanked ? 600 : 400 }}
                   >
                     {persona.name}
                   </text>
@@ -234,64 +238,65 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
             })}
           </g>
         </svg>
-      </div>
 
-      {/* Legend */}
-      <div className="mt-4 flex items-center gap-6 text-sm text-gray-600">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-[#8f9c66] border-2 border-white"></div>
-          <span>{locale === 'nl' ? 'Top 4 doelgroepen' : 'Top 4 target groups'}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <svg width="40" height="4">
-            <line x1="0" y1="2" x2="40" y2="2" stroke="#6e8154" strokeWidth="4" opacity="0.5" strokeLinecap="round" />
-          </svg>
-          <span>{locale === 'nl' ? 'Sterkere overeenkomsten' : 'Stronger similarity'}</span>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-gray-500">
-          <span>{locale === 'nl' ? 'Tip: Klik op een groep voor top 5 verbindingen' : 'Tip: Click a group for top 5 connections'}</span>
-        </div>
-      </div>
-
-      {/* Top connections panel */}
-      {topConnections && selectedNode !== null && (
-        <div className="mt-6 w-full max-w-md bg-white/80 backdrop-blur-md rounded-lg border border-gray-200 p-4 shadow-lg">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-gray-900">
-              {locale === 'nl' ? 'Top 5 verbindingen voor' : 'Top 5 connections for'} {allPersonas[selectedNode].name}
-            </h4>
-            <button
-              onClick={() => setSelectedNode(null)}
-              className="text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor">
-                <path d="M4 4L12 12M12 4L4 12" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </button>
+        {/* Legend */}
+        <div className="mt-4 flex flex-col items-center gap-3 text-sm text-gray-600">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-[#8f9c66] border-2 border-white"></div>
+            <span>{locale === 'nl' ? 'Top 5 doelgroepen' : 'Top 5 target groups'}</span>
           </div>
-          <div className="space-y-2">
-            {topConnections.map((conn, idx) => (
-              <div
-                key={conn.index}
-                className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
-                onClick={() => setSelectedNode(conn.index)}
+          <div className="flex items-center gap-2">
+            <svg width="40" height="4">
+              <line x1="0" y1="2" x2="40" y2="2" stroke="#6e8154" strokeWidth="4" opacity="0.5" strokeLinecap="round" />
+            </svg>
+            <span>{locale === 'nl' ? 'Sterkere overeenkomsten' : 'Stronger similarity'}</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            <span>{locale === 'nl' ? 'Tip: Klik op een groep voor top 5 verbindingen' : 'Tip: Click a group for top 5 connections'}</span>
+          </div>
+        </div>
+      </div>
+
+        {/* Top connections panel - right side */}
+        {topConnections && selectedNode !== null && (
+          <div className="w-80 flex-shrink-0 bg-white/80 backdrop-blur-md rounded-lg border border-gray-200 p-4 shadow-lg">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-semibold text-gray-900">
+                {locale === 'nl' ? 'Top 5 verbindingen voor' : 'Top 5 connections for'} {allPersonas[selectedNode].name}
+              </h4>
+              <button
+                onClick={() => setSelectedNode(null)}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
               >
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-semibold text-gray-500 w-4">#{idx + 1}</span>
-                  <span className="text-sm text-gray-900">{conn.persona.name}</span>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor">
+                  <path d="M4 4L12 12M12 4L4 12" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+            <div className="space-y-2">
+              {topConnections.map((conn, idx) => (
+                <div
+                  key={conn.index}
+                  className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
+                  onClick={() => setSelectedNode(conn.index)}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-semibold text-gray-500 w-4">#{idx + 1}</span>
+                    <span className="text-sm text-gray-900">{conn.persona.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="h-1 bg-[#8f9c66] rounded-full"
+                      style={{ width: `${(conn.count / maxConnections) * 40}px` }}
+                    ></div>
+                    <span className="text-xs text-gray-600">{conn.count}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div
-                    className="h-1 bg-[#8f9c66] rounded-full"
-                    style={{ width: `${(conn.count / maxConnections) * 40}px` }}
-                  ></div>
-                  <span className="text-xs text-gray-600">{conn.count}</span>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
