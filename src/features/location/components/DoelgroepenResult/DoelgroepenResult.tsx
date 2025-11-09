@@ -8,6 +8,7 @@ import { PersonaScore } from '../../utils/targetGroupScoring';
 import { SummaryRankingTable } from '../Doelgroepen/SummaryRankingTable';
 import { DetailedScoringTable } from '../Doelgroepen/DetailedScoringTable';
 import { DoelgroepenCard } from '../Doelgroepen/DoelgroepenCard';
+import { TargetGroupConnectionGraph } from './TargetGroupConnectionGraph';
 
 interface HousingPersona {
   id: string;
@@ -34,7 +35,7 @@ interface DoelgroepenResultProps {
 }
 
 type Scenario = 'scenario1' | 'scenario2' | 'scenario3' | 'custom';
-type ContentView = 'table' | 'cards';
+type ContentView = 'table' | 'cards' | 'verbanden';
 
 /**
  * Result component showing static cube with target groups and scenario selector
@@ -85,12 +86,14 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
     nl: {
       table: 'Tabel',
       cards: 'Kaarten',
+      verbanden: 'Verbanden',
       showDetails: 'Toon Details',
       hideDetails: 'Verberg Details'
     },
     en: {
       table: 'Table',
       cards: 'Cards',
+      verbanden: 'Connections',
       showDetails: 'Show Details',
       hideDetails: 'Hide Details'
     }
@@ -216,6 +219,19 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
                   {t.table}
                 </button>
                 <button
+                  onClick={() => setContentView('verbanden')}
+                  className={`
+                    px-6 py-3 rounded-full font-medium text-sm transition-all duration-300
+                    ${
+                      contentView === 'verbanden'
+                        ? 'bg-gradient-3-mid text-gray-900 shadow-md'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }
+                  `}
+                >
+                  {t.verbanden}
+                </button>
+                <button
                   onClick={() => setContentView('cards')}
                   className={`
                     px-6 py-3 rounded-full font-medium text-sm transition-all duration-300
@@ -238,6 +254,12 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
               {contentView === 'table' ? (
                 <SummaryRankingTable
                   scores={allPersonaScores}
+                  locale={locale}
+                />
+              ) : contentView === 'verbanden' ? (
+                <TargetGroupConnectionGraph
+                  allPersonas={allPersonas}
+                  allPersonaScores={allPersonaScores}
                   locale={locale}
                 />
               ) : (
