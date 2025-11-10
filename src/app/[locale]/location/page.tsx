@@ -21,6 +21,17 @@ import { calculateConnections, calculateScenarios } from '../../../features/loca
 import housingPersonasData from '../../../features/location/data/sources/housing-personas.json';
 import { LocationMap, MapStyle, WMSLayerControl, WMSLayerSelection, WMSFeatureInfo } from '../../../features/location/components/Maps';
 import { centroid } from '@turf/turf';
+import proj4 from 'proj4';
+
+// Define coordinate systems for conversion
+proj4.defs('EPSG:4326', '+proj=longlat +datum=WGS84 +no_defs');
+proj4.defs(
+  'EPSG:28992',
+  '+proj=sterea +lat_0=52.15616055555555 +lon_0=5.38763888888889 ' +
+    '+k=0.9999079 +x_0=155000 +y_0=463000 +ellps=bessel ' +
+    '+towgs84=565.417,50.3319,465.552,-0.398957,0.343988,-1.8774,4.0725 ' +
+    '+units=m +no_defs'
+);
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -395,7 +406,9 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         if (geometry) {
           try {
             const center = centroid(geometry);
-            const [lon, lat] = center.geometry.coordinates;
+            // Geometry is in RD coordinates (EPSG:28992), need to convert to WGS84
+            const [rdX, rdY] = center.geometry.coordinates;
+            const [lon, lat] = proj4('EPSG:28992', 'EPSG:4326', [rdX, rdY]);
             coordinates = [lat, lon]; // Leaflet uses [lat, lon] order
           } catch (error) {
             console.error('Error calculating centroid:', error);
