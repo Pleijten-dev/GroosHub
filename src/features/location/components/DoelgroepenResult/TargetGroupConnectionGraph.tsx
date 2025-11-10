@@ -58,7 +58,16 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
     return Math.max(...connections.map(c => c.count), 1);
   }, [connections]);
 
-  // Get top 5 connections for selected node
+  // Get top 5 connections for hovered/selected node (for node opacity control)
+  const top5ConnectionIndices = useMemo(() => {
+    const activeNode = selectedNode !== null ? selectedNode : hoveredNode;
+    if (activeNode === null) return new Set<number>();
+
+    const nodeConnections = getTopConnectionsForPersona(activeNode, connections, 5);
+    return new Set(nodeConnections.map(conn => conn.index));
+  }, [hoveredNode, selectedNode, connections]);
+
+  // Get top 5 connections for selected node (for side panel)
   const topConnections = useMemo(() => {
     if (selectedNode === null) return null;
 
@@ -105,13 +114,6 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
               const from = nodePositions[conn.from];
               const to = nodePositions[conn.to];
 
-              // Check if both nodes are in top 5
-              const fromScore = allPersonaScores.find(ps => ps.personaId === allPersonas[conn.from].id);
-              const toScore = allPersonaScores.find(ps => ps.personaId === allPersonas[conn.to].id);
-              const fromRank = fromScore?.rRankPosition || 999;
-              const toRank = toScore?.rRankPosition || 999;
-              const bothInTop5 = fromRank <= 5 && toRank <= 5;
-
               // Use exponential scale for thickness - makes weak connections much thinner
               const normalizedStrength = conn.count / maxConnections;
               const thickness = 0.2 + Math.pow(normalizedStrength, 2) * 5; // 0.2 to 5.2px (exponential)
@@ -122,15 +124,8 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
               const isRelated = activeNode !== null && (conn.from === activeNode || conn.to === activeNode);
               const shouldFade = activeNode !== null && !isRelated;
 
-              // Apply opacity based on top 5 status and hover state
-              let opacity = baseOpacity;
-              if (!bothInTop5) {
-                opacity = opacity * 0.1; // Reduce opacity for non-top 5 connections
-              }
-              if (shouldFade) {
-                opacity = opacity * 0.1; // Further reduce when not related to hovered/selected
-              }
-
+              // Apply opacity based on hover state
+              const opacity = shouldFade ? baseOpacity * 0.1 : baseOpacity;
               const strokeColor = isRelated ? '#8f9c66' : '#6e8154';
 
               return (
@@ -157,14 +152,23 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
               const personaScore = allPersonaScores.find(ps => ps.personaId === persona.id);
               const rankPosition = personaScore?.rRankPosition || 999;
 
+              // Determine active state and opacity
+              const activeNode = selectedNode !== null ? selectedNode : hoveredNode;
+              const isActive = index === activeNode;
+              const isInTop5Connections = top5ConnectionIndices.has(index);
+
+              // When hovering/selecting, only show active node and its top 5 connections at full opacity
+              let nodeOpacity = 1;
+              if (activeNode !== null && !isActive && !isInTop5Connections) {
+                nodeOpacity = 0.1; // Fade out nodes that aren't the active node or in its top 5 connections
+              }
+
               // Color based on rank and selection state
-              const isActive = index === hoveredNode || index === selectedNode;
               const isTopRanked = rankPosition <= 5;
               const baseColor = isTopRanked
-                ? '#8f9c66' // Top 5 - brighter green
+                ? '#8f9c66' // Top 5 R-rank - brighter green
                 : '#6e8154'; // Others - medium green
               const fillColor = isActive ? '#b0b877' : baseColor;
-              const nodeOpacity = isTopRanked ? 1 : 0.1;
 
               return (
                 <g key={persona.id} opacity={nodeOpacity}>
@@ -206,7 +210,7 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
         <div className="mt-4 flex flex-col items-center gap-3 text-sm text-gray-600">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-[#8f9c66] border-2 border-white"></div>
-            <span>{locale === 'nl' ? 'Top 5 doelgroepen' : 'Top 5 target groups'}</span>
+            <span>{locale === 'nl' ? 'Top 5 R-rank doelgroepen' : 'Top 5 R-rank groups'}</span>
           </div>
           <div className="flex items-center gap-2">
             <svg width="40" height="4">
@@ -215,7 +219,7 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
             <span>{locale === 'nl' ? 'Sterkere overeenkomsten' : 'Stronger similarity'}</span>
           </div>
           <div className="flex items-center gap-2 text-xs text-gray-500">
-            <span>{locale === 'nl' ? 'Tip: Klik op een groep voor top 5 verbindingen' : 'Tip: Click a group for top 5 connections'}</span>
+            <span>{locale === 'nl' ? 'Tip: Hover/klik om top 5 verbindingen te zien' : 'Tip: Hover/click to see top 5 connections'}</span>
           </div>
         </div>
       </div>
