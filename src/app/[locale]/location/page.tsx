@@ -17,6 +17,7 @@ import { DoelgroepenResult } from '../../../features/location/components/Doelgro
 import { generateGradientColors } from '../../../features/location/utils/cubePatterns';
 import { calculatePersonaScores } from '../../../features/location/utils/targetGroupScoring';
 import { getPersonaCubePosition } from '../../../features/location/utils/cubePositionMapping';
+import { calculateConnections, calculateScenarios } from '../../../features/location/utils/connectionCalculations';
 import housingPersonasData from '../../../features/location/data/sources/housing-personas.json';
 
 // Main sections configuration with dual language support
@@ -191,19 +192,25 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         // Sort by R-rank position (1 = best)
         const sortedPersonas = [...personaScores].sort((a, b) => a.rRankPosition - b.rRankPosition);
 
-        // Create scenario mappings based on R-rank positions
+        // Calculate connections between personas
+        const connections = calculateConnections(personas, sortedPersonas);
+
+        // Calculate scenarios using R-rank and connection cross-reference
+        const scenarios = calculateScenarios(personas, sortedPersonas, connections);
+
+        // Create scenario mappings based on calculated positions
         const getScenarioData = (scenario: string) => {
           let positions: number[] = [];
 
           switch (scenario) {
             case 'scenario1':
-              positions = [1, 2, 3, 4]; // Top 4
+              positions = scenarios.scenario1;
               break;
             case 'scenario2':
-              positions = [1, 2, 6, 8];
+              positions = scenarios.scenario2;
               break;
             case 'scenario3':
-              positions = [3, 4, 9, 12];
+              positions = scenarios.scenario3;
               break;
             case 'custom':
               positions = []; // None selected
@@ -238,6 +245,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
             locale={locale}
             cubeColors={cubeColors}
             allPersonas={personas}
+            allPersonaScores={sortedPersonas}
             getScenarioData={getScenarioData}
           />
         );

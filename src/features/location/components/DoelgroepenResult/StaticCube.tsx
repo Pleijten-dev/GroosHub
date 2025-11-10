@@ -226,6 +226,7 @@ export interface StaticCubeProps {
   allPersonas: HousingPersona[];
   selectedPersonas: PersonaScore[];
   locale: Locale;
+  zoom?: number;
 }
 
 export function StaticCube({
@@ -234,6 +235,7 @@ export function StaticCube({
   allPersonas,
   selectedPersonas,
   locale,
+  zoom = 80,
 }: StaticCubeProps): React.JSX.Element {
   const [hoveredPersona, setHoveredPersona] = useState<string | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -272,12 +274,12 @@ export function StaticCube({
           height: '100%',
           borderRadius: '8px',
           background: 'transparent',
-          overflow: 'hidden'
+          overflow: 'visible'
         }}
       >
         <Canvas
           orthographic
-          camera={{ zoom: 80, position: [-10, 10, -10], near: -100, far: 100 }}
+          camera={{ zoom, position: [-10, 10, -10], near: -100, far: 100 }}
           shadows
         >
           <OrbitControls
@@ -306,7 +308,7 @@ export function StaticCube({
             zIndex: 9999,
           }}
         >
-          <div className="bg-gray-900 text-white px-3 py-2 rounded-lg shadow-lg text-sm whitespace-nowrap">
+          <div className="bg-white text-black px-3 py-2 rounded-lg shadow-lg text-sm whitespace-nowrap border border-gray-200">
             {hoveredPersona}
           </div>
         </div>
