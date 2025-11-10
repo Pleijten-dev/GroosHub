@@ -42,68 +42,41 @@ function interpolateColor(color1: string, color2: string, factor: number): strin
 /**
  * Generate 27 specific colors mapped to cube positions
  *
- * Each color corresponds to a specific persona based on their cube position.
+ * Colors are mapped sequentially to cube indices (0-26):
+ * Index 0 -> cls-1, Index 1 -> cls-2, ... Index 26 -> cls-27
+ *
  * Cube positions are calculated as: (x+1) + (y+1)*3 + (z+1)*9
  * Where: X=Income (-1=Low, 0=Mid, 1=High), Y=Age (-1=20-35, 0=35-55, 1=55+), Z=Household (-1=Single, 0=Couple, 1=Family)
- *
- * Mapping (cube_position: persona -> color):
- * 0: Jonge Starters (Low, 20-35, Single) -> cls-1
- * 1: Ambitieuze Singles (Mid, 20-35, Single) -> cls-10
- * 2: Carrièrestarters (High, 20-35, Single) -> cls-19
- * 3: Zelfstandige Doorzetters (Low, 35-55, Single) -> cls-2
- * 4: Zelfbewuste Solisten (Mid, 35-55, Single) -> cls-11
- * 5: Succesvolle Singles (High, 35-55, Single) -> cls-20
- * 6: Senioren op Budget (Low, 55+, Single) -> cls-3
- * 7: Actieve Senioren (Mid, 55+, Single) -> cls-12
- * 8: Onafhankelijke Levensgenieters (High, 55+, Single) -> cls-21
- * 9: Praktische Duo's (Low, 20-35, Couple) -> cls-4
- * 10: Gevestigde Duo's (Mid, 20-35, Couple) -> cls-13
- * 11: Stedelijke Trendsetters (High, 20-35, Couple) -> cls-22
- * 12: Bescheiden Stellen (Low, 35-55, Couple) -> cls-5
- * 13: Comfortabele Koppels (Mid, 35-55, Couple) -> cls-14
- * 14: Comfortabele Professionals (High, 35-55, Couple) -> cls-23
- * 15: Zuinig Genieten (Low, 55+, Couple) -> cls-6
- * 16: Stabiele Duogenieters (Mid, 55+, Couple) -> cls-15
- * 17: Welvarende Levensgenieters (High, 55+, Couple) -> cls-24
- * 18: Jonge Gezinnen in Groei (Low, 20-35, Family) -> cls-7
- * 19: Groeiende Gezinnen (Mid, 20-35, Family) -> cls-16
- * 20: Jonge Gezinnen met Ambitie (High, 20-35, Family) -> cls-25
- * 21: Pragmatische Gezinnen (Low, 35-55, Family) -> cls-8
- * 22: Gezinnen in Balans (Mid, 35-55, Family) -> cls-17
- * 23: Succesvolle Gezinnen (High, 35-55, Family) -> cls-26
- * 24: Senioren met Thuiswonende Kinderen (Low, 55+, Family) -> cls-9
- * 25: Lege-Nesters (Mid, 55+, Family) -> cls-18
- * 26: Welgestelde Nestblijvers (High, 55+, Family) -> cls-27
  */
 export function generateGradientColors(): string[] {
   return [
-    '#abb474',  // Index 0: Jonge Starters (cls-1)
-    '#4f6944',  // Index 1: Ambitieuze Singles (cls-10)
-    '#a6b072',  // Index 2: Carrièrestarters (cls-19)
-    '#5a714a',  // Index 3: Zelfstandige Doorzetters (cls-2)
-    '#8f9c66',  // Index 4: Zelfbewuste Solisten (cls-11)
-    '#4b6643',  // Index 5: Succesvolle Singles (cls-20)
-    '#576e48',  // Index 6: Senioren op Budget (cls-3)
-    '#869561',  // Index 7: Actieve Senioren (cls-12)
-    '#667a50',  // Index 8: Onafhankelijke Levensgenieters (cls-21)
-    '#b5bc79',  // Index 9: Praktische Duo's (cls-4)
-    '#536c46',  // Index 10: Gevestigde Duo's (cls-13)
-    '#798a5b',  // Index 11: Stedelijke Trendsetters (cls-22)
-    '#486341',  // Index 12: Bescheiden Stellen (cls-5)
-    '#a1ac6f',  // Index 13: Comfortabele Koppels (cls-14)
-    '#9ca86d',  // Index 14: Comfortabele Professionals (cls-23)
-    '#6e8154',  // Index 15: Zuinig Genieten (cls-6)
-    '#8a9864',  // Index 16: Stabiele Duogenieters (cls-15)
-    '#93a068',  // Index 17: Welvarende Levensgenieters (cls-24)
-    '#7e8e5d',  // Index 18: Jonge Gezinnen in Groei (cls-7)
-    '#62774e',  // Index 19: Groeiende Gezinnen (cls-16)
-    '#98a46b',  // Index 20: Jonge Gezinnen met Ambitie (cls-25)
-    '#718456',  // Index 21: Pragmatische Gezinnen (cls-8)
-    '#82915f',  // Index 22: Gezinnen in Balans (cls-17)
-    '#758758',  // Index 23: Succesvolle Gezinnen (cls-26)
-    '#5e744c',  // Index 24: Senioren met Thuiswonende Kinderen (cls-9)
-    '#6a7d52',  // Index 25: Lege-Nesters (cls-18)
-    '#b0b877',  // Index 26: Welgestelde Nestblijvers (cls-27)
+    '#abb474',  // Index 0 -> cls-1
+    '#5a714a',  // Index 1 -> cls-2
+    '#576e48',  // Index 2 -> cls-3
+    '#b5bc79',  // Index 3 -> cls-4
+    '#486341',  // Index 4 -> cls-5
+    '#6e8154',  // Index 5 -> cls-6
+    '#7e8e5d',  // Index 6 -> cls-7
+    '#718456',  // Index 7 -> cls-8
+    '#5e744c',  // Index 8 -> cls-9
+    '#4f6944',  // Index 9 -> cls-10
+    '#8f9c66',  // Index 10 -> cls-11
+    '#869561',  // Index 11 -> cls-12
+    '#536c46',  // Index 12 -> cls-13
+    '#a1ac6f',  // Index 13 -> cls-14
+    '#8a9864',  // Index 14 -> cls-15
+    '#62774e',  // Index 15 -> cls-16
+    '#82915f',  // Index 16 -> cls-17
+    '#6a7d52',  // Index 17 -> cls-18
+    '#a6b072',  // Index 18 -> cls-19
+    '#4b6643',  // Index 19 -> cls-20
+    '#667a50',  // Index 20 -> cls-21
+    '#798a5b',  // Index 21 -> cls-22
+    '#9ca86d',  // Index 22 -> cls-23
+    '#93a068',  // Index 23 -> cls-24
+    '#98a46b',  // Index 24 -> cls-25
+    '#758758',  // Index 25 -> cls-26
+    '#b0b877',  // Index 26 -> cls-27
   ];
 }
 
