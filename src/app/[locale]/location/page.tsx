@@ -19,7 +19,7 @@ import { calculatePersonaScores } from '../../../features/location/utils/targetG
 import { getPersonaCubePosition } from '../../../features/location/utils/cubePositionMapping';
 import { calculateConnections, calculateScenarios } from '../../../features/location/utils/connectionCalculations';
 import housingPersonasData from '../../../features/location/data/sources/housing-personas.json';
-import { LocationMap, MapStyle, WMSLayerControl, WMSLayerSelection } from '../../../features/location/components/Maps';
+import { LocationMap, MapStyle, WMSLayerControl, WMSLayerSelection, WMSFeatureInfo } from '../../../features/location/components/Maps';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -59,6 +59,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   const [selectedWMSLayer, setSelectedWMSLayer] = useState<WMSLayerSelection | null>(null);
   const [wmsOpacity, setWMSOpacity] = useState<number>(0.7);
   const [mapZoom, setMapZoom] = useState<number>(15);
+  const [featureInfo, setFeatureInfo] = useState<WMSFeatureInfo | null>(null);
 
   // Generate cube colors once and share across all components for consistency
   const cubeColors = React.useMemo(() => generateGradientColors(), []);
@@ -418,6 +419,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
               style={MapStyle.DATAVIZ.LIGHT}
               wmsLayer={selectedWMSLayer?.config || null}
               wmsOpacity={wmsOpacity}
+              onFeatureClick={setFeatureInfo}
             >
               {/* WMS Layer Control - Sleek pill at bottom center */}
               <WMSLayerControl
@@ -426,6 +428,8 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                 selectedLayer={selectedWMSLayer}
                 opacity={wmsOpacity}
                 currentZoom={mapZoom}
+                featureInfo={featureInfo}
+                onClearFeatureInfo={() => setFeatureInfo(null)}
               />
             </LocationMap>
           </div>

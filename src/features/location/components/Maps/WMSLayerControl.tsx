@@ -9,12 +9,20 @@ export interface WMSLayerSelection {
   config: WMSLayerConfig;
 }
 
+export interface WMSFeatureInfo {
+  layerName: string;
+  properties: Record<string, unknown>;
+  coordinates: [number, number];
+}
+
 interface WMSLayerControlProps {
   onLayerChange: (selection: WMSLayerSelection | null) => void;
   onOpacityChange: (opacity: number) => void;
   selectedLayer: WMSLayerSelection | null;
   opacity: number;
   currentZoom?: number;
+  featureInfo?: WMSFeatureInfo | null;
+  onClearFeatureInfo?: () => void;
 }
 
 /**
@@ -27,6 +35,8 @@ export const WMSLayerControl: React.FC<WMSLayerControlProps> = ({
   selectedLayer,
   opacity,
   currentZoom = 15,
+  featureInfo,
+  onClearFeatureInfo,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [showInfo, setShowInfo] = useState(false);
@@ -66,6 +76,19 @@ export const WMSLayerControl: React.FC<WMSLayerControlProps> = ({
   };
 
   const selectedCategoryLayers = selectedCategory ? getLayersByCategory(selectedCategory) : null;
+
+  // Generate legend URL for WMS layer
+  const getLegendUrl = (layer: WMSLayerConfig): string => {
+    const params = new URLSearchParams({
+      service: 'WMS',
+      version: '1.3.0',
+      request: 'GetLegendGraphic',
+      format: 'image/png',
+      layer: layer.layers,
+      style: '',
+    });
+    return `${layer.url}?${params.toString()}`;
+  };
 
   return (
     <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000]">
@@ -229,9 +252,24 @@ export const WMSLayerControl: React.FC<WMSLayerControlProps> = ({
                 </svg>
               </button>
             </div>
-            <p className="text-xs text-gray-600 leading-relaxed">
+            <p className="text-xs text-gray-600 leading-relaxed mb-3">
               {selectedLayer.config.description}
             </p>
+
+            {/* Legend */}
+            <div className="mt-3 pt-3 border-t border-gray-200">
+              <p className="text-xs font-medium text-gray-700 mb-2">Legend:</p>
+              <img
+                src={getLegendUrl(selectedLayer.config)}
+                alt="Layer legend"
+                className="max-w-full"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                }}
+              />
+            </div>
+
             {selectedLayer.config.recommendedZoom && (
               <div className="mt-3 pt-3 border-t border-gray-200">
                 <p className="text-xs text-gray-500">
@@ -243,6 +281,54 @@ export const WMSLayerControl: React.FC<WMSLayerControlProps> = ({
           </div>
           {/* Arrow pointing down */}
           <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
+            <div className="w-3 h-3 bg-white border-r border-b border-gray-200 transform rotate-45" />
+          </div>
+        </div>
+      )}
+
+      {/* Feature Info Display - Shows data from clicked location */}
+      {featureInfo && (
+        <div className="absolute bottom-full left-0 mb-3 w-80 max-w-[90vw]">
+          <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-4">
+            <div className="flex justify-between items-start mb-2">
+              <h4 className="text-sm font-semibold text-gray-900">
+                Clicked Location Data
+              </h4>
+              <button
+                onClick={onClearFeatureInfo}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    d="M6 18L18 6M6 6l12 12"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div className="text-xs text-gray-600">
+              <p className="mb-2">
+                <span className="font-medium">Coordinates:</span>{' '}
+                {featureInfo.coordinates[0].toFixed(6)}, {featureInfo.coordinates[1].toFixed(6)}
+              </p>
+              {Object.keys(featureInfo.properties).length > 0 ? (
+                <div className="mt-2 space-y-1 max-h-48 overflow-y-auto">
+                  {Object.entries(featureInfo.properties).map(([key, value]) => (
+                    <div key={key} className="flex justify-between gap-2">
+                      <span className="font-medium text-gray-700">{key}:</span>
+                      <span className="text-gray-600 text-right">{String(value)}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 italic mt-2">No feature data available at this location</p>
+              )}
+            </div>
+          </div>
+          {/* Arrow pointing down to the left */}
+          <div className="absolute top-full left-8 -mt-px">
             <div className="w-3 h-3 bg-white border-r border-b border-gray-200 transform rotate-45" />
           </div>
         </div>

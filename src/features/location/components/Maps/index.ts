@@ -4,7 +4,7 @@
  */
 
 export { LocationMap } from './LocationMap';
-export type { WMSFeatureInfo } from './LocationMap';
+export type { WMSFeatureInfo } from './WMSLayerControl';
 export { MapStyle, getMapStyle, DEFAULT_MAP_STYLE } from './mapStyles';
 export type { TileLayerConfig } from './mapStyles';
 export { WMSLayerControl } from './WMSLayerControl';

@@ -6,6 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import styles from './LocationMap.module.css';
 import { TileLayerConfig, DEFAULT_MAP_STYLE } from './mapStyles';
 import { WMSLayerConfig } from './wmsLayers';
+import { WMSFeatureInfo } from './WMSLayerControl';
 
 // Fix for default marker icons in Leaflet with Next.js
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -15,12 +16,6 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
-
-export interface WMSFeatureInfo {
-  layerName: string;
-  properties: Record<string, unknown>;
-  coordinates: [number, number];
-}
 
 interface LocationMapProps {
   center?: [number, number];
@@ -104,7 +99,22 @@ export const LocationMap: React.FC<LocationMapProps> = ({
 
     // Add new marker if position is provided
     if (marker) {
-      const newMarker = L.marker(marker).addTo(mapRef.current);
+      // Create custom black arrow icon
+      const arrowIcon = L.divIcon({
+        html: `
+          <div style="position: relative; width: 40px; height: 40px;">
+            <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 35 L10 15 L20 18 L30 15 Z" fill="black" stroke="white" stroke-width="2"/>
+            </svg>
+          </div>
+        `,
+        className: 'custom-arrow-marker',
+        iconSize: [40, 40],
+        iconAnchor: [20, 35], // Point of the arrow
+        popupAnchor: [0, -35],
+      });
+
+      const newMarker = L.marker(marker, { icon: arrowIcon }).addTo(mapRef.current);
 
       if (locationName) {
         newMarker.bindPopup(locationName).openPopup();
