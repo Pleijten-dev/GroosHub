@@ -39,8 +39,8 @@ export const ConnectionPopup: React.FC<ConnectionPopupProps> = ({
 }) => {
   const popupRef = useRef<HTMLDivElement>(null);
 
-  // Find persona index
-  const personaIndex = allPersonaScores.findIndex(ps => ps.personaId === persona.id);
+  // Find persona index in allPersonas array (connections use allPersonas indices)
+  const personaIndex = allPersonas.findIndex(p => p.id === persona.id);
 
   // Get top 5 connections sorted by R-rank
   const top5Connections = useMemo(() => {
@@ -52,7 +52,10 @@ export const ConnectionPopup: React.FC<ConnectionPopupProps> = ({
     return topConnections
       .map(conn => {
         const connPersona = allPersonas[conn.index];
-        const connScore = allPersonaScores[conn.index];
+        // Find the score by matching persona ID, not by index
+        const connScore = allPersonaScores.find(ps => ps.personaId === connPersona.id);
+        if (!connScore) return null;
+
         return {
           persona: connPersona,
           score: connScore,
@@ -60,6 +63,7 @@ export const ConnectionPopup: React.FC<ConnectionPopupProps> = ({
           index: conn.index
         };
       })
+      .filter((conn): conn is NonNullable<typeof conn> => conn !== null)
       .sort((a, b) => a.score.rRankPosition - b.score.rRankPosition);
   }, [personaIndex, connections, allPersonas, allPersonaScores]);
 
