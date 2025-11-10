@@ -40,7 +40,7 @@ interface LocationMapProps {
  * Supports WMS layers, opacity control, and GetFeatureInfo queries
  */
 export const LocationMap: React.FC<LocationMapProps> = ({
-  center = [52.0907, 5.1214], // Default: Center of Netherlands (Utrecht)
+  center = [51.920198, 4.474601], // Default: Rotterdam
   zoom = 8,
   marker,
   locationName,
@@ -134,6 +134,9 @@ export const LocationMap: React.FC<LocationMapProps> = ({
         minZoom: wmsLayer.minZoom,
         maxZoom: wmsLayer.maxZoom,
         opacity: wmsOpacity,
+        // Request tiles in EPSG:4326 (WGS84) instead of EPSG:28992 (RD)
+        // This ensures proper coordinate transformation from Dutch RD to WGS84
+        crs: L.CRS.EPSG4326,
       });
 
       wms.addTo(mapRef.current);
@@ -152,10 +155,11 @@ export const LocationMap: React.FC<LocationMapProps> = ({
       const bounds = map.getBounds();
 
       // Construct GetFeatureInfo URL
+      // Use CRS instead of SRS for WMS 1.3.0, and request in EPSG:4326 (WGS84)
       const params = {
         request: 'GetFeatureInfo',
         service: 'WMS',
-        srs: 'EPSG:4326',
+        crs: 'EPSG:4326',
         version: '1.3.0',
         format: 'image/png',
         bbox: `${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()}`,

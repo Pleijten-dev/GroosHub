@@ -414,7 +414,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         return (
           <div className="h-full w-full relative">
             <LocationMap
-              center={coordinates || [52.0907, 5.1214]}
+              center={coordinates || [51.920198, 4.474601]}
               zoom={coordinates ? 13 : 8}
               marker={coordinates}
               locationName={locationName}
