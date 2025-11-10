@@ -420,6 +420,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
               wmsLayer={selectedWMSLayer?.config || null}
               wmsOpacity={wmsOpacity}
               onFeatureClick={setFeatureInfo}
+              onZoomChange={setMapZoom}
             >
               {/* WMS Layer Control - Sleek pill at bottom center */}
               <WMSLayerControl

@@ -26,6 +26,7 @@ interface LocationMapProps {
   wmsLayer?: WMSLayerConfig | null;
   wmsOpacity?: number;
   onFeatureClick?: (info: WMSFeatureInfo) => void;
+  onZoomChange?: (zoom: number) => void;
   children?: React.ReactNode;
 }
 
@@ -43,6 +44,7 @@ export const LocationMap: React.FC<LocationMapProps> = ({
   wmsLayer = null,
   wmsOpacity = 0.7,
   onFeatureClick,
+  onZoomChange,
   children,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -87,6 +89,26 @@ export const LocationMap: React.FC<LocationMapProps> = ({
     }
   }, [center, zoom]);
 
+  // Track zoom changes from user interaction
+  useEffect(() => {
+    if (!mapRef.current || !onZoomChange) return;
+
+    const handleZoomEnd = () => {
+      if (mapRef.current && onZoomChange) {
+        const currentZoom = mapRef.current.getZoom();
+        onZoomChange(currentZoom);
+      }
+    };
+
+    mapRef.current.on('zoomend', handleZoomEnd);
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.off('zoomend', handleZoomEnd);
+      }
+    };
+  }, [onZoomChange]);
+
   // Update marker when marker position changes
   useEffect(() => {
     if (!mapRef.current) return;
@@ -99,19 +121,27 @@ export const LocationMap: React.FC<LocationMapProps> = ({
 
     // Add new marker if position is provided
     if (marker) {
-      // Create custom black arrow icon
+      // Create custom stick-style arrow icon (→)
       const arrowIcon = L.divIcon({
         html: `
-          <div style="position: relative; width: 40px; height: 40px;">
-            <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-              <path d="M20 35 L10 15 L20 18 L30 15 Z" fill="black" stroke="white" stroke-width="2"/>
+          <div style="position: relative; width: 40px; height: 50px;">
+            <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
+              <!-- Vertical stick -->
+              <line x1="20" y1="5" x2="20" y2="45" stroke="black" stroke-width="3"/>
+              <!-- Arrow head pointing down -->
+              <path d="M20 45 L15 38 M20 45 L25 38" stroke="black" stroke-width="3" stroke-linecap="round" fill="none"/>
+              <!-- White outline for visibility -->
+              <line x1="20" y1="5" x2="20" y2="45" stroke="white" stroke-width="5" opacity="0.7" style="stroke-linecap: round;"/>
+              <line x1="20" y1="5" x2="20" y2="45" stroke="black" stroke-width="3" style="stroke-linecap: round;"/>
+              <path d="M20 45 L15 38 M20 45 L25 38" stroke="white" stroke-width="5" stroke-linecap="round" fill="none" opacity="0.7"/>
+              <path d="M20 45 L15 38 M20 45 L25 38" stroke="black" stroke-width="3" stroke-linecap="round" fill="none"/>
             </svg>
           </div>
         `,
         className: 'custom-arrow-marker',
-        iconSize: [40, 40],
-        iconAnchor: [20, 35], // Point of the arrow
-        popupAnchor: [0, -35],
+        iconSize: [40, 50],
+        iconAnchor: [20, 45], // Point of the arrow
+        popupAnchor: [0, -45],
       });
 
       const newMarker = L.marker(marker, { icon: arrowIcon }).addTo(mapRef.current);

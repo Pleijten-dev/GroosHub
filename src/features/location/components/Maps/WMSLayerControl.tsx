@@ -288,12 +288,17 @@ export const WMSLayerControl: React.FC<WMSLayerControlProps> = ({
 
       {/* Feature Info Display - Shows data from clicked location */}
       {featureInfo && (
-        <div className="absolute bottom-full left-0 mb-3 w-80 max-w-[90vw]">
+        <div className="absolute bottom-full left-0 mb-3 w-96 max-w-[90vw]">
           <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-4">
-            <div className="flex justify-between items-start mb-2">
-              <h4 className="text-sm font-semibold text-gray-900">
-                Clicked Location Data
-              </h4>
+            <div className="flex justify-between items-start mb-3">
+              <div>
+                <h4 className="text-sm font-semibold text-gray-900">
+                  Location Data
+                </h4>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {featureInfo.coordinates[0].toFixed(6)}, {featureInfo.coordinates[1].toFixed(6)}
+                </p>
+              </div>
               <button
                 onClick={onClearFeatureInfo}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -309,21 +314,34 @@ export const WMSLayerControl: React.FC<WMSLayerControlProps> = ({
               </button>
             </div>
             <div className="text-xs text-gray-600">
-              <p className="mb-2">
-                <span className="font-medium">Coordinates:</span>{' '}
-                {featureInfo.coordinates[0].toFixed(6)}, {featureInfo.coordinates[1].toFixed(6)}
-              </p>
               {Object.keys(featureInfo.properties).length > 0 ? (
-                <div className="mt-2 space-y-1 max-h-48 overflow-y-auto">
-                  {Object.entries(featureInfo.properties).map(([key, value]) => (
-                    <div key={key} className="flex justify-between gap-2">
-                      <span className="font-medium text-gray-700">{key}:</span>
-                      <span className="text-gray-600 text-right">{String(value)}</span>
-                    </div>
-                  ))}
-                </div>
+                <>
+                  <div className="bg-blue-50 border border-blue-200 rounded p-2 mb-3">
+                    <p className="text-xs text-blue-800">
+                      <span className="font-medium">💡 Tip:</span> These values are returned directly from the WMS layer.
+                      The data format depends on how the WMS service is configured. Some layers return actual measurements
+                      (e.g., pollution levels, temperature), while others may return classified values or pixel data.
+                    </p>
+                  </div>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {Object.entries(featureInfo.properties).map(([key, value]) => (
+                      <div key={key} className="border-b border-gray-100 pb-2 last:border-0">
+                        <div className="font-medium text-gray-700 mb-0.5">{key}</div>
+                        <div className="text-gray-900 pl-2 break-words">
+                          {String(value)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
               ) : (
-                <p className="text-gray-500 italic mt-2">No feature data available at this location</p>
+                <div className="bg-amber-50 border border-amber-200 rounded p-3 text-center">
+                  <p className="text-amber-800 font-medium mb-1">No Data Available</p>
+                  <p className="text-xs text-amber-700">
+                    This WMS layer may not support feature queries, or there&apos;s no data at this location.
+                    Try clicking on a different area or selecting a different layer.
+                  </p>
+                </div>
               )}
             </div>
           </div>
