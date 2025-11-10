@@ -87,16 +87,16 @@ export const MapStyle = {
  */
 export function getMapStyle(path: string): TileLayerConfig {
   const parts = path.split('.');
-  let current: any = MapStyle;
+  let current: Record<string, unknown> = MapStyle as Record<string, unknown>;
 
   for (const part of parts) {
-    current = current[part];
+    current = current[part] as Record<string, unknown>;
     if (!current) {
       throw new Error(`Map style not found: ${path}`);
     }
   }
 
-  return current as TileLayerConfig;
+  return current as unknown as TileLayerConfig;
 }
 
 /**
