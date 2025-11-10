@@ -59,6 +59,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   const [selectedWMSLayer, setSelectedWMSLayer] = useState<WMSLayerSelection | null>(null);
   const [wmsOpacity, setWMSOpacity] = useState<number>(0.7);
   const [featureInfo, setFeatureInfo] = useState<WMSFeatureInfo | null>(null);
+  const [mapZoom, setMapZoom] = useState<number>(15);
 
   // Generate cube colors once and share across all components for consistency
   const cubeColors = React.useMemo(() => generateGradientColors(), []);
@@ -107,6 +108,16 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
       setLocale(resolvedLocale);
     });
   }, [params]);
+
+  // Update map zoom when WMS layer changes
+  React.useEffect(() => {
+    if (selectedWMSLayer?.config?.recommendedZoom) {
+      setMapZoom(selectedWMSLayer.config.recommendedZoom);
+    } else {
+      // Reset to default zoom when no layer is selected
+      setMapZoom(15);
+    }
+  }, [selectedWMSLayer]);
 
   const handleTabChange = (tab: TabName): void => {
     setActiveTab(tab);
@@ -402,7 +413,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
           <div className="h-full w-full relative">
             <LocationMap
               center={coordinates}
-              zoom={15}
+              zoom={mapZoom}
               marker={coordinates}
               locationName={locationName}
               style={MapStyle.DATAVIZ.LIGHT}
