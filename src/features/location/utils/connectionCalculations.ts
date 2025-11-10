@@ -105,16 +105,18 @@ export function calculateScenarios(
   scenario2: number[];
   scenario3: number[];
 } {
-  const excludedPersonas = new Set<number>(); // Personas that cannot be used as anchors
+  const excludedPersonaIds = new Set<string>(); // Track excluded personas by ID
 
   const getScenarioGroup = (): number[] => {
     // Find the highest R-ranked persona not in any previous scenario
-    const availableScores = allPersonaScores.filter((_, index) => !excludedPersonas.has(index));
+    const availableScores = allPersonaScores.filter(ps => !excludedPersonaIds.has(ps.personaId));
     if (availableScores.length === 0) return [];
 
     // Get the best available persona (lowest R-rank position = best)
     const anchorPersona = availableScores[0];
-    const anchorIndex = allPersonaScores.findIndex(ps => ps.personaId === anchorPersona.personaId);
+    // Find index in allPersonas array (connections use allPersonas indices)
+    const anchorIndex = allPersonas.findIndex(p => p.id === anchorPersona.personaId);
+    if (anchorIndex === -1) return [];
 
     // Get top 5 strongest connections for this anchor persona
     const topConnections = getTopConnectionsForPersona(anchorIndex, connections, 5);
@@ -122,24 +124,30 @@ export function calculateScenarios(
     // Sort connections by R-rank (best to worst) and take top 3
     const top3Connections = topConnections
       .map(conn => {
-        const score = allPersonaScores[conn.index];
+        const connPersona = allPersonas[conn.index];
+        // Find the score by matching persona ID, not by index
+        const score = allPersonaScores.find(ps => ps.personaId === connPersona.id);
+        if (!score) return null;
+
         return {
+          personaId: connPersona.id,
           index: conn.index,
           rRankPosition: score.rRankPosition
         };
       })
+      .filter((conn): conn is NonNullable<typeof conn> => conn !== null)
       .sort((a, b) => a.rRankPosition - b.rRankPosition)
       .slice(0, 3); // Take top 3 by R-rank
 
     // Build result: anchor + top 3 connections
     const result = [
       anchorPersona.rRankPosition,
-      ...top3Connections.map(conn => allPersonaScores[conn.index].rRankPosition)
+      ...top3Connections.map(conn => conn.rRankPosition)
     ];
 
     // Mark all personas in this scenario as excluded for future anchor selection
-    excludedPersonas.add(anchorIndex);
-    top3Connections.forEach(conn => excludedPersonas.add(conn.index));
+    excludedPersonaIds.add(anchorPersona.personaId);
+    top3Connections.forEach(conn => excludedPersonaIds.add(conn.personaId));
 
     return result;
   };
