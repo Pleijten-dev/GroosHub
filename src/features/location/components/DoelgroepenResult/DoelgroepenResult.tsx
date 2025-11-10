@@ -1,7 +1,7 @@
 // src/features/location/components/DoelgroepenResult/DoelgroepenResult.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Locale } from '../../../../lib/i18n/config';
 import { StaticCube } from './StaticCube';
 import { PersonaScore } from '../../utils/targetGroupScoring';
@@ -9,6 +9,9 @@ import { SummaryRankingTable } from '../Doelgroepen/SummaryRankingTable';
 import { DetailedScoringTable } from '../Doelgroepen/DetailedScoringTable';
 import { DoelgroepenCard } from '../Doelgroepen/DoelgroepenCard';
 import { TargetGroupConnectionGraph } from './TargetGroupConnectionGraph';
+import { ConnectionPopup } from './ConnectionPopup';
+import { calculateConnections, Connection } from '../../utils/connectionCalculations';
+import { getPersonaCubePosition } from '../../utils/cubePositionMapping';
 
 interface HousingPersona {
   id: string;
@@ -58,6 +61,15 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
   const [contentView, setContentView] = useState<ContentView>('table');
   const [showDetailedScoring, setShowDetailedScoring] = useState(false);
 
+  // Custom scenario selection state
+  const [customSelectedIds, setCustomSelectedIds] = useState<string[]>([]);
+  const [popupPersona, setPopupPersona] = useState<HousingPersona | null>(null);
+
+  // Calculate connections for popup
+  const connections = useMemo(() => {
+    return calculateConnections(allPersonas, allPersonaScores);
+  }, [allPersonas, allPersonaScores]);
+
   // Fade in on mount
   useEffect(() => {
     const timer = setTimeout(() => setIsVisible(true), 100);
@@ -66,14 +78,79 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
 
   const handleScenarioClick = (scenario: Scenario) => {
     setSelectedScenario(scenario);
+    // Clear custom selections when switching away from custom mode
+    if (scenario !== 'custom') {
+      setCustomSelectedIds([]);
+      setPopupPersona(null);
+    }
   };
 
   const handleExpandClick = () => {
     setIsExpanded(!isExpanded);
   };
 
+  // Handle custom persona selection
+  const handlePersonaClick = (personaId: string) => {
+    if (selectedScenario !== 'custom') return;
+
+    // Find the persona
+    const persona = allPersonas.find(p => p.id === personaId);
+    if (!persona) return;
+
+    // If already selected, deselect it
+    if (customSelectedIds.includes(personaId)) {
+      setCustomSelectedIds(prev => prev.filter(id => id !== personaId));
+      setPopupPersona(null);
+    } else {
+      // Otherwise, show popup
+      setPopupPersona(persona);
+    }
+  };
+
+  // Handle selection from popup
+  const handleSelectFromPopup = (personaId: string) => {
+    setCustomSelectedIds(prev => {
+      if (prev.includes(personaId)) {
+        // Deselect
+        return prev.filter(id => id !== personaId);
+      } else {
+        // Select (add to list)
+        return [...prev, personaId];
+      }
+    });
+  };
+
   // Get current scenario data
-  const scenarioData = getScenarioData(selectedScenario);
+  const scenarioData = useMemo(() => {
+    // For custom mode, use custom selections
+    if (selectedScenario === 'custom' && customSelectedIds.length > 0) {
+      const selectedPersonas = customSelectedIds
+        .map(id => allPersonaScores.find(ps => ps.personaId === id))
+        .filter((ps): ps is PersonaScore => ps !== undefined);
+
+      const cubeIndices = selectedPersonas
+        .map(personaScore => {
+          const personaData = allPersonas.find(p => p.id === personaScore.personaId);
+          if (!personaData) return -1;
+
+          const { index } = getPersonaCubePosition({
+            income_level: personaData.income_level,
+            age_group: personaData.age_group,
+            household_type: personaData.household_type,
+          });
+          return index;
+        })
+        .filter(idx => idx !== -1);
+
+      return {
+        cubeIndices,
+        personas: selectedPersonas
+      };
+    }
+
+    // For predefined scenarios, use getScenarioData
+    return getScenarioData(selectedScenario);
+  }, [selectedScenario, customSelectedIds, allPersonas, allPersonaScores, getScenarioData]);
 
   const scenarios: { id: Scenario; label: string }[] = [
     { id: 'scenario1', label: locale === 'nl' ? 'Scenario 1' : 'Scenario 1' },
@@ -256,6 +333,8 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
                   scores={allPersonaScores}
                   locale={locale}
                   highlightedIds={scenarioData.personas.map(ps => ps.personaId)}
+                  selectedIds={selectedScenario === 'custom' ? customSelectedIds : undefined}
+                  onRowClick={selectedScenario === 'custom' ? handlePersonaClick : undefined}
                 />
               ) : contentView === 'verbanden' ? (
                 <TargetGroupConnectionGraph
@@ -316,6 +395,21 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Connection Popup for Custom Mode */}
+      {popupPersona && (
+        <ConnectionPopup
+          persona={popupPersona}
+          personaScore={allPersonaScores.find(ps => ps.personaId === popupPersona.id)!}
+          allPersonas={allPersonas}
+          allPersonaScores={allPersonaScores}
+          connections={connections}
+          selectedPersonaIds={customSelectedIds}
+          onSelectPersona={handleSelectFromPopup}
+          onClose={() => setPopupPersona(null)}
+          locale={locale}
+        />
+      )}
     </div>
   );
 };
