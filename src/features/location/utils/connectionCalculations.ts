@@ -90,9 +90,11 @@ export function getTopConnectionsForPersona(
  * Calculate scenario groups based on R-rank and connection strength cross-reference
  *
  * Algorithm:
- * - Scenario 1: Take R-rank #1, get its top 10 connections, sort by R-rank, take top 3 => 4 total
- * - Scenario 2: Exclude scenario 1's 4, take next highest R-rank, get its top 10 connections, sort by R-rank, take top 3 => 4 more
- * - Scenario 3: Exclude scenarios 1&2's 8, take next highest R-rank, get its top 10 connections, sort by R-rank, take top 3 => 4 more
+ * - Scenario 1: Take R-rank #1, get its top 20 connections, filter excluded, sort by R-rank, take top 3 => 4 total
+ * - Scenario 2: Exclude scenario 1's 4, take next highest R-rank, get its top 20 connections, filter excluded, sort by R-rank, take top 3 => 4 more
+ * - Scenario 3: Exclude scenarios 1&2's 8, take next highest R-rank, get its top 20 connections, filter excluded, sort by R-rank, take top 3 => 4 more
+ *
+ * Note: We get top 20 connections (not 10) to ensure we have enough available after filtering out excluded personas from previous scenarios.
  */
 export function calculateScenarios(
   allPersonas: HousingPersona[],
@@ -114,8 +116,8 @@ export function calculateScenarios(
     const anchorPersona = availableScores[0];
     const anchorIndex = allPersonaScores.findIndex(ps => ps.personaId === anchorPersona.personaId);
 
-    // Get top 10 connections for this anchor persona
-    const topConnections = getTopConnectionsForPersona(anchorIndex, connections, 10);
+    // Get top 20 connections for this anchor persona (increased from 10 to ensure enough after filtering)
+    const topConnections = getTopConnectionsForPersona(anchorIndex, connections, 20);
 
     // Filter out already excluded indices and sort by R-rank
     const availableConnections = topConnections
