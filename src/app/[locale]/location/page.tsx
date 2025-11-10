@@ -19,7 +19,7 @@ import { calculatePersonaScores } from '../../../features/location/utils/targetG
 import { getPersonaCubePosition } from '../../../features/location/utils/cubePositionMapping';
 import { calculateConnections, calculateScenarios } from '../../../features/location/utils/connectionCalculations';
 import housingPersonasData from '../../../features/location/data/sources/housing-personas.json';
-import { LocationMap, MapStyle, WMSLayerControl, WMSLayerSelection, WMSFeatureInfo } from '../../../features/location/components/Maps';
+import { LocationMap, MapStyle, WMSLayerControl, WMSLayerSelection } from '../../../features/location/components/Maps';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -58,7 +58,6 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   // WMS layer state
   const [selectedWMSLayer, setSelectedWMSLayer] = useState<WMSLayerSelection | null>(null);
   const [wmsOpacity, setWMSOpacity] = useState<number>(0.7);
-  const [featureInfo, setFeatureInfo] = useState<WMSFeatureInfo | null>(null);
   const [mapZoom, setMapZoom] = useState<number>(15);
 
   // Generate cube colors once and share across all components for consistency
@@ -419,69 +418,15 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
               style={MapStyle.DATAVIZ.LIGHT}
               wmsLayer={selectedWMSLayer?.config || null}
               wmsOpacity={wmsOpacity}
-              onFeatureClick={setFeatureInfo}
             >
-              {/* WMS Layer Control */}
+              {/* WMS Layer Control - Sleek pill at bottom center */}
               <WMSLayerControl
                 onLayerChange={setSelectedWMSLayer}
                 onOpacityChange={setWMSOpacity}
                 selectedLayer={selectedWMSLayer}
                 opacity={wmsOpacity}
+                currentZoom={mapZoom}
               />
-
-              {/* Feature Info Popup */}
-              {featureInfo && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    bottom: '20px',
-                    left: '20px',
-                    background: 'white',
-                    padding: '12px 16px',
-                    borderRadius: '8px',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                    maxWidth: '300px',
-                    zIndex: 1000,
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>
-                      {locale === 'nl' ? 'Klik Informatie' : 'Click Information'}
-                    </h4>
-                    <button
-                      onClick={() => setFeatureInfo(null)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '0 4px',
-                        fontSize: '18px',
-                        color: '#6b7280',
-                      }}
-                    >
-                      ×
-                    </button>
-                  </div>
-                  <div style={{ fontSize: '13px', color: '#6b7280' }}>
-                    <p style={{ margin: '4px 0' }}>
-                      <strong>{locale === 'nl' ? 'Locatie:' : 'Location:'}</strong>{' '}
-                      {featureInfo.coordinates[0].toFixed(6)}, {featureInfo.coordinates[1].toFixed(6)}
-                    </p>
-                    {Object.keys(featureInfo.properties).length > 0 && (
-                      <>
-                        <p style={{ margin: '8px 0 4px', fontWeight: 600 }}>
-                          {locale === 'nl' ? 'Eigenschappen:' : 'Properties:'}
-                        </p>
-                        {Object.entries(featureInfo.properties).map(([key, value]) => (
-                          <p key={key} style={{ margin: '2px 0', fontSize: '12px' }}>
-                            <strong>{key}:</strong> {String(value)}
-                          </p>
-                        ))}
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
             </LocationMap>
           </div>
         );

@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { getWMSCategories, getLayersByCategory, WMSLayerConfig } from './wmsLayers';
-import styles from './WMSLayerControl.module.css';
 
 export interface WMSLayerSelection {
   categoryId: string;
@@ -15,20 +14,22 @@ interface WMSLayerControlProps {
   onOpacityChange: (opacity: number) => void;
   selectedLayer: WMSLayerSelection | null;
   opacity: number;
+  currentZoom?: number;
 }
 
 /**
- * WMS Layer Control Component
- * Provides UI for selecting WMS layers and adjusting opacity
+ * WMS Layer Control Component - Sleek pill-shaped bottom control
+ * Provides UI for selecting WMS layers with compact horizontal layout
  */
 export const WMSLayerControl: React.FC<WMSLayerControlProps> = ({
   onLayerChange,
   onOpacityChange,
   selectedLayer,
   opacity,
+  currentZoom = 15,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [showInfo, setShowInfo] = useState(false);
 
   const categories = getWMSCategories();
 
@@ -64,103 +65,186 @@ export const WMSLayerControl: React.FC<WMSLayerControlProps> = ({
     onOpacityChange(parseFloat(e.target.value));
   };
 
-  const handleClearLayer = (): void => {
-    setSelectedCategory('');
-    onLayerChange(null);
-  };
-
   const selectedCategoryLayers = selectedCategory ? getLayersByCategory(selectedCategory) : null;
 
   return (
-    <div className={styles.controlContainer}>
-      <div className={styles.controlHeader}>
-        <h3 className={styles.controlTitle}>Map Layers</h3>
-        <button
-          className={styles.toggleButton}
-          onClick={() => setIsExpanded(!isExpanded)}
-          aria-label={isExpanded ? 'Collapse layer control' : 'Expand layer control'}
-        >
-          {isExpanded ? '−' : '+'}
-        </button>
-      </div>
+    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000]">
+      {/* Main Control Pill */}
+      <div className="flex items-center gap-3 px-4 py-3 bg-white/90 backdrop-blur-md rounded-full border border-gray-200 shadow-lg">
+        {/* Category Dropdown */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-gray-600 whitespace-nowrap">Category:</span>
+          <select
+            value={selectedCategory}
+            onChange={handleCategoryChange}
+            className="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer hover:border-gray-400 transition-colors min-w-[140px]"
+          >
+            <option value="">Select...</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      {isExpanded && (
-        <div className={styles.controlContent}>
-          {/* Category Selection */}
-          <div className={styles.selectGroup}>
-            <label htmlFor="category-select" className={styles.label}>
-              Category
-            </label>
+        {/* Divider */}
+        {selectedCategory && <div className="w-px h-6 bg-gray-300" />}
+
+        {/* Layer Dropdown */}
+        {selectedCategory && selectedCategoryLayers && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-gray-600 whitespace-nowrap">Layer:</span>
             <select
-              id="category-select"
-              value={selectedCategory}
-              onChange={handleCategoryChange}
-              className={styles.select}
+              value={selectedLayer?.layerId || ''}
+              onChange={handleLayerChange}
+              className="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer hover:border-gray-400 transition-colors min-w-[180px]"
             >
-              <option value="">Select a category</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
+              <option value="">Select...</option>
+              {Object.entries(selectedCategoryLayers).map(([layerId, config]) => (
+                <option key={layerId} value={layerId}>
+                  {config.title}
                 </option>
               ))}
             </select>
           </div>
+        )}
 
-          {/* Layer Selection */}
-          {selectedCategory && selectedCategoryLayers && (
-            <div className={styles.selectGroup}>
-              <label htmlFor="layer-select" className={styles.label}>
-                Layer
-              </label>
-              <select
-                id="layer-select"
-                value={selectedLayer?.layerId || ''}
-                onChange={handleLayerChange}
-                className={styles.select}
+        {/* Divider */}
+        {selectedLayer && <div className="w-px h-6 bg-gray-300" />}
+
+        {/* Opacity Slider */}
+        {selectedLayer && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-gray-600 whitespace-nowrap">Opacity:</span>
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={opacity}
+                onChange={handleOpacityChange}
+                className="w-24 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500"
+              />
+              <span className="text-xs font-medium text-gray-700 w-8 text-right">
+                {Math.round(opacity * 100)}%
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Divider */}
+        {selectedLayer && <div className="w-px h-6 bg-gray-300" />}
+
+        {/* Zoom Level Indicator */}
+        {selectedLayer && (
+          <div className="flex items-center gap-2">
+            <svg
+              className="w-4 h-4 text-gray-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <circle cx="11" cy="11" r="8" strokeWidth="2" />
+              <path d="M21 21l-4.35-4.35" strokeWidth="2" strokeLinecap="round" />
+              <path d="M11 8v6M8 11h6" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+            <span className="text-xs font-medium text-gray-700">{currentZoom}</span>
+          </div>
+        )}
+
+        {/* Divider */}
+        {selectedLayer && <div className="w-px h-6 bg-gray-300" />}
+
+        {/* Info Button */}
+        {selectedLayer && (
+          <button
+            onClick={() => setShowInfo(!showInfo)}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            title="Layer Information"
+          >
+            <svg
+              className="w-5 h-5 text-gray-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <circle cx="12" cy="12" r="10" strokeWidth="2" />
+              <path d="M12 16v-4M12 8h.01" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
+        )}
+
+        {/* Clear Button */}
+        {selectedLayer && (
+          <>
+            <div className="w-px h-6 bg-gray-300" />
+            <button
+              onClick={() => {
+                setSelectedCategory('');
+                onLayerChange(null);
+                setShowInfo(false);
+              }}
+              className="p-2 hover:bg-red-50 rounded-full transition-colors"
+              title="Clear Layer"
+            >
+              <svg
+                className="w-5 h-5 text-red-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                <option value="">Select a layer</option>
-                {Object.entries(selectedCategoryLayers).map(([layerId, config]) => (
-                  <option key={layerId} value={layerId}>
-                    {config.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Opacity Control */}
-          {selectedLayer && (
-            <>
-              <div className={styles.opacityGroup}>
-                <label htmlFor="opacity-slider" className={styles.label}>
-                  Opacity: {Math.round(opacity * 100)}%
-                </label>
-                <input
-                  type="range"
-                  id="opacity-slider"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={opacity}
-                  onChange={handleOpacityChange}
-                  className={styles.slider}
+                <path
+                  d="M6 18L18 6M6 6l12 12"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 />
-              </div>
+              </svg>
+            </button>
+          </>
+        )}
+      </div>
 
-              {/* Clear Button */}
-              <button onClick={handleClearLayer} className={styles.clearButton}>
-                Clear Layer
+      {/* Info Popup */}
+      {showInfo && selectedLayer && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-96 max-w-[90vw]">
+          <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-4">
+            <div className="flex justify-between items-start mb-2">
+              <h4 className="text-sm font-semibold text-gray-900">
+                {selectedLayer.config.title}
+              </h4>
+              <button
+                onClick={() => setShowInfo(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    d="M6 18L18 6M6 6l12 12"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
               </button>
-            </>
-          )}
-
-          {/* Layer Info */}
-          {selectedLayer && (
-            <div className={styles.layerInfo}>
-              <h4 className={styles.layerInfoTitle}>{selectedLayer.config.title}</h4>
-              <p className={styles.layerInfoDescription}>{selectedLayer.config.description}</p>
             </div>
-          )}
+            <p className="text-xs text-gray-600 leading-relaxed">
+              {selectedLayer.config.description}
+            </p>
+            {selectedLayer.config.recommendedZoom && (
+              <div className="mt-3 pt-3 border-t border-gray-200">
+                <p className="text-xs text-gray-500">
+                  <span className="font-medium">Recommended zoom:</span>{' '}
+                  {selectedLayer.config.recommendedZoom}
+                </p>
+              </div>
+            )}
+          </div>
+          {/* Arrow pointing down */}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
+            <div className="w-3 h-3 bg-white border-r border-b border-gray-200 transform rotate-45" />
+          </div>
         </div>
       )}
     </div>
