@@ -90,9 +90,9 @@ export function getTopConnectionsForPersona(
  * Calculate scenario groups based on R-rank and connection strength cross-reference
  *
  * Algorithm:
- * - Scenario 1: Take R-rank #1, get its 10 strongest connections, sort by R-rank, take top 3 => [1,2,3,4]
- * - Scenario 2: Take next R-rank not in [1,2,3,4], get its 10 strongest connections (can include 2,3,4), sort by R-rank, take top 3 => e.g., [5,2,6,8]
- * - Scenario 3: Take next R-rank not in [1,2,3,4,5,2,6,8], get its 10 strongest connections (can include any previous), sort by R-rank, take top 3 => e.g., [7,3,6,9]
+ * - Scenario 1: Take R-rank #1, get its 5 strongest connections, sort by R-rank, take top 3 => [1,2,3,4]
+ * - Scenario 2: Take next R-rank not in [1,2,3,4], get its 5 strongest connections (can include 2,3,4), sort by R-rank, take top 3 => e.g., [5,2,6,8]
+ * - Scenario 3: Take next R-rank not in [1,2,3,4,5,2,6,8], get its 5 strongest connections (can include any previous), sort by R-rank, take top 3 => e.g., [7,3,6,9]
  *
  * Note: Anchor cannot be ANY persona from previous scenarios. Connections can overlap.
  */
@@ -116,8 +116,8 @@ export function calculateScenarios(
     const anchorPersona = availableScores[0];
     const anchorIndex = allPersonaScores.findIndex(ps => ps.personaId === anchorPersona.personaId);
 
-    // Get top 10 strongest connections for this anchor persona
-    const topConnections = getTopConnectionsForPersona(anchorIndex, connections, 10);
+    // Get top 5 strongest connections for this anchor persona
+    const topConnections = getTopConnectionsForPersona(anchorIndex, connections, 5);
 
     // Sort connections by R-rank (best to worst) and take top 3
     const top3Connections = topConnections
