@@ -202,14 +202,6 @@ export const SummaryRankingTable: React.FC<SummaryRankingTableProps> = ({
                 >
                   <td className="px-4 py-3 border-b border-gray-200">
                     <div className="flex items-center gap-2">
-                      {onRowClick && (
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => {}}
-                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                        />
-                      )}
                       <span
                         className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold ${
                           score.rRankPosition === 1

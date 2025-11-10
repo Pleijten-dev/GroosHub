@@ -102,7 +102,8 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
       setCustomSelectedIds(prev => prev.filter(id => id !== personaId));
       setPopupPersona(null);
     } else {
-      // Otherwise, show popup
+      // Show popup AND add to selection
+      setCustomSelectedIds(prev => [...prev, personaId]);
       setPopupPersona(persona);
     }
   };
