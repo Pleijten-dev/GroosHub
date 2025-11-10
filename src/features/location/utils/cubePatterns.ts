@@ -45,38 +45,40 @@ function interpolateColor(color1: string, color2: string, factor: number): strin
  * Colors are mapped sequentially to cube indices (0-26):
  * Index 0 -> cls-1, Index 1 -> cls-2, ... Index 26 -> cls-27
  *
+ * Colors ordered from lightest to darkest
+ *
  * Cube positions are calculated as: (x+1) + (y+1)*3 + (z+1)*9
  * Where: X=Income (-1=Low, 0=Mid, 1=High), Y=Age (-1=20-35, 0=35-55, 1=55+), Z=Household (-1=Single, 0=Couple, 1=Family)
  */
 export function generateGradientColors(): string[] {
   return [
-    '#abb474',  // Index 0 -> cls-1
-    '#5a714a',  // Index 1 -> cls-2
-    '#576e48',  // Index 2 -> cls-3
-    '#b5bc79',  // Index 3 -> cls-4
-    '#486341',  // Index 4 -> cls-5
-    '#6e8154',  // Index 5 -> cls-6
-    '#7e8e5d',  // Index 6 -> cls-7
-    '#718456',  // Index 7 -> cls-8
-    '#5e744c',  // Index 8 -> cls-9
-    '#4f6944',  // Index 9 -> cls-10
-    '#8f9c66',  // Index 10 -> cls-11
-    '#869561',  // Index 11 -> cls-12
-    '#536c46',  // Index 12 -> cls-13
-    '#a1ac6f',  // Index 13 -> cls-14
-    '#8a9864',  // Index 14 -> cls-15
-    '#62774e',  // Index 15 -> cls-16
-    '#82915f',  // Index 16 -> cls-17
+    '#b5bc79',  // Index 0 -> cls-1 (Lightest)
+    '#b0b877',  // Index 1 -> cls-2
+    '#abb474',  // Index 2 -> cls-3
+    '#a6b072',  // Index 3 -> cls-4
+    '#a1ac6f',  // Index 4 -> cls-5
+    '#9ca86d',  // Index 5 -> cls-6
+    '#98a46b',  // Index 6 -> cls-7
+    '#93a068',  // Index 7 -> cls-8
+    '#8f9c66',  // Index 8 -> cls-9
+    '#8a9864',  // Index 9 -> cls-10
+    '#869561',  // Index 10 -> cls-11
+    '#82915f',  // Index 11 -> cls-12
+    '#7e8e5d',  // Index 12 -> cls-13
+    '#798a5b',  // Index 13 -> cls-14
+    '#758758',  // Index 14 -> cls-15
+    '#718456',  // Index 15 -> cls-16
+    '#6e8154',  // Index 16 -> cls-17
     '#6a7d52',  // Index 17 -> cls-18
-    '#a6b072',  // Index 18 -> cls-19
-    '#4b6643',  // Index 19 -> cls-20
-    '#667a50',  // Index 20 -> cls-21
-    '#798a5b',  // Index 21 -> cls-22
-    '#9ca86d',  // Index 22 -> cls-23
-    '#93a068',  // Index 23 -> cls-24
-    '#98a46b',  // Index 24 -> cls-25
-    '#758758',  // Index 25 -> cls-26
-    '#b0b877',  // Index 26 -> cls-27
+    '#667a50',  // Index 18 -> cls-19
+    '#62774e',  // Index 19 -> cls-20
+    '#5e744c',  // Index 20 -> cls-21
+    '#5a714a',  // Index 21 -> cls-22
+    '#576e48',  // Index 22 -> cls-23
+    '#536c46',  // Index 23 -> cls-24
+    '#4f6944',  // Index 24 -> cls-25
+    '#4b6643',  // Index 25 -> cls-26
+    '#486341',  // Index 26 -> cls-27 (Darkest)
   ];
 }
 
