@@ -19,6 +19,8 @@ import { calculatePersonaScores } from '../../../features/location/utils/targetG
 import { getPersonaCubePosition } from '../../../features/location/utils/cubePositionMapping';
 import { calculateConnections, calculateScenarios } from '../../../features/location/utils/connectionCalculations';
 import housingPersonasData from '../../../features/location/data/sources/housing-personas.json';
+import { LocationMap, MapStyle } from '../../../features/location/components/Maps';
+import { centroid } from '@turf/turf';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -370,6 +372,49 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                 </div>
               </div>
             )}
+          </div>
+        );
+      }
+
+      // For Kaarten tab - show Leaflet map
+      if (activeTab === 'kaarten') {
+        // Calculate centroid from geometry to get coordinates
+        let coordinates: [number, number] | undefined;
+
+        // Try neighborhood first, then district, then municipality
+        const geometry =
+          data.location.neighborhood?.geometry ||
+          data.location.district?.geometry ||
+          data.location.municipality?.geometry;
+
+        if (geometry) {
+          try {
+            const center = centroid(geometry);
+            const [lon, lat] = center.geometry.coordinates;
+            coordinates = [lat, lon]; // Leaflet uses [lat, lon] order
+          } catch (error) {
+            console.error('Error calculating centroid:', error);
+          }
+        }
+
+        // Build location name
+        const locationName = [
+          data.location.neighborhood?.statnaam,
+          data.location.district?.statnaam,
+          data.location.municipality?.statnaam,
+        ]
+          .filter(Boolean)
+          .join(', ');
+
+        return (
+          <div className="h-full w-full">
+            <LocationMap
+              center={coordinates || [52.0907, 5.1214]}
+              zoom={coordinates ? 13 : 8}
+              marker={coordinates}
+              locationName={locationName}
+              style={MapStyle.DATAVIZ.LIGHT}
+            />
           </div>
         );
       }
