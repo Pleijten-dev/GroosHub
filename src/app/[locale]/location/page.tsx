@@ -20,18 +20,6 @@ import { getPersonaCubePosition } from '../../../features/location/utils/cubePos
 import { calculateConnections, calculateScenarios } from '../../../features/location/utils/connectionCalculations';
 import housingPersonasData from '../../../features/location/data/sources/housing-personas.json';
 import { LocationMap, MapStyle, WMSLayerControl, WMSLayerSelection, WMSFeatureInfo } from '../../../features/location/components/Maps';
-import { centroid } from '@turf/turf';
-import proj4 from 'proj4';
-
-// Define coordinate systems for conversion
-proj4.defs('EPSG:4326', '+proj=longlat +datum=WGS84 +no_defs');
-proj4.defs(
-  'EPSG:28992',
-  '+proj=sterea +lat_0=52.15616055555555 +lon_0=5.38763888888889 ' +
-    '+k=0.9999079 +x_0=155000 +y_0=463000 +ellps=bessel ' +
-    '+towgs84=565.417,50.3319,465.552,-0.398957,0.343988,-1.8774,4.0725 ' +
-    '+units=m +no_defs'
-);
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -394,26 +382,12 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
       // For Kaarten tab - show Leaflet map with WMS layer support
       if (activeTab === 'kaarten') {
-        // Calculate centroid from geometry to get coordinates
-        let coordinates: [number, number] | undefined;
-
-        // Try neighborhood first, then district, then municipality
-        const geometry =
-          data.location.neighborhood?.geometry ||
-          data.location.district?.geometry ||
-          data.location.municipality?.geometry;
-
-        if (geometry) {
-          try {
-            const center = centroid(geometry);
-            // Geometry is in RD coordinates (EPSG:28992), need to convert to WGS84
-            const [rdX, rdY] = center.geometry.coordinates;
-            const [lon, lat] = proj4('EPSG:28992', 'EPSG:4326', [rdX, rdY]);
-            coordinates = [lat, lon]; // Leaflet uses [lat, lon] order
-          } catch (error) {
-            console.error('Error calculating centroid:', error);
-          }
-        }
+        // Use exact geocoded coordinates from the address search
+        // These are already in WGS84 format (latitude/longitude)
+        const coordinates: [number, number] = [
+          data.location.coordinates.wgs84.latitude,
+          data.location.coordinates.wgs84.longitude,
+        ];
 
         // Build location name
         const locationName = [
@@ -427,8 +401,8 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         return (
           <div className="h-full w-full relative">
             <LocationMap
-              center={coordinates || [51.920198, 4.474601]}
-              zoom={coordinates ? 13 : 8}
+              center={coordinates}
+              zoom={15}
               marker={coordinates}
               locationName={locationName}
               style={MapStyle.DATAVIZ.LIGHT}
