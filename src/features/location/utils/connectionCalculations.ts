@@ -90,11 +90,11 @@ export function getTopConnectionsForPersona(
  * Calculate scenario groups based on R-rank and connection strength cross-reference
  *
  * Algorithm:
- * - Scenario 1: Take R-rank #1, get its top 20 connections, filter excluded, sort by R-rank, take top 3 => 4 total
- * - Scenario 2: Exclude scenario 1's 4, take next highest R-rank, get its top 20 connections, filter excluded, sort by R-rank, take top 3 => 4 more
- * - Scenario 3: Exclude scenarios 1&2's 8, take next highest R-rank, get its top 20 connections, filter excluded, sort by R-rank, take top 3 => 4 more
+ * - Scenario 1: Take R-rank #1, get its 10 strongest connections, sort by R-rank, take top 3 => 4 total
+ * - Scenario 2: Exclude scenario 1's anchor from R-rank list, take new #1, get its 10 strongest connections (can include scenario 1's connections), sort by R-rank, take top 3 => 4 more
+ * - Scenario 3: Exclude scenarios 1&2's anchors from R-rank list, take new #1, get its 10 strongest connections (can include previous connections), sort by R-rank, take top 3 => 4 more
  *
- * Note: We get top 20 connections (not 10) to ensure we have enough available after filtering out excluded personas from previous scenarios.
+ * Note: Only anchor personas are excluded between scenarios. Connections can overlap, ensuring the best-ranked connections are always selected.
  */
 export function calculateScenarios(
   allPersonas: HousingPersona[],
@@ -105,23 +105,22 @@ export function calculateScenarios(
   scenario2: number[];
   scenario3: number[];
 } {
-  const excludedIndices = new Set<number>();
+  const excludedAnchors = new Set<number>();
 
   const getScenarioGroup = (): number[] => {
-    // Find the highest R-ranked persona not yet excluded
-    const availableScores = allPersonaScores.filter((_, index) => !excludedIndices.has(index));
+    // Find the highest R-ranked persona not yet used as an anchor
+    const availableScores = allPersonaScores.filter((_, index) => !excludedAnchors.has(index));
     if (availableScores.length === 0) return [];
 
     // Get the best available persona (lowest R-rank position = best)
     const anchorPersona = availableScores[0];
     const anchorIndex = allPersonaScores.findIndex(ps => ps.personaId === anchorPersona.personaId);
 
-    // Get top 20 connections for this anchor persona (increased from 10 to ensure enough after filtering)
-    const topConnections = getTopConnectionsForPersona(anchorIndex, connections, 20);
+    // Get top 10 strongest connections for this anchor persona
+    const topConnections = getTopConnectionsForPersona(anchorIndex, connections, 10);
 
-    // Filter out already excluded indices and sort by R-rank
-    const availableConnections = topConnections
-      .filter(conn => !excludedIndices.has(conn.index))
+    // Sort connections by R-rank (best to worst) and take top 3
+    const top3Connections = topConnections
       .map(conn => {
         const score = allPersonaScores[conn.index];
         return {
@@ -135,12 +134,11 @@ export function calculateScenarios(
     // Build result: anchor + top 3 connections
     const result = [
       anchorPersona.rRankPosition,
-      ...availableConnections.map(conn => allPersonaScores[conn.index].rRankPosition)
+      ...top3Connections.map(conn => allPersonaScores[conn.index].rRankPosition)
     ];
 
-    // Mark all as excluded for next scenario
-    excludedIndices.add(anchorIndex);
-    availableConnections.forEach(conn => excludedIndices.add(conn.index));
+    // Mark ONLY the anchor as excluded for next scenario (connections can be reused)
+    excludedAnchors.add(anchorIndex);
 
     return result;
   };
