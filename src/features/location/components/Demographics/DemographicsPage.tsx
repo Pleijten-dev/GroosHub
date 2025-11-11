@@ -263,7 +263,7 @@ export const DemographicsPage: React.FC<DemographicsPageProps> = ({ data, locale
                             data={comparisonChartData}
                             width={400}
                             height={120}
-                            mode="histogram"
+                            mode="area"
                             showLabels={false}
                             showGrid={false}
                           />
@@ -277,7 +277,7 @@ export const DemographicsPage: React.FC<DemographicsPageProps> = ({ data, locale
                             data={chartData}
                             width={400}
                             height={120}
-                            mode="histogram"
+                            mode="area"
                             showLabels={true}
                             showGrid={false}
                           />
