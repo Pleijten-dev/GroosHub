@@ -13,6 +13,7 @@ import { DoelgroepenGrid } from '../../../features/location/components/Doelgroep
 import { DemographicsPage } from '../../../features/location/components/Demographics';
 import { SafetyPage } from '../../../features/location/components/Safety';
 import { HealthPage } from '../../../features/location/components/Health';
+import { LivabilityPage } from '../../../features/location/components/Livability';
 import { RadialChart, BarChart, DensityChart } from '../../../shared/components/common';
 import { extractLocationScores } from '../../../features/location/utils/extractLocationScores';
 import { LocationAnimation } from '../../../features/location/components/LocationAnimation';
@@ -292,18 +293,9 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         return <HealthPage data={data} locale={locale} />;
       }
 
-      // For Livability tab - show only livability data
+      // For Livability tab - show new livability page with charts and values
       if (activeTab === 'leefbaarheid') {
-        return (
-          <div className="p-lg overflow-auto h-full">
-            <MultiLevelDataTable
-              data={data}
-              locale={locale}
-              defaultSource="livability"
-              lockSourceFilter={true}
-            />
-          </div>
-        );
+        return <LivabilityPage data={data} locale={locale} />;
       }
 
       // For Voorzieningen tab - show full amenities grid
