@@ -19,6 +19,7 @@ import { calculatePersonaScores } from '../../../features/location/utils/targetG
 import { getPersonaCubePosition } from '../../../features/location/utils/cubePositionMapping';
 import { calculateConnections, calculateScenarios } from '../../../features/location/utils/connectionCalculations';
 import housingPersonasData from '../../../features/location/data/sources/housing-personas.json';
+import { LocationMap, MapStyle, WMSLayerControl, WMSLayerSelection, WMSFeatureInfo } from '../../../features/location/components/Maps';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -53,6 +54,12 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   const [locale, setLocale] = useState<Locale>('nl');
   const [showRightMenu, setShowRightMenu] = useState<boolean>(false);
   const [animationStage, setAnimationStage] = useState<'welcome' | 'loading' | 'result'>('welcome');
+
+  // WMS layer state
+  const [selectedWMSLayer, setSelectedWMSLayer] = useState<WMSLayerSelection | null>(null);
+  const [wmsOpacity, setWMSOpacity] = useState<number>(0.7);
+  const [mapZoom, setMapZoom] = useState<number>(15);
+  const [featureInfo, setFeatureInfo] = useState<WMSFeatureInfo | null>(null);
 
   // Generate cube colors once and share across all components for consistency
   const cubeColors = React.useMemo(() => generateGradientColors(), []);
@@ -101,6 +108,16 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
       setLocale(resolvedLocale);
     });
   }, [params]);
+
+  // Update map zoom when WMS layer changes
+  React.useEffect(() => {
+    if (selectedWMSLayer?.config?.recommendedZoom) {
+      setMapZoom(selectedWMSLayer.config.recommendedZoom);
+    } else {
+      // Reset to default zoom when no layer is selected
+      setMapZoom(15);
+    }
+  }, [selectedWMSLayer]);
 
   const handleTabChange = (tab: TabName): void => {
     setActiveTab(tab);
@@ -370,6 +387,52 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                 </div>
               </div>
             )}
+          </div>
+        );
+      }
+
+      // For Kaarten tab - show Leaflet map with WMS layer support
+      if (activeTab === 'kaarten') {
+        // Use exact geocoded coordinates from the address search
+        // These are already in WGS84 format (latitude/longitude)
+        const coordinates: [number, number] = [
+          data.location.coordinates.wgs84.latitude,
+          data.location.coordinates.wgs84.longitude,
+        ];
+
+        // Build location name
+        const locationName = [
+          data.location.neighborhood?.statnaam,
+          data.location.district?.statnaam,
+          data.location.municipality?.statnaam,
+        ]
+          .filter(Boolean)
+          .join(', ');
+
+        return (
+          <div className="h-full w-full relative">
+            <LocationMap
+              center={coordinates}
+              zoom={mapZoom}
+              marker={coordinates}
+              locationName={locationName}
+              style={MapStyle.DATAVIZ.LIGHT}
+              wmsLayer={selectedWMSLayer?.config || null}
+              wmsOpacity={wmsOpacity}
+              onFeatureClick={setFeatureInfo}
+              onZoomChange={setMapZoom}
+            >
+              {/* WMS Layer Control - Sleek pill at bottom center */}
+              <WMSLayerControl
+                onLayerChange={setSelectedWMSLayer}
+                onOpacityChange={setWMSOpacity}
+                selectedLayer={selectedWMSLayer}
+                opacity={wmsOpacity}
+                currentZoom={mapZoom}
+                featureInfo={featureInfo}
+                onClearFeatureInfo={() => setFeatureInfo(null)}
+              />
+            </LocationMap>
           </div>
         );
       }
