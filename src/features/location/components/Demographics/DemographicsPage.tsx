@@ -166,9 +166,9 @@ export const DemographicsPage: React.FC<DemographicsPageProps> = ({ data, locale
       return row.displayAbsolute || '-';
     }
 
-    // For income, format as "27.1€ (x1.000)"
+    // For income, format as "27.1€ (x1.000)" - data is already in thousands
     if (sectionId === 'income' && row.relative !== null) {
-      const value = (row.relative / 1000).toFixed(1);
+      const value = row.relative.toFixed(1);
       return `${value}€ (x1.000)`;
     }
 
