@@ -211,8 +211,10 @@ const DensityChart: React.FC<DensityChartProps> = ({
             .style('stroke-linejoin', 'round')
             .style('stroke-linecap', 'round');
         } else {
-          // Histogram mode - thin bars with no spacing
-          const barWidth = chartWidth / data.length;
+          // Histogram mode - bars with fixed spacing
+          const spacing = 3; // Fixed spacing between bars in pixels
+          const totalSpacing = spacing * (data.length - 1);
+          const barWidth = (chartWidth - totalSpacing) / data.length;
 
           // Create tooltip div if tooltipLabels provided
           let tooltip: HTMLDivElement | null = null;
@@ -240,7 +242,7 @@ const DensityChart: React.FC<DensityChartProps> = ({
             .enter()
             .append('rect')
             .attr('class', 'bar')
-            .attr('x', (d) => xScale((d as DensityChartData).x) - barWidth / 2)
+            .attr('x', (d, i) => (i as number) * (barWidth + spacing))
             .attr('y', (d) => yScale((d as DensityChartData).y))
             .attr('width', barWidth)
             .attr('height', (d) => chartHeight - yScale((d as DensityChartData).y))
