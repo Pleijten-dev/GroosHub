@@ -155,11 +155,24 @@ export const DemographicsPage: React.FC<DemographicsPageProps> = ({ data, locale
   };
 
   /**
-   * Get the display value for a field
+   * Get the display value for a field (handles special formatting)
    */
-  const getDisplayValue = (rows: UnifiedDataRow[], fieldKey: string): string => {
+  const getDisplayValue = (rows: UnifiedDataRow[], fieldKey: string, sectionId: string): string => {
     const row = rows.find(r => r.key === fieldKey);
-    return row?.displayRelative || row?.displayAbsolute || '-';
+    if (!row) return '-';
+
+    // For family_size, use absolute value
+    if (sectionId === 'family_size') {
+      return row.displayAbsolute || '-';
+    }
+
+    // For income, format as "27.1€ (x1.000)"
+    if (sectionId === 'income' && row.relative !== null) {
+      const value = (row.relative / 1000).toFixed(1);
+      return `${value}€ (x1.000)`;
+    }
+
+    return row.displayRelative || row.displayAbsolute || '-';
   };
 
   const selectedData = getDataForLevel(selectedLevel);
@@ -176,7 +189,7 @@ export const DemographicsPage: React.FC<DemographicsPageProps> = ({ data, locale
           <select
             value={selectedLevel}
             onChange={(e) => setSelectedLevel(e.target.value as GeographicLevel)}
-            className="p-2 rounded-md border border-gray-300 bg-white text-sm min-w-[180px]"
+            className="px-4 py-2 rounded-full border border-gray-200 bg-white/80 backdrop-blur-md text-sm min-w-[180px] shadow-sm hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all"
           >
             {availableLevels.map(level => (
               <option key={level} value={level}>
@@ -193,7 +206,7 @@ export const DemographicsPage: React.FC<DemographicsPageProps> = ({ data, locale
           <select
             value={comparisonLevel}
             onChange={(e) => setComparisonLevel(e.target.value as GeographicLevel)}
-            className="p-2 rounded-md border border-gray-300 bg-white text-sm min-w-[180px]"
+            className="px-4 py-2 rounded-full border border-gray-200 bg-white/80 backdrop-blur-md text-sm min-w-[180px] shadow-sm hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all"
           >
             {availableLevels.map(level => (
               <option key={level} value={level}>
@@ -218,7 +231,7 @@ export const DemographicsPage: React.FC<DemographicsPageProps> = ({ data, locale
             return (
               <div
                 key={section.id}
-                className="flex items-center gap-6 border-b border-gray-100 py-4"
+                className="flex items-center gap-6 py-4"
                 style={{ minHeight: '12vh' }}
               >
                 {/* Title - 12% height, max 40% width */}
@@ -239,7 +252,7 @@ export const DemographicsPage: React.FC<DemographicsPageProps> = ({ data, locale
                 <div className="flex-1 flex items-center justify-center relative">
                   {section.isValue ? (
                     <div className="text-4xl font-bold text-gray-900">
-                      {getDisplayValue(selectedData, section.fields[0])}
+                      {getDisplayValue(selectedData, section.fields[0], section.id)}
                     </div>
                   ) : (
                     <div className="relative w-full h-full flex items-center justify-center">
