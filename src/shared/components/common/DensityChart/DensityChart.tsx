@@ -218,16 +218,20 @@ const DensityChart: React.FC<DensityChartProps> = ({
           let tooltip: HTMLDivElement | null = null;
           if (tooltipLabels) {
             tooltip = document.createElement('div');
+            tooltip.className = 'density-chart-tooltip';
             tooltip.style.position = 'absolute';
             tooltip.style.padding = '8px 12px';
-            tooltip.style.background = 'rgba(0, 0, 0, 0.8)';
+            tooltip.style.background = 'rgba(0, 0, 0, 0.9)';
             tooltip.style.color = 'white';
-            tooltip.style.borderRadius = '4px';
-            tooltip.style.fontSize = '12px';
+            tooltip.style.borderRadius = '6px';
+            tooltip.style.fontSize = '13px';
+            tooltip.style.fontWeight = '500';
             tooltip.style.pointerEvents = 'none';
             tooltip.style.opacity = '0';
-            tooltip.style.transition = 'opacity 0.2s';
-            tooltip.style.zIndex = '1000';
+            tooltip.style.transition = 'opacity 0.15s ease-in-out';
+            tooltip.style.zIndex = '9999';
+            tooltip.style.whiteSpace = 'nowrap';
+            tooltip.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
             container.appendChild(tooltip);
           }
 
@@ -246,10 +250,13 @@ const DensityChart: React.FC<DensityChartProps> = ({
             .on('mouseenter', function(event: MouseEvent, d: unknown) {
               if (tooltip && tooltipLabels) {
                 const dataPoint = d as DensityChartData;
-                const label = tooltipLabels[Math.round(dataPoint.x)];
+                const index = Math.round(dataPoint.x);
+                const label = tooltipLabels[index];
+                console.log('Tooltip hover:', { index, label, tooltipLabels, dataPoint });
                 if (label) {
                   tooltip.textContent = `${label}: ${dataPoint.y.toFixed(1)}%`;
                   tooltip.style.opacity = '1';
+                  tooltip.style.display = 'block';
 
                   // Position tooltip near mouse
                   const rect = container.getBoundingClientRect();
@@ -270,6 +277,10 @@ const DensityChart: React.FC<DensityChartProps> = ({
             .on('mouseleave', function() {
               if (tooltip) {
                 tooltip.style.opacity = '0';
+                // Hide after transition
+                setTimeout(() => {
+                  if (tooltip) tooltip.style.display = 'none';
+                }, 200);
               }
               // Reset bar opacity
               d3.select(this as Element).style('opacity', 0.7);
@@ -334,6 +345,11 @@ const DensityChart: React.FC<DensityChartProps> = ({
     return () => {
       if (container && window.d3) {
         (window.d3 as unknown as D3Instance).select(container).selectAll("*").remove();
+      }
+      // Clean up any tooltip divs
+      if (container) {
+        const tooltips = container.querySelectorAll('.density-chart-tooltip');
+        tooltips.forEach(tooltip => tooltip.remove());
       }
     };
   }, [data, width, height, mode, showLabels, showGrid, title, tooltipLabels, customAxisLabels, maxY]);
