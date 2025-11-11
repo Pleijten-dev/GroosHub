@@ -25,7 +25,10 @@ interface DemographicSection {
   title: { nl: string; en: string };
   description: { nl: string; en: string };
   fields: string[]; // The field keys to display
+  fieldLabels?: { nl: string[]; en: string[] }; // Human-readable labels for tooltips
   isValue?: boolean; // If true, just display the value instead of a chart
+  useBarChart?: boolean; // If true, use histogram/bar mode instead of area
+  customAxisLabels?: { start: string; end: string }; // Custom labels for start and end of x-axis
 }
 
 const DEMOGRAPHIC_SECTIONS: DemographicSection[] = [
@@ -36,7 +39,12 @@ const DEMOGRAPHIC_SECTIONS: DemographicSection[] = [
       nl: 'Leeftijdsverdeling toont de samenstelling van de bevolking per leeftijdsgroep.',
       en: 'Age distribution shows the population composition by age group.'
     },
-    fields: ['k_0Tot15Jaar_8', 'k_15Tot25Jaar_9', 'k_25Tot45Jaar_10', 'k_45Tot65Jaar_11', 'k_65JaarOfOuder_12']
+    fields: ['k_0Tot15Jaar_8', 'k_15Tot25Jaar_9', 'k_25Tot45Jaar_10', 'k_45Tot65Jaar_11', 'k_65JaarOfOuder_12'],
+    fieldLabels: {
+      nl: ['0-15 jaar', '15-25 jaar', '25-45 jaar', '45-65 jaar', '65+ jaar'],
+      en: ['0-15 years', '15-25 years', '25-45 years', '45-65 years', '65+ years']
+    },
+    customAxisLabels: { start: '0', end: '65+' }
   },
   {
     id: 'status',
@@ -45,7 +53,12 @@ const DEMOGRAPHIC_SECTIONS: DemographicSection[] = [
       nl: 'Burgerlijke staat geeft inzicht in de huwelijkse samenstelling van de bevolking.',
       en: 'Marital status provides insight into the marital composition of the population.'
     },
-    fields: ['Ongehuwd_13', 'Gehuwd_14', 'Gescheiden_15', 'Verweduwd_16']
+    fields: ['Ongehuwd_13', 'Gehuwd_14', 'Gescheiden_15', 'Verweduwd_16'],
+    fieldLabels: {
+      nl: ['Ongehuwd', 'Gehuwd', 'Gescheiden', 'Verweduwd'],
+      en: ['Unmarried', 'Married', 'Divorced', 'Widowed']
+    },
+    useBarChart: true
   },
   {
     id: 'immigration',
@@ -63,7 +76,12 @@ const DEMOGRAPHIC_SECTIONS: DemographicSection[] = [
       'Suriname_21',
       'Turkije_22',
       'OverigNietWesters_23'
-    ]
+    ],
+    fieldLabels: {
+      nl: ['Autochtoon', 'Westers', 'Niet-Westers', 'Marokko', 'Antillen/Aruba', 'Suriname', 'Turkije', 'Overig Niet-Westers'],
+      en: ['Native', 'Western', 'Non-Western', 'Morocco', 'Antilles/Aruba', 'Suriname', 'Turkey', 'Other Non-Western']
+    },
+    useBarChart: true
   },
   {
     id: 'family_size',
@@ -82,7 +100,12 @@ const DEMOGRAPHIC_SECTIONS: DemographicSection[] = [
       nl: 'Gezinstype toont de samenstelling van huishoudens.',
       en: 'Family type shows the composition of households.'
     },
-    fields: ['Eenpersoonshuishoudens_29', 'HuishoudensZonderKinderen_30', 'HuishoudensMetKinderen_31']
+    fields: ['Eenpersoonshuishoudens_29', 'HuishoudensZonderKinderen_30', 'HuishoudensMetKinderen_31'],
+    fieldLabels: {
+      nl: ['Eenpersoons', 'Zonder kinderen', 'Met kinderen'],
+      en: ['Single person', 'Without children', 'With children']
+    },
+    useBarChart: true
   },
   {
     id: 'income',
@@ -228,6 +251,11 @@ export const DemographicsPage: React.FC<DemographicsPageProps> = ({ data, locale
               ? []
               : createChartData(section.fields, comparisonData);
 
+            // Calculate combined max Y value for consistent scale across both charts
+            const maxYValue = Math.max(
+              ...[...chartData, ...comparisonChartData].map(d => d.y)
+            );
+
             return (
               <div
                 key={section.id}
@@ -263,9 +291,12 @@ export const DemographicsPage: React.FC<DemographicsPageProps> = ({ data, locale
                             data={chartData}
                             width={400}
                             height={120}
-                            mode="area"
-                            showLabels={true}
+                            mode={section.useBarChart ? "histogram" : "area"}
+                            showLabels={section.useBarChart ? false : true}
                             showGrid={false}
+                            tooltipLabels={section.fieldLabels?.[locale]}
+                            customAxisLabels={section.customAxisLabels}
+                            maxY={maxYValue}
                           />
                         </div>
                       )}
@@ -277,9 +308,10 @@ export const DemographicsPage: React.FC<DemographicsPageProps> = ({ data, locale
                             data={comparisonChartData}
                             width={400}
                             height={120}
-                            mode="area"
+                            mode={section.useBarChart ? "histogram" : "area"}
                             showLabels={false}
                             showGrid={false}
+                            maxY={maxYValue}
                           />
                         </div>
                       )}

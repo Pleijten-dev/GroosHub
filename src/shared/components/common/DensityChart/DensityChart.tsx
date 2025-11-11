@@ -16,6 +16,9 @@ interface DensityChartProps {
   showLabels?: boolean;
   showGrid?: boolean;
   title?: string;
+  tooltipLabels?: string[]; // Labels for tooltips, indexed by x value
+  customAxisLabels?: { start: string; end: string }; // Custom labels for x-axis start and end
+  maxY?: number; // Optional fixed max Y value for consistent scales across multiple charts
 }
 
 // D3 type definitions
@@ -107,7 +110,10 @@ const DensityChart: React.FC<DensityChartProps> = ({
   className = '',
   showLabels = true,
   showGrid = true,
-  title
+  title,
+  tooltipLabels,
+  customAxisLabels,
+  maxY
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -157,7 +163,9 @@ const DensityChart: React.FC<DensityChartProps> = ({
           Math.min(...data.map(d => d.x)),
           Math.max(...data.map(d => d.x))
         ];
-        const yExtent = [0, Math.max(...data.map(d => d.y))];
+        // Use maxY if provided, otherwise calculate from data
+        const yMax = maxY !== undefined ? maxY : Math.max(...data.map(d => d.y));
+        const yExtent = [0, yMax];
 
         const xScale = d3.scaleLinear()
           .domain(xExtent)
@@ -205,6 +213,23 @@ const DensityChart: React.FC<DensityChartProps> = ({
           // Histogram mode - thin bars with no spacing
           const barWidth = chartWidth / data.length;
 
+          // Create tooltip div if tooltipLabels provided
+          let tooltip: HTMLDivElement | null = null;
+          if (tooltipLabels) {
+            tooltip = document.createElement('div');
+            tooltip.style.position = 'absolute';
+            tooltip.style.padding = '8px 12px';
+            tooltip.style.background = 'rgba(0, 0, 0, 0.8)';
+            tooltip.style.color = 'white';
+            tooltip.style.borderRadius = '4px';
+            tooltip.style.fontSize = '12px';
+            tooltip.style.pointerEvents = 'none';
+            tooltip.style.opacity = '0';
+            tooltip.style.transition = 'opacity 0.2s';
+            tooltip.style.zIndex = '1000';
+            container.appendChild(tooltip);
+          }
+
           chartArea.selectAll('.bar')
             .data(data)
             .enter()
@@ -216,7 +241,38 @@ const DensityChart: React.FC<DensityChartProps> = ({
             .attr('height', (d) => chartHeight - yScale((d as DensityChartData).y))
             .style('fill', '#000000')
             .style('opacity', 0.7)
-            .style('stroke', 'none');
+            .style('stroke', 'none')
+            .on('mouseenter', function(event: MouseEvent, d: unknown) {
+              if (tooltip && tooltipLabels) {
+                const dataPoint = d as DensityChartData;
+                const label = tooltipLabels[Math.round(dataPoint.x)];
+                if (label) {
+                  tooltip.textContent = `${label}: ${dataPoint.y.toFixed(1)}%`;
+                  tooltip.style.opacity = '1';
+
+                  // Position tooltip near mouse
+                  const rect = container.getBoundingClientRect();
+                  tooltip.style.left = `${event.clientX - rect.left + 10}px`;
+                  tooltip.style.top = `${event.clientY - rect.top - 30}px`;
+                }
+              }
+              // Highlight bar on hover
+              d3.select(this as Element).style('opacity', 1);
+            })
+            .on('mousemove', function(event: MouseEvent) {
+              if (tooltip) {
+                const rect = container.getBoundingClientRect();
+                tooltip.style.left = `${event.clientX - rect.left + 10}px`;
+                tooltip.style.top = `${event.clientY - rect.top - 30}px`;
+              }
+            })
+            .on('mouseleave', function() {
+              if (tooltip) {
+                tooltip.style.opacity = '0';
+              }
+              // Reset bar opacity
+              d3.select(this as Element).style('opacity', 0.7);
+            });
         }
 
         // Add only first and last labels on x-axis
@@ -224,6 +280,10 @@ const DensityChart: React.FC<DensityChartProps> = ({
           const xDomain = xScale.domain();
           const firstValue = xDomain[0];
           const lastValue = xDomain[1];
+
+          // Use custom labels if provided, otherwise use numeric values
+          const firstLabel = customAxisLabels?.start || firstValue.toFixed(0);
+          const lastLabel = customAxisLabels?.end || lastValue.toFixed(0);
 
           // First label (left)
           chartArea
@@ -234,7 +294,7 @@ const DensityChart: React.FC<DensityChartProps> = ({
             .style('font-size', '11px')
             .style('font-family', 'Arial, sans-serif')
             .style('fill', '#666666')
-            .text(firstValue.toFixed(0));
+            .text(firstLabel);
 
           // Last label (right)
           chartArea
@@ -245,7 +305,7 @@ const DensityChart: React.FC<DensityChartProps> = ({
             .style('font-size', '11px')
             .style('font-family', 'Arial, sans-serif')
             .style('fill', '#666666')
-            .text(lastValue.toFixed(0));
+            .text(lastLabel);
         }
 
         // Add title if provided
@@ -275,7 +335,7 @@ const DensityChart: React.FC<DensityChartProps> = ({
         (window.d3 as unknown as D3Instance).select(container).selectAll("*").remove();
       }
     };
-  }, [data, width, height, mode, showLabels, showGrid, title]);
+  }, [data, width, height, mode, showLabels, showGrid, title, tooltipLabels, customAxisLabels, maxY]);
 
   return (
     <div
