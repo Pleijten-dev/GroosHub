@@ -169,6 +169,22 @@ export const LivabilityPage: React.FC<LivabilityPageProps> = ({ data, locale }) 
   }, [availableLevels, selectedArea]);
 
   /**
+   * Get display name for a geographic level
+   */
+  const getLocationName = (level: GeographicLevel): string => {
+    switch (level) {
+      case 'national':
+        return locale === 'nl' ? 'Nederland' : 'Netherlands';
+      case 'municipality':
+        return data.location.municipality.statnaam;
+      case 'district':
+        return data.location.district?.statnaam || LEVEL_LABELS.district[locale];
+      case 'neighborhood':
+        return data.location.neighborhood?.statnaam || LEVEL_LABELS.neighborhood[locale];
+    }
+  };
+
+  /**
    * Get data rows for a specific level and source
    * Note: livability only has national and municipality levels
    */
@@ -285,6 +301,8 @@ export const LivabilityPage: React.FC<LivabilityPageProps> = ({ data, locale }) 
                 };
               })}
               locale={locale}
+              selectedLabel={getLocationName(selectedArea)}
+              comparisonLabel={getLocationName(comparisonLevel)}
             />
           )}
         </div>
@@ -300,7 +318,7 @@ export const LivabilityPage: React.FC<LivabilityPageProps> = ({ data, locale }) 
         <div className="flex-1 flex items-center justify-center gap-8">
           <div className="text-center">
             <div className="text-sm text-gray-500 mb-1">
-              {locale === 'nl' ? 'Geselecteerd' : 'Selected'}
+              {getLocationName(selectedArea)}
             </div>
             <div className="text-3xl font-bold text-gray-900">
               {selectedValue !== null ? `${selectedValue.toFixed(1)}%` : 'n/a'}
@@ -308,7 +326,7 @@ export const LivabilityPage: React.FC<LivabilityPageProps> = ({ data, locale }) 
           </div>
           <div className="text-center">
             <div className="text-sm text-gray-500 mb-1">
-              {locale === 'nl' ? 'Vergelijking' : 'Comparison'}
+              {getLocationName(comparisonLevel)}
             </div>
             <div className="text-3xl font-bold text-gray-600">
               {comparisonValue !== null ? `${comparisonValue.toFixed(1)}%` : 'n/a'}
@@ -327,7 +345,7 @@ export const LivabilityPage: React.FC<LivabilityPageProps> = ({ data, locale }) 
         <div className="flex-1 flex items-center justify-center gap-8">
           <div className="text-center">
             <div className="text-sm text-gray-500 mb-1">
-              {locale === 'nl' ? 'Geselecteerd' : 'Selected'}
+              {getLocationName(selectedArea)}
             </div>
             <div className="text-3xl font-bold text-gray-900">
               {formatScore(selectedValue)}
@@ -335,7 +353,7 @@ export const LivabilityPage: React.FC<LivabilityPageProps> = ({ data, locale }) 
           </div>
           <div className="text-center">
             <div className="text-sm text-gray-500 mb-1">
-              {locale === 'nl' ? 'Vergelijking' : 'Comparison'}
+              {getLocationName(comparisonLevel)}
             </div>
             <div className="text-3xl font-bold text-gray-600">
               {formatScore(comparisonValue)}

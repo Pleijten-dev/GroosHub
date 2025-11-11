@@ -110,6 +110,22 @@ export const SafetyPage: React.FC<SafetyPageProps> = ({ data, locale }) => {
   }, [data.location]);
 
   /**
+   * Get display name for a geographic level
+   */
+  const getLocationName = (level: GeographicLevel): string => {
+    switch (level) {
+      case 'national':
+        return locale === 'nl' ? 'Nederland' : 'Netherlands';
+      case 'municipality':
+        return data.location.municipality.statnaam;
+      case 'district':
+        return data.location.district?.statnaam || LEVEL_LABELS.district[locale];
+      case 'neighborhood':
+        return data.location.neighborhood?.statnaam || LEVEL_LABELS.neighborhood[locale];
+    }
+  };
+
+  /**
    * Get data rows for a specific level and source
    */
   const getDataForLevel = (level: GeographicLevel, source: 'safety' | 'livability'): UnifiedDataRow[] => {
@@ -198,7 +214,7 @@ export const SafetyPage: React.FC<SafetyPageProps> = ({ data, locale }) => {
                       {/* Selected Level Value */}
                       <div className="flex flex-col items-center">
                         <div className="text-sm text-gray-500 mb-2">
-                          {LEVEL_LABELS[selectedLevel][locale]}
+                          {getLocationName(selectedLevel)}
                         </div>
                         <div className="text-4xl font-bold text-gray-900">
                           {selectedValue}
@@ -208,7 +224,7 @@ export const SafetyPage: React.FC<SafetyPageProps> = ({ data, locale }) => {
                       {/* Comparison Level Value */}
                       <div className="flex flex-col items-center opacity-60">
                         <div className="text-sm text-gray-500 mb-2">
-                          {LEVEL_LABELS[comparisonLevel][locale]}
+                          {getLocationName(comparisonLevel)}
                         </div>
                         <div className="text-4xl font-bold text-gray-600">
                           {comparisonValue}

@@ -16,9 +16,16 @@ export interface ComparisonTableRow {
 export interface ComparisonTableProps {
   rows: ComparisonTableRow[];
   locale: 'nl' | 'en';
+  selectedLabel: string;
+  comparisonLabel: string;
 }
 
-export const ComparisonTable: React.FC<ComparisonTableProps> = ({ rows, locale }) => {
+export const ComparisonTable: React.FC<ComparisonTableProps> = ({
+  rows,
+  locale,
+  selectedLabel,
+  comparisonLabel
+}) => {
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse">
@@ -28,10 +35,10 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({ rows, locale }
               {locale === 'nl' ? 'Categorie' : 'Category'}
             </th>
             <th className="text-right p-2 text-sm font-semibold text-gray-700">
-              {locale === 'nl' ? 'Geselecteerd' : 'Selected'}
+              {selectedLabel}
             </th>
             <th className="text-right p-2 text-sm font-semibold text-gray-700">
-              {locale === 'nl' ? 'Vergelijking' : 'Comparison'}
+              {comparisonLabel}
             </th>
           </tr>
         </thead>
