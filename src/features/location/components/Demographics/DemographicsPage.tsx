@@ -256,29 +256,29 @@ export const DemographicsPage: React.FC<DemographicsPageProps> = ({ data, locale
                     </div>
                   ) : (
                     <div className="relative w-full h-full flex items-center justify-center">
-                      {/* Comparison chart at 30% opacity (background) */}
-                      {comparisonChartData.length > 0 && (
-                        <div className="absolute inset-0 flex items-center justify-center opacity-30">
-                          <DensityChart
-                            data={comparisonChartData}
-                            width={400}
-                            height={120}
-                            mode="area"
-                            showLabels={false}
-                            showGrid={false}
-                          />
-                        </div>
-                      )}
-
-                      {/* Selected data chart (foreground) */}
+                      {/* Selected data chart (background) */}
                       {chartData.length > 0 && (
-                        <div className="relative z-10">
+                        <div className="absolute inset-0 flex items-center justify-center z-0">
                           <DensityChart
                             data={chartData}
                             width={400}
                             height={120}
                             mode="area"
                             showLabels={true}
+                            showGrid={false}
+                          />
+                        </div>
+                      )}
+
+                      {/* Comparison chart at 30% opacity (foreground) */}
+                      {comparisonChartData.length > 0 && (
+                        <div className="absolute inset-0 flex items-center justify-center opacity-30 z-10">
+                          <DensityChart
+                            data={comparisonChartData}
+                            width={400}
+                            height={120}
+                            mode="area"
+                            showLabels={false}
                             showGrid={false}
                           />
                         </div>
