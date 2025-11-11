@@ -146,7 +146,7 @@ const DensityChart: React.FC<DensityChartProps> = ({
           .append('svg')
           .attr('width', width)
           .attr('height', height)
-          .style('background', '#ffffff');
+          .style('background', 'transparent');
 
         const chartArea = svg
           .append('g')
