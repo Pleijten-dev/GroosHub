@@ -10,6 +10,7 @@ import { MultiLevelDataTable } from '../../../features/location/components/DataT
 import { AmenitiesGrid, AmenitiesSummary } from '../../../features/location/components/Amenities';
 import { ResidentialSummary, ResidentialGrid } from '../../../features/location/components/Residential';
 import { DoelgroepenGrid } from '../../../features/location/components/Doelgroepen';
+import { DemographicsPage } from '../../../features/location/components/Demographics';
 import { RadialChart, BarChart, DensityChart } from '../../../shared/components/common';
 import { extractLocationScores } from '../../../features/location/utils/extractLocationScores';
 import { LocationAnimation } from '../../../features/location/components/LocationAnimation';
@@ -274,18 +275,9 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         );
       }
 
-      // For Demographics tab - show only demographics data
+      // For Demographics tab - show new demographics page with charts
       if (activeTab === 'demografie') {
-        return (
-          <div className="p-lg overflow-auto h-full">
-            <MultiLevelDataTable
-              data={data}
-              locale={locale}
-              defaultSource="demographics"
-              lockSourceFilter={true}
-            />
-          </div>
-        );
+        return <DemographicsPage data={data} locale={locale} />;
       }
 
       // For Safety tab - show only safety data
