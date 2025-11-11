@@ -42,6 +42,7 @@ interface D3Selection {
   duration: (ms: number) => D3Selection;
   call: (fn: (selection: D3Selection, ...args: unknown[]) => void, ...args: unknown[]) => D3Selection;
   datum: (data: DensityChartData[]) => D3Selection;
+  on: (event: string, handler: ((this: Element, event: MouseEvent, d: unknown) => void) | null) => D3Selection;
 }
 
 interface D3Scale {
