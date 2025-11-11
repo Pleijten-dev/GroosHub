@@ -254,7 +254,6 @@ const DensityChart: React.FC<DensityChartProps> = ({
                 const dataPoint = d as DensityChartData;
                 const index = Math.round(dataPoint.x);
                 const label = tooltipLabels[index];
-                console.log('Tooltip hover:', { index, label, tooltipLabels, dataPoint });
                 if (label) {
                   tooltip.textContent = `${label}: ${dataPoint.y.toFixed(1)}%`;
                   tooltip.style.opacity = '1';
