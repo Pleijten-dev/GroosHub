@@ -5,13 +5,15 @@ import type { UnifiedLocationData, UnifiedDataRow } from '../../data/aggregator/
 import { DensityChart } from '../../../../shared/components/common';
 import type { DensityChartData } from '../../../../shared/components/common/DensityChart/DensityChart';
 import { MultiLevelDataTable } from '../DataTables';
+import {
+  GeographicLevelSelector,
+  type GeographicLevel
+} from '../shared';
 
 interface HealthPageProps {
   data: UnifiedLocationData;
   locale: 'nl' | 'en';
 }
-
-type GeographicLevel = 'national' | 'municipality' | 'district' | 'neighborhood';
 
 const LEVEL_LABELS = {
   national: { nl: 'Nederland (Landelijk)', en: 'Netherlands (National)' },
@@ -210,41 +212,15 @@ export const HealthPage: React.FC<HealthPageProps> = ({ data, locale }) => {
       {!isExpanded && (
         <>
           {/* Header with Dropdowns - Horizontally Centered */}
-          <div className="flex-shrink-0 flex justify-center items-center gap-6 p-6 border-b border-gray-200">
-            <div>
-              <label className="block text-xs font-medium mb-2 text-gray-600">
-                {locale === 'nl' ? 'Gebied' : 'Area'}
-              </label>
-              <select
-                value={selectedLevel}
-                onChange={(e) => setSelectedLevel(e.target.value as GeographicLevel)}
-                className="px-4 py-2 rounded-full border border-gray-200 bg-white/80 backdrop-blur-md text-sm min-w-[180px] shadow-sm hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all"
-              >
-                {availableLevels.map(level => (
-                  <option key={level} value={level}>
-                    {LEVEL_LABELS[level][locale]}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium mb-2 text-gray-600">
-                {locale === 'nl' ? 'Vergelijken met' : 'Compare to'}
-              </label>
-              <select
-                value={comparisonLevel}
-                onChange={(e) => setComparisonLevel(e.target.value as GeographicLevel)}
-                className="px-4 py-2 rounded-full border border-gray-200 bg-white/80 backdrop-blur-md text-sm min-w-[180px] shadow-sm hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all"
-              >
-                {availableLevels.map(level => (
-                  <option key={level} value={level}>
-                    {LEVEL_LABELS[level][locale]}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          <GeographicLevelSelector
+            selectedLevel={selectedLevel}
+            comparisonLevel={comparisonLevel}
+            availableLevels={availableLevels}
+            onSelectedLevelChange={setSelectedLevel}
+            onComparisonLevelChange={setComparisonLevel}
+            levelLabels={LEVEL_LABELS}
+            locale={locale}
+          />
 
           {/* Main Content - Health Sections */}
           <div className="flex-1 overflow-y-auto p-8">

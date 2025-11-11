@@ -9,13 +9,19 @@ import React, { useState, useMemo } from 'react';
 import type { UnifiedLocationData, UnifiedDataRow } from '../../data/aggregator/multiLevelAggregator';
 import { DensityChart } from '../../../../shared/components/common';
 import type { DensityChartData } from '../../../../shared/components/common/DensityChart/DensityChart';
+import {
+  GeographicLevelSelector,
+  ExpandButton,
+  DataSection,
+  ComparisonTable,
+  type GeographicLevel,
+  type ComparisonTableRow
+} from '../shared';
 
 interface LivabilityPageProps {
   data: UnifiedLocationData;
   locale: 'nl' | 'en';
 }
-
-type GeographicLevel = 'national' | 'municipality' | 'district' | 'neighborhood';
 
 const LEVEL_LABELS = {
   national: { nl: 'Nederland (Landelijk)', en: 'Netherlands (National)' },
@@ -267,41 +273,19 @@ export const LivabilityPage: React.FC<LivabilityPageProps> = ({ data, locale }) 
 
           {/* Expandable table */}
           {isExpanded && (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="border-b border-gray-300">
-                    <th className="text-left p-2 text-sm font-semibold text-gray-700">
-                      {locale === 'nl' ? 'Categorie' : 'Category'}
-                    </th>
-                    <th className="text-right p-2 text-sm font-semibold text-gray-700">
-                      {locale === 'nl' ? 'Geselecteerd' : 'Selected'}
-                    </th>
-                    <th className="text-right p-2 text-sm font-semibold text-gray-700">
-                      {locale === 'nl' ? 'Vergelijking' : 'Comparison'}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {section.fields.map((field, i) => {
-                    const selectedValue = getFieldValue(selectedRows, field);
-                    const comparisonValue = getFieldValue(comparisonRows, field);
-                    const label = section.fieldLabels?.[locale]?.[i] ?? 'Unknown';
-                    return (
-                      <tr key={field} className="border-b border-gray-200">
-                        <td className="p-2 text-sm text-gray-700">{label}</td>
-                        <td className="p-2 text-sm text-right text-gray-900">
-                          {selectedValue !== null ? `${selectedValue.toFixed(1)}%` : 'n/a'}
-                        </td>
-                        <td className="p-2 text-sm text-right text-gray-600">
-                          {comparisonValue !== null ? `${comparisonValue.toFixed(1)}%` : 'n/a'}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <ComparisonTable
+              rows={section.fields.map((field, i) => {
+                const selectedValue = getFieldValue(selectedRows, field);
+                const comparisonValue = getFieldValue(comparisonRows, field);
+                const label = section.fieldLabels?.[locale]?.[i] ?? 'Unknown';
+                return {
+                  label,
+                  selectedValue: selectedValue !== null ? `${selectedValue.toFixed(1)}%` : 'n/a',
+                  comparisonValue: comparisonValue !== null ? `${comparisonValue.toFixed(1)}%` : 'n/a'
+                };
+              })}
+              locale={locale}
+            />
           )}
         </div>
       );
@@ -365,125 +349,39 @@ export const LivabilityPage: React.FC<LivabilityPageProps> = ({ data, locale }) 
   };
 
   return (
-    <div className="p-lg overflow-auto h-full">
-      {/* Header */}
-      <div className="mb-lg">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          {locale === 'nl' ? 'Leefbaarheid' : 'Livability'}
-        </h1>
-        <p className="text-sm text-gray-600">
-          {locale === 'nl'
-            ? 'Analyse van leefbaarheidsindicatoren voor het geselecteerde gebied'
-            : 'Analysis of livability indicators for the selected area'}
-        </p>
-      </div>
-
-      {/* Dropdowns */}
-      <div className="flex gap-4 mb-lg">
-        {/* Area selector */}
-        <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {locale === 'nl' ? 'Selecteer gebied' : 'Select area'}
-          </label>
-          <select
-            value={selectedArea}
-            onChange={(e) => setSelectedArea(e.target.value as GeographicLevel)}
-            className="w-full px-4 py-2 rounded-full bg-white/60 backdrop-blur-md border border-gray-200/50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {availableLevels.includes('neighborhood') && (
-              <option value="neighborhood">
-                {data.location.neighborhood?.statnaam || LEVEL_LABELS.neighborhood[locale]}
-              </option>
-            )}
-            {availableLevels.includes('district') && (
-              <option value="district">
-                {data.location.district?.statnaam || LEVEL_LABELS.district[locale]}
-              </option>
-            )}
-            {availableLevels.includes('municipality') && (
-              <option value="municipality">
-                {data.location.municipality.statnaam || LEVEL_LABELS.municipality[locale]}
-              </option>
-            )}
-          </select>
-        </div>
-
-        {/* Comparison level selector */}
-        <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {locale === 'nl' ? 'Vergelijk met' : 'Compare with'}
-          </label>
-          <select
-            value={comparisonLevel}
-            onChange={(e) => setComparisonLevel(e.target.value as GeographicLevel)}
-            className="w-full px-4 py-2 rounded-full bg-white/60 backdrop-blur-md border border-gray-200/50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="national">{LEVEL_LABELS.national[locale]}</option>
-            {availableLevels.includes('municipality') && (
-              <option value="municipality">
-                {data.location.municipality.statnaam || LEVEL_LABELS.municipality[locale]}
-              </option>
-            )}
-            {availableLevels.includes('district') && (
-              <option value="district">
-                {data.location.district?.statnaam || LEVEL_LABELS.district[locale]}
-              </option>
-            )}
-            {availableLevels.includes('neighborhood') && (
-              <option value="neighborhood">
-                {data.location.neighborhood?.statnaam || LEVEL_LABELS.neighborhood[locale]}
-              </option>
-            )}
-          </select>
-        </div>
-      </div>
+    <div className="h-full w-full flex flex-col bg-white">
+      {/* Geographic Level Selector */}
+      <GeographicLevelSelector
+        selectedLevel={selectedArea}
+        comparisonLevel={comparisonLevel}
+        availableLevels={availableLevels}
+        onSelectedLevelChange={setSelectedArea}
+        onComparisonLevelChange={setComparisonLevel}
+        levelLabels={LEVEL_LABELS}
+        locale={locale}
+      />
 
       {/* Sections */}
-      <div className="space-y-0">
-        {LIVABILITY_SECTIONS.map((section) => (
-          <div
-            key={section.id}
-            className="flex gap-4 py-6 border-b border-gray-200 last:border-b-0"
-          >
-            {/* Title - 25% width */}
-            <div className="w-1/4 flex-shrink-0">
-              <h2 className="text-lg font-bold text-gray-900">{section.title[locale]}</h2>
-            </div>
-
-            {/* Description - 20% width */}
-            <div className="w-1/5 flex-shrink-0">
-              <p className="text-sm text-gray-600">{section.description[locale]}</p>
-            </div>
-
-            {/* Content area - remaining space */}
-            {renderSectionContent(section)}
-
-            {/* Expand/collapse arrow (only for charts) */}
-            {section.type === 'chart' && (
-              <div className="flex-shrink-0 flex items-center">
-                <button
-                  onClick={() => setExpandedSection(expandedSection === section.id ? null : section.id)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                  aria-label={expandedSection === section.id ? 'Collapse' : 'Expand'}
-                >
-                  <svg
-                    className={`w-5 h-5 text-gray-600 transition-transform ${
-                      expandedSection === section.id ? 'rotate-180' : ''
-                    }`}
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
+      <div className="flex-1 overflow-auto px-6">
+        <div className="space-y-0">
+          {LIVABILITY_SECTIONS.map((section) => (
+            <DataSection
+              key={section.id}
+              title={section.title[locale]}
+              description={section.description[locale]}
+              expandButton={
+                section.type === 'chart' ? (
+                  <ExpandButton
+                    isExpanded={expandedSection === section.id}
+                    onClick={() => setExpandedSection(expandedSection === section.id ? null : section.id)}
+                  />
+                ) : undefined
+              }
+            >
+              {renderSectionContent(section)}
+            </DataSection>
+          ))}
+        </div>
       </div>
     </div>
   );
