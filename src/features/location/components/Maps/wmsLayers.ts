@@ -3,6 +3,17 @@
  * Defines available WMS layers from Dutch open data sources (PDOK, RIVM, RCE)
  */
 
+export interface FieldMapping {
+  /** Display name for the field */
+  displayName: string;
+  /** Unit to append to value (e.g., "°C", "%", "dB") */
+  unit?: string;
+  /** Number of decimal places to round numeric values */
+  decimals?: number;
+  /** Map raw values to human-readable strings */
+  valueMappings?: { [key: string]: string };
+}
+
 export interface WMSLayerConfig {
   /** WMS service URL */
   url: string;
@@ -22,6 +33,10 @@ export interface WMSLayerConfig {
   recommendedZoom?: number;
   /** Default opacity */
   opacity?: number;
+  /** Field name mappings for GetFeatureInfo responses */
+  fieldMappings?: {
+    [fieldName: string]: FieldMapping;
+  };
 }
 
 export interface WMSCategory {
@@ -48,7 +63,8 @@ function createLayerConfig(
   description: string,
   minZoom: number = 7,
   maxZoom: number = 18,
-  recommendedZoom: number = 14
+  recommendedZoom: number = 14,
+  fieldMappings?: { [fieldName: string]: FieldMapping }
 ): WMSLayerConfig {
   const { baseUrl, layerName } = parseWMSUrl(fullUrl);
   return {
@@ -60,6 +76,7 @@ function createLayerConfig(
     maxZoom,
     recommendedZoom,
     opacity: 0.7,
+    fieldMappings,
   };
 }
 
@@ -132,7 +149,11 @@ export const WMS_CATEGORIES: Record<string, WMSCategory> = {
         'Deze kaart toont het bouwjaar van panden in Nederland. De data is afkomstig van de Basisregistratie Adressen en Gebouwen (BAG) en is geactualiseerd tot 2018.',
         7,
         18,
-        16
+        16,
+        {
+          pandstatus: { displayName: 'Status' },
+          bouwjaar: { displayName: 'Bouwjaar' },
+        }
       ),
     },
   },
@@ -145,7 +166,10 @@ export const WMS_CATEGORIES: Record<string, WMSCategory> = {
         'Deze kaart toont het stedelijk hitte-eiland effect in Nederland. Het stedelijk hitte-eiland effect is het verschil in temperatuur tussen stedelijk gebied en het omliggende landelijk gebied.',
         7,
         18,
-        13
+        13,
+        {
+          GRAY_INDEX: { displayName: 'Temperatuur', decimals: 2, unit: '°C' },
+        }
       ),
       rivm_dalingUHImaxmediaan: createLayerConfig(
         'https://data.rivm.nl/geo/ank/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=rivm_r59_gm_dalingUHImaxmediaan',
@@ -153,7 +177,10 @@ export const WMS_CATEGORIES: Record<string, WMSCategory> = {
         'Deze kaart toont de dalingskaart van het Urban Heat Island (UHI) effect in Nederland. Deze kaart laat de daling van het stedelijk hitte eiland effect zien in graden Celsius.',
         7,
         18,
-        13
+        13,
+        {
+          GRAY_INDEX: { displayName: 'Temperatuur', decimals: 2, unit: '°C' },
+        }
       ),
       verkoelend_effect_groen: createLayerConfig(
         'https://data.rivm.nl/geo/ank/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=Verkoelend_effect_van_groen_bevolkingskern_01062022',
@@ -161,7 +188,10 @@ export const WMS_CATEGORIES: Record<string, WMSCategory> = {
         'Deze kaart laat zien hoe vegetatie en water de stedelijke temperaturen beïnvloeden, vooral \'s nachts. Het helpt beleidsmakers en stedenbouwkundigen bij klimaatadaptatieplanning.',
         7,
         18,
-        14
+        14,
+        {
+          GRAY_INDEX: { displayName: 'Temperatuur', decimals: 2, unit: '°C' },
+        }
       ),
     },
   },
@@ -174,7 +204,10 @@ export const WMS_CATEGORIES: Record<string, WMSCategory> = {
         'Het RIVM introduceert de MGR-tool, die milieu- en gezondheidsrisico\'s lokaal evalueert. Deze tool faciliteert beslissingen over leefomgevingsmaatregelen door risico\'s op gezondheidseffecten te kwantificeren.',
         7,
         18,
-        13
+        13,
+        {
+          GRAY_INDEX: { displayName: 'Milieugezondheidsrisico', decimals: 1, unit: '%' },
+        }
       ),
       rivm_nsl_ec2021: createLayerConfig(
         'https://data.rivm.nl/geo/alo/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=rivm_nsl_20230101_gm_EC2021',
@@ -182,7 +215,10 @@ export const WMS_CATEGORIES: Record<string, WMSCategory> = {
         'Elementair koolstof (roet) in de lucht, gemeten in 2021. Roet is een belangrijk onderdeel van fijn stof en heeft gezondheidseffecten.',
         7,
         18,
-        14
+        14,
+        {
+          GRAY_INDEX: { displayName: 'Roet concentratie', decimals: 1, unit: 'µg EC/m³' },
+        }
       ),
       rivm_nsl_pm25_2021: createLayerConfig(
         'https://data.rivm.nl/geo/alo/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=rivm_nsl_20230101_gm_PM252021',
@@ -190,7 +226,10 @@ export const WMS_CATEGORIES: Record<string, WMSCategory> = {
         'Fijn stof PM2.5 concentraties in 2021. Deeltjes kleiner dan 2,5 micrometer kunnen diep in de longen doordringen.',
         7,
         18,
-        14
+        14,
+        {
+          GRAY_INDEX: { displayName: 'Fijn stof concentratie', decimals: 1, unit: 'µg PM2,5/m³' },
+        }
       ),
       rivm_nsl_pm10_2021: createLayerConfig(
         'https://data.rivm.nl/geo/alo/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=rivm_nsl_20230101_gm_PM102021',
@@ -198,7 +237,10 @@ export const WMS_CATEGORIES: Record<string, WMSCategory> = {
         'Fijn stof PM10 concentraties in 2021. Deeltjes kleiner dan 10 micrometer.',
         7,
         18,
-        14
+        14,
+        {
+          GRAY_INDEX: { displayName: 'Fijn stof concentratie', decimals: 1, unit: 'µg PM10/m³' },
+        }
       ),
       rivm_nsl_no2_2021: createLayerConfig(
         'https://data.rivm.nl/geo/alo/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=rivm_nsl_20230101_gm_NO22021',
@@ -206,7 +248,10 @@ export const WMS_CATEGORIES: Record<string, WMSCategory> = {
         'Stikstofdioxide (NO2) concentraties in 2021. NO2 is een belangrijke luchtverontreiniging door verkeer en industrie.',
         7,
         18,
-        14
+        14,
+        {
+          GRAY_INDEX: { displayName: 'Stikstofdioxide concentratie', decimals: 1, unit: 'µg/m³' },
+        }
       ),
     },
   },
@@ -219,7 +264,10 @@ export const WMS_CATEGORIES: Record<string, WMSCategory> = {
         'Deze kaart toont de groene gebieden in Nederland, gemeten per 10x10 meter. Groene omgevingen zijn essentieel voor ontspanning en sociale activiteiten. Donkere kleuren wijzen op dicht beboste gebieden.',
         7,
         18,
-        15
+        15,
+        {
+          GRAY_INDEX: { displayName: 'Bomen hoger dan 2,5m', unit: '%' },
+        }
       ),
       graskaart_v2: createLayerConfig(
         'https://data.rivm.nl/geo/ank/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=20200629_gm_Graskaart_v2',
@@ -227,7 +275,10 @@ export const WMS_CATEGORIES: Record<string, WMSCategory> = {
         'Grasgebieden en grasvelden in Nederland per 10x10 meter.',
         7,
         18,
-        15
+        15,
+        {
+          GRAY_INDEX: { displayName: 'Lage vegetatie lager dan 1m', unit: '%' },
+        }
       ),
       struikenkaart_v2: createLayerConfig(
         'https://data.rivm.nl/geo/ank/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=20200629_gm_Struikenkaart_v2',
@@ -235,7 +286,10 @@ export const WMS_CATEGORIES: Record<string, WMSCategory> = {
         'Struikgewas en heesters in Nederland per 10x10 meter.',
         7,
         18,
-        15
+        15,
+        {
+          GRAY_INDEX: { displayName: 'Struiken lager dan 2,5m', unit: '%' },
+        }
       ),
       koolstof_opslag_biomassa: createLayerConfig(
         'https://data.rivm.nl/geo/ank/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=Actuele_koolstof_opslag_biomassa_01062022',
@@ -243,7 +297,10 @@ export const WMS_CATEGORIES: Record<string, WMSCategory> = {
         'De kaart visualiseert koolstofopslag in houtige biomassa per hectare, jaarlijks. De opslag is berekend op basis van jaarlijkse biomassa-groei, boomsoort-specifieke data en locatiegeschiktheid voor bosgroei.',
         7,
         18,
-        14
+        14,
+        {
+          GRAY_INDEX: { displayName: 'Koolstofopslag door bomen', decimals: 3, unit: 'ton C/dam²/jaar' },
+        }
       ),
       teeb_afvang_pm10: createLayerConfig(
         'https://data.rivm.nl/geo/ank/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=TEEB_Afvang_van_PM10_door_groen_01062022',
@@ -251,7 +308,10 @@ export const WMS_CATEGORIES: Record<string, WMSCategory> = {
         'Groen en water verhogen de levenskwaliteit in steden. De TEEB Stadtool berekent de maatschappelijke waarde van stedelijk groen en water.',
         7,
         18,
-        14
+        14,
+        {
+          GRAY_INDEX: { displayName: 'Afvang fijnstof door vegetatie', decimals: 3, unit: 'ton PM10/dam²/jaar' },
+        }
       ),
       rivm_percbomenbuurt: createLayerConfig(
         'https://data.rivm.nl/geo/ank/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=rivm_20190326_percbomenbuurt',
@@ -259,7 +319,11 @@ export const WMS_CATEGORIES: Record<string, WMSCategory> = {
         'Deze kaart toont het percentage bomen in een buurt in Nederland. Bomen zijn essentieel voor een gezonde leefomgeving en dragen bij aan de biodiversiteit en het welzijn van mens en dier.',
         7,
         18,
-        14
+        14,
+        {
+          opp: { displayName: 'Oppervlakte', unit: 'm²' },
+          Perc_bomen: { displayName: 'Percentage bomen', unit: '%' },
+        }
       ),
     },
   },
@@ -272,7 +336,10 @@ export const WMS_CATEGORIES: Record<string, WMSCategory> = {
         'Geluid beïnvloedt onze leefomgeving. Het RIVM onderzoekt en monitort geluidsniveaus en hun gezondheidseffecten in Nederland.',
         7,
         18,
-        14
+        14,
+        {
+          GRAY_INDEX: { displayName: 'Geluid', unit: 'dB' },
+        }
       ),
       rivm_geluid_lden_wegverkeer_2020: createLayerConfig(
         'https://data.rivm.nl/geo/alo/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=rivm_20220601_Geluid_lden_wegverkeer_2020',
@@ -280,7 +347,10 @@ export const WMS_CATEGORIES: Record<string, WMSCategory> = {
         'Geluidsbelasting door wegverkeer, gemeten als Lden (day-evening-night level).',
         7,
         18,
-        14
+        14,
+        {
+          GRAY_INDEX: { displayName: 'Geluid', unit: 'dB' },
+        }
       ),
       rivm_geluid_lnight_wegverkeer_2020: createLayerConfig(
         'https://data.rivm.nl/geo/alo/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=rivm_20220601_Geluid_lnight_wegverkeer_2020',
@@ -288,7 +358,10 @@ export const WMS_CATEGORIES: Record<string, WMSCategory> = {
         'Geluidsbelasting door wegverkeer tijdens de nacht (Lnight).',
         7,
         18,
-        14
+        14,
+        {
+          GRAY_INDEX: { displayName: 'Geluid', unit: 'dB' },
+        }
       ),
       rivm_geluid_lden_treinverkeer_2020: createLayerConfig(
         'https://data.rivm.nl/geo/alo/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=rivm_20220601_Geluid_lden_treinverkeer_2020',
@@ -296,7 +369,10 @@ export const WMS_CATEGORIES: Record<string, WMSCategory> = {
         'Geluidsbelasting door treinverkeer.',
         7,
         18,
-        14
+        14,
+        {
+          GRAY_INDEX: { displayName: 'Geluid', unit: 'dB' },
+        }
       ),
       rivm_geluid_lden_industrie_2008: createLayerConfig(
         'https://data.rivm.nl/geo/alo/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=rivm_20220601_Geluid_lden_industrie_2008',
@@ -304,7 +380,10 @@ export const WMS_CATEGORIES: Record<string, WMSCategory> = {
         'Geluidsbelasting door industriële bronnen.',
         7,
         18,
-        14
+        14,
+        {
+          GRAY_INDEX: { displayName: 'Geluid', unit: 'dB' },
+        }
       ),
       geluid_lden_vliegverkeer_2020: createLayerConfig(
         'https://data.rivm.nl/geo/alo/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=rivm_20220601_Geluid_lden_vliegverkeer_2020',
@@ -312,7 +391,10 @@ export const WMS_CATEGORIES: Record<string, WMSCategory> = {
         'Geluidsbelasting door vliegverkeer.',
         6,
         16,
-        14
+        14,
+        {
+          GRAY_INDEX: { displayName: 'Geluid', unit: 'dB' },
+        }
       ),
     },
   },
@@ -325,7 +407,23 @@ export const WMS_CATEGORIES: Record<string, WMSCategory> = {
         'De Archeologiekaart van Nederland combineert de Archeologische Monumentenkaart en de Indicatieve Kaart Archeologische Waarden, waarop archeologische terreinen en vindkansniveaus worden weergegeven.',
         7,
         18,
-        13
+        13,
+        {
+          PALETTE_INDEX: {
+            displayName: 'Trefkans',
+            valueMappings: {
+              '0': 'Zeer lage trefkans',
+              '1': 'Lage trefkans',
+              '2': 'Middelhoge trefkans',
+              '3': 'Hoge trefkans',
+              '4': 'Lage trefkans (water)',
+              '6': 'Middelhoge trefkans (water)',
+              '7': 'Hoge trefkans (water)',
+              '8': 'Water',
+              '9': 'Niet gekarteerd',
+            },
+          },
+        }
       ),
     },
   },
@@ -354,7 +452,10 @@ export const WMS_CATEGORIES: Record<string, WMSCategory> = {
         'Een DTM (Digital Terrain Model) wordt gemaakt van geclassificeerde maaiveldpunten. Hierbij wordt voor elke 50x50 cm cel een waarde berekend.',
         10,
         18,
-        15
+        15,
+        {
+          Value_list: { displayName: 'Hoogte', decimals: 2, unit: 'm' },
+        }
       ),
       dsm_05m: createLayerConfig(
         'https://service.pdok.nl/rws/ahn/wms/v1_0?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=dsm_05m',
@@ -362,7 +463,10 @@ export const WMS_CATEGORIES: Record<string, WMSCategory> = {
         'Naast maaiveld-representaties zijn er DSM-bestanden (Digital Surface Model) die alle gegevens behalve water bevatten. Deze bevatten informatie over gebouwen, kunstwerken en meer.',
         10,
         18,
-        15
+        15,
+        {
+          Value_list: { displayName: 'Hoogte', decimals: 2, unit: 'm' },
+        }
       ),
       vw_rvo_pand_energielabels: createLayerConfig(
         'https://data.rivm.nl/geo/alo/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=vw_rvo_20200101_v_pand_energielabels',
@@ -370,7 +474,12 @@ export const WMS_CATEGORIES: Record<string, WMSCategory> = {
         'Een energielabel toont de energie-efficiëntie van woningen. Eigenaren moeten dit label verstrekken bij verkoop, verhuur of nieuwbouw.',
         7,
         18,
-        16
+        16,
+        {
+          Label_nieuw: { displayName: 'Label' },
+          minimum: { displayName: 'Minimum' },
+          maximum: { displayName: 'Maximum' },
+        }
       ),
     },
   },

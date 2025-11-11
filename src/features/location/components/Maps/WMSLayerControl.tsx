@@ -90,6 +90,56 @@ export const WMSLayerControl: React.FC<WMSLayerControlProps> = ({
     return `${layer.url}?${params.toString()}`;
   };
 
+  // Process feature properties with field mappings
+  const processFeatureProperties = (
+    properties: Record<string, unknown>,
+    fieldMappings?: { [fieldName: string]: import('./wmsLayers').FieldMapping }
+  ): Array<{ key: string; displayName: string; value: string }> => {
+    if (!fieldMappings) {
+      // No mappings: show all fields with auto-formatted names
+      return Object.entries(properties).map(([key, value]) => ({
+        key,
+        displayName: key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+        value: String(value),
+      }));
+    }
+
+    // With mappings: only show fields that have mappings
+    return Object.entries(properties)
+      .filter(([key]) => fieldMappings[key]) // Only include fields with mappings
+      .map(([key, rawValue]) => {
+        const mapping = fieldMappings[key];
+        let value = String(rawValue);
+
+        // Apply value mappings (for categorical data)
+        if (mapping.valueMappings && rawValue !== null && rawValue !== undefined) {
+          const mappedValue = mapping.valueMappings[String(rawValue)];
+          if (mappedValue) {
+            value = mappedValue;
+          }
+        }
+        // Apply numeric formatting (decimals + unit)
+        else if (typeof rawValue === 'number' || !isNaN(Number(rawValue))) {
+          const numValue = Number(rawValue);
+          if (!isNaN(numValue)) {
+            // Round to specified decimals
+            const roundedValue =
+              mapping.decimals !== undefined
+                ? numValue.toFixed(mapping.decimals)
+                : String(numValue);
+            // Append unit if specified
+            value = mapping.unit ? `${roundedValue} ${mapping.unit}` : roundedValue;
+          }
+        }
+
+        return {
+          key,
+          displayName: mapping.displayName,
+          value,
+        };
+      });
+  };
+
   return (
     <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000]">
       {/* Main Control Pill */}
@@ -287,7 +337,7 @@ export const WMSLayerControl: React.FC<WMSLayerControlProps> = ({
       )}
 
       {/* Feature Info Display - Shows data from clicked location */}
-      {featureInfo && (
+      {featureInfo && selectedLayer && (
         <div className="absolute bottom-full left-0 mb-3 w-96 max-w-[90vw]">
           <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-4">
             <div className="flex justify-between items-start mb-3">
@@ -314,35 +364,32 @@ export const WMSLayerControl: React.FC<WMSLayerControlProps> = ({
               </button>
             </div>
             <div className="text-xs text-gray-600">
-              {Object.keys(featureInfo.properties).length > 0 ? (
-                <>
-                  <div className="bg-blue-50 border border-blue-200 rounded p-2 mb-3">
-                    <p className="text-xs text-blue-800">
-                      <span className="font-medium">💡 Tip:</span> These values are returned directly from the WMS layer.
-                      The data format depends on how the WMS service is configured. Some layers return actual measurements
-                      (e.g., pollution levels, temperature), while others may return classified values or pixel data.
-                    </p>
-                  </div>
+              {(() => {
+                const processedProperties = processFeatureProperties(
+                  featureInfo.properties,
+                  selectedLayer.config.fieldMappings
+                );
+                return processedProperties.length > 0 ? (
                   <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {Object.entries(featureInfo.properties).map(([key, value]) => (
-                      <div key={key} className="border-b border-gray-100 pb-2 last:border-0">
-                        <div className="font-medium text-gray-700 mb-0.5">{key}</div>
+                    {processedProperties.map((prop) => (
+                      <div key={prop.key} className="border-b border-gray-100 pb-2 last:border-0">
+                        <div className="font-medium text-gray-700 mb-0.5">{prop.displayName}</div>
                         <div className="text-gray-900 pl-2 break-words">
-                          {String(value)}
+                          {prop.value}
                         </div>
                       </div>
                     ))}
                   </div>
-                </>
-              ) : (
-                <div className="bg-amber-50 border border-amber-200 rounded p-3 text-center">
-                  <p className="text-amber-800 font-medium mb-1">No Data Available</p>
-                  <p className="text-xs text-amber-700">
-                    This WMS layer may not support feature queries, or there&apos;s no data at this location.
-                    Try clicking on a different area or selecting a different layer.
-                  </p>
-                </div>
-              )}
+                ) : (
+                  <div className="bg-amber-50 border border-amber-200 rounded p-3 text-center">
+                    <p className="text-amber-800 font-medium mb-1">No Data Available</p>
+                    <p className="text-xs text-amber-700">
+                      This WMS layer may not support feature queries, or there&apos;s no data at this location.
+                      Try clicking on a different area or selecting a different layer.
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
           </div>
           {/* Arrow pointing down to the left */}
