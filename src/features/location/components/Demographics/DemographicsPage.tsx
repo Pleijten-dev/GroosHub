@@ -303,7 +303,7 @@ export const DemographicsPage: React.FC<DemographicsPageProps> = ({ data, locale
 
                       {/* Comparison chart at 30% opacity (foreground) */}
                       {comparisonChartData.length > 0 && (
-                        <div className="absolute inset-0 flex items-center justify-center opacity-30 z-10">
+                        <div className="absolute inset-0 flex items-center justify-center opacity-30 z-10 pointer-events-none">
                           <DensityChart
                             data={comparisonChartData}
                             width={400}
