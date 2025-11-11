@@ -203,187 +203,188 @@ export const DemographicsPage: React.FC<DemographicsPageProps> = ({ data, locale
 
   return (
     <div className="h-full w-full flex flex-col bg-white">
-      {/* Header with Dropdowns - Horizontally Centered */}
-      <div className="flex-shrink-0 flex justify-center items-center gap-6 p-6 border-b border-gray-200">
-        <div>
-          <label className="block text-xs font-medium mb-2 text-gray-600">
-            {locale === 'nl' ? 'Gebied' : 'Area'}
-          </label>
-          <select
-            value={selectedLevel}
-            onChange={(e) => setSelectedLevel(e.target.value as GeographicLevel)}
-            className="px-4 py-2 rounded-full border border-gray-200 bg-white/80 backdrop-blur-md text-sm min-w-[180px] shadow-sm hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all"
-          >
-            {availableLevels.map(level => (
-              <option key={level} value={level}>
-                {LEVEL_LABELS[level][locale]}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium mb-2 text-gray-600">
-            {locale === 'nl' ? 'Vergelijken met' : 'Compare to'}
-          </label>
-          <select
-            value={comparisonLevel}
-            onChange={(e) => setComparisonLevel(e.target.value as GeographicLevel)}
-            className="px-4 py-2 rounded-full border border-gray-200 bg-white/80 backdrop-blur-md text-sm min-w-[180px] shadow-sm hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all"
-          >
-            {availableLevels.map(level => (
-              <option key={level} value={level}>
-                {LEVEL_LABELS[level][locale]}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Main Content - Demographic Sections */}
-      <div className="flex-1 overflow-y-auto p-8">
-        <div className="space-y-0">
-          {DEMOGRAPHIC_SECTIONS.map((section) => {
-            const chartData = section.isValue
-              ? []
-              : createChartData(section.fields, selectedData);
-            const comparisonChartData = section.isValue
-              ? []
-              : createChartData(section.fields, comparisonData);
-
-            // Calculate combined max Y value for consistent scale across both charts
-            const maxYValue = Math.max(
-              ...[...chartData, ...comparisonChartData].map(d => d.y)
-            );
-
-            return (
-              <div
-                key={section.id}
-                className="flex items-center gap-6 py-4"
-                style={{ minHeight: '12vh' }}
-              >
-                {/* Title - 12% height, max 40% width */}
-                <div className="flex-shrink-0 w-[25%] max-w-[40%]">
-                  <h2 className="text-3xl font-bold text-gray-900">
-                    {section.title[locale]}
-                  </h2>
-                </div>
-
-                {/* Description - 12% height, 20% width */}
-                <div className="flex-shrink-0 w-[20%]">
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    {section.description[locale]}
-                  </p>
-                </div>
-
-                {/* Chart or Value - remaining space */}
-                <div className="flex-1 flex items-center justify-center relative">
-                  {section.isValue ? (
-                    <div className="text-4xl font-bold text-gray-900">
-                      {getDisplayValue(selectedData, section.fields[0], section.id)}
-                    </div>
-                  ) : (
-                    <div className="relative w-full h-full flex items-center justify-center">
-                      {/* Selected data chart (background) */}
-                      {chartData.length > 0 && (
-                        <div className="absolute inset-0 flex items-center justify-center z-0">
-                          <DensityChart
-                            data={chartData}
-                            width={400}
-                            height={120}
-                            mode={section.useBarChart ? "histogram" : "area"}
-                            showLabels={section.useBarChart ? false : true}
-                            showGrid={false}
-                            tooltipLabels={section.fieldLabels?.[locale]}
-                            customAxisLabels={section.customAxisLabels}
-                            maxY={maxYValue}
-                          />
-                        </div>
-                      )}
-
-                      {/* Comparison chart at 30% opacity (foreground) */}
-                      {comparisonChartData.length > 0 && (
-                        <div className="absolute inset-0 flex items-center justify-center opacity-30 z-10 pointer-events-none">
-                          <DensityChart
-                            data={comparisonChartData}
-                            width={400}
-                            height={120}
-                            mode={section.useBarChart ? "histogram" : "area"}
-                            showLabels={false}
-                            showGrid={false}
-                            maxY={maxYValue}
-                          />
-                        </div>
-                      )}
-
-                      {chartData.length === 0 && (
-                        <span className="text-gray-400 text-sm">
-                          {locale === 'nl' ? 'Geen data beschikbaar' : 'No data available'}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Expandable Arrow Button */}
+      {/* Only show header and charts when not expanded */}
       {!isExpanded && (
-        <div className="flex-shrink-0 flex justify-center py-4 border-t border-gray-200">
-          <button
-            className="group cursor-pointer bg-transparent border-none p-0 m-0 focus:outline-none transition-transform duration-200 hover:scale-110"
-            onClick={() => setIsExpanded(true)}
-          >
-            <svg
-              width="48"
-              height="24"
-              viewBox="0 0 48 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="transition-colors duration-200"
+        <>
+          {/* Header with Dropdowns - Horizontally Centered */}
+          <div className="flex-shrink-0 flex justify-center items-center gap-6 p-6 border-b border-gray-200">
+            <div>
+              <label className="block text-xs font-medium mb-2 text-gray-600">
+                {locale === 'nl' ? 'Gebied' : 'Area'}
+              </label>
+              <select
+                value={selectedLevel}
+                onChange={(e) => setSelectedLevel(e.target.value as GeographicLevel)}
+                className="px-4 py-2 rounded-full border border-gray-200 bg-white/80 backdrop-blur-md text-sm min-w-[180px] shadow-sm hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all"
+              >
+                {availableLevels.map(level => (
+                  <option key={level} value={level}>
+                    {LEVEL_LABELS[level][locale]}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium mb-2 text-gray-600">
+                {locale === 'nl' ? 'Vergelijken met' : 'Compare to'}
+              </label>
+              <select
+                value={comparisonLevel}
+                onChange={(e) => setComparisonLevel(e.target.value as GeographicLevel)}
+                className="px-4 py-2 rounded-full border border-gray-200 bg-white/80 backdrop-blur-md text-sm min-w-[180px] shadow-sm hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all"
+              >
+                {availableLevels.map(level => (
+                  <option key={level} value={level}>
+                    {LEVEL_LABELS[level][locale]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Main Content - Demographic Sections */}
+          <div className="flex-1 overflow-y-auto p-8">
+            <div className="space-y-0">
+              {DEMOGRAPHIC_SECTIONS.map((section) => {
+                const chartData = section.isValue
+                  ? []
+                  : createChartData(section.fields, selectedData);
+                const comparisonChartData = section.isValue
+                  ? []
+                  : createChartData(section.fields, comparisonData);
+
+                // Calculate combined max Y value for consistent scale across both charts
+                const maxYValue = Math.max(
+                  ...[...chartData, ...comparisonChartData].map(d => d.y)
+                );
+
+                return (
+                  <div
+                    key={section.id}
+                    className="flex items-center gap-6 py-4"
+                    style={{ minHeight: '12vh' }}
+                  >
+                    {/* Title - 12% height, max 40% width */}
+                    <div className="flex-shrink-0 w-[25%] max-w-[40%]">
+                      <h2 className="text-3xl font-bold text-gray-900">
+                        {section.title[locale]}
+                      </h2>
+                    </div>
+
+                    {/* Description - 12% height, 20% width */}
+                    <div className="flex-shrink-0 w-[20%]">
+                      <p className="text-sm text-gray-600 leading-relaxed">
+                        {section.description[locale]}
+                      </p>
+                    </div>
+
+                    {/* Chart or Value - remaining space */}
+                    <div className="flex-1 flex items-center justify-center relative">
+                      {section.isValue ? (
+                        <div className="text-4xl font-bold text-gray-900">
+                          {getDisplayValue(selectedData, section.fields[0], section.id)}
+                        </div>
+                      ) : (
+                        <div className="relative w-full h-full flex items-center justify-center">
+                          {/* Selected data chart (background) */}
+                          {chartData.length > 0 && (
+                            <div className="absolute inset-0 flex items-center justify-center z-0">
+                              <DensityChart
+                                data={chartData}
+                                width={400}
+                                height={120}
+                                mode={section.useBarChart ? "histogram" : "area"}
+                                showLabels={section.useBarChart ? false : true}
+                                showGrid={false}
+                                tooltipLabels={section.fieldLabels?.[locale]}
+                                customAxisLabels={section.customAxisLabels}
+                                maxY={maxYValue}
+                              />
+                            </div>
+                          )}
+
+                          {/* Comparison chart at 30% opacity (foreground) */}
+                          {comparisonChartData.length > 0 && (
+                            <div className="absolute inset-0 flex items-center justify-center opacity-30 z-10 pointer-events-none">
+                              <DensityChart
+                                data={comparisonChartData}
+                                width={400}
+                                height={120}
+                                mode={section.useBarChart ? "histogram" : "area"}
+                                showLabels={false}
+                                showGrid={false}
+                                maxY={maxYValue}
+                              />
+                            </div>
+                          )}
+
+                          {chartData.length === 0 && (
+                            <span className="text-gray-400 text-sm">
+                              {locale === 'nl' ? 'Geen data beschikbaar' : 'No data available'}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Expandable Arrow Button */}
+          <div className="flex-shrink-0 flex justify-center py-4 border-t border-gray-200">
+            <button
+              className="group cursor-pointer bg-transparent border-none p-0 m-0 focus:outline-none transition-transform duration-200 hover:scale-110"
+              onClick={() => setIsExpanded(true)}
             >
-              <path
-                d="M12 8 L24 20 L36 8"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-gray-700 group-hover:text-gray-900"
-              />
-            </svg>
-          </button>
-        </div>
+              <svg
+                width="48"
+                height="24"
+                viewBox="0 0 48 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="transition-colors duration-200"
+              >
+                <path
+                  d="M12 8 L24 20 L36 8"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-gray-700 group-hover:text-gray-900"
+                />
+              </svg>
+            </button>
+          </div>
+        </>
       )}
 
-      {/* Expanded Table Section */}
+      {/* Expanded Table Section - Full Screen */}
       {isExpanded && (
-        <div className="flex-1 overflow-hidden border-t border-gray-200 bg-gray-50">
-          <div className="h-full flex flex-col">
-            {/* Close button */}
-            <div className="flex-shrink-0 flex justify-between items-center p-4 bg-white border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">
-                {locale === 'nl' ? 'Volledige Demografische Tabel' : 'Full Demographics Table'}
-              </h3>
-              <button
-                onClick={() => setIsExpanded(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
-              >
-                {locale === 'nl' ? 'Sluiten' : 'Close'}
-              </button>
-            </div>
+        <div className="flex-1 flex flex-col h-full bg-gray-50">
+          {/* Close button */}
+          <div className="flex-shrink-0 flex justify-between items-center p-4 bg-white border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">
+              {locale === 'nl' ? 'Volledige Demografische Tabel' : 'Full Demographics Table'}
+            </h3>
+            <button
+              onClick={() => setIsExpanded(false)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+            >
+              {locale === 'nl' ? 'Sluiten' : 'Close'}
+            </button>
+          </div>
 
-            {/* Table content */}
-            <div className="flex-1 overflow-auto p-6">
-              <MultiLevelDataTable
-                data={data}
-                locale={locale}
-                defaultSource="demographics"
-                lockSourceFilter={true}
-              />
-            </div>
+          {/* Table content */}
+          <div className="flex-1 overflow-auto p-6">
+            <MultiLevelDataTable
+              data={data}
+              locale={locale}
+              defaultSource="demographics"
+              lockSourceFilter={true}
+            />
           </div>
         </div>
       )}
