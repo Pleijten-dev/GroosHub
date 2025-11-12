@@ -181,7 +181,10 @@ export const DUTCH_AMENITY_CATEGORIES: AmenityCategory[] = [
     color: '#dc2626',
     icon: '🍽️',
     priceLevels: [PRICE_LEVELS.MODERATE],
-    textQuery: 'restaurant dining casual restaurant family restaurant'
+    textQuery: 'restaurant dining casual restaurant family restaurant',
+    // Note: Mid-range uses special fallback logic to include restaurants without price data.
+    // This prevents excluding restaurants that don't have price levels set in Google Places.
+    // The filter is applied post-search to include both priceLevel=2 AND priceLevel=undefined.
   },
   {
     id: 'restaurants_upscale',
