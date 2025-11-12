@@ -4,9 +4,9 @@ import type {
   LatLng,
   NearbySearchRequest,
   TextSearchRequest,
-  AmenityCategory,
-  PRICE_LEVELS
+  AmenityCategory
 } from './types';
+import { PRICE_LEVELS } from './types';
 import { responseParser } from './response-parser';
 import { errorHandler } from './error-handler';
 import { DEFAULT_SEARCH_CONFIG } from './amenity-search-config';
