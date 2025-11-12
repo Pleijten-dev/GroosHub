@@ -31,7 +31,8 @@ const MAIN_SECTIONS = [
   { id: 'score', nl: 'Score', en: 'Score' },
   { id: 'voorzieningen', nl: 'Voorzieningen', en: 'Amenities' },
   { id: 'kaarten', nl: 'Kaarten', en: 'Maps' },
-  { id: 'pve', nl: 'Programma van Eisen', en: 'Requirements Program' }
+  { id: 'pve', nl: 'Programma van Eisen', en: 'Requirements Program' },
+  { id: 'genereer-rapport', nl: 'Genereer Rapport', en: 'Generate Report' }
 ] as const;
 
 // Score subsections with dual language support
@@ -413,6 +414,98 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                     maxValue={100}
                   />
                 </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // For Generate Report tab - show export options
+      if (activeTab === 'genereer-rapport') {
+        // Extract location scores and calculate persona scores
+        const locationScores = extractLocationScores(data);
+        const personas = housingPersonasData[locale].housing_personas;
+        const personaScores = calculatePersonaScores(personas, locationScores);
+        const sortedPersonas = [...personaScores].sort((a, b) => a.rRankPosition - b.rRankPosition);
+        const connections = calculateConnections(personas, sortedPersonas);
+        const scenarios = calculateScenarios(personas, sortedPersonas, connections);
+
+        return (
+          <div className="p-lg overflow-auto h-full">
+            <div className="max-w-4xl mx-auto space-y-lg">
+              <div>
+                <h2 className="text-2xl font-bold text-text-primary mb-base">
+                  {locale === 'nl' ? 'Genereer Rapport' : 'Generate Report'}
+                </h2>
+                <p className="text-sm text-text-secondary mb-lg">
+                  {locale === 'nl'
+                    ? 'Exporteer alle verzamelde gegevens inclusief nationale en buurt-niveau data, doelgroepen scores, en scenario analyses.'
+                    : 'Export all collected data including national and neighborhood level data, target group scores, and scenario analyses.'}
+                </p>
+              </div>
+
+              {/* Export Section */}
+              <div className="bg-white rounded-lg shadow-sm p-base border border-gray-200">
+                <h3 className="text-lg font-semibold text-text-primary mb-base">
+                  {locale === 'nl' ? 'Data Export' : 'Data Export'}
+                </h3>
+                <p className="text-sm text-text-secondary mb-base">
+                  {locale === 'nl'
+                    ? 'Het rapport bevat:'
+                    : 'The report includes:'}
+                </p>
+                <ul className="space-y-2 text-sm text-gray-700 mb-base ml-5">
+                  <li className="list-disc">
+                    {locale === 'nl'
+                      ? 'Nationale niveau data (demografie, gezondheid, leefbaarheid, veiligheid)'
+                      : 'National level data (demographics, health, livability, safety)'}
+                  </li>
+                  <li className="list-disc">
+                    {locale === 'nl'
+                      ? 'Buurt-niveau data (demografie, gezondheid, leefbaarheid, veiligheid, voorzieningen)'
+                      : 'Neighborhood level data (demographics, health, livability, safety, amenities)'}
+                  </li>
+                  <li className="list-disc">
+                    {locale === 'nl'
+                      ? 'Woningmarkt data van Altum AI'
+                      : 'Housing market data from Altum AI'}
+                  </li>
+                  <li className="list-disc">
+                    {locale === 'nl'
+                      ? 'Gedetailleerde doelgroepen scores'
+                      : 'Detailed target group scores'}
+                  </li>
+                  <li className="list-disc">
+                    {locale === 'nl'
+                      ? 'Alle scenario analyses (3 automatische + custom)'
+                      : 'All scenario analyses (3 automatic + custom)'}
+                  </li>
+                </ul>
+
+                <div className="flex justify-start">
+                  <ExportButton
+                    data={data}
+                    personaScores={sortedPersonas}
+                    scenarios={scenarios}
+                    customScenarioPersonaIds={[]}
+                    locale={locale}
+                  />
+                </div>
+              </div>
+
+              {/* Additional Information */}
+              <div className="bg-blue-50 rounded-lg p-base border border-blue-200">
+                <h4 className="font-medium text-blue-900 mb-sm flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                    <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {locale === 'nl' ? 'Informatie' : 'Information'}
+                </h4>
+                <p className="text-sm text-blue-800">
+                  {locale === 'nl'
+                    ? 'Het rapport wordt geëxporteerd als JSON bestand met alle verzamelde gegevens. U kunt dit bestand gebruiken voor verdere analyse of importeren in andere systemen.'
+                    : 'The report is exported as a JSON file with all collected data. You can use this file for further analysis or import it into other systems.'}
+                </p>
               </div>
             </div>
           </div>

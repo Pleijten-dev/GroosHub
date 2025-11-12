@@ -7,6 +7,7 @@
 import type { UnifiedLocationData, UnifiedDataRow } from '../data/aggregator/multiLevelAggregator';
 import type { PersonaScore } from './targetGroupScoring';
 import { extractLocationScores } from './extractLocationScores';
+import { convertResidentialToRows } from '../components/Residential/residentialDataConverter';
 
 export interface ExportScenario {
   name: string;
@@ -53,6 +54,7 @@ export interface LocationDataExport {
     livability: ExportDataRow[];
     safety: ExportDataRow[];
     amenities: ExportDataRow[];
+    residential: ExportDataRow[];
   };
   locationScores: Record<string, number>;
   personaScores: {
@@ -191,6 +193,9 @@ export function exportLocationDataToJSON(
       })),
   };
 
+  // Convert residential data to rows
+  const residentialRows = convertResidentialToRows(data.residential);
+
   return {
     metadata: {
       exportDate: new Date().toISOString(),
@@ -215,6 +220,7 @@ export function exportLocationDataToJSON(
       livability: data.livability.municipality.map(convertToExportRow), // Livability only has municipality
       safety: data.safety.neighborhood.map(convertToExportRow),
       amenities: data.amenities.map(convertToExportRow),
+      residential: residentialRows.map(convertToExportRow),
     },
     locationScores,
     personaScores: {
