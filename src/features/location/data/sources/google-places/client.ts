@@ -79,7 +79,7 @@ export class GooglePlacesClient {
 
       // Special handling for mid-range restaurants:
       // Don't send price filter to API so we get ALL restaurants,
-      // then post-filter to include both priceLevel=2 AND restaurants without price data
+      // then post-filter to include both priceLevel=3 (MODERATE) AND restaurants without price data
       const isMidRangeRestaurant = category.id === 'restaurants_midrange';
       const shouldSkipPriceFilter = isMidRangeRestaurant;
 
@@ -96,13 +96,13 @@ export class GooglePlacesClient {
       const response = await this.makeTextSearchRequest(request);
       let places = responseParser.parsePlaces(response.places || [], location);
 
-      // Post-filter for mid-range: include priceLevel=2 OR undefined (restaurants without price data)
+      // Post-filter for mid-range: include priceLevel=3 (MODERATE) OR undefined (restaurants without price data)
       if (isMidRangeRestaurant) {
         places = places.filter(place =>
           place.priceLevel === PRICE_LEVELS.MODERATE ||
           place.priceLevel === undefined
         );
-        console.log(`🔍 [Google Places] Post-filtered mid-range to include restaurants with priceLevel=2 or no price data`);
+        console.log(`🔍 [Google Places] Post-filtered mid-range to include restaurants with priceLevel=3 (MODERATE) or no price data`);
       }
 
       console.log(`✅ [Google Places] Found ${places.length} places for ${category.displayName}`);

@@ -3,13 +3,16 @@
  * Based on Google Places API (New) - https://developers.google.com/maps/documentation/places/web-service/place-types
  */
 
-// Price levels as defined by Google Places API
+// Price levels as defined by Google Places API (New)
+// NOTE: These values are different from the legacy API!
+// Legacy API used 0-4, New API uses 1-5
+// See: https://developers.google.com/maps/documentation/places/web-service/reference/rest/v1/places
 export enum PRICE_LEVELS {
-  FREE = 0,
-  INEXPENSIVE = 1,
-  MODERATE = 2,
-  EXPENSIVE = 3,
-  VERY_EXPENSIVE = 4,
+  FREE = 1,              // Free (NEW API value)
+  INEXPENSIVE = 2,       // € (Budget/Inexpensive)
+  MODERATE = 3,          // €€€ (Mid-range/Moderate)
+  EXPENSIVE = 4,         // €€€€ (Expensive)
+  VERY_EXPENSIVE = 5,    // €€€€€ (Very Expensive/Fine Dining)
 }
 
 // Search strategies

@@ -184,7 +184,7 @@ export const DUTCH_AMENITY_CATEGORIES: AmenityCategory[] = [
     textQuery: 'restaurant dining casual restaurant family restaurant',
     // Note: Mid-range uses special fallback logic to include restaurants without price data.
     // This prevents excluding restaurants that don't have price levels set in Google Places.
-    // The filter is applied post-search to include both priceLevel=2 AND priceLevel=undefined.
+    // The filter is applied post-search to include both priceLevel=3 (MODERATE) AND priceLevel=undefined.
   },
   {
     id: 'restaurants_upscale',
@@ -338,19 +338,20 @@ export const DEFAULT_SEARCH_CONFIG: SearchConfig = {
 };
 
 // Price level configuration for restaurants
+// NOTE: NEW Google Places API uses values 1-5 (not 0-4 like legacy API)
 export const RESTAURANT_PRICE_CONFIG = {
   budget: {
-    levels: [PRICE_LEVELS.INEXPENSIVE],
+    levels: [PRICE_LEVELS.INEXPENSIVE],  // NEW API: 2 = INEXPENSIVE
     description: 'Budget-friendly options (€)',
     maxResults: 20
   },
   midrange: {
-    levels: [PRICE_LEVELS.MODERATE],
+    levels: [PRICE_LEVELS.MODERATE],     // NEW API: 3 = MODERATE
     description: 'Mid-range dining (€€€)',
     maxResults: 20
   },
   upscale: {
-    levels: [PRICE_LEVELS.EXPENSIVE, PRICE_LEVELS.VERY_EXPENSIVE],
+    levels: [PRICE_LEVELS.EXPENSIVE, PRICE_LEVELS.VERY_EXPENSIVE],  // NEW API: 4, 5
     description: 'Fine dining and upscale (€€€€-€€€€€)',
     maxResults: 20
   }
