@@ -14,6 +14,7 @@ import { DemographicsPage } from '../../../features/location/components/Demograp
 import { SafetyPage } from '../../../features/location/components/Safety';
 import { HealthPage } from '../../../features/location/components/Health';
 import { LivabilityPage } from '../../../features/location/components/Livability';
+import { ExportButton } from '../../../features/location/components/ExportButton';
 import { RadialChart, BarChart, DensityChart } from '../../../shared/components/common';
 import { extractLocationScores } from '../../../features/location/utils/extractLocationScores';
 import { LocationAnimation } from '../../../features/location/components/LocationAnimation';
@@ -492,11 +493,34 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                 <h4 className="font-medium text-gray-900 mb-sm">
                   {locale === 'nl' ? 'Export Opties' : 'Export Options'}
                 </h4>
-                <ul className="space-y-1 text-sm text-gray-600">
-                  <li>• PDF {locale === 'nl' ? 'Rapport' : 'Report'}</li>
-                  <li>• Excel {locale === 'nl' ? 'Gegevens' : 'Data'}</li>
-                  <li>• {locale === 'nl' ? 'Afbeelding Export' : 'Image Export'}</li>
-                </ul>
+                {activeTab === 'doelgroepen' && data ? (
+                  <div className="space-y-2">
+                    <ExportButton
+                      data={data}
+                      personaScores={(() => {
+                        const locationScores = extractLocationScores(data);
+                        const personas = housingPersonasData[locale].housing_personas;
+                        return calculatePersonaScores(personas, locationScores).sort((a, b) => a.rRankPosition - b.rRankPosition);
+                      })()}
+                      scenarios={(() => {
+                        const locationScores = extractLocationScores(data);
+                        const personas = housingPersonasData[locale].housing_personas;
+                        const personaScores = calculatePersonaScores(personas, locationScores);
+                        const sortedPersonas = [...personaScores].sort((a, b) => a.rRankPosition - b.rRankPosition);
+                        const connections = calculateConnections(personas, sortedPersonas);
+                        return calculateScenarios(personas, sortedPersonas, connections);
+                      })()}
+                      customScenarioPersonaIds={[]}
+                      locale={locale}
+                    />
+                  </div>
+                ) : (
+                  <ul className="space-y-1 text-sm text-gray-600">
+                    <li>• PDF {locale === 'nl' ? 'Rapport' : 'Report'}</li>
+                    <li>• Excel {locale === 'nl' ? 'Gegevens' : 'Data'}</li>
+                    <li>• {locale === 'nl' ? 'Afbeelding Export' : 'Image Export'}</li>
+                  </ul>
+                )}
               </div>
 
               {data && (
