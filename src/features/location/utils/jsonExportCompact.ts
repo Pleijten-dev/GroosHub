@@ -100,17 +100,15 @@ export interface CompactLocationExport {
     streetLighting: { neighborhood: string; municipality: string; national?: string };
   };
 
-  // Livability - sections as shown on UI
+  // Livability - sections as shown on UI (only 7 sections)
   livability: {
     maintenance: CompactMetric[]; // 2 metrics
     streetLighting: { neighborhood: string; municipality: string; national?: string };
     youthFacilities: CompactMetric[]; // 2 metrics
     contact: CompactMetric[]; // 4 metrics
-    volunteers: { neighborhood: string; municipality: string; national?: string };
-    disturbance: CompactMetric[]; // 4 disturbance types
-    caregiving: { neighborhood: string; municipality: string; national?: string };
-    donations: { neighborhood: string; municipality: string; national?: string };
-    informalHelp: { neighborhood: string; municipality: string; national?: string };
+    volunteers: { neighborhood: string; municipality: string; national?: string }; // from health data
+    socialCohesion: { neighborhood: string; municipality: string; national?: string };
+    livabilityScore: { neighborhood: string; municipality: string; national?: string };
   };
 
   // Amenities - grouped by category with scores
@@ -281,7 +279,7 @@ export function exportCompactForLLM(
     streetLighting: createValueMetric('Straatverlichting_3', data.livability.municipality, data.livability.municipality, data.livability.national),
   };
 
-  // === LIVABILITY (using actual field keys from LivabilityPage) ===
+  // === LIVABILITY (using actual field keys from LivabilityPage - only 7 sections shown) ===
   const livability = {
     maintenance: [
       createMetric('Onderhoud stoepen, straten en pleintjes', 'OnderhoudStoepenStratenEnPleintjes_1', data.livability.municipality, data.livability.municipality, data.livability.national),
@@ -298,16 +296,10 @@ export function exportCompactForLLM(
       createMetric('Gezellige buurt waar men elkaar helpt', 'GezelligeBuurtWaarMenElkaarHelpt_9', data.livability.municipality, data.livability.municipality, data.livability.national),
       createMetric('Veel contact met andere buurtbewoners', 'VeelContactMetAndereBuurtbewoners_11', data.livability.municipality, data.livability.municipality, data.livability.national),
     ],
-    volunteers: createValueMetric('Vrijwilligers_18', data.livability.municipality, data.livability.municipality, data.livability.national),
-    disturbance: [
-      createMetric('Overlast van buren', 'OverlastVanBuren_44', data.livability.municipality, data.livability.municipality, data.livability.national),
-      createMetric('Overlast van groepen jongeren', 'OverlastVanGroepenJongeren_45', data.livability.municipality, data.livability.municipality, data.livability.national),
-      createMetric('Overlast van omwonenden', 'OverlastVanOmwonenden_46', data.livability.municipality, data.livability.municipality, data.livability.national),
-      createMetric('Overlast van verkeer', 'OverlastVanVerkeer_47', data.livability.municipality, data.livability.municipality, data.livability.national),
-    ],
-    caregiving: createValueMetric('Mantelzorg_19', data.livability.municipality, data.livability.municipality, data.livability.national),
-    donations: createValueMetric('GevenAanGoedeDoelen_20', data.livability.municipality, data.livability.municipality, data.livability.national),
-    informalHelp: createValueMetric('InformeleHulp_21', data.livability.municipality, data.livability.municipality, data.livability.national),
+    // Volunteers comes from HEALTH data source, not livability
+    volunteers: createValueMetric('Vrijwilligerswerk_32', data.health.neighborhood, data.health.municipality, data.health.national),
+    socialCohesion: createValueMetric('SocialeCohesieSchaalscore_15', data.livability.municipality, data.livability.municipality, data.livability.national),
+    livabilityScore: createValueMetric('RapportcijferLeefbaarheidWoonbuurt_18', data.livability.municipality, data.livability.municipality, data.livability.national),
   };
 
   // === AMENITIES - Group by category with count and scores ===
