@@ -1,16 +1,12 @@
 /**
  * Compact JSON Export for LLM Report Generation
  *
- * This export format is optimized for LLM consumption by:
- * - Including ALL data shown on the UI pages (not just top items)
- * - Using clear section structures matching the UI
- * - Removing redundant metadata and technical fields
- * - Focusing on human-readable values and context
+ * This export uses the EXACT field keys shown on the UI pages
+ * and structures data to match what users see in the application.
  */
 
 import type { UnifiedLocationData, UnifiedDataRow } from '../data/aggregator/multiLevelAggregator';
 import type { PersonaScore } from './targetGroupScoring';
-import { extractLocationScores } from './extractLocationScores';
 import housingPersonasData from '../data/sources/housing-personas.json';
 
 interface CompactMetric {
@@ -18,6 +14,14 @@ interface CompactMetric {
   neighborhood: string;
   municipality: string;
   national?: string;
+}
+
+interface CompactAmenity {
+  name: string;
+  count: number;
+  countScore: number;
+  proximityCount: number;
+  proximityBonus: number;
 }
 
 interface CompactPersonaInfo {
@@ -73,34 +77,44 @@ export interface CompactLocationExport {
     income: { neighborhood: string; municipality: string; national?: string };
   };
 
-  // Health - all metrics shown on UI
+  // Health - sections as shown on UI
   health: {
-    chronicDiseases: CompactMetric[]; // 9 diseases
-    lifestyleHealthRisks: CompactMetric[]; // 7 risks
-    mentalHealth: CompactMetric[]; // 4 metrics
+    experiencedHealth: { neighborhood: string; municipality: string; national?: string };
+    sports: { neighborhood: string; municipality: string; national?: string };
+    weight: CompactMetric[]; // 4 weight categories
+    smoker: { neighborhood: string; municipality: string; national?: string };
+    alcohol: CompactMetric[]; // 4 alcohol categories
+    limitedHealth: { neighborhood: string; municipality: string; national?: string };
+    loneliness: CompactMetric[]; // 4 loneliness categories
+    emotionalSupport: { neighborhood: string; municipality: string; national?: string };
+    psychologicalHealth: CompactMetric[]; // 3 psychological indicators
   };
 
-  // Safety - all metrics shown on UI
+  // Safety - sections as shown on UI
   safety: {
-    crimeRates: CompactMetric[]; // 6 crime categories
-    trafficSafety: CompactMetric[]; // 3 metrics
-    fireIncidents: CompactMetric[]; // 3 metrics
-    policeCalls: CompactMetric[]; // 6 call types
-    victimRates: CompactMetric[]; // 3 victim types
-    crimePerception: CompactMetric[]; // 3 perception types
+    totalCrimes: { neighborhood: string; municipality: string; national?: string };
+    burglary: { neighborhood: string; municipality: string; national?: string };
+    pickpocketing: { neighborhood: string; municipality: string; national?: string };
+    accidents: { neighborhood: string; municipality: string; national?: string };
+    feelsUnsafe: { neighborhood: string; municipality: string; national?: string };
+    streetLighting: { neighborhood: string; municipality: string; national?: string };
   };
 
-  // Livability - all metrics shown on UI
+  // Livability - sections as shown on UI
   livability: {
-    physical: CompactMetric[];
-    social: CompactMetric[];
+    maintenance: CompactMetric[]; // 2 metrics
+    streetLighting: { neighborhood: string; municipality: string; national?: string };
+    youthFacilities: CompactMetric[]; // 2 metrics
+    contact: CompactMetric[]; // 4 metrics
+    volunteers: { neighborhood: string; municipality: string; national?: string };
+    disturbance: CompactMetric[]; // 4 disturbance types
+    caregiving: { neighborhood: string; municipality: string; national?: string };
+    donations: { neighborhood: string; municipality: string; national?: string };
+    informalHelp: { neighborhood: string; municipality: string; national?: string };
   };
 
-  // Amenities - complete list
-  amenities: {
-    total: number;
-    list: string[]; // All amenity names
-  };
+  // Amenities - grouped by category with scores
+  amenities: CompactAmenity[];
 
   // Housing market summary
   housingMarket?: {
@@ -139,6 +153,22 @@ function createMetric(
 ): CompactMetric {
   return {
     name,
+    neighborhood: getFieldValue(neighborhoodData, fieldKey),
+    municipality: getFieldValue(municipalityData, fieldKey),
+    national: getFieldValue(nationalData, fieldKey),
+  };
+}
+
+/**
+ * Create single value metric (for isValue: true sections)
+ */
+function createValueMetric(
+  fieldKey: string,
+  neighborhoodData: UnifiedDataRow[],
+  municipalityData: UnifiedDataRow[],
+  nationalData: UnifiedDataRow[]
+): { neighborhood: string; municipality: string; national?: string } {
+  return {
     neighborhood: getFieldValue(neighborhoodData, fieldKey),
     municipality: getFieldValue(municipalityData, fieldKey),
     national: getFieldValue(nationalData, fieldKey),
@@ -200,119 +230,124 @@ export function exportCompactForLLM(
       createMetric('Turkije', 'Turkije_22', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
       createMetric('Overig Niet-Westers', 'OverigNietWesters_23', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
     ],
-    familySize: {
-      neighborhood: getFieldValue(data.demographics.neighborhood, 'GemiddeldeHuishoudensgrootte_32'),
-      municipality: getFieldValue(data.demographics.municipality, 'GemiddeldeHuishoudensgrootte_32'),
-      national: getFieldValue(data.demographics.national, 'GemiddeldeHuishoudensgrootte_32'),
-    },
+    familySize: createValueMetric('GemiddeldeHuishoudensgrootte_32', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
     familyType: [
       createMetric('Eenpersoons', 'Eenpersoonshuishoudens_29', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
       createMetric('Zonder kinderen', 'HuishoudensZonderKinderen_30', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
       createMetric('Met kinderen', 'HuishoudensMetKinderen_31', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
     ],
-    income: {
-      neighborhood: getFieldValue(data.demographics.neighborhood, 'GemiddeldInkomenPerInwoner_72'),
-      municipality: getFieldValue(data.demographics.municipality, 'GemiddeldInkomenPerInwoner_72'),
-      national: getFieldValue(data.demographics.national, 'GemiddeldInkomenPerInwoner_72'),
-    },
+    income: createValueMetric('GemiddeldInkomenPerInwoner_72', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
   };
 
-  // === HEALTH ===
+  // === HEALTH (using actual field keys from HealthPage) ===
   const health = {
-    chronicDiseases: [
-      createMetric('Hart- en vaatziekten', 'HartEnVaatziekten_120', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('COPD', 'COPD_121', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('Diabetes', 'Diabetes_122', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('Astma', 'Astma_123', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('Hoge bloeddruk', 'HogeBloeddruk_124', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('Duizeligheid met vallen', 'DuizigheidMetVallen_125', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('Gewrichtsslijtage', 'Gewrichtsslijtage_126', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('Depressie', 'Depressie_127', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('Ernstige eenzaamheid', 'ErnistigeEenzaamheid_128', data.health.neighborhood, data.health.municipality, data.health.national),
+    experiencedHealth: createValueMetric('ErvarenGezondheidGoedZeerGoed_4', data.health.neighborhood, data.health.municipality, data.health.national),
+    sports: createValueMetric('WekelijkseSporters_6', data.health.neighborhood, data.health.municipality, data.health.national),
+    weight: [
+      createMetric('Ondergewicht', 'Ondergewicht_7', data.health.neighborhood, data.health.municipality, data.health.national),
+      createMetric('Normaal gewicht', 'NormaalGewicht_8', data.health.neighborhood, data.health.municipality, data.health.national),
+      createMetric('Overgewicht', 'Overgewicht_9', data.health.neighborhood, data.health.municipality, data.health.national),
+      createMetric('Ernstig overgewicht', 'ErnstigOvergewicht_10', data.health.neighborhood, data.health.municipality, data.health.national),
     ],
-    lifestyleHealthRisks: [
-      createMetric('Rokers', 'PercentageRokers_138', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('Alcohol frequent', 'AlcoholGebruikFrequent_139', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('Alcohol overmatig', 'AlcoholGebruikOvermatig_140', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('Obesitas', 'Obesitas_141', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('Niet voldoende sport/bewegen', 'VoldoenNietAanSportEnBeweegnorm_142', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('Dagelijkse risico-fruit', 'DagelijkseRisicoFruit_143', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('Dagelijkse risico-groente', 'DagelijkseRisicoGroente_144', data.health.neighborhood, data.health.municipality, data.health.national),
+    smoker: createValueMetric('Roker_11', data.health.neighborhood, data.health.municipality, data.health.national),
+    alcohol: [
+      createMetric('Voldoet aan alcoholrichtlijn', 'VoldoetAanAlcoholRichtlijn_12', data.health.neighborhood, data.health.municipality, data.health.national),
+      createMetric('Drinker', 'Drinker_13', data.health.neighborhood, data.health.municipality, data.health.national),
+      createMetric('Zware drinker', 'ZwareDrinker_14', data.health.neighborhood, data.health.municipality, data.health.national),
+      createMetric('Overmatige drinker', 'OvermatigeDrinker_15', data.health.neighborhood, data.health.municipality, data.health.national),
     ],
-    mentalHealth: [
-      createMetric('Psychische problematiek', 'PsychischeProblematiek_129', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('Angststoornissen', 'Angststoornissen_130', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('Slaapstoornissen', 'Slaapstoornissen_131', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('Persoonsgebonden psychische stress', 'PersoonsgebondenPsychischeStress_132', data.health.neighborhood, data.health.municipality, data.health.national),
+    limitedHealth: createValueMetric('BeperktVanwegeGezondheid_17', data.health.neighborhood, data.health.municipality, data.health.national),
+    loneliness: [
+      createMetric('Eenzaam', 'Eenzaam_27', data.health.neighborhood, data.health.municipality, data.health.national),
+      createMetric('Ernstig/zeer ernstig eenzaam', 'ErnstigZeerErnstigEenzaam_28', data.health.neighborhood, data.health.municipality, data.health.national),
+      createMetric('Emotioneel eenzaam', 'EmotioneelEenzaam_29', data.health.neighborhood, data.health.municipality, data.health.national),
+      createMetric('Sociaal eenzaam', 'SociaalEenzaam_30', data.health.neighborhood, data.health.municipality, data.health.national),
+    ],
+    emotionalSupport: createValueMetric('MistEmotioneleSteun_23', data.health.neighborhood, data.health.municipality, data.health.national),
+    psychologicalHealth: [
+      createMetric('Suïcidegedachten laatste 12 maanden', 'SuicideGedachtenLaatste12Maanden_24', data.health.neighborhood, data.health.municipality, data.health.national),
+      createMetric('Hoog risico op angst/depressie', 'HoogRisicoOpAngstOfDepressie_25', data.health.neighborhood, data.health.municipality, data.health.national),
+      createMetric('Veel stress afgelopen 4 weken', 'HeelVeelStressInAfgelopen4Weken_26', data.health.neighborhood, data.health.municipality, data.health.national),
     ],
   };
 
-  // === SAFETY ===
+  // === SAFETY (using actual field keys from SafetyPage) ===
   const safety = {
-    crimeRates: [
-      createMetric('Geweldsmisdrijven', 'Geweldsmisdrijven_36', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-      createMetric('Diefstal', 'Diefstal_37', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-      createMetric('Vernieling', 'Vernieling_38', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-      createMetric('Drugshandel', 'Drugshandel_39', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-      createMetric('Verstoring openbare orde', 'VerstoringOpenbareOrde_40', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-      createMetric('Totaal misdrijven', 'TotaalGeregistreerdeMisdrijven_41', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-    ],
-    trafficSafety: [
-      createMetric('Verkeersongevallen', 'Verkeersongevallen_33', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-      createMetric('Verkeersongevallen dodelijk', 'VerkeersongevallenDodelijk_34', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-      createMetric('Verkeersongevallen ziekenhuisopname', 'VerkeersongevallenZiekenhuisopname_35', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-    ],
-    fireIncidents: [
-      createMetric('Brandmeldingen', 'Brandmeldingen_42', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-      createMetric('Brandmeldingen woningen', 'BrandmeldingenWoningen_43', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-      createMetric('Brandmeldingen dodelijk', 'BrandmeldingenDodelijk_44', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-    ],
-    policeCalls: [
-      createMetric('Politie-inzet geweld', 'PolitieInzetGeweld_45', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-      createMetric('Politie-inzet overlast alcohol', 'PolitieInzetOverlastAlcoholEnDrugs_46', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-      createMetric('Politie-inzet overlast jeugd', 'PolitieInzetOverlastJeugd_47', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-      createMetric('Politie-inzet overlast overig', 'PolitieInzetOverlastOverig_48', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-      createMetric('Politie-inzet verkeer', 'PolitieInzetVerkeer_49', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-      createMetric('Politie-inzet totaal', 'PolitieInzetTotaal_50', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-    ],
-    victimRates: [
-      createMetric('Slachtoffer geweld', 'SlachtofferGeweld_51', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-      createMetric('Slachtoffer diefstal', 'SlachtofferDiefstal_52', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-      createMetric('Slachtoffer vernieling', 'SlachtofferVernieling_53', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-    ],
-    crimePerception: [
-      createMetric('Beleving onveiligheidsgevoelens', 'BelevingOnveiligheidsgevoelens_54', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-      createMetric('Beleving overlast', 'BelevingOverlast_55', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-      createMetric('Beleving verloedering', 'BelevingVerloedering_56', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-    ],
+    totalCrimes: createValueMetric('Crime_0.0.0', data.safety.neighborhood, data.safety.municipality, data.safety.national),
+    burglary: createValueMetric('Crime_1.1.1', data.safety.neighborhood, data.safety.municipality, data.safety.national),
+    pickpocketing: createValueMetric('Crime_1.2.4', data.safety.neighborhood, data.safety.municipality, data.safety.national),
+    accidents: createValueMetric('Crime_1.3.1', data.safety.neighborhood, data.safety.municipality, data.safety.national),
+    feelsUnsafe: createValueMetric('VoeltZichWeleensOnveilig_43', data.livability.municipality, data.livability.municipality, data.livability.national),
+    streetLighting: createValueMetric('Straatverlichting_3', data.livability.municipality, data.livability.municipality, data.livability.national),
   };
 
-  // === LIVABILITY ===
+  // === LIVABILITY (using actual field keys from LivabilityPage) ===
   const livability = {
-    physical: [
-      createMetric('Tevredenheid woning', 'TevredenheidWoning_57', data.livability.municipality, data.livability.municipality, data.livability.national),
-      createMetric('Tevredenheid woonomgeving', 'TevredenheidWoonomgeving_58', data.livability.municipality, data.livability.municipality, data.livability.national),
-      createMetric('Groen in de buurt', 'GroenInDeBuurt_59', data.livability.municipality, data.livability.municipality, data.livability.national),
-      createMetric('Geluidsoverlast', 'Geluidsoverlast_60', data.livability.municipality, data.livability.municipality, data.livability.national),
-      createMetric('Stankoverlast', 'Stankoverlast_61', data.livability.municipality, data.livability.municipality, data.livability.national),
-      createMetric('Luchtkwaliteit fijnstof', 'LuchtkwaliteitFijnstof_62', data.livability.municipality, data.livability.municipality, data.livability.national),
-      createMetric('Luchtkwaliteit stikstofdioxide', 'LuchtkwaliteitStikstofdioxide_63', data.livability.municipality, data.livability.municipality, data.livability.national),
+    maintenance: [
+      createMetric('Onderhoud stoepen, straten en pleintjes', 'OnderhoudStoepenStratenEnPleintjes_1', data.livability.municipality, data.livability.municipality, data.livability.national),
+      createMetric('Onderhoud plantsoenen en parken', 'OnderhoudVanPlantsoenenEnParken_2', data.livability.municipality, data.livability.municipality, data.livability.national),
     ],
-    social: [
-      createMetric('Sociale samenhang', 'SocialeSamenhang_64', data.livability.municipality, data.livability.municipality, data.livability.national),
-      createMetric('Eenzaamheid', 'Eenzaamheid_65', data.livability.municipality, data.livability.municipality, data.livability.national),
-      createMetric('Vrijwilligerswerk', 'Vrijwilligerswerk_66', data.livability.municipality, data.livability.municipality, data.livability.national),
-      createMetric('Mantelzorg', 'Mantelzorg_67', data.livability.municipality, data.livability.municipality, data.livability.national),
-      createMetric('Geven aan goede doelen', 'GevenAanGoedeDoelen_68', data.livability.municipality, data.livability.municipality, data.livability.national),
-      createMetric('Informele hulp', 'InformeleHulp_69', data.livability.municipality, data.livability.municipality, data.livability.national),
+    streetLighting: createValueMetric('Straatverlichting_3', data.livability.municipality, data.livability.municipality, data.livability.national),
+    youthFacilities: [
+      createMetric('Speelplekken voor kinderen', 'SpeelplekkenVoorKinderen_4', data.livability.municipality, data.livability.municipality, data.livability.national),
+      createMetric('Voorzieningen voor jongeren', 'VoorzieningenVoorJongeren_5', data.livability.municipality, data.livability.municipality, data.livability.national),
     ],
+    contact: [
+      createMetric('Mensen kennen elkaar nauwelijks', 'MensenKennenElkaarNauwelijks_7', data.livability.municipality, data.livability.municipality, data.livability.national),
+      createMetric('Mensen gaan prettig met elkaar om', 'MensenGaanPrettigMetElkaarOm_8', data.livability.municipality, data.livability.municipality, data.livability.national),
+      createMetric('Gezellige buurt waar men elkaar helpt', 'GezelligeBuurtWaarMenElkaarHelpt_9', data.livability.municipality, data.livability.municipality, data.livability.national),
+      createMetric('Veel contact met andere buurtbewoners', 'VeelContactMetAndereBuurtbewoners_11', data.livability.municipality, data.livability.municipality, data.livability.national),
+    ],
+    volunteers: createValueMetric('Vrijwilligers_18', data.livability.municipality, data.livability.municipality, data.livability.national),
+    disturbance: [
+      createMetric('Overlast van buren', 'OverlastVanBuren_44', data.livability.municipality, data.livability.municipality, data.livability.national),
+      createMetric('Overlast van groepen jongeren', 'OverlastVanGroepenJongeren_45', data.livability.municipality, data.livability.municipality, data.livability.national),
+      createMetric('Overlast van omwonenden', 'OverlastVanOmwonenden_46', data.livability.municipality, data.livability.municipality, data.livability.national),
+      createMetric('Overlast van verkeer', 'OverlastVanVerkeer_47', data.livability.municipality, data.livability.municipality, data.livability.national),
+    ],
+    caregiving: createValueMetric('Mantelzorg_19', data.livability.municipality, data.livability.municipality, data.livability.national),
+    donations: createValueMetric('GevenAanGoedeDoelen_20', data.livability.municipality, data.livability.municipality, data.livability.national),
+    informalHelp: createValueMetric('InformeleHulp_21', data.livability.municipality, data.livability.municipality, data.livability.national),
   };
 
-  // === AMENITIES ===
-  const amenities = {
-    total: data.amenities.length,
-    list: data.amenities.map(a => a.title).sort(),
-  };
+  // === AMENITIES - Group by category with count and scores ===
+  const amenitiesMap = new Map<string, { count: number; countScore: number; proximityCount: number; proximityBonus: number }>();
+
+  data.amenities.forEach(row => {
+    // Extract category name (remove " - Aantal" or " - Nabijheid (250m)")
+    const baseName = row.title
+      .replace(/ - Aantal$/, '')
+      .replace(/ - Nabijheid \(250m\)$/, '');
+
+    if (!amenitiesMap.has(baseName)) {
+      amenitiesMap.set(baseName, {
+        count: 0,
+        countScore: 0,
+        proximityCount: 0,
+        proximityBonus: 0,
+      });
+    }
+
+    const amenity = amenitiesMap.get(baseName)!;
+
+    if (row.title.includes('- Aantal')) {
+      amenity.count = row.value as number || 0;
+      amenity.countScore = row.calculatedScore || 0;
+    } else if (row.title.includes('- Nabijheid')) {
+      amenity.proximityCount = row.value as number || 0;
+      amenity.proximityBonus = row.calculatedScore || 0;
+    }
+  });
+
+  const amenities: CompactAmenity[] = Array.from(amenitiesMap.entries())
+    .map(([name, data]) => ({
+      name,
+      count: data.count,
+      countScore: Math.round(data.countScore * 100) / 100,
+      proximityCount: data.proximityCount,
+      proximityBonus: Math.round(data.proximityBonus * 100) / 100,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   // === HOUSING MARKET ===
   let housingMarket: CompactLocationExport['housingMarket'];
