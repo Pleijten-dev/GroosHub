@@ -14,7 +14,7 @@ import { DemographicsPage } from '../../../features/location/components/Demograp
 import { SafetyPage } from '../../../features/location/components/Safety';
 import { HealthPage } from '../../../features/location/components/Health';
 import { LivabilityPage } from '../../../features/location/components/Livability';
-import { ExportButton } from '../../../features/location/components/ExportButton';
+import { ExportButton, CompactExportButton } from '../../../features/location/components/ExportButton';
 import { RadialChart, BarChart, DensityChart } from '../../../shared/components/common';
 import { extractLocationScores } from '../../../features/location/utils/extractLocationScores';
 import { LocationAnimation } from '../../../features/location/components/LocationAnimation';
@@ -482,14 +482,47 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                   </li>
                 </ul>
 
-                <div className="flex justify-start">
-                  <ExportButton
-                    data={data}
-                    personaScores={sortedPersonas}
-                    scenarios={scenarios}
-                    customScenarioPersonaIds={[]}
-                    locale={locale}
-                  />
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">
+                      {locale === 'nl' ? 'Kies export formaat:' : 'Choose export format:'}
+                    </h4>
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-start gap-3">
+                        <CompactExportButton
+                          data={data}
+                          personaScores={sortedPersonas}
+                          scenarios={scenarios}
+                          locale={locale}
+                        />
+                        <div className="flex-1 text-sm text-gray-600">
+                          <strong className="block mb-1">
+                            {locale === 'nl' ? '✓ Aanbevolen voor LLM' : '✓ Recommended for LLM'}
+                          </strong>
+                          {locale === 'nl'
+                            ? 'Geoptimaliseerd formaat (~500 regels) met samenvattingen en highlights. Perfect voor rapportgeneratie met AI.'
+                            : 'Optimized format (~500 lines) with summaries and highlights. Perfect for AI report generation.'}
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <ExportButton
+                          data={data}
+                          personaScores={sortedPersonas}
+                          scenarios={scenarios}
+                          customScenarioPersonaIds={[]}
+                          locale={locale}
+                        />
+                        <div className="flex-1 text-sm text-gray-600">
+                          <strong className="block mb-1">
+                            {locale === 'nl' ? 'Volledig export' : 'Complete export'}
+                          </strong>
+                          {locale === 'nl'
+                            ? 'Complete dataset met alle individuele datapunten en metadata. Voor verdere verwerking of analyse.'
+                            : 'Complete dataset with all individual data points and metadata. For further processing or analysis.'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
