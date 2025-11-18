@@ -72,7 +72,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
     QUESTIONS.slice(1).forEach((question) => {
       const value = answers[question.id] || 0;
       if (value > 0) {
-        const count = Math.round((value / total) * 1000);
+        const count = Math.round((value / total) * 200);
         data.push({
           color: question.color,
           count,
@@ -144,7 +144,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
     }
   };
 
-  // Render 1000 squares grid
+  // Render 200 squares grid
   const renderGrid = () => {
     const squares: React.ReactElement[] = [];
     let currentIndex = 0;
@@ -154,7 +154,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
         squares.push(
           <div
             key={currentIndex++}
-            className="w-full h-full"
+            className="w-full h-full rounded-sm"
             style={{ backgroundColor: color }}
           />
         );
@@ -162,11 +162,11 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
     });
 
     // Fill remaining with gray
-    while (currentIndex < 1000) {
+    while (currentIndex < 200) {
       squares.push(
         <div
           key={currentIndex++}
-          className="w-full h-full bg-gray-200"
+          className="w-full h-full bg-gray-200 rounded-sm"
         />
       );
     }
@@ -182,7 +182,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
             {locale === 'nl' ? 'Programma Overzicht' : 'Program Overview'}
           </h2>
           <div className="inline-block">
-            <div className="grid grid-cols-50 gap-0 w-[500px] h-[200px] border-2 border-gray-300 rounded-lg overflow-hidden">
+            <div className="grid grid-cols-20 gap-1 w-[500px] h-[250px] border-2 border-gray-300 rounded-lg p-2 bg-white">
               {renderGrid()}
             </div>
             <div className="mt-base text-left">
@@ -284,11 +284,11 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
 
         {/* Right side - Grid visualization */}
         <div className="flex-shrink-0">
-          <div className="grid grid-cols-50 gap-0 w-[400px] h-[400px] border-2 border-gray-300 rounded-lg overflow-hidden shadow-lg">
+          <div className="grid grid-cols-20 gap-1 w-[400px] h-[400px] border-2 border-gray-300 rounded-lg p-2 bg-white shadow-lg">
             {renderGrid()}
           </div>
           <p className="text-xs text-text-muted text-center mt-2">
-            {locale === 'nl' ? '1 vierkant = 1/1000 van totaal' : '1 square = 1/1000 of total'}
+            {locale === 'nl' ? '1 vierkant = 1/200 van totaal' : '1 square = 1/200 of total'}
           </p>
         </div>
       </div>
