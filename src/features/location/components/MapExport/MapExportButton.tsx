@@ -99,7 +99,6 @@ export const MapExportButton: React.FC<MapExportButtonProps> = ({
   const handleExportPDF = async () => {
     setIsExporting(true);
     setExportProgress(0);
-    setExportTotal(allLayers.length * 2); // Double because we download both aerial + WMS
 
     try {
       const captures: MapCapture[] = [];
@@ -111,34 +110,47 @@ export const MapExportButton: React.FC<MapExportButtonProps> = ({
         layers: 'Actueel_orthoHR', // High resolution aerial photos
       };
 
-      // Download each layer + aerial photo directly from WMS
-      for (let i = 0; i < allLayers.length; i++) {
-        const layer = allLayers[i];
+      // First, identify unique zoom levels to avoid duplicate downloads
+      const uniqueZooms = new Set(allLayers.map(layer => layer.config.recommendedZoom || 15));
+      const aerialPhotoCache: Record<number, MapCapture> = {};
 
-        // Download aerial photo for this zoom level
-        setCurrentLayerTitle(`${locale === 'nl' ? 'Luchtfoto voor' : 'Aerial photo for'} ${layer.config.title}`);
-        setExportProgress(i * 2 + 1);
+      // Download aerial photos only once per unique zoom level
+      setExportTotal(uniqueZooms.size + allLayers.length);
+      let progress = 0;
 
+      setCurrentLayerTitle(locale === 'nl' ? 'Luchtfoto\'s downloaden...' : 'Downloading aerial photos...');
+
+      for (const zoom of uniqueZooms) {
         try {
           const aerialPhoto = await downloadWMSTile({
             url: aerialPhotoWMS.url,
             layers: aerialPhotoWMS.layers,
-            layerTitle: `Luchtfoto - ${layer.config.title}`,
+            layerTitle: `Luchtfoto - Zoom ${zoom}`,
             center: coordinates,
-            zoom: layer.config.recommendedZoom || 15,
+            zoom: zoom,
             width: 1200,
             height: 1200,
           });
-          aerialPhotos.push(aerialPhoto);
+          aerialPhotoCache[zoom] = aerialPhoto;
         } catch (error) {
-          console.error(`Failed to download aerial photo for ${layer.config.title}:`, error);
-          // Push null to maintain array alignment
-          aerialPhotos.push(null);
+          console.error(`Failed to download aerial photo for zoom ${zoom}:`, error);
         }
+        progress++;
+        setExportProgress(progress);
+      }
+
+      // Download WMS layers and match them with cached aerial photos
+      for (let i = 0; i < allLayers.length; i++) {
+        const layer = allLayers[i];
+        const zoom = layer.config.recommendedZoom || 15;
+
+        // Get cached aerial photo for this zoom level
+        aerialPhotos.push(aerialPhotoCache[zoom] || null);
 
         // Download WMS layer
         setCurrentLayerTitle(layer.config.title);
-        setExportProgress(i * 2 + 2);
+        progress++;
+        setExportProgress(progress);
 
         try {
           const capture = await downloadWMSTile({
@@ -146,7 +158,7 @@ export const MapExportButton: React.FC<MapExportButtonProps> = ({
             layers: layer.config.layers,
             layerTitle: layer.config.title,
             center: coordinates,
-            zoom: layer.config.recommendedZoom || 15,
+            zoom: zoom,
             width: 1200,
             height: 1200,
           });
@@ -219,8 +231,8 @@ export const MapExportButton: React.FC<MapExportButtonProps> = ({
         </p>
         <p className="mt-1">
           {locale === 'nl'
-            ? `PDF: Download ${allLayers.length} kaartlagen + luchtfoto's als achtergrond.`
-            : `PDF: Downloads ${allLayers.length} map layers + aerial photos as background.`}
+            ? `PDF: Download ${allLayers.length} kaartlagen + luchtfoto's als achtergrond (80% transparantie).`
+            : `PDF: Downloads ${allLayers.length} map layers + aerial photos as background (80% transparency).`}
         </p>
         <p className="mt-1">
           {locale === 'nl'

@@ -155,6 +155,38 @@ export async function exportMapsAsZip(
 }
 
 /**
+ * Apply opacity to an image by manipulating its alpha channel
+ */
+async function applyOpacityToImage(dataUrl: string, opacity: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Failed to get canvas context'));
+        return;
+      }
+
+      // Draw image at reduced opacity
+      ctx.globalAlpha = opacity;
+      ctx.drawImage(img, 0, 0);
+
+      // Convert back to data URL
+      resolve(canvas.toDataURL('image/png'));
+    };
+
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = dataUrl;
+  });
+}
+
+/**
  * Generate A4 portrait PDF booklet with map images and text fields
  * Each page has an aerial photo background with the WMS layer overlay at 80% opacity
  */
@@ -231,11 +263,11 @@ export async function generateMapBookletPDF(
         );
       }
 
-      // Add WMS layer on top
-      // Note: jsPDF doesn't easily support opacity for images, but WMS PNGs
-      // already have transparency built in, so they'll overlay nicely
+      // Add WMS layer on top with 80% opacity
+      // Apply opacity to the image before adding to PDF
+      const wmsImageWithOpacity = await applyOpacityToImage(capture.dataUrl, 0.8);
       pdf.addImage(
-        capture.dataUrl,
+        wmsImageWithOpacity,
         'PNG',
         margin,
         imageY,
