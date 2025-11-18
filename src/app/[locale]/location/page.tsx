@@ -277,13 +277,33 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
       // For Score tab - show Omgeving overview with clickable RadialChart
       if (activeTab === 'score') {
-        // Define the 5 omgeving categories with dummy values
+        // Calculate Voorzieningen score from amenities data
+        let voorzieningenScore = 75; // Default value if no amenities data
+
+        if (amenities) {
+          // Import scoring functions inline
+          const { calculateAllAmenityScores } = require('../../../features/location/data/scoring/amenityScoring');
+
+          // Calculate all amenity scores
+          const amenityScores = calculateAllAmenityScores(amenities.results);
+
+          // Sum up all countScore and proximityBonus values
+          const rawScore = amenityScores.reduce((sum: number, score: any) => {
+            return sum + score.countScore + score.proximityBonus;
+          }, 0);
+
+          // Map from [-21, 42] range to [10, 100] range
+          // Formula: ((rawScore + 21) / 63) * 90 + 10
+          voorzieningenScore = Math.round(((rawScore + 21) / 63) * 90 + 10);
+        }
+
+        // Define the 5 omgeving categories
         const omgevingData = [
           { name: locale === 'nl' ? 'Betaalbaarheid' : 'Affordability', value: 75, color: '#48806a' },
           { name: locale === 'nl' ? 'Veiligheid' : 'Safety', value: 85, color: '#477638' },
           { name: locale === 'nl' ? 'Gezondheid' : 'Health', value: 72, color: '#8a976b' },
           { name: locale === 'nl' ? 'Leefbaarheid' : 'Livability', value: 80, color: '#0c211a' },
-          { name: locale === 'nl' ? 'Voorzieningen' : 'Amenities', value: 88, color: '#48806a' }
+          { name: locale === 'nl' ? 'Voorzieningen' : 'Amenities', value: voorzieningenScore, color: '#48806a' }
         ];
 
         // Map category names to tab IDs
@@ -310,15 +330,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         return (
           <div className="flex items-center justify-center h-full bg-gradient-to-br from-gray-50 to-gray-100">
             <div className="text-center">
-              <h2 className="text-3xl font-bold text-text-primary mb-base">
-                {locale === 'nl' ? 'Score Overzicht' : 'Score Overview'}
-              </h2>
-              <p className="text-sm text-text-secondary mb-lg max-w-md mx-auto">
-                {locale === 'nl'
-                  ? 'Klik op een categorie om meer details te bekijken'
-                  : 'Click on a category to view more details'}
-              </p>
-              <div className="flex justify-center">
+              <div className="flex justify-center mb-base">
                 <RadialChart
                   data={omgevingData}
                   width={600}
@@ -328,6 +340,9 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                   onSliceClick={handleCategoryClick}
                 />
               </div>
+              <h2 className="text-3xl font-bold text-text-primary">
+                {locale === 'nl' ? 'Score Overzicht' : 'Score Overview'}
+              </h2>
             </div>
           </div>
         );
