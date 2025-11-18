@@ -106,20 +106,23 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
       cumulativeSum += newPercentages[categories[i].id];
     }
 
-    // Calculate remaining after dragging point
+    // Calculate remaining after the next category (categories that stay fixed)
     let remainingSum = 0;
-    for (let i = draggingIndex + 1; i < categories.length; i++) {
+    for (let i = draggingIndex + 2; i < categories.length; i++) {
       remainingSum += newPercentages[categories[i].id];
     }
 
-    // New value for the dragged category
-    const newValue = Math.max(1, Math.min(100 - cumulativeSum - remainingSum, percentage - cumulativeSum));
+    // Calculate available space for the two categories being adjusted
+    const availableSpace = 100 - cumulativeSum - remainingSum;
 
-    // Adjust the next category
+    // Calculate new value for the dragged category (constrained between 1 and availableSpace - 1)
+    const requestedValue = percentage - cumulativeSum;
+    const newValue = Math.max(1, Math.min(availableSpace - 1, requestedValue));
+
+    // Adjust the two categories
     if (draggingIndex < categories.length - 1) {
-      const delta = newValue - newPercentages[categories[draggingIndex].id];
       newPercentages[categories[draggingIndex].id] = newValue;
-      newPercentages[categories[draggingIndex + 1].id] = Math.max(1, newPercentages[categories[draggingIndex + 1].id] - delta);
+      newPercentages[categories[draggingIndex + 1].id] = availableSpace - newValue;
     }
 
     setPercentages(newPercentages);
