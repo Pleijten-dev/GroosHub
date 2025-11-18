@@ -232,8 +232,7 @@ export async function generateMapBookletPDF(
       }
 
       // Add WMS layer on top with 80% opacity
-      // Note: jsPDF doesn't support alpha transparency directly, so we use the gState approach
-      pdf.setGState(new pdf.GState({ opacity: 0.8 }));
+      pdf.setGState({ opacity: 0.8 });
       pdf.addImage(
         capture.dataUrl,
         'PNG',
@@ -245,7 +244,7 @@ export async function generateMapBookletPDF(
         'FAST'
       );
       // Reset opacity for other elements
-      pdf.setGState(new pdf.GState({ opacity: 1.0 }));
+      pdf.setGState({ opacity: 1.0 });
     } catch (error) {
       console.error(`Failed to add image for ${capture.title}:`, error);
       pdf.setFontSize(10);
