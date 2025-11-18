@@ -73,14 +73,71 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
   const [selectedPreset, setSelectedPreset] = useState<PresetId>('mixed-residential');
   const [totalM2, setTotalM2] = useState<number>(10000);
   const [percentages, setPercentages] = useState<PVEAllocations>(PRESETS[0].allocations);
+  const [disabledCategories, setDisabledCategories] = useState<Set<keyof PVEAllocations>>(new Set());
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
+
+  // Get only active (non-disabled) categories
+  const activeCategories = useMemo(() =>
+    CATEGORIES.filter(cat => !disabledCategories.has(cat.id)),
+    [disabledCategories]
+  );
 
   const handlePresetChange = (presetId: PresetId) => {
     setSelectedPreset(presetId);
     const preset = PRESETS.find(p => p.id === presetId);
     if (preset) {
       setPercentages(preset.allocations);
+    }
+  };
+
+  const toggleCategory = (categoryId: keyof PVEAllocations) => {
+    setSelectedPreset('custom');
+    const newDisabled = new Set(disabledCategories);
+
+    if (newDisabled.has(categoryId)) {
+      // Re-enable category
+      newDisabled.delete(categoryId);
+      setDisabledCategories(newDisabled);
+
+      // Give it a small percentage and redistribute
+      const newPercentages = { ...percentages };
+      newPercentages[categoryId] = 5;
+
+      // Reduce other active categories proportionally
+      const activeCategories = CATEGORIES.filter(cat =>
+        cat.id !== categoryId && !newDisabled.has(cat.id)
+      );
+      const totalOtherPercentage = activeCategories.reduce((sum, cat) => sum + percentages[cat.id], 0);
+      const reductionFactor = (totalOtherPercentage - 5) / totalOtherPercentage;
+
+      activeCategories.forEach(cat => {
+        newPercentages[cat.id] = percentages[cat.id] * reductionFactor;
+      });
+
+      setPercentages(newPercentages);
+    } else {
+      // Disable category
+      newDisabled.add(categoryId);
+      setDisabledCategories(newDisabled);
+
+      // Redistribute this category's percentage to others
+      const percentageToRedistribute = percentages[categoryId];
+      const newPercentages = { ...percentages };
+      newPercentages[categoryId] = 0;
+
+      // Distribute to active categories proportionally
+      const activeCategories = CATEGORIES.filter(cat =>
+        cat.id !== categoryId && !newDisabled.has(cat.id)
+      );
+      const totalActivePercentage = activeCategories.reduce((sum, cat) => sum + percentages[cat.id], 0);
+
+      activeCategories.forEach(cat => {
+        const proportion = percentages[cat.id] / totalActivePercentage;
+        newPercentages[cat.id] = percentages[cat.id] + (percentageToRedistribute * proportion);
+      });
+
+      setPercentages(newPercentages);
     }
   };
 
@@ -97,19 +154,18 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
     const percentage = (x / rect.width) * 100;
 
     // Calculate cumulative percentages to find boundaries
-    const categories = CATEGORIES;
     const newPercentages = { ...percentages };
 
     // Calculate cumulative sum up to dragging point
     let cumulativeSum = 0;
     for (let i = 0; i < draggingIndex; i++) {
-      cumulativeSum += newPercentages[categories[i].id];
+      cumulativeSum += newPercentages[activeCategories[i].id];
     }
 
     // Calculate remaining after the next category (categories that stay fixed)
     let remainingSum = 0;
-    for (let i = draggingIndex + 2; i < categories.length; i++) {
-      remainingSum += newPercentages[categories[i].id];
+    for (let i = draggingIndex + 2; i < activeCategories.length; i++) {
+      remainingSum += newPercentages[activeCategories[i].id];
     }
 
     // Calculate available space for the two categories being adjusted
@@ -120,13 +176,13 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
     const newValue = Math.max(1, Math.min(availableSpace - 1, requestedValue));
 
     // Adjust the two categories
-    if (draggingIndex < categories.length - 1) {
-      newPercentages[categories[draggingIndex].id] = newValue;
-      newPercentages[categories[draggingIndex + 1].id] = availableSpace - newValue;
+    if (draggingIndex < activeCategories.length - 1) {
+      newPercentages[activeCategories[draggingIndex].id] = newValue;
+      newPercentages[activeCategories[draggingIndex + 1].id] = availableSpace - newValue;
     }
 
     setPercentages(newPercentages);
-  }, [draggingIndex, percentages]);
+  }, [draggingIndex, percentages, activeCategories]);
 
   const handleDragEnd = React.useCallback(() => {
     setDraggingIndex(null);
@@ -190,11 +246,11 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
     return squares;
   };
 
-  // Calculate cumulative percentages for positioning
+  // Calculate cumulative percentages for positioning (using active categories only)
   const getCumulativePercentage = (upToIndex: number): number => {
     let sum = 0;
     for (let i = 0; i < upToIndex; i++) {
-      sum += percentages[CATEGORIES[i].id];
+      sum += percentages[activeCategories[i].id];
     }
     return sum;
   };
@@ -296,9 +352,10 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
               </defs>
 
               {/* Render sections */}
-              {CATEGORIES.map((cat, idx) => {
+              {activeCategories.map((cat, idx) => {
                 const x = getCumulativePercentage(idx);
                 const width = percentages[cat.id];
+                if (width === 0) return null;
 
                 return (
                   <rect
@@ -315,7 +372,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
               })}
 
               {/* Draggable dividers */}
-              {CATEGORIES.slice(0, -1).map((cat, idx) => {
+              {activeCategories.slice(0, -1).map((cat, idx) => {
                 const x = getCumulativePercentage(idx + 1);
 
                 return (
@@ -344,32 +401,50 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
                 );
               })}
             </svg>
+          </div>
 
-            {/* Labels overlay */}
-            <div className="absolute inset-0 flex pointer-events-none">
-              {CATEGORIES.map((cat) => {
-                const width = percentages[cat.id];
-                if (width < 8) return null; // Hide label if too small
+          {/* Labels below bar */}
+          <div className="flex justify-center gap-4 mt-4 flex-wrap">
+            {CATEGORIES.map((cat) => {
+              const isDisabled = disabledCategories.has(cat.id);
+              const width = percentages[cat.id];
 
-                return (
+              return (
+                <div
+                  key={`label-${cat.id}`}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 ${
+                    isDisabled ? 'bg-gray-100 border-gray-300 opacity-50' : 'bg-white border-gray-400'
+                  }`}
+                >
                   <div
-                    key={`label-${cat.id}`}
-                    style={{ width: `${width}%` }}
-                    className="flex flex-col items-center justify-center text-center px-2"
-                  >
-                    <span className="text-white font-bold text-sm drop-shadow-lg">
+                    className="w-4 h-4 rounded"
+                    style={{
+                      backgroundColor: cat.color,
+                      opacity: isDisabled ? 0.3 : 1
+                    }}
+                  />
+                  <div className="flex flex-col">
+                    <span className={`font-bold text-sm ${isDisabled ? 'text-gray-400' : 'text-gray-900'}`}>
                       {cat[locale]}
                     </span>
-                    <span className="text-white text-xs drop-shadow-lg">
-                      {percentages[cat.id].toFixed(1)}%
-                    </span>
-                    <span className="text-white text-xs drop-shadow-lg font-semibold">
-                      {absoluteValues[cat.id].toLocaleString()} m²
+                    <span className={`text-xs ${isDisabled ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {isDisabled ? '0%' : `${width.toFixed(1)}%`} • {isDisabled ? '0' : absoluteValues[cat.id].toLocaleString()} m²
                     </span>
                   </div>
-                );
-              })}
-            </div>
+                  <button
+                    onClick={() => toggleCategory(cat.id)}
+                    className={`ml-2 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
+                      isDisabled
+                        ? 'bg-green-500 text-white hover:bg-green-600'
+                        : 'bg-red-500 text-white hover:bg-red-600'
+                    }`}
+                    title={isDisabled ? (locale === 'nl' ? 'Toevoegen' : 'Add') : (locale === 'nl' ? 'Verwijderen' : 'Remove')}
+                  >
+                    {isDisabled ? '+' : '×'}
+                  </button>
+                </div>
+              );
+            })}
           </div>
 
           <p className="text-xs text-text-muted text-center mt-2">
