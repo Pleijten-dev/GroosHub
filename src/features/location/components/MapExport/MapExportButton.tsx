@@ -74,10 +74,15 @@ export const MapExportButton: React.FC<MapExportButtonProps> = ({
         setExportProgress(i + 1);
 
         // Wait for map to render (give it time to load the WMS layer)
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        await new Promise(resolve => setTimeout(resolve, 4000));
 
-        // Find the map container (it's rendered in the hidden div)
-        const mapElement = mapContainerRef.current?.querySelector('.mapContainer') as HTMLElement;
+        // Find the map container - try multiple selectors
+        let mapElement = mapContainerRef.current?.querySelector('.leaflet-container') as HTMLElement;
+
+        if (!mapElement) {
+          // Fallback: try to get the div with the map
+          mapElement = mapContainerRef.current as HTMLElement;
+        }
 
         if (mapElement) {
           try {
@@ -141,9 +146,15 @@ export const MapExportButton: React.FC<MapExportButtonProps> = ({
         setExportProgress(i + 1);
 
         // Wait for map to render (give it time to load the WMS layer)
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        await new Promise(resolve => setTimeout(resolve, 4000));
 
-        const mapElement = mapContainerRef.current?.querySelector('.mapContainer') as HTMLElement;
+        // Find the map container - try multiple selectors
+        let mapElement = mapContainerRef.current?.querySelector('.leaflet-container') as HTMLElement;
+
+        if (!mapElement) {
+          // Fallback: try to get the div with the map
+          mapElement = mapContainerRef.current as HTMLElement;
+        }
 
         if (mapElement) {
           try {
@@ -222,44 +233,57 @@ export const MapExportButton: React.FC<MapExportButtonProps> = ({
         </p>
         <p className="mt-1">
           {locale === 'nl'
-            ? 'Let op: Dit kan enkele minuten duren.'
-            : 'Note: This may take several minutes.'}
+            ? 'Let op: Dit kan enkele minuten duren. U zult de voortgang kunnen zien in een overlay.'
+            : 'Note: This may take several minutes. You will see the progress in an overlay.'}
         </p>
       </div>
 
-      {/* Progress Indicator */}
-      {isExporting && (
-        <div className="mt-4">
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-primary h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(exportProgress / exportTotal) * 100}%` }}
-            />
-          </div>
-          <p className="text-xs text-gray-600 mt-1 text-center">
-            {locale === 'nl'
-              ? `Kaart ${exportProgress} van ${exportTotal} wordt verwerkt...`
-              : `Processing map ${exportProgress} of ${exportTotal}...`}
-          </p>
-        </div>
-      )}
-
-      {/* Hidden map container for rendering */}
+      {/* Map preview overlay during export */}
       {showMapPreview && exportProgress > 0 && exportProgress <= allLayers.length && (
-        <div
-          ref={mapContainerRef}
-          className="fixed top-0 left-0 w-[800px] h-[800px] opacity-0 pointer-events-none z-[-1]"
-        >
-          <div className="w-full h-full">
-            <LocationMap
-              center={coordinates}
-              zoom={allLayers[exportProgress - 1].config.recommendedZoom || 15}
-              marker={coordinates}
-              locationName={locationName}
-              style={MapStyle.DATAVIZ.LIGHT}
-              wmsLayer={allLayers[exportProgress - 1].config}
-              wmsOpacity={0.7}
-            />
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-2xl p-6 max-w-4xl w-full mx-4">
+            {/* Header */}
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {locale === 'nl' ? 'Kaarten worden verwerkt...' : 'Processing maps...'}
+              </h3>
+              <p className="text-sm text-gray-600">
+                {locale === 'nl'
+                  ? `Kaart ${exportProgress} van ${exportTotal}: ${allLayers[exportProgress - 1].config.title}`
+                  : `Map ${exportProgress} of ${exportTotal}: ${allLayers[exportProgress - 1].config.title}`}
+              </p>
+            </div>
+
+            {/* Map container - visible during export */}
+            <div
+              ref={mapContainerRef}
+              className="w-full h-[600px] rounded-lg overflow-hidden border-2 border-gray-200"
+            >
+              <LocationMap
+                center={coordinates}
+                zoom={allLayers[exportProgress - 1].config.recommendedZoom || 15}
+                marker={coordinates}
+                locationName={locationName}
+                style={MapStyle.DATAVIZ.LIGHT}
+                wmsLayer={allLayers[exportProgress - 1].config}
+                wmsOpacity={0.7}
+              />
+            </div>
+
+            {/* Progress bar */}
+            <div className="mt-4">
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-primary h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${(exportProgress / exportTotal) * 100}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-600 mt-2 text-center">
+                {locale === 'nl'
+                  ? 'Even geduld, dit kan enkele minuten duren...'
+                  : 'Please wait, this may take several minutes...'}
+              </p>
+            </div>
           </div>
         </div>
       )}
