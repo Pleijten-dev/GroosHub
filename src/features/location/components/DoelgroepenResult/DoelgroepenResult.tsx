@@ -111,11 +111,10 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
 
   const handleScenarioClick = (scenario: Scenario) => {
     setSelectedScenario(scenario);
-    // Clear custom selections when switching away from custom mode
-    if (scenario !== 'custom') {
-      setCustomSelectedIds([]);
-      setPopupPersona(null);
-    }
+    // Close popup when switching scenarios
+    setPopupPersona(null);
+    // Note: We keep customSelectedIds in state even when switching away from custom mode
+    // so they can be restored when the user switches back to "Op maat"
   };
 
   const handleExpandClick = () => {

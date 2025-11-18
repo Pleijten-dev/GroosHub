@@ -49,6 +49,14 @@ export const useLocationSidebarSections = ({
   const [searchAddress, setSearchAddress] = useState<string>('');
   const [isOmgevingExpanded, setIsOmgevingExpanded] = useState<boolean>(false);
 
+  // Auto-expand Omgeving dropdown when activeTab is one of its subsections
+  React.useEffect(() => {
+    const isOmgevingSubsection = OMGEVING_SUBSECTIONS.some(sub => sub.id === activeTab);
+    if (isOmgevingSubsection && !isOmgevingExpanded) {
+      setIsOmgevingExpanded(true);
+    }
+  }, [activeTab, isOmgevingExpanded]);
+
   const handleAddressSearch = (): void => {
     if (searchAddress.trim() && onAddressSearch) {
       onAddressSearch(searchAddress.trim());
