@@ -29,23 +29,24 @@ import { LocationMap, MapStyle, WMSLayerControl, WMSLayerSelection, WMSFeatureIn
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
   { id: 'doelgroepen', nl: 'Doelgroepen', en: 'Target Groups' },
-  { id: 'score', nl: 'Score', en: 'Score' },
-  { id: 'voorzieningen', nl: 'Voorzieningen', en: 'Amenities' },
-  { id: 'kaarten', nl: 'Kaarten', en: 'Maps' },
+  { id: 'omgeving', nl: 'Omgeving', en: 'Environment' },
   { id: 'pve', nl: 'Programma van Eisen', en: 'Requirements Program' },
   { id: 'genereer-rapport', nl: 'Genereer Rapport', en: 'Generate Report' }
 ] as const;
 
-// Score subsections with dual language support
-const SCORE_SUBSECTIONS = [
+// Omgeving subsections with dual language support
+const OMGEVING_SUBSECTIONS = [
+  { id: 'score', nl: 'Score', en: 'Score' },
   { id: 'demografie', nl: 'Demografie', en: 'Demographics' },
   { id: 'woningmarkt', nl: 'Woningmarkt', en: 'Housing Market' },
   { id: 'veiligheid', nl: 'Veiligheid', en: 'Safety' },
   { id: 'gezondheid', nl: 'Gezondheid', en: 'Health' },
-  { id: 'leefbaarheid', nl: 'Leefbaarheid', en: 'Livability' }
+  { id: 'leefbaarheid', nl: 'Leefbaarheid', en: 'Livability' },
+  { id: 'voorzieningen', nl: 'Voorzieningen', en: 'Amenities' },
+  { id: 'kaarten', nl: 'Kaarten', en: 'Maps' }
 ] as const;
 
-type SectionId = typeof MAIN_SECTIONS[number]['id'] | typeof SCORE_SUBSECTIONS[number]['id'];
+type SectionId = typeof MAIN_SECTIONS[number]['id'] | typeof OMGEVING_SUBSECTIONS[number]['id'];
 type TabName = SectionId;
 
 interface LocationPageProps {
