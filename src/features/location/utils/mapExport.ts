@@ -249,10 +249,11 @@ export async function generateMapBookletPDF(
     const imageY = margin + 20;
 
     try {
-      // Add aerial photo as background (if available)
+      // Add aerial photo as background with 50% opacity (if available)
       if (aerialPhoto) {
+        const aerialPhotoWithOpacity = await applyOpacityToImage(aerialPhoto.dataUrl, 0.5);
         pdf.addImage(
-          aerialPhoto.dataUrl,
+          aerialPhotoWithOpacity,
           'PNG',
           margin,
           imageY,
