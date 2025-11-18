@@ -182,7 +182,16 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
             {locale === 'nl' ? 'Programma Overzicht' : 'Program Overview'}
           </h2>
           <div className="inline-block">
-            <div className="grid grid-cols-20 gap-1 w-[500px] h-[250px] border-2 border-gray-300 rounded-lg p-2 bg-white">
+            <div
+              className="border-2 border-gray-300 rounded-lg p-2 bg-white"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(20, 1fr)',
+                gap: '4px',
+                width: '500px',
+                height: '250px'
+              }}
+            >
               {renderGrid()}
             </div>
             <div className="mt-base text-left">
@@ -284,7 +293,16 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
 
         {/* Right side - Grid visualization */}
         <div className="flex-shrink-0">
-          <div className="grid grid-cols-20 gap-1 w-[400px] h-[400px] border-2 border-gray-300 rounded-lg p-2 bg-white shadow-lg">
+          <div
+            className="border-2 border-gray-300 rounded-lg p-2 bg-white shadow-lg"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(20, 1fr)',
+              gap: '4px',
+              width: '400px',
+              height: '400px'
+            }}
+          >
             {renderGrid()}
           </div>
           <p className="text-xs text-text-muted text-center mt-2">
