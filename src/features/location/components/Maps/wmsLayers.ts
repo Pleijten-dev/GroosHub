@@ -439,7 +439,7 @@ export const WMS_CATEGORIES: Record<string, WMSCategory> = {
         15
       ),
       kadastralekaart: createLayerConfig(
-        'https://geodata.nationaalgeoregister.nl/kadastralekaart/wms/v4_0?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=kadastralekaart',
+        'https://service.pdok.nl/kadaster/kadastralekaart/wms/v5_0?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=kadastralekaart',
         'Kadastrale kaart',
         'Het Kadaster registreert rechten op vastgoed in Nederland, onderhoudt openbare registers en het Rijksdriehoeksstelsel.',
         10,
