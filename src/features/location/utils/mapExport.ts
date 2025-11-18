@@ -1,22 +1,25 @@
 /**
  * Map Export Utilities
- * Provides functionality to capture map tiles as PNG images
+ * Provides functionality to download WMS map tiles directly
  */
 
-import html2canvas from 'html2canvas';
 import JSZip from 'jszip';
 import jsPDF from 'jspdf';
 
-export interface MapExportOptions {
-  /** Map container element */
-  mapElement: HTMLElement;
-  /** Layer title/name */
+export interface WMSDownloadOptions {
+  /** WMS service URL */
+  url: string;
+  /** WMS layer names */
+  layers: string;
+  /** Layer title */
   layerTitle: string;
-  /** Image quality (0-1) */
-  quality?: number;
-  /** Target width in pixels */
+  /** Center coordinates [lat, lng] */
+  center: [number, number];
+  /** Zoom level */
+  zoom: number;
+  /** Image width in pixels */
   width?: number;
-  /** Target height in pixels */
+  /** Image height in pixels */
   height?: number;
 }
 
@@ -34,51 +37,97 @@ export interface MapCapture {
 }
 
 /**
- * Capture a map element as PNG using html2canvas
- * This works around CORS restrictions by capturing the rendered DOM
+ * Calculate bounding box for a given center point and zoom level
  */
-export async function captureMapAsPNG(options: MapExportOptions): Promise<MapCapture> {
+function calculateBBox(center: [number, number], zoom: number, width: number, height: number): string {
+  const lat = center[0];
+  const lng = center[1];
+
+  // Approximate meters per pixel at given zoom level
+  const metersPerPixel = 156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, zoom);
+
+  // Calculate bbox dimensions in degrees
+  const widthInMeters = width * metersPerPixel;
+  const heightInMeters = height * metersPerPixel;
+
+  // Rough conversion: 1 degree ≈ 111,320 meters
+  const latDelta = heightInMeters / 111320 / 2;
+  const lngDelta = widthInMeters / (111320 * Math.cos(lat * Math.PI / 180)) / 2;
+
+  const south = lat - latDelta;
+  const north = lat + latDelta;
+  const west = lng - lngDelta;
+  const east = lng + lngDelta;
+
+  // WMS 1.3.0 uses lat,lng order for EPSG:4326
+  return `${south},${west},${north},${east}`;
+}
+
+/**
+ * Download a WMS map tile directly as PNG
+ */
+export async function downloadWMSTile(options: WMSDownloadOptions): Promise<MapCapture> {
   const {
-    mapElement,
+    url,
+    layers,
     layerTitle,
-    quality = 0.95,
-    width,
-    height,
+    center,
+    zoom,
+    width = 800,
+    height = 800,
   } = options;
 
-  // Use html2canvas to capture the rendered map
-  const canvas = await html2canvas(mapElement, {
-    useCORS: true,
-    allowTaint: false,
-    backgroundColor: '#f0f0f0',
-    scale: 2, // Higher resolution
-    logging: false,
-    width: width,
-    height: height,
+  // Calculate bounding box
+  const bbox = calculateBBox(center, zoom, width, height);
+
+  // Construct WMS GetMap request
+  const params = new URLSearchParams({
+    service: 'WMS',
+    version: '1.3.0',
+    request: 'GetMap',
+    layers: layers,
+    styles: '',
+    crs: 'EPSG:4326',
+    bbox: bbox,
+    width: width.toString(),
+    height: height.toString(),
+    format: 'image/png',
+    transparent: 'true',
   });
 
-  // Convert canvas to blob
-  const blob = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob(
-      (blob) => {
-        if (blob) {
-          resolve(blob);
-        } else {
-          reject(new Error('Failed to create blob from canvas'));
-        }
-      },
-      'image/png',
-      quality
-    );
-  });
+  const requestUrl = `${url}?${params.toString()}`;
 
-  return {
-    title: layerTitle,
-    dataUrl: canvas.toDataURL('image/png', quality),
-    blob,
-    width: canvas.width,
-    height: canvas.height,
-  };
+  try {
+    // Fetch the WMS tile
+    const response = await fetch(requestUrl, {
+      mode: 'cors',
+    });
+
+    if (!response.ok) {
+      throw new Error(`WMS request failed: ${response.status} ${response.statusText}`);
+    }
+
+    const blob = await response.blob();
+
+    // Convert blob to base64 data URL
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+
+    return {
+      title: layerTitle,
+      dataUrl,
+      blob,
+      width,
+      height,
+    };
+  } catch (error) {
+    console.error(`Failed to download WMS tile for ${layerTitle}:`, error);
+    throw error;
+  }
 }
 
 /**
