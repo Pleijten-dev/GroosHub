@@ -275,25 +275,60 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         );
       }
 
-      // For Score tab - show overview with all data
+      // For Score tab - show Omgeving overview with clickable RadialChart
       if (activeTab === 'score') {
+        // Define the 5 omgeving categories with dummy values
+        const omgevingData = [
+          { name: locale === 'nl' ? 'Betaalbaarheid' : 'Affordability', value: 75, color: '#48806a' },
+          { name: locale === 'nl' ? 'Veiligheid' : 'Safety', value: 85, color: '#477638' },
+          { name: locale === 'nl' ? 'Gezondheid' : 'Health', value: 72, color: '#8a976b' },
+          { name: locale === 'nl' ? 'Leefbaarheid' : 'Livability', value: 80, color: '#0c211a' },
+          { name: locale === 'nl' ? 'Voorzieningen' : 'Amenities', value: 88, color: '#48806a' }
+        ];
+
+        // Map category names to tab IDs
+        const categoryToTab: Record<string, TabName> = {
+          'Betaalbaarheid': 'woningmarkt',
+          'Affordability': 'woningmarkt',
+          'Veiligheid': 'veiligheid',
+          'Safety': 'veiligheid',
+          'Gezondheid': 'gezondheid',
+          'Health': 'gezondheid',
+          'Leefbaarheid': 'leefbaarheid',
+          'Livability': 'leefbaarheid',
+          'Voorzieningen': 'voorzieningen',
+          'Amenities': 'voorzieningen'
+        };
+
+        const handleCategoryClick = (categoryName: string) => {
+          const targetTab = categoryToTab[categoryName];
+          if (targetTab) {
+            setActiveTab(targetTab);
+          }
+        };
+
         return (
-          <div className="p-lg overflow-auto h-full">
-            <MultiLevelDataTable data={data} locale={locale} />
-            {amenities && (
-              <AmenitiesSummary
-                data={amenities}
-                locale={locale}
-                onViewAll={() => setActiveTab('voorzieningen')}
-              />
-            )}
-            {data.residential && (
-              <ResidentialSummary
-                data={data.residential}
-                locale={locale}
-                onViewAll={() => setActiveTab('woningmarkt')}
-              />
-            )}
+          <div className="flex items-center justify-center h-full bg-gradient-to-br from-gray-50 to-gray-100">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold text-text-primary mb-base">
+                {locale === 'nl' ? 'Score Overzicht' : 'Score Overview'}
+              </h2>
+              <p className="text-sm text-text-secondary mb-lg max-w-md mx-auto">
+                {locale === 'nl'
+                  ? 'Klik op een categorie om meer details te bekijken'
+                  : 'Click on a category to view more details'}
+              </p>
+              <div className="flex justify-center">
+                <RadialChart
+                  data={omgevingData}
+                  width={600}
+                  height={500}
+                  showLabels={true}
+                  isSimple={false}
+                  onSliceClick={handleCategoryClick}
+                />
+              </div>
+            </div>
           </div>
         );
       }
