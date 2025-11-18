@@ -231,8 +231,9 @@ export async function generateMapBookletPDF(
         );
       }
 
-      // Add WMS layer on top with 80% opacity
-      pdf.setGState({ opacity: 0.8 });
+      // Add WMS layer on top
+      // Note: jsPDF doesn't easily support opacity for images, but WMS PNGs
+      // already have transparency built in, so they'll overlay nicely
       pdf.addImage(
         capture.dataUrl,
         'PNG',
@@ -243,8 +244,6 @@ export async function generateMapBookletPDF(
         undefined,
         'FAST'
       );
-      // Reset opacity for other elements
-      pdf.setGState({ opacity: 1.0 });
     } catch (error) {
       console.error(`Failed to add image for ${capture.title}:`, error);
       pdf.setFontSize(10);

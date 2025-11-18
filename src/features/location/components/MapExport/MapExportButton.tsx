@@ -219,8 +219,8 @@ export const MapExportButton: React.FC<MapExportButtonProps> = ({
         </p>
         <p className="mt-1">
           {locale === 'nl'
-            ? `PDF: Download ${allLayers.length} kaartlagen + luchtfoto's als achtergrond (80% transparantie).`
-            : `PDF: Downloads ${allLayers.length} map layers + aerial photos as background (80% transparency).`}
+            ? `PDF: Download ${allLayers.length} kaartlagen + luchtfoto's als achtergrond.`
+            : `PDF: Downloads ${allLayers.length} map layers + aerial photos as background.`}
         </p>
         <p className="mt-1">
           {locale === 'nl'
