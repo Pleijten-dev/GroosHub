@@ -25,6 +25,7 @@ import { getPersonaCubePosition } from '../../../features/location/utils/cubePos
 import { calculateConnections, calculateScenarios } from '../../../features/location/utils/connectionCalculations';
 import housingPersonasData from '../../../features/location/data/sources/housing-personas.json';
 import { LocationMap, MapStyle, WMSLayerControl, WMSLayerSelection, WMSFeatureInfo } from '../../../features/location/components/Maps';
+import { calculateAllAmenityScores, type AmenityScore } from '../../../features/location/data/scoring/amenityScoring';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -281,14 +282,11 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         let voorzieningenScore = 75; // Default value if no amenities data
 
         if (amenities) {
-          // Import scoring functions inline
-          const { calculateAllAmenityScores } = require('../../../features/location/data/scoring/amenityScoring');
-
           // Calculate all amenity scores
           const amenityScores = calculateAllAmenityScores(amenities.results);
 
           // Sum up all countScore and proximityBonus values
-          const rawScore = amenityScores.reduce((sum: number, score: any) => {
+          const rawScore = amenityScores.reduce((sum: number, score: AmenityScore) => {
             return sum + score.countScore + score.proximityBonus;
           }, 0);
 
