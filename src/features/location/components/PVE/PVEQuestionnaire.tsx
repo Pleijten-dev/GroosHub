@@ -1,155 +1,168 @@
 // src/features/location/components/PVE/PVEQuestionnaire.tsx
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Locale } from '../../../../lib/i18n/config';
 
-interface PVEAnswer {
-  total?: number;
-  apartments?: number;
-  commercial?: number;
-  hospitality?: number;
-  social?: number;
-  communal?: number;
-  offices?: number;
+interface PVEAllocations {
+  apartments: number;
+  commercial: number;
+  hospitality: number;
+  social: number;
+  communal: number;
+  offices: number;
 }
 
 interface PVEQuestionnaireProps {
   locale: Locale;
 }
 
-interface Question {
-  id: keyof PVEAnswer;
+interface Category {
+  id: keyof PVEAllocations;
   nl: string;
   en: string;
   color: string;
 }
 
-const QUESTIONS: Question[] = [
-  { id: 'total', nl: 'Wat is de totale bruto vloer oppervlakte van uw project?', en: 'What is the total gross floor area of your project?', color: '#e5e7eb' },
-  { id: 'apartments', nl: 'Hoeveel m² woningen wilt u realiseren?', en: 'How many m² of apartments do you want to realize?', color: '#48806a' },
-  { id: 'commercial', nl: 'Hoeveel m² commercieel wilt u realiseren?', en: 'How many m² of commercial do you want to realize?', color: '#477638' },
-  { id: 'hospitality', nl: 'Hoeveel m² horeca wilt u realiseren?', en: 'How many m² of hospitality do you want to realize?', color: '#8a976b' },
-  { id: 'social', nl: 'Hoeveel m² maatschappelijk wilt u realiseren?', en: 'How many m² of social do you want to realize?', color: '#0c211a' },
-  { id: 'communal', nl: 'Hoeveel m² gemeenschappelijk wilt u realiseren?', en: 'How many m² of communal space do you want to realize?', color: '#a3b18a' },
-  { id: 'offices', nl: 'Hoeveel m² kantoren wilt u realiseren?', en: 'How many m² of offices space do you want to realize?', color: '#588157' }
+const CATEGORIES: Category[] = [
+  { id: 'apartments', nl: 'Woningen', en: 'Apartments', color: '#48806a' },
+  { id: 'commercial', nl: 'Commercieel', en: 'Commercial', color: '#477638' },
+  { id: 'hospitality', nl: 'Horeca', en: 'Hospitality', color: '#8a976b' },
+  { id: 'social', nl: 'Maatschappelijk', en: 'Social', color: '#0c211a' },
+  { id: 'communal', nl: 'Gemeenschappelijk', en: 'Communal', color: '#a3b18a' },
+  { id: 'offices', nl: 'Kantoren', en: 'Offices', color: '#588157' }
+];
+
+type PresetId = 'mixed-residential' | 'urban-retail' | 'community' | 'custom';
+
+interface Preset {
+  id: PresetId;
+  nl: string;
+  en: string;
+  allocations: PVEAllocations;
+}
+
+const PRESETS: Preset[] = [
+  {
+    id: 'mixed-residential',
+    nl: 'Gemengd Wonen',
+    en: 'Mixed Residential',
+    allocations: { apartments: 70, commercial: 15, hospitality: 5, social: 5, communal: 3, offices: 2 }
+  },
+  {
+    id: 'urban-retail',
+    nl: 'Urban Retail',
+    en: 'Urban Retail',
+    allocations: { apartments: 20, commercial: 40, hospitality: 25, social: 5, communal: 5, offices: 5 }
+  },
+  {
+    id: 'community',
+    nl: 'Gemeenschapscentrum',
+    en: 'Community Center',
+    allocations: { apartments: 10, commercial: 10, hospitality: 10, social: 40, communal: 25, offices: 5 }
+  },
+  {
+    id: 'custom',
+    nl: 'Op maat',
+    en: 'Custom',
+    allocations: { apartments: 16.67, commercial: 16.67, hospitality: 16.67, social: 16.67, communal: 16.67, offices: 16.65 }
+  }
 ];
 
 export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) => {
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<PVEAnswer>({});
-  const [inputValue, setInputValue] = useState('');
-  const [isComplete, setIsComplete] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState<PresetId>('mixed-residential');
+  const [totalM2, setTotalM2] = useState<number>(10000);
+  const [percentages, setPercentages] = useState<PVEAllocations>(PRESETS[0].allocations);
+  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+  const barRef = useRef<HTMLDivElement>(null);
 
-  const currentQuestion = QUESTIONS[currentQuestionIndex];
-  const isFirstQuestion = currentQuestionIndex === 0;
+  const handlePresetChange = (presetId: PresetId) => {
+    setSelectedPreset(presetId);
+    const preset = PRESETS.find(p => p.id === presetId);
+    if (preset) {
+      setPercentages(preset.allocations);
+    }
+  };
 
-  // Calculate totals and remaining
-  const { usedM2, totalM2, remainingM2 } = useMemo(() => {
-    const total = answers.total || 0;
-    const used = (answers.apartments || 0) +
-                 (answers.commercial || 0) +
-                 (answers.hospitality || 0) +
-                 (answers.social || 0) +
-                 (answers.communal || 0) +
-                 (answers.offices || 0);
+  const handleDragStart = (index: number) => {
+    setDraggingIndex(index);
+    setSelectedPreset('custom'); // Switch to custom when user starts dragging
+  };
 
-    // If total was specified, calculate remaining
-    const remaining = answers.total ? total - used : 0;
+  const handleDragMove = React.useCallback((e: MouseEvent) => {
+    if (draggingIndex === null || !barRef.current) return;
 
-    return {
-      usedM2: used,
-      totalM2: answers.total || used,
-      remainingM2: remaining
+    const rect = barRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percentage = (x / rect.width) * 100;
+
+    // Calculate cumulative percentages to find boundaries
+    const categories = CATEGORIES;
+    const newPercentages = { ...percentages };
+
+    // Calculate cumulative sum up to dragging point
+    let cumulativeSum = 0;
+    for (let i = 0; i < draggingIndex; i++) {
+      cumulativeSum += newPercentages[categories[i].id];
+    }
+
+    // Calculate remaining after dragging point
+    let remainingSum = 0;
+    for (let i = draggingIndex + 1; i < categories.length; i++) {
+      remainingSum += newPercentages[categories[i].id];
+    }
+
+    // New value for the dragged category
+    const newValue = Math.max(1, Math.min(100 - cumulativeSum - remainingSum, percentage - cumulativeSum));
+
+    // Adjust the next category
+    if (draggingIndex < categories.length - 1) {
+      const delta = newValue - newPercentages[categories[draggingIndex].id];
+      newPercentages[categories[draggingIndex].id] = newValue;
+      newPercentages[categories[draggingIndex + 1].id] = Math.max(1, newPercentages[categories[draggingIndex + 1].id] - delta);
+    }
+
+    setPercentages(newPercentages);
+  }, [draggingIndex, percentages]);
+
+  const handleDragEnd = React.useCallback(() => {
+    setDraggingIndex(null);
+  }, []);
+
+  useEffect(() => {
+    if (draggingIndex !== null) {
+      window.addEventListener('mousemove', handleDragMove);
+      window.addEventListener('mouseup', handleDragEnd);
+      return () => {
+        window.removeEventListener('mousemove', handleDragMove);
+        window.removeEventListener('mouseup', handleDragEnd);
+      };
+    }
+  }, [draggingIndex, handleDragMove, handleDragEnd]);
+
+  // Calculate absolute values
+  const absoluteValues = useMemo(() => {
+    const result: Record<keyof PVEAllocations, number> = {
+      apartments: 0,
+      commercial: 0,
+      hospitality: 0,
+      social: 0,
+      communal: 0,
+      offices: 0
     };
-  }, [answers]);
-
-  // Calculate grid squares for each function
-  const gridData = useMemo(() => {
-    const total = totalM2 || 1; // Avoid division by zero
-    const data: { color: string; count: number; label: string }[] = [];
-
-    QUESTIONS.slice(1).forEach((question) => {
-      const value = answers[question.id] || 0;
-      if (value > 0) {
-        const count = Math.round((value / total) * 200);
-        data.push({
-          color: question.color,
-          count,
-          label: question[locale]
-        });
-      }
+    CATEGORIES.forEach(cat => {
+      result[cat.id] = Math.round((percentages[cat.id] / 100) * totalM2);
     });
-
-    return data;
-  }, [answers, totalM2, locale]);
-
-  const handleSubmit = () => {
-    const value = parseInt(inputValue);
-
-    if (inputValue.trim() === '') {
-      // Skip this question
-      handleNext();
-      return;
-    }
-
-    if (isNaN(value) || value < 0) {
-      return; // Invalid input
-    }
-
-    // Validation: if total is set and not first question, check remaining
-    if (answers.total && !isFirstQuestion) {
-      if (value > remainingM2) {
-        alert(locale === 'nl'
-          ? `U kunt maximaal ${remainingM2} m² invoeren (resterende capaciteit)`
-          : `You can enter a maximum of ${remainingM2} m² (remaining capacity)`
-        );
-        return;
-      }
-    }
-
-    // Save answer
-    setAnswers(prev => ({ ...prev, [currentQuestion.id]: value }));
-    setInputValue('');
-    handleNext();
-  };
-
-  const handleNext = () => {
-    if (currentQuestionIndex < QUESTIONS.length - 1) {
-      setCurrentQuestionIndex(prev => prev + 1);
-    } else {
-      // Complete
-      setIsComplete(true);
-    }
-  };
-
-  const handleBack = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prev => prev - 1);
-      // Restore previous answer to input
-      const prevQuestion = QUESTIONS[currentQuestionIndex - 1];
-      const prevAnswer = answers[prevQuestion.id];
-      setInputValue(prevAnswer ? String(prevAnswer) : '');
-    }
-  };
-
-  const handleSkip = () => {
-    setInputValue('');
-    handleNext();
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSubmit();
-    }
-  };
+    return result;
+  }, [percentages, totalM2]);
 
   // Render 200 squares grid
   const renderGrid = () => {
     const squares: React.ReactElement[] = [];
     let currentIndex = 0;
 
-    gridData.forEach(({ color, count }) => {
+    CATEGORIES.forEach(({ id, color }) => {
+      const count = Math.round((percentages[id] / 100) * 200);
       for (let i = 0; i < count; i++) {
         squares.push(
           <div
@@ -174,140 +187,234 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
     return squares;
   };
 
-  if (isComplete) {
-    return (
-      <div className="flex items-center justify-center h-full bg-gradient-to-br from-gray-50 to-gray-100">
-        <div className="text-center">
+  // Calculate cumulative percentages for positioning
+  const getCumulativePercentage = (upToIndex: number): number => {
+    let sum = 0;
+    for (let i = 0; i < upToIndex; i++) {
+      sum += percentages[CATEGORIES[i].id];
+    }
+    return sum;
+  };
+
+  return (
+    <div className="flex items-center justify-center h-full bg-gradient-to-br from-gray-50 to-gray-100 p-lg">
+      <div className="w-full max-w-6xl">
+        {/* Header with presets */}
+        <div className="mb-lg text-center">
           <h2 className="text-3xl font-bold text-text-primary mb-base">
-            {locale === 'nl' ? 'Programma Overzicht' : 'Program Overview'}
+            {locale === 'nl' ? 'Programma van Eisen' : 'Requirements Program'}
           </h2>
-          <div className="inline-block">
-            <div
-              className="border-2 border-gray-300 rounded-lg p-2 bg-white"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(20, 1fr)',
-                gap: '4px',
-                width: '500px',
-                height: '250px'
-              }}
-            >
-              {renderGrid()}
-            </div>
-            <div className="mt-base text-left">
-              <p className="text-lg font-semibold text-text-primary mb-sm">
-                {locale === 'nl' ? 'Totaal:' : 'Total:'} {totalM2.toLocaleString()} m²
-              </p>
-              {gridData.map((item, idx) => {
-                const questionId = QUESTIONS.slice(1).find(q => q.color === item.color)?.id;
-                const value = questionId ? answers[questionId] : 0;
+
+          {/* Preset Selector */}
+          <div className="flex items-center justify-center gap-2 p-2 bg-white/80 backdrop-blur-md rounded-full border border-gray-200 shadow-lg inline-flex">
+            {PRESETS.map((preset) => (
+              <button
+                key={preset.id}
+                onClick={() => handlePresetChange(preset.id)}
+                className={`
+                  px-6 py-3 rounded-full font-medium text-sm transition-all duration-300
+                  ${
+                    selectedPreset === preset.id
+                      ? 'bg-gradient-3-mid text-gray-900 shadow-md'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }
+                `}
+              >
+                {preset[locale]}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Total M2 Input */}
+        <div className="mb-base">
+          <label className="block text-sm font-medium text-text-secondary mb-2">
+            {locale === 'nl' ? 'Totale bruto vloer oppervlakte (m²)' : 'Total gross floor area (m²)'}
+          </label>
+          <input
+            type="number"
+            value={totalM2}
+            onChange={(e) => setTotalM2(Math.max(1, parseInt(e.target.value) || 1))}
+            className="w-full max-w-xs px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            min="1"
+            step="100"
+          />
+        </div>
+
+        {/* Interactive Stacked Bar */}
+        <div className="mb-lg">
+          <div
+            ref={barRef}
+            className="relative h-32 rounded-lg overflow-hidden border-2 border-gray-300 shadow-lg bg-white"
+            style={{ cursor: draggingIndex !== null ? 'ew-resize' : 'default' }}
+          >
+            <svg width="100%" height="100%" className="absolute inset-0">
+              <defs>
+                {/* Noise gradient filters for each category */}
+                {CATEGORIES.map((cat, idx) => (
+                  <filter
+                    key={cat.id}
+                    id={`noise-${cat.id}`}
+                    filterUnits="objectBoundingBox"
+                    primitiveUnits="objectBoundingBox"
+                    x="-0.2"
+                    y="-0.2"
+                    width="1.4"
+                    height="1.4"
+                  >
+                    {/* Procedural noise */}
+                    <feTurbulence
+                      type="fractalNoise"
+                      baseFrequency={0.001 * (0.9 + idx * 0.05)}
+                      numOctaves="3"
+                      seed={idx * 1000}
+                      result="noise"
+                    />
+                    {/* Soften */}
+                    <feGaussianBlur in="noise" stdDeviation="0.015" edgeMode="duplicate" result="soft" />
+                    {/* Grayscale */}
+                    <feColorMatrix in="soft" type="saturate" values="0" result="gray" />
+                    {/* Levels */}
+                    <feComponentTransfer in="gray" result="leveled">
+                      <feFuncR type="linear" slope="3.33" intercept="-1" />
+                      <feFuncG type="linear" slope="3.33" intercept="-1" />
+                      <feFuncB type="linear" slope="3.33" intercept="-1" />
+                    </feComponentTransfer>
+                    {/* Gradient map to green palette */}
+                    <feComponentTransfer in="leveled" result="colorized">
+                      <feFuncR type="table" tableValues="0.047 0.282 0.278 0.541 0.973" />
+                      <feFuncG type="table" tableValues="0.129 0.502 0.463 0.592 0.933" />
+                      <feFuncB type="table" tableValues="0.102 0.416 0.220 0.420 0.894" />
+                    </feComponentTransfer>
+                    {/* Clip to shape */}
+                    <feComposite in="colorized" in2="SourceAlpha" operator="in" result="final" />
+                  </filter>
+                ))}
+              </defs>
+
+              {/* Render sections */}
+              {CATEGORIES.map((cat, idx) => {
+                const x = getCumulativePercentage(idx);
+                const width = percentages[cat.id];
+
                 return (
-                  <div key={idx} className="flex items-center gap-2 mb-xs">
-                    <div className="w-4 h-4 rounded" style={{ backgroundColor: item.color }} />
-                    <span className="text-sm text-text-secondary">
-                      {QUESTIONS.find(q => q.id === questionId)?.[locale]}: {value?.toLocaleString()} m²
+                  <rect
+                    key={cat.id}
+                    x={`${x}%`}
+                    y="0"
+                    width={`${width}%`}
+                    height="100%"
+                    fill="#fff"
+                    filter={`url(#noise-${cat.id})`}
+                    style={{ opacity: 0.98 }}
+                  />
+                );
+              })}
+
+              {/* Draggable dividers */}
+              {CATEGORIES.slice(0, -1).map((cat, idx) => {
+                const x = getCumulativePercentage(idx + 1);
+
+                return (
+                  <g
+                    key={`divider-${idx}`}
+                    onMouseDown={() => handleDragStart(idx)}
+                    style={{ cursor: 'ew-resize' }}
+                  >
+                    <line
+                      x1={`${x}%`}
+                      y1="0"
+                      x2={`${x}%`}
+                      y2="100%"
+                      stroke="#fff"
+                      strokeWidth="3"
+                      opacity="0.8"
+                    />
+                    <rect
+                      x={`calc(${x}% - 4px)`}
+                      y="0"
+                      width="8"
+                      height="100%"
+                      fill="transparent"
+                    />
+                  </g>
+                );
+              })}
+            </svg>
+
+            {/* Labels overlay */}
+            <div className="absolute inset-0 flex pointer-events-none">
+              {CATEGORIES.map((cat) => {
+                const width = percentages[cat.id];
+                if (width < 8) return null; // Hide label if too small
+
+                return (
+                  <div
+                    key={`label-${cat.id}`}
+                    style={{ width: `${width}%` }}
+                    className="flex flex-col items-center justify-center text-center px-2"
+                  >
+                    <span className="text-white font-bold text-sm drop-shadow-lg">
+                      {cat[locale]}
+                    </span>
+                    <span className="text-white text-xs drop-shadow-lg">
+                      {percentages[cat.id].toFixed(1)}%
+                    </span>
+                    <span className="text-white text-xs drop-shadow-lg font-semibold">
+                      {absoluteValues[cat.id].toLocaleString()} m²
                     </span>
                   </div>
                 );
               })}
             </div>
           </div>
-        </div>
-      </div>
-    );
-  }
 
-  return (
-    <div className="flex items-center justify-center h-full bg-gradient-to-br from-gray-50 to-gray-100 p-lg">
-      <div className="w-full max-w-6xl flex gap-8 items-start">
-        {/* Left side - Question */}
-        <div className="flex-1">
-          <div className="mb-base">
-            <p className="text-sm text-text-muted mb-2">
-              {locale === 'nl' ? 'Vraag' : 'Question'} {currentQuestionIndex + 1} / {QUESTIONS.length}
-            </p>
-            <h2 className="text-2xl font-bold text-text-primary mb-base">
-              {currentQuestion[locale]}
-            </h2>
-          </div>
-
-          <div className="flex gap-2 mb-base">
-            <input
-              type="number"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder={locale === 'nl' ? 'Voer aantal m² in...' : 'Enter m²...'}
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              min="0"
-              step="1"
-            />
-            <button
-              onClick={handleSubmit}
-              className="px-6 py-3 bg-gradient-3-mid text-gray-900 font-medium rounded-full hover:opacity-90 transition-opacity"
-            >
-              {locale === 'nl' ? 'Volgende' : 'Next'}
-            </button>
-          </div>
-
-          <div className="flex gap-2">
-            {currentQuestionIndex > 0 && (
-              <button
-                onClick={handleBack}
-                className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary border border-gray-300 rounded-full transition-colors"
-              >
-                ← {locale === 'nl' ? 'Vorige' : 'Previous'}
-              </button>
-            )}
-            {!isFirstQuestion && (
-              <button
-                onClick={handleSkip}
-                className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary border border-gray-300 rounded-full transition-colors"
-              >
-                {locale === 'nl' ? 'Overslaan' : 'Skip'} →
-              </button>
-            )}
-          </div>
-
-          {/* Status display */}
-          <div className="mt-base p-4 bg-white rounded-lg border border-gray-200">
-            {answers.total ? (
-              <>
-                <p className="text-sm text-text-secondary mb-1">
-                  {locale === 'nl' ? 'Totaal beschikbaar:' : 'Total available:'} {answers.total.toLocaleString()} m²
-                </p>
-                <p className="text-sm text-text-secondary mb-1">
-                  {locale === 'nl' ? 'Gebruikt:' : 'Used:'} {usedM2.toLocaleString()} m²
-                </p>
-                <p className="text-lg font-semibold text-primary">
-                  {locale === 'nl' ? 'Resterend:' : 'Remaining:'} {remainingM2.toLocaleString()} m²
-                </p>
-              </>
-            ) : (
-              <p className="text-lg font-semibold text-primary">
-                {locale === 'nl' ? 'Totaal:' : 'Total:'} {usedM2.toLocaleString()} m²
-              </p>
-            )}
-          </div>
+          <p className="text-xs text-text-muted text-center mt-2">
+            {locale === 'nl'
+              ? 'Sleep de grenzen om de verdeling aan te passen'
+              : 'Drag the boundaries to adjust allocation'}
+          </p>
         </div>
 
-        {/* Right side - Grid visualization */}
-        <div className="flex-shrink-0">
+        {/* Grid visualization */}
+        <div className="flex justify-center mb-base">
           <div
             className="border-2 border-gray-300 rounded-lg p-2 bg-white shadow-lg"
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(20, 1fr)',
               gap: '4px',
-              width: '400px',
-              height: '400px'
+              width: '600px',
+              height: '300px'
             }}
           >
             {renderGrid()}
           </div>
-          <p className="text-xs text-text-muted text-center mt-2">
-            {locale === 'nl' ? '1 vierkant = 1/200 van totaal' : '1 square = 1/200 of total'}
-          </p>
+        </div>
+
+        {/* Legend */}
+        <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+          <h3 className="font-semibold text-text-primary mb-3">
+            {locale === 'nl' ? 'Overzicht' : 'Summary'}
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            {CATEGORIES.map((cat) => (
+              <div key={cat.id} className="flex items-center gap-3">
+                <div
+                  className="w-6 h-6 rounded"
+                  style={{ backgroundColor: cat.color }}
+                />
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-text-primary">
+                    {cat[locale]}
+                  </div>
+                  <div className="text-xs text-text-secondary">
+                    {percentages[cat.id].toFixed(1)}% · {absoluteValues[cat.id].toLocaleString()} m²
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
