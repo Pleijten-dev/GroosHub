@@ -49,25 +49,32 @@ export const MapExportButton: React.FC<MapExportButtonProps> = ({
    * Export all maps as PNG files in a ZIP
    */
   const handleExportZip = async () => {
-    if (!mapContainerRef.current) {
-      console.error('Map container not found');
-      return;
-    }
-
     setIsExporting(true);
     setExportProgress(0);
     setExportTotal(allLayers.length);
     setShowMapPreview(true);
 
     try {
+      // Wait for React to render the hidden map container
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      if (!mapContainerRef.current) {
+        console.error('Map container not found after render');
+        alert(locale === 'nl' ? 'Kon kaartcontainer niet vinden. Probeer opnieuw.' : 'Could not find map container. Please try again.');
+        return;
+      }
+
       const captures: MapCapture[] = [];
 
       // Capture each layer
       for (let i = 0; i < allLayers.length; i++) {
         const layer = allLayers[i];
 
+        // Update progress to trigger re-render with new map layer
+        setExportProgress(i + 1);
+
         // Wait for map to render (give it time to load the WMS layer)
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 3000));
 
         // Find the map container (it's rendered in the hidden div)
         const mapElement = mapContainerRef.current?.querySelector('.mapContainer') as HTMLElement;
@@ -83,13 +90,17 @@ export const MapExportButton: React.FC<MapExportButtonProps> = ({
           } catch (error) {
             console.error(`Failed to capture ${layer.config.title}:`, error);
           }
+        } else {
+          console.warn(`Map element not found for layer ${i + 1}`);
         }
-
-        setExportProgress(i + 1);
       }
 
       // Export as ZIP
-      await exportMapsAsZip(captures, `kaarten-export-${new Date().toISOString().split('T')[0]}.zip`);
+      if (captures.length > 0) {
+        await exportMapsAsZip(captures, `kaarten-export-${new Date().toISOString().split('T')[0]}.zip`);
+      } else {
+        alert(locale === 'nl' ? 'Geen kaarten konden worden geëxporteerd.' : 'No maps could be exported.');
+      }
 
     } catch (error) {
       console.error('Export failed:', error);
@@ -105,25 +116,32 @@ export const MapExportButton: React.FC<MapExportButtonProps> = ({
    * Generate PDF booklet with all maps
    */
   const handleExportPDF = async () => {
-    if (!mapContainerRef.current) {
-      console.error('Map container not found');
-      return;
-    }
-
     setIsExporting(true);
     setExportProgress(0);
     setExportTotal(allLayers.length);
     setShowMapPreview(true);
 
     try {
+      // Wait for React to render the hidden map container
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      if (!mapContainerRef.current) {
+        console.error('Map container not found after render');
+        alert(locale === 'nl' ? 'Kon kaartcontainer niet vinden. Probeer opnieuw.' : 'Could not find map container. Please try again.');
+        return;
+      }
+
       const captures: MapCapture[] = [];
 
       // Capture each layer
       for (let i = 0; i < allLayers.length; i++) {
         const layer = allLayers[i];
 
-        // Wait for map to render
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Update progress to trigger re-render with new map layer
+        setExportProgress(i + 1);
+
+        // Wait for map to render (give it time to load the WMS layer)
+        await new Promise(resolve => setTimeout(resolve, 3000));
 
         const mapElement = mapContainerRef.current?.querySelector('.mapContainer') as HTMLElement;
 
@@ -138,17 +156,21 @@ export const MapExportButton: React.FC<MapExportButtonProps> = ({
           } catch (error) {
             console.error(`Failed to capture ${layer.config.title}:`, error);
           }
+        } else {
+          console.warn(`Map element not found for layer ${i + 1}`);
         }
-
-        setExportProgress(i + 1);
       }
 
       // Generate PDF booklet
-      await generateMapBookletPDF(captures, {
-        title: locale === 'nl' ? 'Kaarten Rapport' : 'Maps Report',
-        filename: `kaarten-rapport-${new Date().toISOString().split('T')[0]}.pdf`,
-        locale,
-      });
+      if (captures.length > 0) {
+        await generateMapBookletPDF(captures, {
+          title: locale === 'nl' ? 'Kaarten Rapport' : 'Maps Report',
+          filename: `kaarten-rapport-${new Date().toISOString().split('T')[0]}.pdf`,
+          locale,
+        });
+      } else {
+        alert(locale === 'nl' ? 'Geen kaarten konden worden geëxporteerd.' : 'No maps could be exported.');
+      }
 
     } catch (error) {
       console.error('PDF generation failed:', error);
@@ -223,26 +245,22 @@ export const MapExportButton: React.FC<MapExportButtonProps> = ({
       )}
 
       {/* Hidden map container for rendering */}
-      {showMapPreview && (
+      {showMapPreview && exportProgress > 0 && exportProgress <= allLayers.length && (
         <div
           ref={mapContainerRef}
           className="fixed top-0 left-0 w-[800px] h-[800px] opacity-0 pointer-events-none z-[-1]"
         >
-          {allLayers.map((layer, index) => (
-            index === exportProgress - 1 && (
-              <div key={`${layer.category}-${layer.id}`} className="w-full h-full">
-                <LocationMap
-                  center={coordinates}
-                  zoom={layer.config.recommendedZoom || 15}
-                  marker={coordinates}
-                  locationName={locationName}
-                  style={MapStyle.DATAVIZ.LIGHT}
-                  wmsLayer={layer.config}
-                  wmsOpacity={0.7}
-                />
-              </div>
-            )
-          ))}
+          <div className="w-full h-full">
+            <LocationMap
+              center={coordinates}
+              zoom={allLayers[exportProgress - 1].config.recommendedZoom || 15}
+              marker={coordinates}
+              locationName={locationName}
+              style={MapStyle.DATAVIZ.LIGHT}
+              wmsLayer={allLayers[exportProgress - 1].config}
+              wmsOpacity={0.7}
+            />
+          </div>
         </div>
       )}
     </div>
