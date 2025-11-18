@@ -164,7 +164,7 @@ export const MapExportButton: React.FC<MapExportButtonProps> = ({
           title: locale === 'nl' ? 'Kaarten Rapport' : 'Maps Report',
           filename: `kaarten-rapport-${new Date().toISOString().split('T')[0]}.pdf`,
           locale,
-          aerialPhotos: aerialPhotos.filter(Boolean), // Remove null entries
+          aerialPhotos: aerialPhotos, // Keep array aligned - null values are handled in PDF generation
         });
       } else {
         alert(locale === 'nl' ? 'Geen kaarten konden worden gedownload.' : 'No maps could be downloaded.');
