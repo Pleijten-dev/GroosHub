@@ -100,17 +100,46 @@ export const MapExportButton: React.FC<MapExportButtonProps> = ({
   const handleExportPDF = async () => {
     setIsExporting(true);
     setExportProgress(0);
-    setExportTotal(allLayers.length);
+    setExportTotal(allLayers.length * 2); // Double because we download both aerial + WMS
 
     try {
       const captures: MapCapture[] = [];
+      const aerialPhotos: MapCapture[] = [];
 
-      // Download each layer directly from WMS
+      // Aerial photo WMS configuration
+      const aerialPhotoWMS = {
+        url: 'https://service.pdok.nl/hwh/luchtfotorgb/wms/v1_0',
+        layers: 'Actueel_orthoHR', // High resolution aerial photos
+      };
+
+      // Download each layer + aerial photo directly from WMS
       for (let i = 0; i < allLayers.length; i++) {
         const layer = allLayers[i];
 
+        // Download aerial photo for this zoom level
+        setCurrentLayerTitle(`${locale === 'nl' ? 'Luchtfoto voor' : 'Aerial photo for'} ${layer.config.title}`);
+        setExportProgress(i * 2 + 1);
+
+        try {
+          const aerialPhoto = await downloadWMSTile({
+            url: aerialPhotoWMS.url,
+            layers: aerialPhotoWMS.layers,
+            layerTitle: `Luchtfoto - ${layer.config.title}`,
+            center: coordinates,
+            zoom: layer.config.recommendedZoom || 15,
+            width: 1200,
+            height: 1200,
+          });
+          aerialPhotos.push(aerialPhoto);
+        } catch (error) {
+          console.error(`Failed to download aerial photo for ${layer.config.title}:`, error);
+          // Push empty to maintain array alignment
+          aerialPhotos.push(null as any);
+        }
+
+        // Download WMS layer
         setCurrentLayerTitle(layer.config.title);
-        setExportProgress(i + 1);
+        setExportProgress(i * 2 + 2);
 
         try {
           const capture = await downloadWMSTile({
@@ -129,12 +158,13 @@ export const MapExportButton: React.FC<MapExportButtonProps> = ({
         }
       }
 
-      // Generate PDF booklet
+      // Generate PDF booklet with aerial photos as background
       if (captures.length > 0) {
         await generateMapBookletPDF(captures, {
           title: locale === 'nl' ? 'Kaarten Rapport' : 'Maps Report',
           filename: `kaarten-rapport-${new Date().toISOString().split('T')[0]}.pdf`,
           locale,
+          aerialPhotos: aerialPhotos.filter(Boolean), // Remove null entries
         });
       } else {
         alert(locale === 'nl' ? 'Geen kaarten konden worden gedownload.' : 'No maps could be downloaded.');
@@ -185,8 +215,13 @@ export const MapExportButton: React.FC<MapExportButtonProps> = ({
       <div className="text-xs text-gray-600">
         <p>
           {locale === 'nl'
-            ? `Dit download ${allLayers.length} kaartlagen direct van WMS servers.`
-            : `This downloads ${allLayers.length} map layers directly from WMS servers.`}
+            ? `ZIP: Download ${allLayers.length} kaartlagen direct van WMS servers.`
+            : `ZIP: Downloads ${allLayers.length} map layers directly from WMS servers.`}
+        </p>
+        <p className="mt-1">
+          {locale === 'nl'
+            ? `PDF: Download ${allLayers.length} kaartlagen + luchtfoto's als achtergrond (80% transparantie).`
+            : `PDF: Downloads ${allLayers.length} map layers + aerial photos as background (80% transparency).`}
         </p>
         <p className="mt-1">
           {locale === 'nl'

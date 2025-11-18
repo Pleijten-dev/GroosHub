@@ -156,6 +156,7 @@ export async function exportMapsAsZip(
 
 /**
  * Generate A4 portrait PDF booklet with map images and text fields
+ * Each page has an aerial photo background with the WMS layer overlay at 80% opacity
  */
 export async function generateMapBookletPDF(
   captures: MapCapture[],
@@ -163,12 +164,14 @@ export async function generateMapBookletPDF(
     title?: string;
     filename?: string;
     locale?: 'nl' | 'en';
+    aerialPhotos?: MapCapture[];
   } = {}
 ): Promise<void> {
   const {
     title = 'Kaarten Rapport',
     filename = 'kaarten-rapport.pdf',
     locale = 'nl',
+    aerialPhotos = [],
   } = options;
 
   // A4 dimensions in mm
@@ -198,6 +201,7 @@ export async function generateMapBookletPDF(
   // Add each map to a new page
   for (let i = 0; i < captures.length; i++) {
     const capture = captures[i];
+    const aerialPhoto = aerialPhotos[i];
 
     // Add new page (except for first iteration after title page)
     pdf.addPage();
@@ -210,9 +214,26 @@ export async function generateMapBookletPDF(
     pdf.setFontSize(16);
     pdf.text(capture.title, pageWidth / 2, margin + 10, { align: 'center' });
 
-    // Add map image (square, centered)
     const imageY = margin + 20;
+
     try {
+      // Add aerial photo as background (if available)
+      if (aerialPhoto) {
+        pdf.addImage(
+          aerialPhoto.dataUrl,
+          'PNG',
+          margin,
+          imageY,
+          imageSize,
+          imageSize,
+          undefined,
+          'FAST'
+        );
+      }
+
+      // Add WMS layer on top with 80% opacity
+      // Note: jsPDF doesn't support alpha transparency directly, so we use the gState approach
+      pdf.setGState(new pdf.GState({ opacity: 0.8 }));
       pdf.addImage(
         capture.dataUrl,
         'PNG',
@@ -223,6 +244,8 @@ export async function generateMapBookletPDF(
         undefined,
         'FAST'
       );
+      // Reset opacity for other elements
+      pdf.setGState(new pdf.GState({ opacity: 1.0 }));
     } catch (error) {
       console.error(`Failed to add image for ${capture.title}:`, error);
       pdf.setFontSize(10);
