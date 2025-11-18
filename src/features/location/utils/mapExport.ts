@@ -164,7 +164,7 @@ export async function generateMapBookletPDF(
     title?: string;
     filename?: string;
     locale?: 'nl' | 'en';
-    aerialPhotos?: MapCapture[];
+    aerialPhotos?: (MapCapture | null)[];
   } = {}
 ): Promise<void> {
   const {

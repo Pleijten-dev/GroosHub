@@ -18,7 +18,6 @@ interface MapExportButtonProps {
 export const MapExportButton: React.FC<MapExportButtonProps> = ({
   locale,
   coordinates,
-  locationName,
 }) => {
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
@@ -104,7 +103,7 @@ export const MapExportButton: React.FC<MapExportButtonProps> = ({
 
     try {
       const captures: MapCapture[] = [];
-      const aerialPhotos: MapCapture[] = [];
+      const aerialPhotos: (MapCapture | null)[] = [];
 
       // Aerial photo WMS configuration
       const aerialPhotoWMS = {
@@ -133,8 +132,8 @@ export const MapExportButton: React.FC<MapExportButtonProps> = ({
           aerialPhotos.push(aerialPhoto);
         } catch (error) {
           console.error(`Failed to download aerial photo for ${layer.config.title}:`, error);
-          // Push empty to maintain array alignment
-          aerialPhotos.push(null as any);
+          // Push null to maintain array alignment
+          aerialPhotos.push(null);
         }
 
         // Download WMS layer
