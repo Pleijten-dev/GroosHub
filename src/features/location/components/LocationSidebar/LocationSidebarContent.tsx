@@ -14,7 +14,8 @@ const MAIN_SECTIONS = [
   { id: 'score', nl: 'Score', en: 'Score' },
   { id: 'voorzieningen', nl: 'Voorzieningen', en: 'Amenities' },
   { id: 'kaarten', nl: 'Kaarten', en: 'Maps' },
-  { id: 'pve', nl: 'Programma van Eisen', en: 'Requirements Program' }
+  { id: 'pve', nl: 'Programma van Eisen', en: 'Requirements Program' },
+  { id: 'genereer-rapport', nl: 'Genereer Rapport', en: 'Generate Report' }
 ] as const;
 
 const SCORE_SUBSECTIONS = [
