@@ -33,6 +33,16 @@ const CATEGORIES: Category[] = [
   { id: 'offices', nl: 'Kantoren', en: 'Offices', color: '#0c211a' }
 ];
 
+// Grayscale values for Voronoi (will be recolored by filter to match noise pattern)
+const VORONOI_GRAYSCALE: Record<keyof PVEAllocations, string> = {
+  apartments: '#ffffff',    // Lightest → will become #f8eee4
+  commercial: '#cccccc',    // → will become #8a976b
+  hospitality: '#999999',   // → will become #63834c
+  social: '#666666',        // → will become #477638
+  communal: '#333333',      // → will become #48806a
+  offices: '#000000'        // Darkest → will become #0c211a
+};
+
 type PresetId = 'mixed-residential' | 'urban-retail' | 'community' | 'custom';
 
 interface Preset {
@@ -315,7 +325,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
       seeds.push({
         x: centerX + Math.cos(angle) * radiusX,
         y: centerY + Math.sin(angle) * radiusY,
-        color: cat.color,
+        color: VORONOI_GRAYSCALE[cat.id],
         weight: percentage
       });
     });
@@ -329,7 +339,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
         const y = row * cellSize + cellSize / 2;
 
         let minWeightedDist = Infinity;
-        let nearestColor = activeCategories[0]?.color || '#48806a';
+        let nearestColor = VORONOI_GRAYSCALE[activeCategories[0]?.id] || '#666666';
 
         seeds.forEach(seed => {
           const dist = Math.sqrt((x - seed.x) ** 2 + (y - seed.y) ** 2);
@@ -368,11 +378,11 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
               <feFuncG type="linear" slope="3.33" intercept="-1" />
               <feFuncB type="linear" slope="3.33" intercept="-1" />
             </feComponentTransfer>
-            {/* Map through gradient table - same as noise pattern */}
+            {/* Map through 6-color gradient table (darkest to lightest) */}
             <feComponentTransfer in="leveled" result="colorized">
-              <feFuncR type="table" tableValues="0.047 0.282 0.388 0.541 0.973" />
-              <feFuncG type="table" tableValues="0.129 0.463 0.514 0.592 0.933" />
-              <feFuncB type="table" tableValues="0.102 0.220 0.298 0.420 0.894" />
+              <feFuncR type="table" tableValues="0.047 0.282 0.278 0.388 0.541 0.973" />
+              <feFuncG type="table" tableValues="0.129 0.502 0.463 0.514 0.592 0.933" />
+              <feFuncB type="table" tableValues="0.102 0.416 0.220 0.298 0.420 0.894" />
             </feComponentTransfer>
           </filter>
         </defs>
