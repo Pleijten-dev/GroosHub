@@ -634,7 +634,16 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   };
 
   return (
-    <div className="page-background fixed top-[var(--navbar-height)] left-0 right-0 bottom-0 overflow-hidden">
+    <div
+      className="page-background w-screen overflow-hidden flex flex-col"
+      style={{
+        height: '100vh',
+        marginTop: '-64px',
+        marginLeft: 'calc(var(--space-base) * -1)',
+        marginRight: 'calc(var(--space-base) * -1)',
+        paddingTop: '64px'
+      }}
+    >
 
       {/* SIDEBAR - Using reusable component (position: fixed, out of flow) */}
       <Sidebar
@@ -646,7 +655,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         position="left"
         expandedWidth="320px"
         collapsedWidth="60px"
-        className="!top-[var(--navbar-height)] !bottom-0 !h-auto"
+        className="!top-[64px] !bottom-0 !h-auto"
       />
 
       {/* MAIN CONTENT - Margin adjusted for fixed sidebar */}
@@ -659,7 +668,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
       {/* RIGHT MENU - Fixed in proper position */}
       <aside className={`
-        fixed right-0 top-[var(--navbar-height)] bottom-0 z-40
+        fixed right-0 top-[64px] bottom-0 z-40
         bg-white/80 backdrop-blur-md border-l border-gray-200/50
         transition-transform duration-300 w-70 flex flex-col shadow-lg
         ${showRightMenu ? 'translate-x-0' : 'translate-x-full'}
