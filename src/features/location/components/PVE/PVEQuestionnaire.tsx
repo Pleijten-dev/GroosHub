@@ -360,19 +360,13 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
           <filter id="voronoi-mute">
             {/* Blur for smoothness */}
             <feGaussianBlur in="SourceGraphic" stdDeviation={blurAmount} result="blurred" />
-            {/* Convert to grayscale */}
-            <feColorMatrix in="blurred" type="saturate" values="0" result="gray" />
-            {/* Adjust levels - same as noise pattern */}
-            <feComponentTransfer in="gray" result="leveled">
-              <feFuncR type="linear" slope="3.33" intercept="-1" />
-              <feFuncG type="linear" slope="3.33" intercept="-1" />
-              <feFuncB type="linear" slope="3.33" intercept="-1" />
-            </feComponentTransfer>
-            {/* Gradient map through 6-color palette (darkest to lightest) */}
-            <feComponentTransfer in="leveled" result="colorized">
-              <feFuncR type="table" tableValues="0.047 0.278 0.282 0.388 0.541 0.973" />
-              <feFuncG type="table" tableValues="0.129 0.463 0.502 0.514 0.592 0.933" />
-              <feFuncB type="table" tableValues="0.102 0.220 0.416 0.298 0.420 0.894" />
+            {/* Desaturate to mute the colors */}
+            <feColorMatrix in="blurred" type="saturate" values="0.7" result="desaturated" />
+            {/* Adjust levels to create muted tones - reduce contrast and lift shadows */}
+            <feComponentTransfer in="desaturated" result="leveled">
+              <feFuncR type="linear" slope="0.8" intercept="0.1" />
+              <feFuncG type="linear" slope="0.8" intercept="0.1" />
+              <feFuncB type="linear" slope="0.8" intercept="0.1" />
             </feComponentTransfer>
           </filter>
         </defs>
