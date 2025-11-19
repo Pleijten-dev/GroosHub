@@ -289,12 +289,15 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
     const cols = Math.floor(width / cellSize);
     const rows = Math.floor(height / cellSize);
 
-    // Create one fixed seed point per category at consistent positions
+    // Create one fixed seed point per category positioned at the edges
     const activeCategories = CATEGORIES.filter(cat => percentages[cat.id] > 0);
     const angleStep = (2 * Math.PI) / activeCategories.length;
     const centerX = width / 2;
     const centerY = height / 2;
-    const radius = Math.min(width, height) * 0.25;
+
+    // Position seeds at the edge of an ellipse that fits the canvas
+    const radiusX = width * 0.6; // Horizontal radius
+    const radiusY = height * 0.6; // Vertical radius
 
     const seeds: { x: number; y: number; color: string; weight: number }[] = [];
 
@@ -303,8 +306,8 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
       const percentage = percentages[cat.id];
 
       seeds.push({
-        x: centerX + Math.cos(angle) * radius,
-        y: centerY + Math.sin(angle) * radius,
+        x: centerX + Math.cos(angle) * radiusX,
+        y: centerY + Math.sin(angle) * radiusY,
         color: cat.color,
         weight: percentage // Weight represents the "strength" of this seed
       });
@@ -348,7 +351,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
     }
 
     return (
-      <svg width={width} height={height} style={{ borderRadius: '8px' }}>
+      <svg width={width} height={height}>
         <defs>
           {/* Strong glass blur filter */}
           <filter id="voronoi-blur" x="-50%" y="-50%" width="200%" height="200%">
