@@ -328,7 +328,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         };
 
         return (
-          <div className="flex items-center justify-center h-full bg-gradient-to-br from-gray-50 to-gray-100">
+          <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <div className="flex justify-center mb-base">
                 <RadialChart
@@ -658,15 +658,14 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         className="!top-[64px] !bottom-0 !h-auto"
       />
 
-      {/* MAIN CONTENT - Margin adjusted for fixed sidebar */}
+      {/* MAIN CONTENT - Margin adjusted for fixed sidebar with layered glass */}
       <main className={`
         flex flex-col h-full
         ${mainContentMargin}
         bg-white/20 backdrop-blur-md
-        m-base
-        p-base
+        p-6
       `}>
-        <div className="flex flex-col overflow-auto h-full bg-white/60 backdrop-blur-sm rounded-3xl">
+        <div className="flex flex-col overflow-auto h-full bg-white/60 backdrop-blur-sm rounded-3xl p-4">
           {renderMainContent()}
         </div>
       </main>
