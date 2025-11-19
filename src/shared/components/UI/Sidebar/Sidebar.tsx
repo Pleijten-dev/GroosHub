@@ -82,7 +82,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <svg
                     className={cn(
                       'w-5 h-5 transition-transform duration-fast',
-                      position === 'left' ? 'rotate-0' : 'rotate-180'
+                      position === 'left' ? 'rotate-180' : 'rotate-0'
                     )}
                     viewBox="0 0 24 24"
                     fill="currentColor"
@@ -131,7 +131,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <svg
                       className={cn(
                         'w-4 h-4 transition-transform duration-fast',
-                        position === 'left' ? 'rotate-180' : 'rotate-0'
+                        position === 'left' ? 'rotate-0' : 'rotate-180'
                       )}
                       viewBox="0 0 24 24"
                       fill="currentColor"
@@ -175,8 +175,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               
               {/* Section Content */}
               <div className={cn(
-                // Add padding if no title/description (content-only section)
-                !(section.title || section.description) && 'p-lg'
+                'px-lg pb-lg',
+                // Add top padding if no title/description (content-only section)
+                !(section.title || section.description) && 'pt-lg'
               )}>
                 {section.content}
               </div>
