@@ -29,8 +29,8 @@ const CATEGORIES: Category[] = [
   { id: 'commercial', nl: 'Commercieel', en: 'Commercial', color: '#477638' },
   { id: 'hospitality', nl: 'Horeca', en: 'Hospitality', color: '#8a976b' },
   { id: 'social', nl: 'Maatschappelijk', en: 'Social', color: '#0c211a' },
-  { id: 'communal', nl: 'Gemeenschappelijk', en: 'Communal', color: '#a3b18a' },
-  { id: 'offices', nl: 'Kantoren', en: 'Offices', color: '#588157' }
+  { id: 'communal', nl: 'Gemeenschappelijk', en: 'Communal', color: '#588157' },
+  { id: 'offices', nl: 'Kantoren', en: 'Offices', color: '#3d5a3a' }
 ];
 
 type PresetId = 'mixed-residential' | 'urban-retail' | 'community' | 'custom';
