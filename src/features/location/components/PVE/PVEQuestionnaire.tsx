@@ -141,6 +141,38 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
     }
   };
 
+  const handlePercentageChange = (categoryId: keyof PVEAllocations, newPercentage: number) => {
+    setSelectedPreset('custom');
+    const clampedPercentage = Math.max(0, Math.min(100, newPercentage));
+
+    // Calculate total of other categories
+    const otherTotal = CATEGORIES.filter(cat => cat.id !== categoryId && !disabledCategories.has(cat.id))
+      .reduce((sum, cat) => sum + percentages[cat.id], 0);
+
+    // If the new percentage + other total > 100, we need to reduce others proportionally
+    const newPercentages = { ...percentages };
+    newPercentages[categoryId] = clampedPercentage;
+
+    const remaining = 100 - clampedPercentage;
+    if (otherTotal > 0 && remaining >= 0) {
+      const scaleFactor = remaining / otherTotal;
+      CATEGORIES.forEach(cat => {
+        if (cat.id !== categoryId && !disabledCategories.has(cat.id)) {
+          newPercentages[cat.id] = percentages[cat.id] * scaleFactor;
+        }
+      });
+    }
+
+    setPercentages(newPercentages);
+  };
+
+  const handleM2Change = (categoryId: keyof PVEAllocations, newM2: number) => {
+    setSelectedPreset('custom');
+    const clampedM2 = Math.max(0, newM2);
+    const newPercentage = (clampedM2 / totalM2) * 100;
+    handlePercentageChange(categoryId, newPercentage);
+  };
+
   const handleDragStart = (index: number) => {
     setDraggingIndex(index);
     setSelectedPreset('custom'); // Switch to custom when user starts dragging
@@ -403,48 +435,84 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
             </svg>
           </div>
 
-          {/* Labels below bar */}
-          <div className="flex justify-center gap-4 mt-4 flex-wrap">
+          {/* Labels positioned below each bar section */}
+          <div className="relative mt-4" style={{ height: '80px' }}>
             {CATEGORIES.map((cat) => {
               const isDisabled = disabledCategories.has(cat.id);
               const width = percentages[cat.id];
 
+              // Find position in active categories
+              const activeCatIndex = activeCategories.findIndex(c => c.id === cat.id);
+              const x = activeCatIndex >= 0 ? getCumulativePercentage(activeCatIndex) + width / 2 : 0;
+
+              if (isDisabled) {
+                return null; // Don't show labels for disabled categories
+              }
+
               return (
                 <div
                   key={`label-${cat.id}`}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 ${
-                    isDisabled ? 'bg-gray-100 border-gray-300 opacity-50' : 'bg-white border-gray-400'
-                  }`}
+                  className="absolute flex flex-col items-center"
+                  style={{
+                    left: `${x}%`,
+                    transform: 'translateX(-50%)',
+                    top: 0
+                  }}
                 >
-                  <div
-                    className="w-4 h-4 rounded"
-                    style={{
-                      backgroundColor: cat.color,
-                      opacity: isDisabled ? 0.3 : 1
-                    }}
-                  />
-                  <div className="flex flex-col">
-                    <span className={`font-bold text-sm ${isDisabled ? 'text-gray-400' : 'text-gray-900'}`}>
+                  <div className="flex items-center gap-1 mb-1">
+                    <span className="font-bold text-sm text-gray-900">
                       {cat[locale]}
                     </span>
-                    <span className={`text-xs ${isDisabled ? 'text-gray-400' : 'text-gray-600'}`}>
-                      {isDisabled ? '0%' : `${width.toFixed(1)}%`} • {isDisabled ? '0' : absoluteValues[cat.id].toLocaleString()} m²
-                    </span>
+                    <button
+                      onClick={() => toggleCategory(cat.id)}
+                      className="text-gray-600 hover:text-gray-900 text-lg leading-none"
+                      title={locale === 'nl' ? 'Verwijderen' : 'Remove'}
+                    >
+                      ×
+                    </button>
                   </div>
-                  <button
-                    onClick={() => toggleCategory(cat.id)}
-                    className={`ml-2 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
-                      isDisabled
-                        ? 'bg-green-500 text-white hover:bg-green-600'
-                        : 'bg-red-500 text-white hover:bg-red-600'
-                    }`}
-                    title={isDisabled ? (locale === 'nl' ? 'Toevoegen' : 'Add') : (locale === 'nl' ? 'Verwijderen' : 'Remove')}
-                  >
-                    {isDisabled ? '+' : '×'}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={width.toFixed(1)}
+                      onChange={(e) => handlePercentageChange(cat.id, parseFloat(e.target.value) || 0)}
+                      className="w-16 px-1 py-0.5 text-xs text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                    />
+                    <span className="text-xs text-gray-600">%</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <input
+                      type="number"
+                      value={absoluteValues[cat.id]}
+                      onChange={(e) => handleM2Change(cat.id, parseInt(e.target.value) || 0)}
+                      className="w-20 px-1 py-0.5 text-xs text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                      min="0"
+                      step="10"
+                    />
+                    <span className="text-xs text-gray-600">m²</span>
+                  </div>
                 </div>
               );
             })}
+
+            {/* Show disabled categories at the bottom */}
+            <div className="absolute bottom-0 left-0 right-0 flex justify-center gap-4 flex-wrap">
+              {CATEGORIES.filter(cat => disabledCategories.has(cat.id)).map((cat) => (
+                <div key={`disabled-${cat.id}`} className="flex items-center gap-1 opacity-50">
+                  <span className="text-xs text-gray-500">{cat[locale]}</span>
+                  <button
+                    onClick={() => toggleCategory(cat.id)}
+                    className="text-gray-500 hover:text-gray-700 text-sm leading-none"
+                    title={locale === 'nl' ? 'Toevoegen' : 'Add'}
+                  >
+                    +
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
 
           <p className="text-xs text-text-muted text-center mt-2">
