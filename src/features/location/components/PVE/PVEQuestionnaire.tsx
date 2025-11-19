@@ -354,13 +354,19 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
       <svg width={width} height={height}>
         <defs>
           {/* Strong glass blur filter */}
-          <filter id="voronoi-blur" x="-50%" y="-50%" width="200%" height="200%">
+          <filter id="voronoi-blur">
             <feGaussianBlur in="SourceGraphic" stdDeviation="20" />
           </filter>
+          {/* Clip path to prevent blur from bleeding outside */}
+          <clipPath id="voronoi-clip">
+            <rect x="0" y="0" width={width} height={height} />
+          </clipPath>
         </defs>
 
-        <g filter="url(#voronoi-blur)">
-          {cells}
+        <g clipPath="url(#voronoi-clip)">
+          <g filter="url(#voronoi-blur)">
+            {cells}
+          </g>
         </g>
       </svg>
     );
@@ -640,7 +646,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
 
         {/* Voronoi visualization */}
         <div className="flex justify-center mb-base">
-          <div className="border-2 border-gray-300 rounded-lg overflow-hidden shadow-lg bg-white">
+          <div className="border-2 border-gray-300 overflow-hidden shadow-lg bg-white">
             {renderVoronoiPattern}
           </div>
         </div>
