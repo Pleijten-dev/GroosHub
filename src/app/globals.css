@@ -669,11 +669,14 @@ body {
   overflow: hidden;
 }
 
-/* Gradient layer (bottom) */
+/* Gradient layer (bottom) - fixed to viewport */
 .page-background::before {
   content: '';
-  position: absolute;
-  inset: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background:
     radial-gradient(circle at 20% 30%, var(--blob-1-color) 0%, transparent 60%),
     radial-gradient(circle at 80% 70%, var(--blob-2-color) 0%, transparent 60%),
@@ -683,11 +686,14 @@ body {
   pointer-events: none;
 }
 
-/* Unified glass layer (middle) */
+/* Unified glass layer (middle) - fixed to viewport */
 .page-background::after {
   content: '';
-  position: absolute;
-  inset: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
