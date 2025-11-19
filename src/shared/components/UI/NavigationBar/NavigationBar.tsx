@@ -117,14 +117,14 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
   const allLocales = ['nl', 'en'] as const;
 
   return (
-    <nav 
+    <nav
       className={cn(
-        classBuilders.glass(true, 'shadow-md'),
+        classBuilders.glass(false),
         COMMON_CLASSES.flexBetween,
         'fixed top-0 left-0 right-0 z-fixed h-navbar px-lg',
         className
       )}
-      role="navigation" 
+      role="navigation"
       aria-label="Main navigation"
     >
       
