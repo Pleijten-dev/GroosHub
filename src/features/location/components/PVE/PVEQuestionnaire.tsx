@@ -527,103 +527,123 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
 
           {/* Labels positioned below each bar section */}
           <div className="relative mt-4" style={{ height: '160px' }}>
-            {CATEGORIES.map((cat, index) => {
-              const isDisabled = disabledCategories.has(cat.id);
-              const width = percentages[cat.id];
+            {(() => {
+              // Calculate positions and detect overlaps
+              const labelWidth = 100; // Approximate width of each label in pixels
+              const containerWidth = 600; // Width of the bar in pixels (assumed from earlier)
+              const minGap = 5; // Minimum gap between labels in pixels
 
-              // Find position in active categories
-              const activeCatIndex = activeCategories.findIndex(c => c.id === cat.id);
-              const x = activeCatIndex >= 0 ? getCumulativePercentage(activeCatIndex) + width / 2 : 0;
+              const labelPositions: { cat: Category; x: number; row: number }[] = [];
 
-              if (isDisabled) {
-                return null; // Don't show labels for disabled categories
-              }
+              CATEGORIES.forEach((cat) => {
+                const isDisabled = disabledCategories.has(cat.id);
+                if (isDisabled) return;
 
-              // Hide labels for very small sections to prevent clutter
-              if (width < 8) {
-                return null;
-              }
+                const width = percentages[cat.id];
+                const activeCatIndex = activeCategories.findIndex(c => c.id === cat.id);
+                const xPercent = activeCatIndex >= 0 ? getCumulativePercentage(activeCatIndex) + width / 2 : 0;
+                const xPixels = (xPercent / 100) * containerWidth;
 
-              // Calculate vertical offset to prevent overlaps
-              // Alternate between top and bottom positions based on index
-              const verticalOffset = index % 2 === 0 ? 0 : 80;
+                // Start in row 0, will move to row 1 if overlapping
+                let row = 0;
 
-              return (
-                <div
-                  key={`label-${cat.id}`}
-                  className="absolute flex flex-col items-center"
-                  style={{
-                    left: `${x}%`,
-                    transform: 'translateX(-50%)',
-                    top: `${verticalOffset}px`
-                  }}
-                >
-                  <div className="flex items-center gap-1 mb-1">
-                    <span className="font-bold text-sm text-gray-900">
-                      {cat[locale]}
-                    </span>
-                    <button
-                      onClick={() => toggleLock(cat.id)}
-                      className="text-gray-600 hover:text-gray-900"
-                      title={lockedCategories.has(cat.id) ? (locale === 'nl' ? 'Ontgrendelen' : 'Unlock') : (locale === 'nl' ? 'Vergrendelen' : 'Lock')}
-                    >
-                      {lockedCategories.has(cat.id) ? (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                        </svg>
-                      ) : (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                          <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
-                        </svg>
-                      )}
-                    </button>
-                    <button
-                      onClick={() => toggleCategory(cat.id)}
-                      disabled={lockedCategories.has(cat.id)}
-                      className={`text-lg leading-none ${
-                        lockedCategories.has(cat.id)
-                          ? 'text-gray-400 cursor-not-allowed'
-                          : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                      title={lockedCategories.has(cat.id) ? (locale === 'nl' ? 'Ontgrendel eerst' : 'Unlock first') : (locale === 'nl' ? 'Verwijderen' : 'Remove')}
-                    >
-                      ×
-                    </button>
+                // Check for overlaps with existing labels in row 0
+                const labelsInRow0 = labelPositions.filter(lp => lp.row === 0);
+                const hasOverlap = labelsInRow0.some(lp => {
+                  const distance = Math.abs(xPixels - lp.x);
+                  return distance < labelWidth / 2 + minGap;
+                });
+
+                if (hasOverlap) {
+                  row = 1; // Move to alternate row
+                }
+
+                labelPositions.push({ cat, x: xPixels, row });
+              });
+
+              // Render labels with calculated positions
+              return labelPositions.map(({ cat, x, row }) => {
+                const width = percentages[cat.id];
+                const xPercent = (x / containerWidth) * 100;
+                const verticalOffset = row === 0 ? 0 : 80;
+
+                return (
+                  <div
+                    key={`label-${cat.id}`}
+                    className="absolute flex flex-col items-center"
+                    style={{
+                      left: `${xPercent}%`,
+                      transform: 'translateX(-50%)',
+                      top: `${verticalOffset}px`
+                    }}
+                  >
+                    <div className="flex items-center gap-1 mb-1">
+                      <span className="font-bold text-sm text-gray-900">
+                        {cat[locale]}
+                      </span>
+                      <button
+                        onClick={() => toggleLock(cat.id)}
+                        className="text-gray-600 hover:text-gray-900"
+                        title={lockedCategories.has(cat.id) ? (locale === 'nl' ? 'Ontgrendelen' : 'Unlock') : (locale === 'nl' ? 'Vergrendelen' : 'Lock')}
+                      >
+                        {lockedCategories.has(cat.id) ? (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                          </svg>
+                        ) : (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+                          </svg>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => toggleCategory(cat.id)}
+                        disabled={lockedCategories.has(cat.id)}
+                        className={`text-lg leading-none ${
+                          lockedCategories.has(cat.id)
+                            ? 'text-gray-400 cursor-not-allowed'
+                            : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                        title={lockedCategories.has(cat.id) ? (locale === 'nl' ? 'Ontgrendel eerst' : 'Unlock first') : (locale === 'nl' ? 'Verwijderen' : 'Remove')}
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        value={width.toFixed(1)}
+                        onChange={(e) => handlePercentageChange(cat.id, parseFloat(e.target.value) || 0)}
+                        disabled={lockedCategories.has(cat.id)}
+                        className={`w-16 px-1 py-0.5 text-xs text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary ${
+                          lockedCategories.has(cat.id) ? 'bg-gray-100 cursor-not-allowed' : ''
+                        }`}
+                        min="0"
+                        max="100"
+                        step="0.1"
+                      />
+                      <span className="text-xs text-gray-600">%</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <input
+                        type="number"
+                        value={absoluteValues[cat.id]}
+                        onChange={(e) => handleM2Change(cat.id, parseInt(e.target.value) || 0)}
+                        disabled={lockedCategories.has(cat.id)}
+                        className={`w-20 px-1 py-0.5 text-xs text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary ${
+                          lockedCategories.has(cat.id) ? 'bg-gray-100 cursor-not-allowed' : ''
+                        }`}
+                        min="0"
+                        step="10"
+                      />
+                      <span className="text-xs text-gray-600">m²</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      value={width.toFixed(1)}
-                      onChange={(e) => handlePercentageChange(cat.id, parseFloat(e.target.value) || 0)}
-                      disabled={lockedCategories.has(cat.id)}
-                      className={`w-16 px-1 py-0.5 text-xs text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary ${
-                        lockedCategories.has(cat.id) ? 'bg-gray-100 cursor-not-allowed' : ''
-                      }`}
-                      min="0"
-                      max="100"
-                      step="0.1"
-                    />
-                    <span className="text-xs text-gray-600">%</span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <input
-                      type="number"
-                      value={absoluteValues[cat.id]}
-                      onChange={(e) => handleM2Change(cat.id, parseInt(e.target.value) || 0)}
-                      disabled={lockedCategories.has(cat.id)}
-                      className={`w-20 px-1 py-0.5 text-xs text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary ${
-                        lockedCategories.has(cat.id) ? 'bg-gray-100 cursor-not-allowed' : ''
-                      }`}
-                      min="0"
-                      step="10"
-                    />
-                    <span className="text-xs text-gray-600">m²</span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              });
+            })()}
 
             {/* Show disabled categories at the bottom */}
             <div className="absolute bottom-0 left-0 right-0 flex justify-center gap-4 flex-wrap">
