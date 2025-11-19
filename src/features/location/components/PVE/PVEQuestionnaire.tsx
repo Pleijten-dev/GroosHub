@@ -285,15 +285,18 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
   const renderVoronoiPattern = useMemo(() => {
     const width = 600;
     const height = 300;
+    const blurAmount = 20;
+    const padding = blurAmount * 2; // Extend the rendering area to prevent edge bleeding
+
     const cellSize = 5; // Size of each cell in the Voronoi diagram
-    const cols = Math.floor(width / cellSize);
-    const rows = Math.floor(height / cellSize);
+    const cols = Math.floor((width + padding * 2) / cellSize);
+    const rows = Math.floor((height + padding * 2) / cellSize);
 
     // Create one fixed seed point per category positioned at the edges
     const activeCategories = CATEGORIES.filter(cat => percentages[cat.id] > 0);
     const angleStep = (2 * Math.PI) / activeCategories.length;
-    const centerX = width / 2;
-    const centerY = height / 2;
+    const centerX = (width + padding * 2) / 2;
+    const centerY = (height + padding * 2) / 2;
 
     // Position seeds at the edge of an ellipse that fits the canvas
     const radiusX = width * 0.6; // Horizontal radius
@@ -313,7 +316,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
       });
     });
 
-    // Generate weighted Voronoi cells
+    // Generate weighted Voronoi cells (extended area)
     const cells: React.ReactElement[] = [];
 
     for (let row = 0; row < rows; row++) {
@@ -340,8 +343,8 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
         cells.push(
           <rect
             key={`${row}-${col}`}
-            x={col * cellSize}
-            y={row * cellSize}
+            x={col * cellSize - padding}
+            y={row * cellSize - padding}
             width={cellSize}
             height={cellSize}
             fill={nearestColor}
@@ -355,16 +358,17 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
         <defs>
           {/* Strong glass blur filter */}
           <filter id="voronoi-blur">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="20" />
+            <feGaussianBlur in="SourceGraphic" stdDeviation={blurAmount} />
           </filter>
-          {/* Clip path to prevent blur from bleeding outside */}
+          {/* Clip path to show only the final area */}
           <clipPath id="voronoi-clip">
             <rect x="0" y="0" width={width} height={height} />
           </clipPath>
         </defs>
 
-        <g clipPath="url(#voronoi-clip)">
-          <g filter="url(#voronoi-blur)">
+        {/* Apply blur first, then clip to final size */}
+        <g filter="url(#voronoi-blur)">
+          <g clipPath="url(#voronoi-clip)">
             {cells}
           </g>
         </g>
