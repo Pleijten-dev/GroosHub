@@ -635,9 +635,8 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
   return (
     <div
-      className="w-screen overflow-hidden flex flex-col"
+      className="flex-1 w-screen overflow-hidden flex flex-col"
       style={{
-        height: '100vh',
         marginLeft: 'calc(var(--space-base) * -1)',
         marginRight: 'calc(var(--space-base) * -1)'
       }}
