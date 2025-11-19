@@ -285,30 +285,32 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
   const renderVoronoiPattern = useMemo(() => {
     const width = 600;
     const height = 300;
-    const cellSize = 10; // Size of each cell in the Voronoi diagram
+    const cellSize = 5; // Size of each cell in the Voronoi diagram
     const cols = Math.floor(width / cellSize);
     const rows = Math.floor(height / cellSize);
-    const totalSeeds = 40;
 
-    // Generate seed points for each category based on percentage
-    const seeds: { x: number; y: number; color: string }[] = [];
+    // Create one fixed seed point per category at consistent positions
+    const activeCategories = CATEGORIES.filter(cat => percentages[cat.id] > 0);
+    const angleStep = (2 * Math.PI) / activeCategories.length;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const radius = Math.min(width, height) * 0.25;
 
-    CATEGORIES.forEach(({ id, color }) => {
-      const percentage = percentages[id];
-      if (percentage === 0) return;
+    const seeds: { x: number; y: number; color: string; weight: number }[] = [];
 
-      const numSeeds = Math.max(1, Math.round((percentage / 100) * totalSeeds));
+    activeCategories.forEach((cat, idx) => {
+      const angle = idx * angleStep;
+      const percentage = percentages[cat.id];
 
-      for (let i = 0; i < numSeeds; i++) {
-        seeds.push({
-          x: Math.random() * width,
-          y: Math.random() * height,
-          color: color
-        });
-      }
+      seeds.push({
+        x: centerX + Math.cos(angle) * radius,
+        y: centerY + Math.sin(angle) * radius,
+        color: cat.color,
+        weight: percentage // Weight represents the "strength" of this seed
+      });
     });
 
-    // Generate Voronoi cells
+    // Generate weighted Voronoi cells
     const cells: React.ReactElement[] = [];
 
     for (let row = 0; row < rows; row++) {
@@ -316,14 +318,18 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
         const x = col * cellSize + cellSize / 2;
         const y = row * cellSize + cellSize / 2;
 
-        // Find nearest seed
-        let minDist = Infinity;
+        // Find seed with minimum weighted distance
+        // Higher weight = larger influence area
+        let minWeightedDist = Infinity;
         let nearestColor = '#f9fafb';
 
         seeds.forEach(seed => {
           const dist = Math.sqrt((x - seed.x) ** 2 + (y - seed.y) ** 2);
-          if (dist < minDist) {
-            minDist = dist;
+          // Weighted distance: divide by weight to make higher percentages claim more territory
+          const weightedDist = dist / Math.sqrt(seed.weight);
+
+          if (weightedDist < minWeightedDist) {
+            minWeightedDist = weightedDist;
             nearestColor = seed.color;
           }
         });
@@ -346,7 +352,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
         <defs>
           {/* Strong glass blur filter */}
           <filter id="voronoi-blur" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="15" />
+            <feGaussianBlur in="SourceGraphic" stdDeviation="20" />
           </filter>
         </defs>
 
