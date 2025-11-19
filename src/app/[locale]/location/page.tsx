@@ -660,7 +660,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
       {/* MAIN CONTENT - Margin adjusted for fixed sidebar */}
       <main className={`
-        flex flex-col h-full
+        flex flex-col flex-1
         ${mainContentMargin}
         p-8
       `}>
