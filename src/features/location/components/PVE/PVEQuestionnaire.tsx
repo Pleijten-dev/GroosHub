@@ -281,36 +281,81 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
     return result;
   }, [percentages, totalM2]);
 
-  // Render 200 squares grid
-  const renderGrid = () => {
-    const squares: React.ReactElement[] = [];
-    let currentIndex = 0;
+  // Generate Voronoi-like pattern with glass blur effect
+  const renderVoronoiPattern = useMemo(() => {
+    const width = 600;
+    const height = 300;
+    const cellSize = 10; // Size of each cell in the Voronoi diagram
+    const cols = Math.floor(width / cellSize);
+    const rows = Math.floor(height / cellSize);
+    const totalSeeds = 40;
+
+    // Generate seed points for each category based on percentage
+    const seeds: { x: number; y: number; color: string }[] = [];
 
     CATEGORIES.forEach(({ id, color }) => {
-      const count = Math.round((percentages[id] / 100) * 200);
-      for (let i = 0; i < count; i++) {
-        squares.push(
-          <div
-            key={currentIndex++}
-            className="w-full h-full rounded-sm"
-            style={{ backgroundColor: color }}
-          />
-        );
+      const percentage = percentages[id];
+      if (percentage === 0) return;
+
+      const numSeeds = Math.max(1, Math.round((percentage / 100) * totalSeeds));
+
+      for (let i = 0; i < numSeeds; i++) {
+        seeds.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          color: color
+        });
       }
     });
 
-    // Fill remaining with gray
-    while (currentIndex < 200) {
-      squares.push(
-        <div
-          key={currentIndex++}
-          className="w-full h-full bg-gray-200 rounded-sm"
-        />
-      );
+    // Generate Voronoi cells
+    const cells: React.ReactElement[] = [];
+
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        const x = col * cellSize + cellSize / 2;
+        const y = row * cellSize + cellSize / 2;
+
+        // Find nearest seed
+        let minDist = Infinity;
+        let nearestColor = '#f9fafb';
+
+        seeds.forEach(seed => {
+          const dist = Math.sqrt((x - seed.x) ** 2 + (y - seed.y) ** 2);
+          if (dist < minDist) {
+            minDist = dist;
+            nearestColor = seed.color;
+          }
+        });
+
+        cells.push(
+          <rect
+            key={`${row}-${col}`}
+            x={col * cellSize}
+            y={row * cellSize}
+            width={cellSize}
+            height={cellSize}
+            fill={nearestColor}
+          />
+        );
+      }
     }
 
-    return squares;
-  };
+    return (
+      <svg width={width} height={height} style={{ borderRadius: '8px' }}>
+        <defs>
+          {/* Strong glass blur filter */}
+          <filter id="voronoi-blur" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="15" />
+          </filter>
+        </defs>
+
+        <g filter="url(#voronoi-blur)">
+          {cells}
+        </g>
+      </svg>
+    );
+  }, [percentages]);
 
   // Calculate cumulative percentages for positioning (using active categories only)
   const getCumulativePercentage = (upToIndex: number): number => {
@@ -499,10 +544,20 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
                     </span>
                     <button
                       onClick={() => toggleLock(cat.id)}
-                      className="text-gray-600 hover:text-gray-900 text-sm leading-none"
+                      className="text-gray-600 hover:text-gray-900"
                       title={lockedCategories.has(cat.id) ? (locale === 'nl' ? 'Ontgrendelen' : 'Unlock') : (locale === 'nl' ? 'Vergrendelen' : 'Lock')}
                     >
-                      {lockedCategories.has(cat.id) ? '🔒' : '🔓'}
+                      {lockedCategories.has(cat.id) ? (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                      ) : (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                          <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+                        </svg>
+                      )}
                     </button>
                     <button
                       onClick={() => toggleCategory(cat.id)}
@@ -574,19 +629,10 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
           </p>
         </div>
 
-        {/* Grid visualization */}
+        {/* Voronoi visualization */}
         <div className="flex justify-center mb-base">
-          <div
-            className="border-2 border-gray-300 rounded-lg p-2 bg-white shadow-lg"
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(20, 1fr)',
-              gap: '4px',
-              width: '600px',
-              height: '300px'
-            }}
-          >
-            {renderGrid()}
+          <div className="border-2 border-gray-300 rounded-lg overflow-hidden shadow-lg bg-white">
+            {renderVoronoiPattern}
           </div>
         </div>
 
