@@ -121,30 +121,23 @@ export const LocationMap: React.FC<LocationMapProps> = ({
 
     // Add new marker if position is provided
     if (marker) {
-      // Create custom stick-style arrow icon (→)
-      const arrowIcon = L.divIcon({
+      // Create custom white square icon
+      const squareIcon = L.divIcon({
         html: `
-          <div style="position: relative; width: 40px; height: 50px;">
-            <svg width="40" height="50" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
-              <!-- Vertical stick -->
-              <line x1="20" y1="5" x2="20" y2="45" stroke="black" stroke-width="3"/>
-              <!-- Arrow head pointing down -->
-              <path d="M20 45 L15 38 M20 45 L25 38" stroke="black" stroke-width="3" stroke-linecap="round" fill="none"/>
-              <!-- White outline for visibility -->
-              <line x1="20" y1="5" x2="20" y2="45" stroke="white" stroke-width="5" opacity="0.7" style="stroke-linecap: round;"/>
-              <line x1="20" y1="5" x2="20" y2="45" stroke="black" stroke-width="3" style="stroke-linecap: round;"/>
-              <path d="M20 45 L15 38 M20 45 L25 38" stroke="white" stroke-width="5" stroke-linecap="round" fill="none" opacity="0.7"/>
-              <path d="M20 45 L15 38 M20 45 L25 38" stroke="black" stroke-width="3" stroke-linecap="round" fill="none"/>
+          <div style="position: relative; width: 12px; height: 12px;">
+            <svg width="12" height="12" viewBox="0 0 12 12" xmlns="http://www.w3.org/2000/svg">
+              <!-- White square with black border for visibility -->
+              <rect x="1" y="1" width="10" height="10" fill="white" stroke="black" stroke-width="1"/>
             </svg>
           </div>
         `,
-        className: 'custom-arrow-marker',
-        iconSize: [40, 50],
-        iconAnchor: [20, 45], // Point of the arrow
-        popupAnchor: [0, -45],
+        className: 'custom-square-marker',
+        iconSize: [12, 12],
+        iconAnchor: [6, 6], // Center of the square
+        popupAnchor: [0, -6],
       });
 
-      const newMarker = L.marker(marker, { icon: arrowIcon }).addTo(mapRef.current);
+      const newMarker = L.marker(marker, { icon: squareIcon }).addTo(mapRef.current);
 
       if (locationName) {
         newMarker.bindPopup(locationName).openPopup();

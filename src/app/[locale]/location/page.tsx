@@ -27,6 +27,7 @@ import housingPersonasData from '../../../features/location/data/sources/housing
 import { LocationMap, MapStyle, WMSLayerControl, WMSLayerSelection, WMSFeatureInfo } from '../../../features/location/components/Maps';
 import { calculateAllAmenityScores, type AmenityScore } from '../../../features/location/data/scoring/amenityScoring';
 import { PVEQuestionnaire } from '../../../features/location/components/PVE';
+import { MapExportButton } from '../../../features/location/components/MapExport';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -566,6 +567,33 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Map Export Section */}
+              <div className="bg-white rounded-lg shadow-sm p-base border border-gray-200">
+                <h3 className="text-lg font-semibold text-text-primary mb-base">
+                  {locale === 'nl' ? 'Kaarten Export' : 'Maps Export'}
+                </h3>
+                <p className="text-sm text-text-secondary mb-base">
+                  {locale === 'nl'
+                    ? 'Exporteer alle WMS kaartlagen als PNG afbeeldingen voor gebruik in presentaties of rapporten.'
+                    : 'Export all WMS map layers as PNG images for use in presentations or reports.'}
+                </p>
+
+                <MapExportButton
+                  locale={locale}
+                  coordinates={[
+                    data.location.coordinates.wgs84.latitude,
+                    data.location.coordinates.wgs84.longitude,
+                  ]}
+                  locationName={[
+                    data.location.neighborhood?.statnaam,
+                    data.location.district?.statnaam,
+                    data.location.municipality?.statnaam,
+                  ]
+                    .filter(Boolean)
+                    .join(', ')}
+                />
               </div>
 
               {/* Additional Information */}
