@@ -526,8 +526,8 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
           </div>
 
           {/* Labels positioned below each bar section */}
-          <div className="relative mt-4" style={{ height: '80px' }}>
-            {CATEGORIES.map((cat) => {
+          <div className="relative mt-4" style={{ height: '160px' }}>
+            {CATEGORIES.map((cat, index) => {
               const isDisabled = disabledCategories.has(cat.id);
               const width = percentages[cat.id];
 
@@ -539,6 +539,15 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
                 return null; // Don't show labels for disabled categories
               }
 
+              // Hide labels for very small sections to prevent clutter
+              if (width < 8) {
+                return null;
+              }
+
+              // Calculate vertical offset to prevent overlaps
+              // Alternate between top and bottom positions based on index
+              const verticalOffset = index % 2 === 0 ? 0 : 80;
+
               return (
                 <div
                   key={`label-${cat.id}`}
@@ -546,7 +555,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
                   style={{
                     left: `${x}%`,
                     transform: 'translateX(-50%)',
-                    top: 0
+                    top: `${verticalOffset}px`
                   }}
                 >
                   <div className="flex items-center gap-1 mb-1">
