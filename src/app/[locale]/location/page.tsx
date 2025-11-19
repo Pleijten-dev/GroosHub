@@ -638,10 +638,8 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
       className="w-screen overflow-hidden flex flex-col"
       style={{
         height: '100vh',
-        marginTop: '-64px',
         marginLeft: 'calc(var(--space-base) * -1)',
-        marginRight: 'calc(var(--space-base) * -1)',
-        paddingTop: '64px'
+        marginRight: 'calc(var(--space-base) * -1)'
       }}
     >
 
