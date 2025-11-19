@@ -660,13 +660,15 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
       {/* MAIN CONTENT - Margin adjusted for fixed sidebar */}
       <main className={`
-        flex flex-col overflow-auto h-full
+        flex flex-col h-full
         ${mainContentMargin}
-        bg-white/60 backdrop-blur-sm
-        rounded-3xl
+        bg-white/20 backdrop-blur-md
         m-base
+        p-base
       `}>
-        {renderMainContent()}
+        <div className="flex flex-col overflow-auto h-full bg-white/60 backdrop-blur-sm rounded-3xl">
+          {renderMainContent()}
+        </div>
       </main>
 
       {/* RIGHT MENU - Fixed in proper position */}
