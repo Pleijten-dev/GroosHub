@@ -284,7 +284,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
 
   // Generate Voronoi-like pattern with glass blur effect
   const renderVoronoiPattern = useMemo(() => {
-    const width = 600;
+    const width = 1200;
     const height = 300;
     const blurAmount = 20;
     const padding = blurAmount * 3; // Extra padding to ensure blur doesn't sample edges
@@ -390,7 +390,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
 
         {/* Total M2 Input */}
         <div className="flex justify-center mb-base">
-          <div className="w-[600px]">
+          <div className="w-[1200px]">
             <label className="block text-sm font-medium text-text-secondary mb-2">
               {locale === 'nl' ? 'Totale bruto vloer oppervlakte (m²)' : 'Total gross floor area (m²)'}
             </label>
@@ -405,9 +405,15 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
           </div>
         </div>
 
+        <p className="text-xs text-text-muted text-center mb-base">
+          {locale === 'nl'
+            ? 'Sleep de grenzen om de verdeling aan te passen'
+            : 'Drag the boundaries to adjust allocation'}
+        </p>
+
         {/* Interactive Stacked Bar */}
         <div className="flex justify-center mb-lg">
-          <div className="w-[600px]">
+          <div className="w-[1200px]">
             <div
               ref={barRef}
               className="relative h-32 rounded-lg overflow-hidden border-2 border-gray-300 shadow-lg bg-white"
@@ -510,11 +516,11 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
             </div>
 
           {/* Labels positioned below each bar section */}
-          <div className="relative mt-4" style={{ height: '160px' }}>
+          <div className="relative mt-4" style={{ height: '100px' }}>
             {(() => {
               // Calculate positions and detect overlaps
               const labelWidth = 100; // Approximate width of each label in pixels
-              const containerWidth = 600; // Width of the bar in pixels (assumed from earlier)
+              const containerWidth = 1200; // Width of the bar in pixels (assumed from earlier)
               const minGap = 5; // Minimum gap between labels in pixels
 
               const labelPositions: { cat: Category; x: number; row: number }[] = [];
@@ -549,7 +555,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
               return labelPositions.map(({ cat, x, row }) => {
                 const width = percentages[cat.id];
                 const xPercent = (x / containerWidth) * 100;
-                const verticalOffset = row === 0 ? 0 : 80;
+                const verticalOffset = row === 0 ? 0 : 50;
                 const isExpanded = expandedLabels.has(cat.id);
                 const isSmall = width < 15; // Show compact version if less than 15%
 
@@ -609,7 +615,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
                       </button>
                     )}
                     <div
-                      className={`bg-white rounded-lg border-2 border-gray-300 p-2 shadow-lg ${isExpanded ? 'ring-2 ring-primary' : ''}`}
+                      className={`p-2 ${isExpanded ? 'bg-white rounded-lg border-2 border-gray-300 shadow-lg ring-2 ring-primary' : ''}`}
                       onClick={isSmall && !isExpanded ? toggleExpanded : undefined}
                       style={{ cursor: isSmall && !isExpanded ? 'pointer' : 'default' }}
                     >
@@ -698,26 +704,20 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
               ))}
             </div>
           </div>
-
-          <p className="text-xs text-text-muted text-center mt-2">
-            {locale === 'nl'
-              ? 'Sleep de grenzen om de verdeling aan te passen'
-              : 'Drag the boundaries to adjust allocation'}
-          </p>
           </div>
         </div>
 
         {/* Preset Selector Buttons */}
         <div className="flex justify-center">
-          <div className="inline-flex rounded-lg border border-gray-300 bg-white shadow-sm">
+          <div className="flex items-center gap-2 p-2 bg-white/80 backdrop-blur-md rounded-full border border-gray-200 shadow-lg">
             {PRESETS.map((preset) => (
               <button
                 key={preset.id}
                 onClick={() => handlePresetChange(preset.id)}
-                className={`px-6 py-3 text-sm font-medium transition-colors first:rounded-l-lg last:rounded-r-lg border-r last:border-r-0 border-gray-300 ${
+                className={`px-6 py-3 rounded-full font-medium text-sm transition-all duration-300 ${
                   selectedPreset === preset.id
-                    ? 'bg-primary text-white'
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                    ? 'bg-gradient-3-mid text-gray-900 shadow-md'
+                    : 'text-gray-700 hover:bg-gray-100'
                 }`}
               >
                 {preset[locale]}
