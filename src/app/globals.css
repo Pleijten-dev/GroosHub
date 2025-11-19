@@ -193,11 +193,11 @@
   --panel-inner-padding: var(--space-lg);
 
   /* ========== BACKGROUND GRADIENT BLOBS ========== */
-  /* Subtle gradient blob colors with increased visibility */
-  --blob-1-color: rgba(12, 33, 26, 0.06);    /* darkest green */
-  --blob-2-color: rgba(72, 128, 106, 0.08);  /* teal green */
-  --blob-3-color: rgba(71, 118, 56, 0.06);   /* olive green */
-  --blob-4-color: rgba(138, 151, 107, 0.08); /* sage green */
+  /* Vibrant gradient blob colors for glassmorphism effect */
+  --blob-1-color: rgba(12, 33, 26, 0.35);    /* darkest green */
+  --blob-2-color: rgba(72, 128, 106, 0.4);   /* teal green */
+  --blob-3-color: rgba(71, 118, 56, 0.35);   /* olive green */
+  --blob-4-color: rgba(138, 151, 107, 0.4);  /* sage green */
   
   /* ========== LAYOUT SYSTEM ========== */
   
@@ -661,10 +661,10 @@ body {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 20% 30%, var(--blob-1-color) 0%, transparent 40%),
-    radial-gradient(circle at 80% 70%, var(--blob-2-color) 0%, transparent 40%),
-    radial-gradient(circle at 40% 80%, var(--blob-3-color) 0%, transparent 40%),
-    radial-gradient(circle at 70% 20%, var(--blob-4-color) 0%, transparent 40%);
+    radial-gradient(circle at 20% 30%, var(--blob-1-color) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, var(--blob-2-color) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, var(--blob-3-color) 0%, transparent 50%),
+    radial-gradient(circle at 70% 20%, var(--blob-4-color) 0%, transparent 50%);
   z-index: 0;
   pointer-events: none;
 }
