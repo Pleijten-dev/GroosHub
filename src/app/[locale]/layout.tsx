@@ -42,8 +42,8 @@ export default async function LocaleLayout({
         }
       />
 
-      {/* Main content area */}
-      <main className="flex flex-col h-screen">
+      {/* Main content area with proper padding for fixed navbar */}
+      <main className="min-h-screen" style={{ paddingTop: '64px' }}>
         {children}
       </main>
     </div>

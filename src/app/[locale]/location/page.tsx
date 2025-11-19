@@ -635,10 +635,13 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
   return (
     <div
-      className="flex-1 w-screen overflow-hidden flex flex-col mt-[64px]"
+      className="w-screen overflow-hidden flex flex-col"
       style={{
+        height: '100vh',
+        marginTop: '-64px',
         marginLeft: 'calc(var(--space-base) * -1)',
-        marginRight: 'calc(var(--space-base) * -1)'
+        marginRight: 'calc(var(--space-base) * -1)',
+        paddingTop: '64px'
       }}
     >
 
@@ -657,7 +660,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
       {/* MAIN CONTENT - Margin adjusted for fixed sidebar */}
       <main className={`
-        flex flex-col flex-1
+        flex flex-col overflow-auto h-full
         ${mainContentMargin}
         p-8
       `}>
