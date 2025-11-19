@@ -368,16 +368,10 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
       <svg width={width} height={height} style={{ overflow: 'hidden' }}>
         <defs>
           <filter id="voronoi-mute">
-            {/* Convert to grayscale - same as noise pattern (redundant since already gray) */}
+            {/* Ensure grayscale (redundant since already gray, but keeps consistency) */}
             <feColorMatrix in="SourceGraphic" type="saturate" values="0" result="gray" />
-            {/* Crush levels - same as noise pattern */}
-            <feComponentTransfer in="gray" result="leveled">
-              <feFuncR type="linear" slope="3.33" intercept="-1" />
-              <feFuncG type="linear" slope="3.33" intercept="-1" />
-              <feFuncB type="linear" slope="3.33" intercept="-1" />
-            </feComponentTransfer>
-            {/* Map through 6-color gradient table (darkest to lightest) - creates solid colors */}
-            <feComponentTransfer in="leveled" result="colorized">
+            {/* Map 6 discrete grayscale values directly through 6-color gradient table */}
+            <feComponentTransfer in="gray" result="colorized">
               <feFuncR type="table" tableValues="0.047 0.282 0.278 0.388 0.541 0.973" />
               <feFuncG type="table" tableValues="0.129 0.502 0.463 0.514 0.592 0.933" />
               <feFuncB type="table" tableValues="0.102 0.416 0.220 0.298 0.420 0.894" />
