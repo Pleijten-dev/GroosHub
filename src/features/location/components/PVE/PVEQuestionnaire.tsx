@@ -75,6 +75,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
   const [percentages, setPercentages] = useState<PVEAllocations>(PRESETS[0].allocations);
   const [disabledCategories, setDisabledCategories] = useState<Set<keyof PVEAllocations>>(new Set());
   const [lockedCategories, setLockedCategories] = useState<Set<keyof PVEAllocations>>(new Set());
+  const [expandedLabels, setExpandedLabels] = useState<Set<keyof PVEAllocations>>(new Set());
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
 
@@ -380,150 +381,133 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
   return (
     <div className="flex items-center justify-center h-full bg-gradient-to-br from-gray-50 to-gray-100 p-lg">
       <div className="w-full max-w-6xl">
-        {/* Header with presets */}
-        <div className="mb-lg text-center">
-          <h2 className="text-3xl font-bold text-text-primary mb-base">
-            {locale === 'nl' ? 'Programma van Eisen' : 'Requirements Program'}
-          </h2>
-
-          {/* Preset Selector */}
-          <div className="flex items-center justify-center gap-2 p-2 bg-white/80 backdrop-blur-md rounded-full border border-gray-200 shadow-lg inline-flex">
-            {PRESETS.map((preset) => (
-              <button
-                key={preset.id}
-                onClick={() => handlePresetChange(preset.id)}
-                className={`
-                  px-6 py-3 rounded-full font-medium text-sm transition-all duration-300
-                  ${
-                    selectedPreset === preset.id
-                      ? 'bg-gradient-3-mid text-gray-900 shadow-md'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }
-                `}
-              >
-                {preset[locale]}
-              </button>
-            ))}
+        {/* Voronoi visualization */}
+        <div className="flex justify-center mb-base">
+          <div className="border-2 border-gray-300 overflow-hidden shadow-lg bg-white">
+            {renderVoronoiPattern}
           </div>
         </div>
 
         {/* Total M2 Input */}
-        <div className="mb-base">
-          <label className="block text-sm font-medium text-text-secondary mb-2">
-            {locale === 'nl' ? 'Totale bruto vloer oppervlakte (m²)' : 'Total gross floor area (m²)'}
-          </label>
-          <input
-            type="number"
-            value={totalM2}
-            onChange={(e) => setTotalM2(Math.max(1, parseInt(e.target.value) || 1))}
-            className="w-full max-w-xs px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            min="1"
-            step="100"
-          />
+        <div className="flex justify-center mb-base">
+          <div className="w-[600px]">
+            <label className="block text-sm font-medium text-text-secondary mb-2">
+              {locale === 'nl' ? 'Totale bruto vloer oppervlakte (m²)' : 'Total gross floor area (m²)'}
+            </label>
+            <input
+              type="number"
+              value={totalM2}
+              onChange={(e) => setTotalM2(Math.max(1, parseInt(e.target.value) || 1))}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              min="1"
+              step="100"
+            />
+          </div>
         </div>
 
         {/* Interactive Stacked Bar */}
-        <div className="mb-lg">
-          <div
-            ref={barRef}
-            className="relative h-32 rounded-lg overflow-hidden border-2 border-gray-300 shadow-lg bg-white"
-            style={{ cursor: draggingIndex !== null ? 'ew-resize' : 'default' }}
-          >
-            <svg width="100%" height="100%" className="absolute inset-0">
-              <defs>
-                {/* Noise gradient filters for each category */}
-                {CATEGORIES.map((cat, idx) => (
-                  <filter
-                    key={cat.id}
-                    id={`noise-${cat.id}`}
-                    filterUnits="objectBoundingBox"
-                    primitiveUnits="objectBoundingBox"
-                    x="-0.2"
-                    y="-0.2"
-                    width="1.4"
-                    height="1.4"
-                  >
-                    {/* Procedural noise */}
-                    <feTurbulence
-                      type="fractalNoise"
-                      baseFrequency={0.001 * (0.9 + idx * 0.05)}
-                      numOctaves="3"
-                      seed={idx * 1000}
-                      result="noise"
-                    />
-                    {/* Soften */}
-                    <feGaussianBlur in="noise" stdDeviation="0.015" edgeMode="duplicate" result="soft" />
-                    {/* Grayscale */}
-                    <feColorMatrix in="soft" type="saturate" values="0" result="gray" />
-                    {/* Levels */}
-                    <feComponentTransfer in="gray" result="leveled">
-                      <feFuncR type="linear" slope="3.33" intercept="-1" />
-                      <feFuncG type="linear" slope="3.33" intercept="-1" />
-                      <feFuncB type="linear" slope="3.33" intercept="-1" />
-                    </feComponentTransfer>
-                    {/* Gradient map to green palette */}
-                    <feComponentTransfer in="leveled" result="colorized">
-                      <feFuncR type="table" tableValues="0.047 0.282 0.278 0.541 0.973" />
-                      <feFuncG type="table" tableValues="0.129 0.502 0.463 0.592 0.933" />
-                      <feFuncB type="table" tableValues="0.102 0.416 0.220 0.420 0.894" />
-                    </feComponentTransfer>
-                    {/* Clip to shape */}
-                    <feComposite in="colorized" in2="SourceAlpha" operator="in" result="final" />
-                  </filter>
-                ))}
-              </defs>
+        <div className="flex justify-center mb-lg">
+          <div className="w-[600px]">
+            <div
+              ref={barRef}
+              className="relative h-32 rounded-lg overflow-hidden border-2 border-gray-300 shadow-lg bg-white"
+              style={{ cursor: draggingIndex !== null ? 'ew-resize' : 'default' }}
+            >
+              <svg width="100%" height="100%" className="absolute inset-0">
+                <defs>
+                  {/* Noise gradient filters for each category */}
+                  {CATEGORIES.map((cat, idx) => (
+                    <filter
+                      key={cat.id}
+                      id={`noise-${cat.id}`}
+                      filterUnits="objectBoundingBox"
+                      primitiveUnits="objectBoundingBox"
+                      x="-0.2"
+                      y="-0.2"
+                      width="1.4"
+                      height="1.4"
+                    >
+                      {/* Procedural noise */}
+                      <feTurbulence
+                        type="fractalNoise"
+                        baseFrequency={0.001 * (0.9 + idx * 0.05)}
+                        numOctaves="3"
+                        seed={idx * 1000}
+                        result="noise"
+                      />
+                      {/* Soften */}
+                      <feGaussianBlur in="noise" stdDeviation="0.015" edgeMode="duplicate" result="soft" />
+                      {/* Grayscale */}
+                      <feColorMatrix in="soft" type="saturate" values="0" result="gray" />
+                      {/* Levels */}
+                      <feComponentTransfer in="gray" result="leveled">
+                        <feFuncR type="linear" slope="3.33" intercept="-1" />
+                        <feFuncG type="linear" slope="3.33" intercept="-1" />
+                        <feFuncB type="linear" slope="3.33" intercept="-1" />
+                      </feComponentTransfer>
+                      {/* Gradient map to green palette */}
+                      <feComponentTransfer in="leveled" result="colorized">
+                        <feFuncR type="table" tableValues="0.047 0.282 0.278 0.541 0.973" />
+                        <feFuncG type="table" tableValues="0.129 0.502 0.463 0.592 0.933" />
+                        <feFuncB type="table" tableValues="0.102 0.416 0.220 0.420 0.894" />
+                      </feComponentTransfer>
+                      {/* Clip to shape */}
+                      <feComposite in="colorized" in2="SourceAlpha" operator="in" result="final" />
+                    </filter>
+                  ))}
+                </defs>
 
-              {/* Render sections */}
-              {activeCategories.map((cat, idx) => {
-                const x = getCumulativePercentage(idx);
-                const width = percentages[cat.id];
-                if (width === 0) return null;
+                {/* Render bar sections */}
+                {activeCategories.map((cat, idx) => {
+                  const x = getCumulativePercentage(idx);
+                  const width = percentages[cat.id];
+                  if (width === 0) return null;
 
-                return (
-                  <rect
-                    key={cat.id}
-                    x={`${x}%`}
-                    y="0"
-                    width={`${width}%`}
-                    height="100%"
-                    fill="#fff"
-                    filter={`url(#noise-${cat.id})`}
-                    style={{ opacity: 0.98 }}
-                  />
-                );
-              })}
-
-              {/* Draggable dividers */}
-              {activeCategories.slice(0, -1).map((cat, idx) => {
-                const x = getCumulativePercentage(idx + 1);
-
-                return (
-                  <g
-                    key={`divider-${idx}`}
-                    onMouseDown={() => handleDragStart(idx)}
-                    style={{ cursor: 'ew-resize' }}
-                  >
-                    <line
-                      x1={`${x}%`}
-                      y1="0"
-                      x2={`${x}%`}
-                      y2="100%"
-                      stroke="#fff"
-                      strokeWidth="3"
-                      opacity="0.8"
-                    />
+                  return (
                     <rect
-                      x={`calc(${x}% - 4px)`}
+                      key={cat.id}
+                      x={`${x}%`}
                       y="0"
-                      width="8"
+                      width={`${width}%`}
                       height="100%"
-                      fill="transparent"
+                      fill="#fff"
+                      filter={`url(#noise-${cat.id})`}
+                      style={{ opacity: 0.98 }}
                     />
-                  </g>
-                );
-              })}
-            </svg>
-          </div>
+                  );
+                })}
+
+                {/* Draggable dividers */}
+                {activeCategories.slice(0, -1).map((cat, idx) => {
+                  const x = getCumulativePercentage(idx + 1);
+
+                  return (
+                    <g
+                      key={`divider-${idx}`}
+                      onMouseDown={() => handleDragStart(idx)}
+                      style={{ cursor: 'ew-resize' }}
+                    >
+                      <line
+                        x1={`${x}%`}
+                        y1="0"
+                        x2={`${x}%`}
+                        y2="100%"
+                        stroke="#fff"
+                        strokeWidth="3"
+                        opacity="0.8"
+                      />
+                      <rect
+                        x={`calc(${x}% - 4px)`}
+                        y="0"
+                        width="8"
+                        height="100%"
+                        fill="transparent"
+                      />
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
 
           {/* Labels positioned below each bar section */}
           <div className="relative mt-4" style={{ height: '160px' }}>
@@ -566,7 +550,44 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
                 const width = percentages[cat.id];
                 const xPercent = (x / containerWidth) * 100;
                 const verticalOffset = row === 0 ? 0 : 80;
+                const isExpanded = expandedLabels.has(cat.id);
+                const isSmall = width < 15; // Show compact version if less than 15%
 
+                const toggleExpanded = () => {
+                  const newExpanded = new Set(expandedLabels);
+                  if (isExpanded) {
+                    newExpanded.delete(cat.id);
+                  } else {
+                    newExpanded.add(cat.id);
+                  }
+                  setExpandedLabels(newExpanded);
+                };
+
+                // Compact label for small sections
+                if (isSmall && !isExpanded) {
+                  return (
+                    <div
+                      key={`label-${cat.id}`}
+                      className="absolute"
+                      style={{
+                        left: `${xPercent}%`,
+                        transform: 'translateX(-50%)',
+                        top: `${verticalOffset}px`
+                      }}
+                    >
+                      <button
+                        onClick={toggleExpanded}
+                        className="bg-white border border-gray-300 rounded px-2 py-1 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                        title={locale === 'nl' ? 'Klik om uit te klappen' : 'Click to expand'}
+                      >
+                        <div className="text-xs font-bold text-gray-900">{cat[locale].slice(0, 3)}.</div>
+                        <div className="text-xs text-gray-600">{width.toFixed(1)}%</div>
+                      </button>
+                    </div>
+                  );
+                }
+
+                // Expanded label (shown with high z-index overlay)
                 return (
                   <div
                     key={`label-${cat.id}`}
@@ -574,71 +595,87 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
                     style={{
                       left: `${xPercent}%`,
                       transform: 'translateX(-50%)',
-                      top: `${verticalOffset}px`
+                      top: `${verticalOffset}px`,
+                      zIndex: isExpanded ? 50 : 1
                     }}
                   >
-                    <div className="flex items-center gap-1 mb-1">
-                      <span className="font-bold text-sm text-gray-900">
-                        {cat[locale]}
-                      </span>
+                    {isExpanded && (
                       <button
-                        onClick={() => toggleLock(cat.id)}
-                        className="text-gray-600 hover:text-gray-900"
-                        title={lockedCategories.has(cat.id) ? (locale === 'nl' ? 'Ontgrendelen' : 'Unlock') : (locale === 'nl' ? 'Vergrendelen' : 'Lock')}
-                      >
-                        {lockedCategories.has(cat.id) ? (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                          </svg>
-                        ) : (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                            <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
-                          </svg>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => toggleCategory(cat.id)}
-                        disabled={lockedCategories.has(cat.id)}
-                        className={`text-lg leading-none ${
-                          lockedCategories.has(cat.id)
-                            ? 'text-gray-400 cursor-not-allowed'
-                            : 'text-gray-600 hover:text-gray-900'
-                        }`}
-                        title={lockedCategories.has(cat.id) ? (locale === 'nl' ? 'Ontgrendel eerst' : 'Unlock first') : (locale === 'nl' ? 'Verwijderen' : 'Remove')}
+                        onClick={toggleExpanded}
+                        className="absolute -top-2 -right-2 bg-gray-700 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-gray-900 z-10"
+                        title={locale === 'nl' ? 'Sluiten' : 'Close'}
                       >
                         ×
                       </button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        value={width.toFixed(1)}
-                        onChange={(e) => handlePercentageChange(cat.id, parseFloat(e.target.value) || 0)}
-                        disabled={lockedCategories.has(cat.id)}
-                        className={`w-16 px-1 py-0.5 text-xs text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary ${
-                          lockedCategories.has(cat.id) ? 'bg-gray-100 cursor-not-allowed' : ''
-                        }`}
-                        min="0"
-                        max="100"
-                        step="0.1"
-                      />
-                      <span className="text-xs text-gray-600">%</span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <input
-                        type="number"
-                        value={absoluteValues[cat.id]}
-                        onChange={(e) => handleM2Change(cat.id, parseInt(e.target.value) || 0)}
-                        disabled={lockedCategories.has(cat.id)}
-                        className={`w-20 px-1 py-0.5 text-xs text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary ${
-                          lockedCategories.has(cat.id) ? 'bg-gray-100 cursor-not-allowed' : ''
-                        }`}
-                        min="0"
-                        step="10"
-                      />
-                      <span className="text-xs text-gray-600">m²</span>
+                    )}
+                    <div
+                      className={`bg-white rounded-lg border-2 border-gray-300 p-2 shadow-lg ${isExpanded ? 'ring-2 ring-primary' : ''}`}
+                      onClick={isSmall && !isExpanded ? toggleExpanded : undefined}
+                      style={{ cursor: isSmall && !isExpanded ? 'pointer' : 'default' }}
+                    >
+                      <div className="flex items-center gap-1 mb-1">
+                        <span className="font-bold text-sm text-gray-900">
+                          {cat[locale]}
+                        </span>
+                        <button
+                          onClick={() => toggleLock(cat.id)}
+                          className="text-gray-600 hover:text-gray-900"
+                          title={lockedCategories.has(cat.id) ? (locale === 'nl' ? 'Ontgrendelen' : 'Unlock') : (locale === 'nl' ? 'Vergrendelen' : 'Lock')}
+                        >
+                          {lockedCategories.has(cat.id) ? (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                          ) : (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                              <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+                            </svg>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => toggleCategory(cat.id)}
+                          disabled={lockedCategories.has(cat.id)}
+                          className={`text-lg leading-none ${
+                            lockedCategories.has(cat.id)
+                              ? 'text-gray-400 cursor-not-allowed'
+                              : 'text-gray-600 hover:text-gray-900'
+                          }`}
+                          title={lockedCategories.has(cat.id) ? (locale === 'nl' ? 'Ontgrendel eerst' : 'Unlock first') : (locale === 'nl' ? 'Verwijderen' : 'Remove')}
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          value={width.toFixed(1)}
+                          onChange={(e) => handlePercentageChange(cat.id, parseFloat(e.target.value) || 0)}
+                          disabled={lockedCategories.has(cat.id)}
+                          className={`w-16 px-1 py-0.5 text-xs text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary ${
+                            lockedCategories.has(cat.id) ? 'bg-gray-100 cursor-not-allowed' : ''
+                          }`}
+                          min="0"
+                          max="100"
+                          step="0.1"
+                        />
+                        <span className="text-xs text-gray-600">%</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <input
+                          type="number"
+                          value={absoluteValues[cat.id]}
+                          onChange={(e) => handleM2Change(cat.id, parseInt(e.target.value) || 0)}
+                          disabled={lockedCategories.has(cat.id)}
+                          className={`w-20 px-1 py-0.5 text-xs text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary ${
+                            lockedCategories.has(cat.id) ? 'bg-gray-100 cursor-not-allowed' : ''
+                          }`}
+                          min="0"
+                          step="10"
+                        />
+                        <span className="text-xs text-gray-600">m²</span>
+                      </div>
                     </div>
                   </div>
                 );
@@ -669,34 +706,21 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
           </p>
         </div>
 
-        {/* Voronoi visualization */}
-        <div className="flex justify-center mb-base">
-          <div className="border-2 border-gray-300 overflow-hidden shadow-lg bg-white">
-            {renderVoronoiPattern}
-          </div>
-        </div>
-
-        {/* Legend */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-          <h3 className="font-semibold text-text-primary mb-3">
-            {locale === 'nl' ? 'Overzicht' : 'Summary'}
-          </h3>
-          <div className="grid grid-cols-2 gap-4">
-            {CATEGORIES.map((cat) => (
-              <div key={cat.id} className="flex items-center gap-3">
-                <div
-                  className="w-6 h-6 rounded"
-                  style={{ backgroundColor: cat.color }}
-                />
-                <div className="flex-1">
-                  <div className="text-sm font-medium text-text-primary">
-                    {cat[locale]}
-                  </div>
-                  <div className="text-xs text-text-secondary">
-                    {percentages[cat.id].toFixed(1)}% · {absoluteValues[cat.id].toLocaleString()} m²
-                  </div>
-                </div>
-              </div>
+        {/* Preset Selector Buttons */}
+        <div className="flex justify-center">
+          <div className="inline-flex rounded-lg border border-gray-300 bg-white shadow-sm">
+            {PRESETS.map((preset) => (
+              <button
+                key={preset.id}
+                onClick={() => handlePresetChange(preset.id)}
+                className={`px-6 py-3 text-sm font-medium transition-colors first:rounded-l-lg last:rounded-r-lg border-r last:border-r-0 border-gray-300 ${
+                  selectedPreset === preset.id
+                    ? 'bg-primary text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                {preset[locale]}
+              </button>
             ))}
           </div>
         </div>
