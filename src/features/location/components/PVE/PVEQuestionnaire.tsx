@@ -25,12 +25,12 @@ interface Category {
 }
 
 const CATEGORIES: Category[] = [
-  { id: 'apartments', nl: 'Woningen', en: 'Apartments', color: '#48806a' },
-  { id: 'commercial', nl: 'Commercieel', en: 'Commercial', color: '#477638' },
-  { id: 'hospitality', nl: 'Horeca', en: 'Hospitality', color: '#8a976b' },
-  { id: 'social', nl: 'Maatschappelijk', en: 'Social', color: '#0c211a' },
-  { id: 'communal', nl: 'Gemeenschappelijk', en: 'Communal', color: '#588157' },
-  { id: 'offices', nl: 'Kantoren', en: 'Offices', color: '#3d5a3a' }
+  { id: 'apartments', nl: 'Woningen', en: 'Apartments', color: '#b5bc79' },
+  { id: 'commercial', nl: 'Commercieel', en: 'Commercial', color: '#9ca86d' },
+  { id: 'hospitality', nl: 'Horeca', en: 'Hospitality', color: '#869561' },
+  { id: 'social', nl: 'Maatschappelijk', en: 'Social', color: '#718456' },
+  { id: 'communal', nl: 'Gemeenschappelijk', en: 'Communal', color: '#5e744c' },
+  { id: 'offices', nl: 'Kantoren', en: 'Offices', color: '#486341' }
 ];
 
 type PresetId = 'mixed-residential' | 'urban-retail' | 'community' | 'custom';
