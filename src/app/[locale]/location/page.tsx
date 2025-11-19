@@ -662,6 +662,9 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
       <main className={`
         flex flex-col overflow-auto h-full
         ${mainContentMargin}
+        bg-white/60 backdrop-blur-sm
+        rounded-3xl
+        m-base
       `}>
         {renderMainContent()}
       </main>

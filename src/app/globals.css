@@ -284,12 +284,12 @@
 @layer utilities {
   /* Glass effects */
   .glass {
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--backdrop-blur));
-    -webkit-backdrop-filter: blur(var(--backdrop-blur));
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: var(--border-width-thin) solid var(--glass-border);
   }
-  
+
   .glass-strong {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(16px);

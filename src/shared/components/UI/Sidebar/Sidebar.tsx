@@ -41,7 +41,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         positionClass,
         
         // Glass background effect
-        classBuilders.glass(true, 'border-r border-gray-200/50 shadow-lg'),
+        classBuilders.glass(false, 'border-r border-gray-200/50'),
         
         // Flex layout
         'flex flex-col',
