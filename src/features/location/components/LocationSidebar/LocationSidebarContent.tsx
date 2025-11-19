@@ -11,22 +11,23 @@ import { AddressAutocomplete } from '../AddressAutocomplete/AddressAutocomplete'
 // Types for location analysis sections
 const MAIN_SECTIONS = [
   { id: 'doelgroepen', nl: 'Doelgroepen', en: 'Target Groups' },
-  { id: 'score', nl: 'Score', en: 'Score' },
-  { id: 'voorzieningen', nl: 'Voorzieningen', en: 'Amenities' },
-  { id: 'kaarten', nl: 'Kaarten', en: 'Maps' },
+  { id: 'omgeving', nl: 'Omgeving', en: 'Environment' },
   { id: 'pve', nl: 'Programma van Eisen', en: 'Requirements Program' },
   { id: 'genereer-rapport', nl: 'Genereer Rapport', en: 'Generate Report' }
 ] as const;
 
-const SCORE_SUBSECTIONS = [
+const OMGEVING_SUBSECTIONS = [
+  { id: 'score', nl: 'Score', en: 'Score' },
   { id: 'demografie', nl: 'Demografie', en: 'Demographics' },
   { id: 'woningmarkt', nl: 'Woningmarkt', en: 'Housing Market' },
   { id: 'veiligheid', nl: 'Veiligheid', en: 'Safety' },
   { id: 'gezondheid', nl: 'Gezondheid', en: 'Health' },
-  { id: 'leefbaarheid', nl: 'Leefbaarheid', en: 'Livability' }
+  { id: 'leefbaarheid', nl: 'Leefbaarheid', en: 'Livability' },
+  { id: 'voorzieningen', nl: 'Voorzieningen', en: 'Amenities' },
+  { id: 'kaarten', nl: 'Kaarten', en: 'Maps' }
 ] as const;
 
-type SectionId = typeof MAIN_SECTIONS[number]['id'] | typeof SCORE_SUBSECTIONS[number]['id'];
+type SectionId = typeof MAIN_SECTIONS[number]['id'] | typeof OMGEVING_SUBSECTIONS[number]['id'];
 
 interface LocationSidebarContentProps {
   locale: Locale;
@@ -46,7 +47,15 @@ export const useLocationSidebarSections = ({
   isSearching = false,
 }: LocationSidebarContentProps): SidebarSection[] => {
   const [searchAddress, setSearchAddress] = useState<string>('');
-  const [isScoreExpanded, setIsScoreExpanded] = useState<boolean>(false);
+  const [isOmgevingExpanded, setIsOmgevingExpanded] = useState<boolean>(false);
+
+  // Auto-expand Omgeving dropdown when activeTab is one of its subsections
+  React.useEffect(() => {
+    const isOmgevingSubsection = OMGEVING_SUBSECTIONS.some(sub => sub.id === activeTab);
+    if (isOmgevingSubsection && !isOmgevingExpanded) {
+      setIsOmgevingExpanded(true);
+    }
+  }, [activeTab, isOmgevingExpanded]);
 
   const handleAddressSearch = (): void => {
     if (searchAddress.trim() && onAddressSearch) {
@@ -60,14 +69,14 @@ export const useLocationSidebarSections = ({
     }
   };
 
-  const handleScoreToggle = (): void => {
-    setIsScoreExpanded(!isScoreExpanded);
-    if (!isScoreExpanded) {
+  const handleOmgevingToggle = (): void => {
+    setIsOmgevingExpanded(!isOmgevingExpanded);
+    if (!isOmgevingExpanded) {
       onTabChange('score');
     }
   };
 
-  const getSectionText = (section: typeof MAIN_SECTIONS[number] | typeof SCORE_SUBSECTIONS[number]): string => {
+  const getSectionText = (section: typeof MAIN_SECTIONS[number] | typeof OMGEVING_SUBSECTIONS[number]): string => {
     return section[locale];
   };
 
@@ -109,8 +118,8 @@ export const useLocationSidebarSections = ({
           {/* Main Section Button */}
           <Button
             onClick={() => {
-              if (section.id === 'score') {
-                handleScoreToggle();
+              if (section.id === 'omgeving') {
+                handleOmgevingToggle();
               } else {
                 onTabChange(section.id);
               }
@@ -118,18 +127,18 @@ export const useLocationSidebarSections = ({
             variant="ghost"
             className={cn(
               'w-full justify-between text-left p-sm rounded-md',
-              (activeTab === section.id || 
-               (section.id === 'score' && SCORE_SUBSECTIONS.some(sub => sub.id === activeTab)))
+              (activeTab === section.id ||
+               (section.id === 'omgeving' && OMGEVING_SUBSECTIONS.some(sub => sub.id === activeTab)))
                 ? 'bg-primary-light text-primary border border-primary'
                 : 'text-text-secondary hover:bg-gray-100 hover:text-text-primary'
             )}
           >
             <span className="font-medium">{getSectionText(section)}</span>
-            {section.id === 'score' && (
-              <svg 
+            {section.id === 'omgeving' && (
+              <svg
                 className={cn(
                   'w-4 h-4 transition-transform duration-fast',
-                  isScoreExpanded ? 'rotate-90' : 'rotate-0'
+                  isOmgevingExpanded ? 'rotate-90' : 'rotate-0'
                 )}
                 viewBox="0 0 24 24"
                 fill="currentColor"
@@ -138,11 +147,11 @@ export const useLocationSidebarSections = ({
               </svg>
             )}
           </Button>
-          
-          {/* Score Subsections */}
-          {section.id === 'score' && isScoreExpanded && (
+
+          {/* Omgeving Subsections */}
+          {section.id === 'omgeving' && isOmgevingExpanded && (
             <div className="mt-xs ml-md space-y-xs">
-              {SCORE_SUBSECTIONS.map((subsection) => (
+              {OMGEVING_SUBSECTIONS.map((subsection) => (
                 <Button
                   key={subsection.id}
                   onClick={() => onTabChange(subsection.id)}

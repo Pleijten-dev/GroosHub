@@ -25,28 +25,31 @@ import { getPersonaCubePosition } from '../../../features/location/utils/cubePos
 import { calculateConnections, calculateScenarios } from '../../../features/location/utils/connectionCalculations';
 import housingPersonasData from '../../../features/location/data/sources/housing-personas.json';
 import { LocationMap, MapStyle, WMSLayerControl, WMSLayerSelection, WMSFeatureInfo } from '../../../features/location/components/Maps';
+import { calculateAllAmenityScores, type AmenityScore } from '../../../features/location/data/scoring/amenityScoring';
+import { PVEQuestionnaire } from '../../../features/location/components/PVE';
 import { MapExportButton } from '../../../features/location/components/MapExport';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
   { id: 'doelgroepen', nl: 'Doelgroepen', en: 'Target Groups' },
-  { id: 'score', nl: 'Score', en: 'Score' },
-  { id: 'voorzieningen', nl: 'Voorzieningen', en: 'Amenities' },
-  { id: 'kaarten', nl: 'Kaarten', en: 'Maps' },
+  { id: 'omgeving', nl: 'Omgeving', en: 'Environment' },
   { id: 'pve', nl: 'Programma van Eisen', en: 'Requirements Program' },
   { id: 'genereer-rapport', nl: 'Genereer Rapport', en: 'Generate Report' }
 ] as const;
 
-// Score subsections with dual language support
-const SCORE_SUBSECTIONS = [
+// Omgeving subsections with dual language support
+const OMGEVING_SUBSECTIONS = [
+  { id: 'score', nl: 'Score', en: 'Score' },
   { id: 'demografie', nl: 'Demografie', en: 'Demographics' },
   { id: 'woningmarkt', nl: 'Woningmarkt', en: 'Housing Market' },
   { id: 'veiligheid', nl: 'Veiligheid', en: 'Safety' },
   { id: 'gezondheid', nl: 'Gezondheid', en: 'Health' },
-  { id: 'leefbaarheid', nl: 'Leefbaarheid', en: 'Livability' }
+  { id: 'leefbaarheid', nl: 'Leefbaarheid', en: 'Livability' },
+  { id: 'voorzieningen', nl: 'Voorzieningen', en: 'Amenities' },
+  { id: 'kaarten', nl: 'Kaarten', en: 'Maps' }
 ] as const;
 
-type SectionId = typeof MAIN_SECTIONS[number]['id'] | typeof SCORE_SUBSECTIONS[number]['id'];
+type SectionId = typeof MAIN_SECTIONS[number]['id'] | typeof OMGEVING_SUBSECTIONS[number]['id'];
 type TabName = SectionId;
 
 interface LocationPageProps {
@@ -275,25 +278,72 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         );
       }
 
-      // For Score tab - show overview with all data
+      // For Score tab - show Omgeving overview with clickable RadialChart
       if (activeTab === 'score') {
+        // Calculate Voorzieningen score from amenities data
+        let voorzieningenScore = 75; // Default value if no amenities data
+
+        if (amenities) {
+          // Calculate all amenity scores
+          const amenityScores = calculateAllAmenityScores(amenities.results);
+
+          // Sum up all countScore and proximityBonus values
+          const rawScore = amenityScores.reduce((sum: number, score: AmenityScore) => {
+            return sum + score.countScore + score.proximityBonus;
+          }, 0);
+
+          // Map from [-21, 42] range to [10, 100] range
+          // Formula: ((rawScore + 21) / 63) * 90 + 10
+          voorzieningenScore = Math.round(((rawScore + 21) / 63) * 90 + 10);
+        }
+
+        // Define the 5 omgeving categories
+        const omgevingData = [
+          { name: locale === 'nl' ? 'Betaalbaarheid' : 'Affordability', value: 75, color: '#48806a' },
+          { name: locale === 'nl' ? 'Veiligheid' : 'Safety', value: 85, color: '#477638' },
+          { name: locale === 'nl' ? 'Gezondheid' : 'Health', value: 72, color: '#8a976b' },
+          { name: locale === 'nl' ? 'Leefbaarheid' : 'Livability', value: 80, color: '#0c211a' },
+          { name: locale === 'nl' ? 'Voorzieningen' : 'Amenities', value: voorzieningenScore, color: '#48806a' }
+        ];
+
+        // Map category names to tab IDs
+        const categoryToTab: Record<string, TabName> = {
+          'Betaalbaarheid': 'woningmarkt',
+          'Affordability': 'woningmarkt',
+          'Veiligheid': 'veiligheid',
+          'Safety': 'veiligheid',
+          'Gezondheid': 'gezondheid',
+          'Health': 'gezondheid',
+          'Leefbaarheid': 'leefbaarheid',
+          'Livability': 'leefbaarheid',
+          'Voorzieningen': 'voorzieningen',
+          'Amenities': 'voorzieningen'
+        };
+
+        const handleCategoryClick = (categoryName: string) => {
+          const targetTab = categoryToTab[categoryName];
+          if (targetTab) {
+            setActiveTab(targetTab);
+          }
+        };
+
         return (
-          <div className="p-lg overflow-auto h-full">
-            <MultiLevelDataTable data={data} locale={locale} />
-            {amenities && (
-              <AmenitiesSummary
-                data={amenities}
-                locale={locale}
-                onViewAll={() => setActiveTab('voorzieningen')}
-              />
-            )}
-            {data.residential && (
-              <ResidentialSummary
-                data={data.residential}
-                locale={locale}
-                onViewAll={() => setActiveTab('woningmarkt')}
-              />
-            )}
+          <div className="flex items-center justify-center h-full bg-gradient-to-br from-gray-50 to-gray-100">
+            <div className="text-center">
+              <div className="flex justify-center mb-base">
+                <RadialChart
+                  data={omgevingData}
+                  width={600}
+                  height={500}
+                  showLabels={true}
+                  isSimple={false}
+                  onSliceClick={handleCategoryClick}
+                />
+              </div>
+              <h2 className="text-3xl font-bold text-text-primary">
+                {locale === 'nl' ? 'Score Overzicht' : 'Score Overview'}
+              </h2>
+            </div>
           </div>
         );
       }
@@ -408,80 +458,9 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         );
       }
 
-      // For PVE (Programma van Eisen) tab - show charts with dummy data
+      // For PVE (Programma van Eisen) tab - show interactive questionnaire
       if (activeTab === 'pve') {
-        // Dummy data for RadialChart
-        const radialData = [
-          { name: 'Veiligheid', value: 85, color: '#48806a' },
-          { name: 'Toegankelijkheid', value: 72, color: '#477638' },
-          { name: 'Voorzieningen', value: 90, color: '#8a976b' },
-          { name: 'Groen', value: 65, color: '#0c211a' },
-          { name: 'Mobiliteit', value: 78, color: '#48806a' },
-          { name: 'Sociale cohesie', value: 68, color: '#477638' },
-          { name: 'Leefbaarheid', value: 82, color: '#8a976b' },
-          { name: 'Duurzaamheid', value: 74, color: '#0c211a' }
-        ];
-
-        // Dummy data for BarChart
-        const barData = [
-          { name: 'Week 1', value: 45, color: '#48806a' },
-          { name: 'Week 2', value: 62, color: '#477638' },
-          { name: 'Week 3', value: 58, color: '#8a976b' },
-          { name: 'Week 4', value: 71, color: '#0c211a' },
-          { name: 'Week 5', value: 55, color: '#48806a' },
-          { name: 'Week 6', value: 68, color: '#477638' }
-        ];
-
-        return (
-          <div className="p-lg overflow-auto h-full">
-            <div className="space-y-lg">
-              <div>
-                <h2 className="text-2xl font-bold text-text-primary mb-base">
-                  {locale === 'nl' ? 'Programma van Eisen - Analyse' : 'Requirements Program - Analysis'}
-                </h2>
-                <p className="text-sm text-text-secondary mb-lg">
-                  {locale === 'nl'
-                    ? 'Visualisaties van de belangrijkste criteria en trends.'
-                    : 'Visualizations of key criteria and trends.'}
-                </p>
-              </div>
-
-              {/* Radial Chart Section */}
-              <div className="bg-white rounded-lg shadow-sm p-base border border-gray-200">
-                <h3 className="text-lg font-semibold text-text-primary mb-base">
-                  {locale === 'nl' ? 'Score Overzicht' : 'Score Overview'}
-                </h3>
-                <div className="flex justify-center">
-                  <RadialChart
-                    data={radialData}
-                    width={600}
-                    height={500}
-                    showLabels={true}
-                    isSimple={false}
-                  />
-                </div>
-              </div>
-
-              {/* Bar Chart Section */}
-              <div className="bg-white rounded-lg shadow-sm p-base border border-gray-200">
-                <h3 className="text-lg font-semibold text-text-primary mb-base">
-                  {locale === 'nl' ? 'Trend Analyse' : 'Trend Analysis'}
-                </h3>
-                <div className="flex justify-center">
-                  <BarChart
-                    data={barData}
-                    width={700}
-                    height={400}
-                    showLabels={true}
-                    showAverageLine={true}
-                    minValue={0}
-                    maxValue={100}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        );
+        return <PVEQuestionnaire locale={locale} />;
       }
 
       // For Generate Report tab - show export options

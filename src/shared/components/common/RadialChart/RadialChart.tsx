@@ -16,6 +16,7 @@ interface RadialChartProps {
   showLabels?: boolean;
   className?: string;
   onSliceHover?: (sliceName: string | null) => void;
+  onSliceClick?: (sliceName: string) => void;
 }
 
 // D3 type declarations
@@ -85,7 +86,8 @@ const RadialChart: React.FC<RadialChartProps> = ({
   isSimple = false,
   showLabels = true,
   className = '',
-  onSliceHover
+  onSliceHover,
+  onSliceClick
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -303,6 +305,14 @@ const RadialChart: React.FC<RadialChartProps> = ({
           .append("g")
           .attr("class", "slice-group")
           .style("cursor", "pointer");
+
+      // Click handler
+      sliceGroups
+        .on("click", function(this: SVGGElement, event: Event, d: RadialChartData) {
+          if (onSliceClick) {
+            onSliceClick(d.name);
+          }
+        });
 
       // Enhanced hover effects with callbacks
       sliceGroups
@@ -540,7 +550,7 @@ const RadialChart: React.FC<RadialChartProps> = ({
         window.d3.select(container).selectAll("*").remove();
       }
     };
-  }, [data, width, height, isSimple, showLabels, onSliceHover]);
+  }, [data, width, height, isSimple, showLabels, onSliceHover, onSliceClick]);
 
   return (
     <div
