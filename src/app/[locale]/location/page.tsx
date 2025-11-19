@@ -663,9 +663,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         flex flex-col overflow-auto h-full
         ${mainContentMargin}
       `}>
-        <div className="flex-1 flex flex-col m-8 glass-layer-inner rounded-3xl overflow-hidden">
-          {renderMainContent()}
-        </div>
+        {renderMainContent()}
       </main>
 
       {/* RIGHT MENU - Fixed in proper position */}
