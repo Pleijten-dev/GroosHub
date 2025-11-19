@@ -25,7 +25,7 @@ export default async function LocaleLayout({
   const session = await auth();
 
   return (
-    <div className={`${inter.className} page-background`}>
+    <div className={inter.className}>
       {/* Navigation Bar at the top */}
       <NavigationBar
         locale={locale}
@@ -43,7 +43,7 @@ export default async function LocaleLayout({
       />
 
       {/* Main content area with proper padding for fixed navbar */}
-      <main className="min-h-screen" style={{ paddingTop: '64px' }}>
+      <main className="min-h-screen bg-white" style={{ paddingTop: '64px' }}>
         {children}
       </main>
     </div>

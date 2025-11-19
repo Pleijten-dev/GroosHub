@@ -635,7 +635,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
   return (
     <div
-      className="w-screen overflow-hidden flex flex-col"
+      className="page-background w-screen overflow-hidden flex flex-col"
       style={{
         height: '100vh',
         marginTop: '-64px',
@@ -662,9 +662,8 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
       <main className={`
         flex flex-col overflow-auto h-full
         ${mainContentMargin}
-        p-8
       `}>
-        <div className="flex flex-col overflow-auto flex-1 glass-layer-inner rounded-3xl">
+        <div className="flex-1 flex flex-col m-8 glass-layer-inner rounded-3xl overflow-hidden">
           {renderMainContent()}
         </div>
       </main>
