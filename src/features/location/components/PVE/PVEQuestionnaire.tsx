@@ -297,7 +297,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
   const renderVoronoiPattern = useMemo(() => {
     const width = 1200;
     const height = 300;
-    const blurAmount = 20;
+    const blurAmount = 70; // Increased from 20 to 70 for much stronger blur
     const padding = blurAmount * 3; // Extra padding to ensure blur doesn't sample edges
 
     const cellSize = 5;
