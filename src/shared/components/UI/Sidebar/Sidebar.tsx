@@ -63,7 +63,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       
       {/* Sidebar Header */}
       <div className={cn(
-        'p-base border-b border-gray-200/30 min-h-[70px] bg-white/50 flex-shrink-0',
+        'p-base border-b border-gray-200/30 min-h-[70px] flex-shrink-0',
         isCollapsed ? 'flex items-center justify-center' : COMMON_CLASSES.flexBetween
       )}>
 
