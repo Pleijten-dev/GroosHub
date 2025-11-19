@@ -286,21 +286,23 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
     const width = 600;
     const height = 300;
     const blurAmount = 20;
-    const padding = blurAmount * 2; // Extend the rendering area to prevent edge bleeding
+    const padding = blurAmount * 3; // Extra padding to ensure blur doesn't sample edges
 
-    const cellSize = 5; // Size of each cell in the Voronoi diagram
-    const cols = Math.floor((width + padding * 2) / cellSize);
-    const rows = Math.floor((height + padding * 2) / cellSize);
+    const cellSize = 5;
+    const extendedWidth = width + padding * 2;
+    const extendedHeight = height + padding * 2;
+    const cols = Math.floor(extendedWidth / cellSize);
+    const rows = Math.floor(extendedHeight / cellSize);
 
     // Create one fixed seed point per category positioned at the edges
     const activeCategories = CATEGORIES.filter(cat => percentages[cat.id] > 0);
     const angleStep = (2 * Math.PI) / activeCategories.length;
-    const centerX = (width + padding * 2) / 2;
-    const centerY = (height + padding * 2) / 2;
+    const centerX = extendedWidth / 2;
+    const centerY = extendedHeight / 2;
 
-    // Position seeds at the edge of an ellipse that fits the canvas
-    const radiusX = width * 0.6; // Horizontal radius
-    const radiusY = height * 0.6; // Vertical radius
+    // Position seeds at the edge of an ellipse
+    const radiusX = width * 0.6;
+    const radiusY = height * 0.6;
 
     const seeds: { x: number; y: number; color: string; weight: number }[] = [];
 
@@ -312,11 +314,11 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
         x: centerX + Math.cos(angle) * radiusX,
         y: centerY + Math.sin(angle) * radiusY,
         color: cat.color,
-        weight: percentage // Weight represents the "strength" of this seed
+        weight: percentage
       });
     });
 
-    // Generate weighted Voronoi cells (extended area)
+    // Generate weighted Voronoi cells for extended area
     const cells: React.ReactElement[] = [];
 
     for (let row = 0; row < rows; row++) {
@@ -324,14 +326,11 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
         const x = col * cellSize + cellSize / 2;
         const y = row * cellSize + cellSize / 2;
 
-        // Find seed with minimum weighted distance
-        // Higher weight = larger influence area
         let minWeightedDist = Infinity;
-        let nearestColor = '#f9fafb';
+        let nearestColor = activeCategories[0]?.color || '#48806a';
 
         seeds.forEach(seed => {
           const dist = Math.sqrt((x - seed.x) ** 2 + (y - seed.y) ** 2);
-          // Weighted distance: divide by weight to make higher percentages claim more territory
           const weightedDist = dist / Math.sqrt(seed.weight);
 
           if (weightedDist < minWeightedDist) {
@@ -343,8 +342,8 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
         cells.push(
           <rect
             key={`${row}-${col}`}
-            x={col * cellSize - padding}
-            y={row * cellSize - padding}
+            x={col * cellSize}
+            y={row * cellSize}
             width={cellSize}
             height={cellSize}
             fill={nearestColor}
@@ -354,23 +353,16 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
     }
 
     return (
-      <svg width={width} height={height}>
+      <svg width={width} height={height} style={{ overflow: 'hidden' }}>
         <defs>
-          {/* Strong glass blur filter */}
           <filter id="voronoi-blur">
             <feGaussianBlur in="SourceGraphic" stdDeviation={blurAmount} />
           </filter>
-          {/* Clip path to show only the final area */}
-          <clipPath id="voronoi-clip">
-            <rect x="0" y="0" width={width} height={height} />
-          </clipPath>
         </defs>
 
-        {/* Apply blur first, then clip to final size */}
-        <g filter="url(#voronoi-blur)">
-          <g clipPath="url(#voronoi-clip)">
-            {cells}
-          </g>
+        {/* Render blurred content offset by padding, crops naturally via SVG viewport */}
+        <g transform={`translate(-${padding}, -${padding})`} filter="url(#voronoi-blur)">
+          {cells}
         </g>
       </svg>
     );
