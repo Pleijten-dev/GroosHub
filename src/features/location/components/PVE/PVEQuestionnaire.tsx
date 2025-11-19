@@ -25,8 +25,8 @@ interface Category {
 }
 
 const CATEGORIES: Category[] = [
-  { id: 'apartments', nl: 'Woningen', en: 'Apartments', color: '#f8eee4' },
-  { id: 'commercial', nl: 'Commercieel', en: 'Commercial', color: '#8a976b' },
+  { id: 'apartments', nl: 'Woningen', en: 'Apartments', color: '#8a976b' },
+  { id: 'commercial', nl: 'Commercieel', en: 'Commercial', color: '#778a5e' },
   { id: 'hospitality', nl: 'Horeca', en: 'Hospitality', color: '#63834c' },
   { id: 'social', nl: 'Maatschappelijk', en: 'Social', color: '#477638' },
   { id: 'communal', nl: 'Gemeenschappelijk', en: 'Communal', color: '#48806a' },
@@ -35,8 +35,8 @@ const CATEGORIES: Category[] = [
 
 // Grayscale values for Voronoi (will be recolored by filter to match noise pattern)
 const VORONOI_GRAYSCALE: Record<keyof PVEAllocations, string> = {
-  apartments: '#ffffff',    // Lightest → will become #f8eee4
-  commercial: '#cccccc',    // → will become #8a976b
+  apartments: '#ffffff',    // Lightest → will become #8a976b
+  commercial: '#cccccc',    // → will become #778a5e
   hospitality: '#999999',   // → will become #63834c
   social: '#666666',        // → will become #477638
   communal: '#333333',      // → will become #48806a
@@ -372,9 +372,9 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
             <feColorMatrix in="SourceGraphic" type="saturate" values="0" result="gray" />
             {/* Map 6 discrete grayscale values directly through 6-color gradient table */}
             <feComponentTransfer in="gray" result="colorized">
-              <feFuncR type="table" tableValues="0.047 0.282 0.278 0.388 0.541 0.973" />
-              <feFuncG type="table" tableValues="0.129 0.502 0.463 0.514 0.592 0.933" />
-              <feFuncB type="table" tableValues="0.102 0.416 0.220 0.298 0.420 0.894" />
+              <feFuncR type="table" tableValues="0.047 0.282 0.278 0.388 0.467 0.541" />
+              <feFuncG type="table" tableValues="0.129 0.502 0.463 0.514 0.541 0.592" />
+              <feFuncB type="table" tableValues="0.102 0.416 0.220 0.298 0.369 0.420" />
             </feComponentTransfer>
             {/* Blur AFTER color mapping - creates smooth transitions between solid colors */}
             <feGaussianBlur in="colorized" stdDeviation={blurAmount} result="blurred" />
