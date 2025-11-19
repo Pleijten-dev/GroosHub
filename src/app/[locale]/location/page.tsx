@@ -658,14 +658,13 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         className="!top-[64px] !bottom-0 !h-auto"
       />
 
-      {/* MAIN CONTENT - Margin adjusted for fixed sidebar with layered glass */}
+      {/* MAIN CONTENT - Margin adjusted for fixed sidebar */}
       <main className={`
         flex flex-col h-full
         ${mainContentMargin}
-        glass-layer-outer
         p-8
       `}>
-        <div className="flex flex-col overflow-auto flex-1 glass-layer-inner rounded-3xl">
+        <div className="flex flex-col overflow-auto flex-1 bg-white/40 rounded-3xl">
           {renderMainContent()}
         </div>
       </main>

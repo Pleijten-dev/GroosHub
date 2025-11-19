@@ -39,16 +39,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
         topClass,
         heightClass,
         positionClass,
-        
-        // Glass background effect
-        classBuilders.glass(false, 'border-r border-gray-200/50'),
-        
+
+        // Border
+        'border-r border-gray-200/50',
+
         // Flex layout
         'flex flex-col',
-        
+
         // Smooth transitions
         'transition-all duration-normal ease-in-out',
-        
+
         // Custom scrollbar for content
         'custom-scrollbar',
         
