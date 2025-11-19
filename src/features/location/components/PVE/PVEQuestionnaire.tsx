@@ -91,6 +91,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
     if (preset) {
       setPercentages(preset.allocations);
       setLockedCategories(new Set()); // Clear locks when changing preset
+      setDisabledCategories(new Set()); // Clear disabled categories when changing preset
     }
   };
 
