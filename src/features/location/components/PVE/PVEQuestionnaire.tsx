@@ -357,19 +357,22 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
     return (
       <svg width={width} height={height} style={{ overflow: 'hidden' }}>
         <defs>
-          <filter id="voronoi-blur">
-            <feGaussianBlur in="SourceGraphic" stdDeviation={blurAmount} />
-          </filter>
           <filter id="voronoi-mute">
-            {/* First blur for smoothness */}
+            {/* Blur for smoothness */}
             <feGaussianBlur in="SourceGraphic" stdDeviation={blurAmount} result="blurred" />
-            {/* Desaturate to mute the colors */}
-            <feColorMatrix in="blurred" type="saturate" values="0.6" result="desaturated" />
-            {/* Adjust levels to prevent extreme brightness */}
-            <feComponentTransfer in="desaturated" result="leveled">
-              <feFuncR type="linear" slope="0.85" intercept="0.05" />
-              <feFuncG type="linear" slope="0.85" intercept="0.05" />
-              <feFuncB type="linear" slope="0.85" intercept="0.05" />
+            {/* Convert to grayscale */}
+            <feColorMatrix in="blurred" type="saturate" values="0" result="gray" />
+            {/* Adjust levels - same as noise pattern */}
+            <feComponentTransfer in="gray" result="leveled">
+              <feFuncR type="linear" slope="3.33" intercept="-1" />
+              <feFuncG type="linear" slope="3.33" intercept="-1" />
+              <feFuncB type="linear" slope="3.33" intercept="-1" />
+            </feComponentTransfer>
+            {/* Gradient map through 6-color palette (darkest to lightest) */}
+            <feComponentTransfer in="leveled" result="colorized">
+              <feFuncR type="table" tableValues="0.047 0.278 0.282 0.388 0.541 0.973" />
+              <feFuncG type="table" tableValues="0.129 0.463 0.502 0.514 0.592 0.933" />
+              <feFuncB type="table" tableValues="0.102 0.220 0.416 0.298 0.420 0.894" />
             </feComponentTransfer>
           </filter>
         </defs>
