@@ -360,10 +360,22 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
           <filter id="voronoi-blur">
             <feGaussianBlur in="SourceGraphic" stdDeviation={blurAmount} />
           </filter>
+          <filter id="voronoi-mute">
+            {/* First blur for smoothness */}
+            <feGaussianBlur in="SourceGraphic" stdDeviation={blurAmount} result="blurred" />
+            {/* Desaturate to mute the colors */}
+            <feColorMatrix in="blurred" type="saturate" values="0.6" result="desaturated" />
+            {/* Adjust levels to prevent extreme brightness */}
+            <feComponentTransfer in="desaturated" result="leveled">
+              <feFuncR type="linear" slope="0.85" intercept="0.05" />
+              <feFuncG type="linear" slope="0.85" intercept="0.05" />
+              <feFuncB type="linear" slope="0.85" intercept="0.05" />
+            </feComponentTransfer>
+          </filter>
         </defs>
 
         {/* Render blurred content offset by padding, crops naturally via SVG viewport */}
-        <g transform={`translate(-${padding}, -${padding})`} filter="url(#voronoi-blur)">
+        <g transform={`translate(-${padding}, -${padding})`} filter="url(#voronoi-mute)">
           {cells}
         </g>
       </svg>
