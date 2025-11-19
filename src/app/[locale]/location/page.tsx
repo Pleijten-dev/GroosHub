@@ -651,7 +651,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
       {/* MAIN CONTENT - Margin adjusted for fixed sidebar */}
       <main className={`
-        flex flex-col overflow-auto h-[calc(100vh-var(--navbar-height))]
+        flex flex-col overflow-auto h-full
         ${mainContentMargin}
       `}>
         {renderMainContent()}
