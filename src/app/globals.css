@@ -664,7 +664,7 @@ body {
 /* Page background with gradient blobs */
 .page-background {
   position: relative;
-  background-color: var(--color-white);  /* White background to show gradient blobs */
+  background-color: transparent;  /* Transparent to show gradient and glass layers */
   min-height: 100vh;
   overflow: hidden;
 }
