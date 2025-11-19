@@ -85,7 +85,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
   const [percentages, setPercentages] = useState<PVEAllocations>(PRESETS[0].allocations);
   const [disabledCategories, setDisabledCategories] = useState<Set<keyof PVEAllocations>>(new Set());
   const [lockedCategories, setLockedCategories] = useState<Set<keyof PVEAllocations>>(new Set());
-  const [expandedLabels, setExpandedLabels] = useState<Set<keyof PVEAllocations>>(new Set());
+  const [expandedLabel, setExpandedLabel] = useState<keyof PVEAllocations | null>(null);
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
 
@@ -277,6 +277,27 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
     }
   }, [draggingIndex, handleDragMove, handleDragEnd]);
 
+  // Close expanded label when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (expandedLabel) {
+        // Check if click is outside the expanded label
+        const target = e.target as HTMLElement;
+        const isLabelClick = target.closest('[data-label-id]');
+        if (!isLabelClick) {
+          setExpandedLabel(null);
+        }
+      }
+    };
+
+    if (expandedLabel) {
+      document.addEventListener('click', handleClickOutside);
+      return () => {
+        document.removeEventListener('click', handleClickOutside);
+      };
+    }
+  }, [expandedLabel]);
+
   // Calculate absolute values
   const absoluteValues = useMemo(() => {
     const result: Record<keyof PVEAllocations, number> = {
@@ -458,7 +479,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
                         type="fractalNoise"
                         baseFrequency={0.001 * (0.9 + idx * 0.05)}
                         numOctaves="3"
-                        seed={idx * 1000}
+                        seed={cat.id === 'communal' ? 7500 : idx * 1000}
                         result="noise"
                       />
                       {/* Soften */}
@@ -576,17 +597,15 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
                 const width = percentages[cat.id];
                 const xPercent = (x / containerWidth) * 100;
                 const verticalOffset = row === 0 ? 0 : 50;
-                const isExpanded = expandedLabels.has(cat.id);
+                const isExpanded = expandedLabel === cat.id;
                 const isSmall = width < 15; // Show compact version if less than 15%
 
                 const toggleExpanded = () => {
-                  const newExpanded = new Set(expandedLabels);
                   if (isExpanded) {
-                    newExpanded.delete(cat.id);
+                    setExpandedLabel(null);
                   } else {
-                    newExpanded.add(cat.id);
+                    setExpandedLabel(cat.id);
                   }
-                  setExpandedLabels(newExpanded);
                 };
 
                 // Compact label for small sections
@@ -594,6 +613,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
                   return (
                     <div
                       key={`label-${cat.id}`}
+                      data-label-id={cat.id}
                       className="absolute"
                       style={{
                         left: `${xPercent}%`,
@@ -617,6 +637,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
                 return (
                   <div
                     key={`label-${cat.id}`}
+                    data-label-id={cat.id}
                     className="absolute flex flex-col items-center"
                     style={{
                       left: `${xPercent}%`,
