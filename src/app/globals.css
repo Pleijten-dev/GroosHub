@@ -683,7 +683,7 @@ body {
 }
 
 .page-background > * {
-  /* position: relative; - Commented out: was causing main content positioning issues */
+  position: relative;
   z-index: 1;
 }
 
