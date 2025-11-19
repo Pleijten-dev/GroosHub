@@ -704,6 +704,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
               ? 'Sleep de grenzen om de verdeling aan te passen'
               : 'Drag the boundaries to adjust allocation'}
           </p>
+          </div>
         </div>
 
         {/* Preset Selector Buttons */}
