@@ -646,7 +646,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         position="left"
         expandedWidth="320px"
         collapsedWidth="60px"
-        className="!top-[var(--navbar-height)] !bottom-0 !h-auto"
+        withNavbar={true}
       />
 
       {/* MAIN CONTENT - Margin adjusted for fixed sidebar */}
