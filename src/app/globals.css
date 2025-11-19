@@ -672,7 +672,7 @@ body {
 /* Gradient layer (bottom) */
 .page-background::before {
   content: '';
-  position: absolute;
+  position: fixed;
   inset: 0;
   background:
     radial-gradient(circle at 20% 30%, var(--blob-1-color) 0%, transparent 60%),
