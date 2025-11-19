@@ -74,6 +74,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
   const [totalM2, setTotalM2] = useState<number>(10000);
   const [percentages, setPercentages] = useState<PVEAllocations>(PRESETS[0].allocations);
   const [disabledCategories, setDisabledCategories] = useState<Set<keyof PVEAllocations>>(new Set());
+  const [lockedCategories, setLockedCategories] = useState<Set<keyof PVEAllocations>>(new Set());
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
 
@@ -88,10 +89,26 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
     const preset = PRESETS.find(p => p.id === presetId);
     if (preset) {
       setPercentages(preset.allocations);
+      setLockedCategories(new Set()); // Clear locks when changing preset
     }
   };
 
+  const toggleLock = (categoryId: keyof PVEAllocations) => {
+    const newLocked = new Set(lockedCategories);
+    if (newLocked.has(categoryId)) {
+      newLocked.delete(categoryId);
+    } else {
+      newLocked.add(categoryId);
+    }
+    setLockedCategories(newLocked);
+  };
+
   const toggleCategory = (categoryId: keyof PVEAllocations) => {
+    // Don't allow removing locked categories
+    if (lockedCategories.has(categoryId)) {
+      return;
+    }
+
     setSelectedPreset('custom');
     const newDisabled = new Set(disabledCategories);
 
@@ -104,9 +121,9 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
       const newPercentages = { ...percentages };
       newPercentages[categoryId] = 5;
 
-      // Reduce other active categories proportionally
+      // Reduce other active categories proportionally (only unlocked ones)
       const activeCategories = CATEGORIES.filter(cat =>
-        cat.id !== categoryId && !newDisabled.has(cat.id)
+        cat.id !== categoryId && !newDisabled.has(cat.id) && !lockedCategories.has(cat.id)
       );
       const totalOtherPercentage = activeCategories.reduce((sum, cat) => sum + percentages[cat.id], 0);
       const reductionFactor = (totalOtherPercentage - 5) / totalOtherPercentage;
@@ -121,14 +138,14 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
       newDisabled.add(categoryId);
       setDisabledCategories(newDisabled);
 
-      // Redistribute this category's percentage to others
+      // Redistribute this category's percentage to others (only unlocked ones)
       const percentageToRedistribute = percentages[categoryId];
       const newPercentages = { ...percentages };
       newPercentages[categoryId] = 0;
 
-      // Distribute to active categories proportionally
+      // Distribute to active categories proportionally (only unlocked)
       const activeCategories = CATEGORIES.filter(cat =>
-        cat.id !== categoryId && !newDisabled.has(cat.id)
+        cat.id !== categoryId && !newDisabled.has(cat.id) && !lockedCategories.has(cat.id)
       );
       const totalActivePercentage = activeCategories.reduce((sum, cat) => sum + percentages[cat.id], 0);
 
@@ -145,19 +162,29 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
     setSelectedPreset('custom');
     const clampedPercentage = Math.max(0, Math.min(100, newPercentage));
 
-    // Calculate total of other categories
-    const otherTotal = CATEGORIES.filter(cat => cat.id !== categoryId && !disabledCategories.has(cat.id))
-      .reduce((sum, cat) => sum + percentages[cat.id], 0);
+    // Calculate total of locked categories
+    const lockedTotal = CATEGORIES.filter(cat =>
+      cat.id !== categoryId &&
+      !disabledCategories.has(cat.id) &&
+      lockedCategories.has(cat.id)
+    ).reduce((sum, cat) => sum + percentages[cat.id], 0);
 
-    // If the new percentage + other total > 100, we need to reduce others proportionally
+    // Calculate total of unlocked categories (excluding current)
+    const unlockedTotal = CATEGORIES.filter(cat =>
+      cat.id !== categoryId &&
+      !disabledCategories.has(cat.id) &&
+      !lockedCategories.has(cat.id)
+    ).reduce((sum, cat) => sum + percentages[cat.id], 0);
+
     const newPercentages = { ...percentages };
     newPercentages[categoryId] = clampedPercentage;
 
-    const remaining = 100 - clampedPercentage;
-    if (otherTotal > 0 && remaining >= 0) {
-      const scaleFactor = remaining / otherTotal;
+    // Distribute remaining percentage only to unlocked categories
+    const remaining = 100 - clampedPercentage - lockedTotal;
+    if (unlockedTotal > 0 && remaining >= 0) {
+      const scaleFactor = remaining / unlockedTotal;
       CATEGORIES.forEach(cat => {
-        if (cat.id !== categoryId && !disabledCategories.has(cat.id)) {
+        if (cat.id !== categoryId && !disabledCategories.has(cat.id) && !lockedCategories.has(cat.id)) {
           newPercentages[cat.id] = percentages[cat.id] * scaleFactor;
         }
       });
@@ -180,6 +207,13 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
 
   const handleDragMove = React.useCallback((e: MouseEvent) => {
     if (draggingIndex === null || !barRef.current) return;
+
+    // Check if either category being adjusted is locked
+    const leftCategory = activeCategories[draggingIndex];
+    const rightCategory = activeCategories[draggingIndex + 1];
+    if (lockedCategories.has(leftCategory?.id) || lockedCategories.has(rightCategory?.id)) {
+      return; // Don't allow dragging if either category is locked
+    }
 
     const rect = barRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -214,7 +248,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
     }
 
     setPercentages(newPercentages);
-  }, [draggingIndex, percentages, activeCategories]);
+  }, [draggingIndex, percentages, activeCategories, lockedCategories]);
 
   const handleDragEnd = React.useCallback(() => {
     setDraggingIndex(null);
@@ -464,9 +498,21 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
                       {cat[locale]}
                     </span>
                     <button
+                      onClick={() => toggleLock(cat.id)}
+                      className="text-gray-600 hover:text-gray-900 text-sm leading-none"
+                      title={lockedCategories.has(cat.id) ? (locale === 'nl' ? 'Ontgrendelen' : 'Unlock') : (locale === 'nl' ? 'Vergrendelen' : 'Lock')}
+                    >
+                      {lockedCategories.has(cat.id) ? '🔒' : '🔓'}
+                    </button>
+                    <button
                       onClick={() => toggleCategory(cat.id)}
-                      className="text-gray-600 hover:text-gray-900 text-lg leading-none"
-                      title={locale === 'nl' ? 'Verwijderen' : 'Remove'}
+                      disabled={lockedCategories.has(cat.id)}
+                      className={`text-lg leading-none ${
+                        lockedCategories.has(cat.id)
+                          ? 'text-gray-400 cursor-not-allowed'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                      title={lockedCategories.has(cat.id) ? (locale === 'nl' ? 'Ontgrendel eerst' : 'Unlock first') : (locale === 'nl' ? 'Verwijderen' : 'Remove')}
                     >
                       ×
                     </button>
@@ -476,7 +522,10 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
                       type="number"
                       value={width.toFixed(1)}
                       onChange={(e) => handlePercentageChange(cat.id, parseFloat(e.target.value) || 0)}
-                      className="w-16 px-1 py-0.5 text-xs text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                      disabled={lockedCategories.has(cat.id)}
+                      className={`w-16 px-1 py-0.5 text-xs text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary ${
+                        lockedCategories.has(cat.id) ? 'bg-gray-100 cursor-not-allowed' : ''
+                      }`}
                       min="0"
                       max="100"
                       step="0.1"
@@ -488,7 +537,10 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
                       type="number"
                       value={absoluteValues[cat.id]}
                       onChange={(e) => handleM2Change(cat.id, parseInt(e.target.value) || 0)}
-                      className="w-20 px-1 py-0.5 text-xs text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                      disabled={lockedCategories.has(cat.id)}
+                      className={`w-20 px-1 py-0.5 text-xs text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary ${
+                        lockedCategories.has(cat.id) ? 'bg-gray-100 cursor-not-allowed' : ''
+                      }`}
                       min="0"
                       step="10"
                     />
