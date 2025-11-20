@@ -11,7 +11,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   {
     id: 'urban-analysis',
     labelKey: 'nav.urbanAnalysis',
-    href: '/urban-analysis',
+    href: '/location',
   },
   {
     id: 'project-analysis',
