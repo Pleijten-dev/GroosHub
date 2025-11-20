@@ -157,6 +157,7 @@ Maak voor ELK scenario een gedetailleerd bouwprogramma dat:
 4. Gemeenschappelijke voorzieningen selecteert die de behoeften van de doelgroepen dienen
 5. Sociale faciliteiten plant die de lokale gemeenschap versterken
 6. De veiligheids-, gezondheids- en leefbaarheidsindicatoren meeneemt in de overwegingen
+7. BELANGRIJK: Vermijd het voorstellen van voorzieningen die al dichtbij aanwezig zijn. Let op de 'closestDistance' en 'averageDistance' velden in de amenities data. Als een voorziening al binnen 500m aanwezig is (closestDistance < 500), stel deze NIET voor als gebouwvoorziening tenzij er een duidelijke behoefte is aan extra capaciteit.
 
 Wees specifiek, data-gedreven en leg uit waarom je bepaalde keuzes maakt op basis van de verstrekte locatie gegevens.
 ` : `
@@ -208,6 +209,7 @@ Create a detailed building program for EACH scenario that:
 4. Selects communal facilities that serve the needs of target groups
 5. Plans social facilities that strengthen the local community
 6. Considers safety, health, and livability indicators in the decisions
+7. IMPORTANT: Avoid recommending amenities that are already nearby. Pay attention to the 'closestDistance' and 'averageDistance' fields in the amenities data. If an amenity is already within 500m (closestDistance < 500), do NOT recommend it as a building amenity unless there is a clear need for additional capacity.
 
 Be specific, data-driven, and explain why you make certain choices based on the provided location data.
 `;

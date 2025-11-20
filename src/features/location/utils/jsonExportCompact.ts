@@ -7,8 +7,9 @@
 
 import type { UnifiedLocationData, UnifiedDataRow } from '../data/aggregator/multiLevelAggregator';
 import type { PersonaScore } from './targetGroupScoring';
+import type { AmenityMultiCategoryResponse } from '../data/sources/google-places/types';
 import housingPersonasData from '../data/sources/housing-personas.json';
-import { pveConfigCache, type PVEFinalState } from '../data/cache/pveConfigCache';
+import { pveConfigCache } from '../data/cache/pveConfigCache';
 
 interface CompactMetric {
   name: string;
@@ -25,6 +26,8 @@ interface CompactAmenity {
   countScore: number;
   proximityCount: number;
   proximityBonus: number;
+  closestDistance: number | null; // Distance in meters to closest amenity of this type (null if none found)
+  averageDistance: number | null; // Average distance in meters to all amenities of this type (null if none found)
   scoringNote: string;
 }
 
@@ -213,7 +216,8 @@ export function exportCompactForLLM(
   personaScores: PersonaScore[],
   scenarios: { scenario1: number[]; scenario2: number[]; scenario3: number[] },
   locale: 'nl' | 'en' = 'nl',
-  customScenarioPersonaIds: string[] = []
+  customScenarioPersonaIds: string[] = [],
+  amenitiesData: AmenityMultiCategoryResponse | null = null
 ): CompactLocationExport {
   // Format location string
   const locationParts = [
@@ -402,7 +406,14 @@ export function exportCompactForLLM(
   };
 
   // === AMENITIES - Group by category with count and scores ===
-  const amenitiesMap = new Map<string, { count: number; countScore: number; proximityCount: number; proximityBonus: number }>();
+  const amenitiesMap = new Map<string, {
+    count: number;
+    countScore: number;
+    proximityCount: number;
+    proximityBonus: number;
+    closestDistance: number | null;
+    averageDistance: number | null;
+  }>();
 
   data.amenities.forEach(row => {
     // Extract category name (remove " - Aantal" or " - Nabijheid (250m)")
@@ -416,6 +427,8 @@ export function exportCompactForLLM(
         countScore: 0,
         proximityCount: 0,
         proximityBonus: 0,
+        closestDistance: null,
+        averageDistance: null,
       });
     }
 
@@ -429,6 +442,27 @@ export function exportCompactForLLM(
       amenity.proximityBonus = row.calculatedScore || 0;
     }
   });
+
+  // Add distance information if amenitiesData is available
+  if (amenitiesData && amenitiesData.results) {
+    amenitiesData.results.forEach(result => {
+      const categoryName = result.category.displayName;
+
+      if (amenitiesMap.has(categoryName) && result.places.length > 0) {
+        const amenity = amenitiesMap.get(categoryName)!;
+
+        // Calculate closest distance
+        const distances = result.places
+          .map(place => place.distance)
+          .filter((d): d is number => d !== undefined && d !== null);
+
+        if (distances.length > 0) {
+          amenity.closestDistance = Math.min(...distances);
+          amenity.averageDistance = Math.round(distances.reduce((a, b) => a + b, 0) / distances.length);
+        }
+      }
+    });
+  }
 
   // Amenity descriptions
   const amenityDescriptions: Record<string, { nl: string; en: string }> = {
@@ -461,6 +495,8 @@ export function exportCompactForLLM(
       countScore: Math.round(data.countScore * 100) / 100,
       proximityCount: data.proximityCount,
       proximityBonus: Math.round(data.proximityBonus * 100) / 100,
+      closestDistance: data.closestDistance,
+      averageDistance: data.averageDistance,
       scoringNote,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));

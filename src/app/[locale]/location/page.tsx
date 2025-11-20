@@ -533,6 +533,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                           personaScores={sortedPersonas}
                           scenarios={scenarios}
                           locale={locale}
+                          amenitiesData={amenities}
                         />
                         <div className="flex-1 text-sm text-gray-600">
                           <strong className="block mb-1">
@@ -615,6 +616,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                   personaScores={sortedPersonas}
                   scenarios={scenarios}
                   locale={locale}
+                  amenitiesData={amenities}
                 />
               </div>
 

@@ -9,6 +9,7 @@ import React, { useState } from 'react';
 import { exportCompactForLLM } from '../../utils/jsonExportCompact';
 import type { UnifiedLocationData } from '../../data/aggregator/multiLevelAggregator';
 import type { PersonaScore } from '../../utils/targetGroupScoring';
+import type { AmenityMultiCategoryResponse } from '../../data/sources/google-places/types';
 import type { BuildingProgram } from '@/app/api/generate-building-program/route';
 
 export interface GenerateProgramButtonProps {
@@ -20,6 +21,7 @@ export interface GenerateProgramButtonProps {
     scenario3: number[];
   };
   locale: 'nl' | 'en';
+  amenitiesData: AmenityMultiCategoryResponse | null;
 }
 
 export const GenerateProgramButton: React.FC<GenerateProgramButtonProps> = ({
@@ -27,6 +29,7 @@ export const GenerateProgramButton: React.FC<GenerateProgramButtonProps> = ({
   personaScores,
   scenarios,
   locale,
+  amenitiesData,
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +56,7 @@ export const GenerateProgramButton: React.FC<GenerateProgramButtonProps> = ({
       }
 
       // Generate the compact rapport data
-      const rapportData = exportCompactForLLM(data, personaScores, scenarios, locale, customScenarioPersonaIds);
+      const rapportData = exportCompactForLLM(data, personaScores, scenarios, locale, customScenarioPersonaIds, amenitiesData);
 
       // Send to API
       const response = await fetch('/api/generate-building-program', {

@@ -6,6 +6,7 @@
 import React from 'react';
 import type { UnifiedLocationData } from '../../data/aggregator/multiLevelAggregator';
 import type { PersonaScore } from '../../utils/targetGroupScoring';
+import type { AmenityMultiCategoryResponse } from '../../data/sources/google-places/types';
 import { exportCompactForLLM, downloadCompactJSON } from '../../utils/jsonExportCompact';
 
 interface CompactExportButtonProps {
@@ -17,6 +18,7 @@ interface CompactExportButtonProps {
     scenario3: number[];
   };
   locale: 'nl' | 'en';
+  amenitiesData: AmenityMultiCategoryResponse | null;
 }
 
 export const CompactExportButton: React.FC<CompactExportButtonProps> = ({
@@ -24,6 +26,7 @@ export const CompactExportButton: React.FC<CompactExportButtonProps> = ({
   personaScores,
   scenarios,
   locale,
+  amenitiesData,
 }) => {
   const handleExport = () => {
     // Get custom scenario from localStorage if available
@@ -40,7 +43,7 @@ export const CompactExportButton: React.FC<CompactExportButtonProps> = ({
       console.error('Failed to load custom scenario from cache:', error);
     }
 
-    const exportData = exportCompactForLLM(data, personaScores, scenarios, locale, customScenarioPersonaIds);
+    const exportData = exportCompactForLLM(data, personaScores, scenarios, locale, customScenarioPersonaIds, amenitiesData);
 
     // Generate filename
     const locationName =
