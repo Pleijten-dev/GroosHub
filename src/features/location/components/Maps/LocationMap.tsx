@@ -71,6 +71,8 @@ export const LocationMap: React.FC<LocationMapProps> = ({
           border: 2px solid white;
           border-radius: 50%;
           box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+          pointer-events: auto;
+          cursor: pointer;
         "></div>
       `,
       className: 'custom-amenity-marker',
@@ -217,6 +219,7 @@ export const LocationMap: React.FC<LocationMapProps> = ({
                 weight: 1.5,
                 opacity: 0.4,
                 dashArray: '5, 10',
+                interactive: false, // Don't block clicks on markers
               }).addTo(mapRef.current!);
             });
 
@@ -227,6 +230,8 @@ export const LocationMap: React.FC<LocationMapProps> = ({
           const newMarkers = categoryData.places.map((place: PlaceResult) => {
             const amenityMarker = L.marker([place.location.lat, place.location.lng], {
               icon: amenityIcon,
+              interactive: true,
+              bubblingMouseEvents: false,
             }).addTo(mapRef.current!);
 
             // Create popup card with amenity information

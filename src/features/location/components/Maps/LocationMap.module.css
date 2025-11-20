@@ -48,3 +48,14 @@
 .mapContainer :global(.leaflet-bottom) {
   z-index: 1000;
 }
+
+/* Ensure amenity markers are clickable */
+.mapContainer :global(.custom-amenity-marker) {
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+/* Ensure marker pane has high z-index */
+.mapContainer :global(.leaflet-marker-pane) {
+  z-index: 600 !important;
+}
