@@ -160,9 +160,9 @@ export const DUTCH_AMENITY_CATEGORIES: AmenityCategory[] = [
     defaultRadius: 1000,
     color: '#dc2626',
     icon: '🍽️',
-    priceLevels: [PRICE_LEVELS.FREE, PRICE_LEVELS.INEXPENSIVE], // Include both free (1) and cheap (2) restaurants
-    textQuery: 'cheap restaurant budget fast food inexpensive affordable goedkoop', // Budget-specific query to get different results from Google
-    // Note: Sends priceLevels=[1,2] to Google API to find budget restaurants, uses budget-focused keywords for better targeting
+    priceLevels: [PRICE_LEVELS.INEXPENSIVE], // Only inexpensive (2), not including free
+    textQuery: 'budget restaurant fast food goedkoop eten takeaway snackbar', // Original budget query
+    // Note: Sends priceLevels=[2] to Google API to find budget restaurants
   },
   {
     id: 'restaurants_midrange',
@@ -182,8 +182,8 @@ export const DUTCH_AMENITY_CATEGORIES: AmenityCategory[] = [
     color: '#dc2626',
     icon: '🍽️',
     priceLevels: [PRICE_LEVELS.MODERATE],
-    textQuery: 'restaurant dining eten', // Generic query to get main restaurant set
-    // Note: Does NOT send price filter to Google API (gets all restaurants), then post-filters to EXCLUDE budget (1,2) and expensive (4,5)
+    textQuery: 'restaurant dining casual restaurant family restaurant', // Original mid-range query
+    // Note: Does NOT send price filter to Google API (gets all restaurants), then post-filters to INCLUDE MODERATE (3) OR undefined
     // This ensures restaurants without price data in Google Maps are captured and default to mid-range
   },
   {
@@ -342,7 +342,7 @@ export const DEFAULT_SEARCH_CONFIG: SearchConfig = {
 // NOTE: NEW Google Places API uses values 1-5 (not 0-4 like legacy API)
 export const RESTAURANT_PRICE_CONFIG = {
   budget: {
-    levels: [PRICE_LEVELS.FREE, PRICE_LEVELS.INEXPENSIVE],  // NEW API: 1=FREE, 2=INEXPENSIVE
+    levels: [PRICE_LEVELS.INEXPENSIVE],  // NEW API: 2=INEXPENSIVE
     description: 'Budget-friendly options (€)',
     maxResults: 20
   },
