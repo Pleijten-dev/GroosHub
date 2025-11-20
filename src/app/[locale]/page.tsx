@@ -24,14 +24,14 @@ const HomePage: React.FC<HomePageProps> = async ({ params }) => {
     const translations = {
       nl: {
         'nav.aiAssistant': 'AI Assistent',
-        'nav.urbanAnalysis': 'Stedelijke Analyse',
+        'nav.urbanAnalysis': 'Doelgroepen & Programma',
         'nav.projectAnalysis': 'Project Analyse',
         'nav.projectDesign': 'Project Ontwerp',
         'nav.projectOverview': 'Project Overzicht',
       },
       en: {
         'nav.aiAssistant': 'AI Assistant',
-        'nav.urbanAnalysis': 'Urban Analysis',
+        'nav.urbanAnalysis': 'Target Groups & Program',
         'nav.projectAnalysis': 'Project Analysis',
         'nav.projectDesign': 'Project Design',
         'nav.projectOverview': 'Project Overview',
@@ -53,7 +53,7 @@ const HomePage: React.FC<HomePageProps> = async ({ params }) => {
       id: 'urban-analysis',
       icon: '🏙️',
       titleKey: 'nav.urbanAnalysis',
-      href: '/urban-analysis',
+      href: '/location',
       color: 'bg-green-50 hover:bg-green-100 border-green-200'
     },
     {

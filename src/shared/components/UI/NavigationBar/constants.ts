@@ -6,25 +6,29 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     id: 'ai-assistant',
     labelKey: 'nav.aiAssistant',
     href: '/ai-assistant',
+    disabled: true,
   },
   {
     id: 'urban-analysis',
     labelKey: 'nav.urbanAnalysis',
-    href: '/urban-analysis',
+    href: '/location',
   },
   {
     id: 'project-analysis',
     labelKey: 'nav.projectAnalysis',
     href: '/project-analysis',
+    disabled: true,
   },
   {
     id: 'project-design',
     labelKey: 'nav.projectDesign',
     href: '/project-design',
+    disabled: true,
   },
   {
     id: 'project-overview',
     labelKey: 'nav.projectOverview',
     href: '/project-overview',
+    disabled: true,
   },
 ] as const;
