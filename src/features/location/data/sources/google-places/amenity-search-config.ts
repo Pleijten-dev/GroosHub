@@ -161,8 +161,8 @@ export const DUTCH_AMENITY_CATEGORIES: AmenityCategory[] = [
     color: '#dc2626',
     icon: '🍽️',
     priceLevels: [PRICE_LEVELS.FREE, PRICE_LEVELS.INEXPENSIVE], // Include both free (1) and cheap (2) restaurants
-    textQuery: 'restaurant', // Generic query to find ALL restaurants, then filter locally by price level
-    // Note: Uses generic "restaurant" query and local post-filtering to include priceLevel 1 (FREE) and 2 (INEXPENSIVE)
+    textQuery: 'cheap restaurant budget fast food inexpensive affordable goedkoop', // Budget-specific query to get different results from Google
+    // Note: Uses budget-focused query to get relevant restaurants from Google, then post-filters by priceLevel 1 (FREE) and 2 (INEXPENSIVE)
   },
   {
     id: 'restaurants_midrange',
@@ -182,9 +182,9 @@ export const DUTCH_AMENITY_CATEGORIES: AmenityCategory[] = [
     color: '#dc2626',
     icon: '🍽️',
     priceLevels: [PRICE_LEVELS.MODERATE],
-    textQuery: 'restaurant', // Generic query to find ALL restaurants, then filter locally by price level
-    // Note: Uses generic "restaurant" query and local post-filtering to EXCLUDE budget (1,2) and expensive (4,5)
-    // This keeps MODERATE (3), undefined (no price data), and ensures complete coverage
+    textQuery: 'restaurant dining eten', // Generic query to get main restaurant set
+    // Note: Uses generic "restaurant" query to get the main set, then post-filters to EXCLUDE budget (1,2) and expensive (4,5)
+    // This keeps MODERATE (3), undefined (no price data), and ensures coverage of standard restaurants
   },
   {
     id: 'restaurants_upscale',
@@ -201,8 +201,8 @@ export const DUTCH_AMENITY_CATEGORIES: AmenityCategory[] = [
     color: '#dc2626',
     icon: '🍽️',
     priceLevels: [PRICE_LEVELS.EXPENSIVE, PRICE_LEVELS.VERY_EXPENSIVE], // Include expensive (4) and very expensive (5)
-    textQuery: 'restaurant', // Generic query to find ALL restaurants, then filter locally by price level
-    // Note: Uses generic "restaurant" query and local post-filtering to include only priceLevel 4 (EXPENSIVE) and 5 (VERY_EXPENSIVE)
+    textQuery: 'fine dining expensive restaurant upscale gourmet michelin duur', // Upscale-specific query to get different results from Google
+    // Note: Uses upscale-focused query to get relevant restaurants from Google, then post-filters by priceLevel 4 (EXPENSIVE) and 5 (VERY_EXPENSIVE)
   },
 
   {
