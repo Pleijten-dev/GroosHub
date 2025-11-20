@@ -7,15 +7,19 @@ import styles from './LocationMap.module.css';
 import { TileLayerConfig, DEFAULT_MAP_STYLE } from './mapStyles';
 import { WMSLayerConfig } from './wmsLayers';
 import { WMSFeatureInfo } from './WMSLayerControl';
+import type { AmenityMultiCategoryResponse, PlaceResult } from '../../data/sources/google-places/types';
 
 // Fix for default marker icons in Leaflet with Next.js
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
+// Only run on client-side to avoid SSR issues
+if (typeof window !== 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  delete (L.Icon.Default.prototype as any)._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  });
+}
 
 interface LocationMapProps {
   center?: [number, number];
@@ -27,6 +31,7 @@ interface LocationMapProps {
   wmsOpacity?: number;
   onFeatureClick?: (info: WMSFeatureInfo) => void;
   onZoomChange?: (zoom: number) => void;
+  amenities?: AmenityMultiCategoryResponse | null;
   children?: React.ReactNode;
 }
 
@@ -45,12 +50,40 @@ export const LocationMap: React.FC<LocationMapProps> = ({
   wmsOpacity = 0.7,
   onFeatureClick,
   onZoomChange,
+  amenities = null,
   children,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
   const wmsLayerRef = useRef<L.TileLayer.WMS | null>(null);
+  const amenityMarkersRef = useRef<L.Marker[]>([]);
+  const distanceCirclesRef = useRef<L.Circle[]>([]);
+
+  // Accent green color from design system
+  const ACCENT_GREEN = '#477638';
+
+  // Helper function to create green circle markers for amenities
+  const createAmenityIcon = useCallback(() => {
+    return L.divIcon({
+      html: `
+        <div style="
+          width: 16px;
+          height: 16px;
+          background-color: ${ACCENT_GREEN};
+          border: 2px solid white;
+          border-radius: 50%;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+          pointer-events: auto;
+          cursor: pointer;
+        "></div>
+      `,
+      className: 'custom-amenity-marker',
+      iconSize: [16, 16],
+      iconAnchor: [8, 8],
+      popupAnchor: [0, -8],
+    });
+  }, []);
 
   useEffect(() => {
     // Only initialize the map once
@@ -147,7 +180,7 @@ export const LocationMap: React.FC<LocationMapProps> = ({
     }
   }, [marker, locationName]);
 
-  // Handle WMS layer changes
+  // Handle WMS layer changes and amenity markers
   useEffect(() => {
     if (!mapRef.current) return;
 
@@ -157,25 +190,160 @@ export const LocationMap: React.FC<LocationMapProps> = ({
       wmsLayerRef.current = null;
     }
 
-    // Add new WMS layer if provided
-    if (wmsLayer) {
-      const wms = L.tileLayer.wms(wmsLayer.url, {
-        layers: wmsLayer.layers,
-        format: 'image/png',
-        transparent: true,
-        attribution: wmsLayer.attribution || '',
-        minZoom: wmsLayer.minZoom,
-        maxZoom: wmsLayer.maxZoom,
-        opacity: wmsOpacity,
-        // Request tiles in EPSG:4326 (WGS84) instead of EPSG:28992 (RD)
-        // This ensures proper coordinate transformation from Dutch RD to WGS84
-        crs: L.CRS.EPSG4326,
-      });
+    // Remove existing amenity markers
+    amenityMarkersRef.current.forEach((marker) => marker.remove());
+    amenityMarkersRef.current = [];
 
-      wms.addTo(mapRef.current);
-      wmsLayerRef.current = wms;
+    // Remove existing distance circles
+    distanceCirclesRef.current.forEach((circle) => circle.remove());
+    distanceCirclesRef.current = [];
+
+    // Check if this is an amenity layer or a WMS layer
+    if (wmsLayer) {
+      const isAmenityLayer = wmsLayer.url.startsWith('amenity://');
+
+      if (isAmenityLayer && wmsLayer.amenityCategoryId && amenities) {
+        // Handle amenity marker layer
+        const categoryId = wmsLayer.amenityCategoryId;
+        const categoryData = amenities.results.find((r) => r.category.id === categoryId);
+
+        if (categoryData && categoryData.places.length > 0) {
+          const amenityIcon = createAmenityIcon();
+
+          // Add distance reference circles for amenity layers only
+          if (marker) {
+            const distances = [250, 500, 1000, 2000]; // in meters
+            const circles = distances.map((distance) => {
+              return L.circle(marker, {
+                radius: distance,
+                color: ACCENT_GREEN,
+                fillColor: 'transparent',
+                fillOpacity: 0,
+                weight: 1.5,
+                opacity: 0.4,
+                dashArray: '5, 10',
+                interactive: false, // Don't block clicks on markers
+              }).addTo(mapRef.current!);
+            });
+
+            distanceCirclesRef.current = circles;
+          }
+
+          // Create markers for each amenity
+          const newMarkers = categoryData.places.map((place: PlaceResult) => {
+            const amenityMarker = L.marker([place.location.lat, place.location.lng], {
+              icon: amenityIcon,
+              interactive: true,
+              bubblingMouseEvents: false,
+            }).addTo(mapRef.current!);
+
+            // Create popup card with amenity information
+            const displayName = place.displayName?.text || place.name;
+            const distance = place.distanceKm !== undefined
+              ? place.distanceKm < 1
+                ? `${Math.round(place.distanceKm * 1000)}m`
+                : `${place.distanceKm.toFixed(1)}km`
+              : '';
+
+            const popupContent = `
+              <div style="
+                min-width: 240px;
+                max-width: 280px;
+                padding: 12px;
+                font-family: system-ui, -apple-system, sans-serif;
+              ">
+                <h3 style="
+                  margin: 0 0 8px 0;
+                  font-size: 15px;
+                  font-weight: 600;
+                  color: #1a1a1a;
+                  line-height: 1.3;
+                ">${displayName}</h3>
+
+                ${place.formattedAddress ? `
+                  <p style="
+                    margin: 0 0 8px 0;
+                    font-size: 13px;
+                    color: #666;
+                    line-height: 1.4;
+                  ">${place.formattedAddress}</p>
+                ` : ''}
+
+                <div style="
+                  display: flex;
+                  gap: 12px;
+                  flex-wrap: wrap;
+                  margin-top: 8px;
+                  padding-top: 8px;
+                  border-top: 1px solid #e5e7eb;
+                ">
+                  ${place.rating ? `
+                    <div style="
+                      display: flex;
+                      align-items: center;
+                      gap: 4px;
+                      font-size: 13px;
+                      color: #374151;
+                    ">
+                      <span style="color: #f59e0b;">★</span>
+                      <span style="font-weight: 500;">${place.rating.toFixed(1)}</span>
+                      ${place.userRatingsTotal ? `
+                        <span style="color: #9ca3af; font-size: 12px;">(${place.userRatingsTotal})</span>
+                      ` : ''}
+                    </div>
+                  ` : ''}
+
+                  ${distance ? `
+                    <div style="
+                      font-size: 13px;
+                      color: #477638;
+                      font-weight: 500;
+                    ">${distance} afstand</div>
+                  ` : ''}
+                </div>
+              </div>
+            `;
+
+            // Bind popup to marker
+            amenityMarker.bindPopup(popupContent, {
+              maxWidth: 300,
+              closeButton: true,
+              autoClose: true,
+              closeOnClick: true,
+              autoPan: true,
+              keepInView: true,
+            });
+
+            // Add explicit click handler to open popup
+            amenityMarker.on('click', () => {
+              amenityMarker.openPopup();
+            });
+
+            return amenityMarker;
+          });
+
+          amenityMarkersRef.current = newMarkers;
+        }
+      } else {
+        // Handle regular WMS layer
+        const wms = L.tileLayer.wms(wmsLayer.url, {
+          layers: wmsLayer.layers,
+          format: 'image/png',
+          transparent: true,
+          attribution: wmsLayer.attribution || '',
+          minZoom: wmsLayer.minZoom,
+          maxZoom: wmsLayer.maxZoom,
+          opacity: wmsOpacity,
+          // Request tiles in EPSG:4326 (WGS84) instead of EPSG:28992 (RD)
+          // This ensures proper coordinate transformation from Dutch RD to WGS84
+          crs: L.CRS.EPSG4326,
+        });
+
+        wms.addTo(mapRef.current);
+        wmsLayerRef.current = wms;
+      }
     }
-  }, [wmsLayer, wmsOpacity]);
+  }, [wmsLayer, wmsOpacity, amenities, createAmenityIcon, marker]);
 
   // Handle GetFeatureInfo click
   const handleMapClick = useCallback(
@@ -228,10 +396,12 @@ export const LocationMap: React.FC<LocationMapProps> = ({
   );
 
   // Add/remove click handler based on whether we have a WMS layer and callback
+  // Note: Don't add click handler for amenity layers - they use marker popups instead
   useEffect(() => {
     if (!mapRef.current) return;
 
-    if (wmsLayer && onFeatureClick) {
+    const isAmenityLayer = wmsLayer?.url.startsWith('amenity://');
+    if (wmsLayer && onFeatureClick && !isAmenityLayer) {
       mapRef.current.on('click', handleMapClick);
     }
 
