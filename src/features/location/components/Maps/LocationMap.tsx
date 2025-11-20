@@ -55,39 +55,28 @@ export const LocationMap: React.FC<LocationMapProps> = ({
   const markerRef = useRef<L.Marker | null>(null);
   const wmsLayerRef = useRef<L.TileLayer.WMS | null>(null);
   const amenityMarkersRef = useRef<L.Marker[]>([]);
+  const distanceCirclesRef = useRef<L.Circle[]>([]);
 
-  // Helper function to create colored circle markers for amenities
-  const createAmenityIcon = useCallback((color: string, icon: string) => {
+  // Accent green color from design system
+  const ACCENT_GREEN = '#477638';
+
+  // Helper function to create green circle markers for amenities
+  const createAmenityIcon = useCallback(() => {
     return L.divIcon({
       html: `
         <div style="
-          position: relative;
-          width: 28px;
-          height: 28px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        ">
-          <div style="
-            position: absolute;
-            width: 24px;
-            height: 24px;
-            background-color: ${color};
-            border: 2px solid white;
-            border-radius: 50%;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-          "></div>
-          <span style="
-            position: relative;
-            z-index: 1;
-            font-size: 12px;
-          ">${icon}</span>
-        </div>
+          width: 16px;
+          height: 16px;
+          background-color: ${ACCENT_GREEN};
+          border: 2px solid white;
+          border-radius: 50%;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+        "></div>
       `,
       className: 'custom-amenity-marker',
-      iconSize: [28, 28],
-      iconAnchor: [14, 14],
-      popupAnchor: [0, -14],
+      iconSize: [16, 16],
+      iconAnchor: [8, 8],
+      popupAnchor: [0, -8],
     });
   }, []);
 
@@ -158,6 +147,10 @@ export const LocationMap: React.FC<LocationMapProps> = ({
       markerRef.current = null;
     }
 
+    // Remove existing distance circles
+    distanceCirclesRef.current.forEach((circle) => circle.remove());
+    distanceCirclesRef.current = [];
+
     // Add new marker if position is provided
     if (marker) {
       // Create custom white square icon
@@ -183,6 +176,22 @@ export const LocationMap: React.FC<LocationMapProps> = ({
       }
 
       markerRef.current = newMarker;
+
+      // Add distance reference circles (250m, 500m, 1km, 2km)
+      const distances = [250, 500, 1000, 2000]; // in meters
+      const circles = distances.map((distance) => {
+        return L.circle(marker, {
+          radius: distance,
+          color: ACCENT_GREEN,
+          fillColor: 'transparent',
+          fillOpacity: 0,
+          weight: 1.5,
+          opacity: 0.4,
+          dashArray: '5, 10',
+        }).addTo(mapRef.current!);
+      });
+
+      distanceCirclesRef.current = circles;
     }
   }, [marker, locationName]);
 
@@ -210,9 +219,7 @@ export const LocationMap: React.FC<LocationMapProps> = ({
         const categoryData = amenities.results.find((r) => r.category.id === categoryId);
 
         if (categoryData && categoryData.places.length > 0) {
-          const color = wmsLayer.markerColor || '#3b82f6';
-          const icon = wmsLayer.icon || '📍';
-          const amenityIcon = createAmenityIcon(color, icon);
+          const amenityIcon = createAmenityIcon();
 
           // Create markers for each amenity
           const newMarkers = categoryData.places.map((place: PlaceResult) => {
@@ -220,18 +227,77 @@ export const LocationMap: React.FC<LocationMapProps> = ({
               icon: amenityIcon,
             }).addTo(mapRef.current!);
 
-            // Create popup with amenity information
+            // Create popup card with amenity information
             const displayName = place.displayName?.text || place.name;
+            const distance = place.distanceKm !== undefined
+              ? place.distanceKm < 1
+                ? `${Math.round(place.distanceKm * 1000)}m`
+                : `${place.distanceKm.toFixed(1)}km`
+              : '';
+
             const popupContent = `
-              <div style="min-width: 200px;">
-                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600;">${displayName}</h3>
-                ${place.formattedAddress ? `<p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">${place.formattedAddress}</p>` : ''}
-                ${place.rating ? `<p style="margin: 0; font-size: 12px;">⭐ ${place.rating.toFixed(1)}</p>` : ''}
-                ${place.userRatingsTotal ? `<p style="margin: 0; font-size: 11px; color: #888;">${place.userRatingsTotal} beoordelingen</p>` : ''}
+              <div style="
+                min-width: 240px;
+                max-width: 280px;
+                padding: 12px;
+                font-family: system-ui, -apple-system, sans-serif;
+              ">
+                <h3 style="
+                  margin: 0 0 8px 0;
+                  font-size: 15px;
+                  font-weight: 600;
+                  color: #1a1a1a;
+                  line-height: 1.3;
+                ">${displayName}</h3>
+
+                ${place.formattedAddress ? `
+                  <p style="
+                    margin: 0 0 8px 0;
+                    font-size: 13px;
+                    color: #666;
+                    line-height: 1.4;
+                  ">${place.formattedAddress}</p>
+                ` : ''}
+
+                <div style="
+                  display: flex;
+                  gap: 12px;
+                  flex-wrap: wrap;
+                  margin-top: 8px;
+                  padding-top: 8px;
+                  border-top: 1px solid #e5e7eb;
+                ">
+                  ${place.rating ? `
+                    <div style="
+                      display: flex;
+                      align-items: center;
+                      gap: 4px;
+                      font-size: 13px;
+                      color: #374151;
+                    ">
+                      <span style="color: #f59e0b;">★</span>
+                      <span style="font-weight: 500;">${place.rating.toFixed(1)}</span>
+                      ${place.userRatingsTotal ? `
+                        <span style="color: #9ca3af; font-size: 12px;">(${place.userRatingsTotal})</span>
+                      ` : ''}
+                    </div>
+                  ` : ''}
+
+                  ${distance ? `
+                    <div style="
+                      font-size: 13px;
+                      color: #477638;
+                      font-weight: 500;
+                    ">${distance} afstand</div>
+                  ` : ''}
+                </div>
               </div>
             `;
 
-            marker.bindPopup(popupContent);
+            marker.bindPopup(popupContent, {
+              maxWidth: 300,
+              className: 'amenity-popup'
+            });
             return marker;
           });
 
