@@ -308,8 +308,10 @@ export const LocationMap: React.FC<LocationMapProps> = ({
             amenityMarker.bindPopup(popupContent, {
               maxWidth: 300,
               closeButton: true,
-              autoClose: true,
+              autoClose: false,
+              closeOnClick: false,
               autoPan: true,
+              keepInView: true,
             });
 
             // Add explicit click handler to open popup
