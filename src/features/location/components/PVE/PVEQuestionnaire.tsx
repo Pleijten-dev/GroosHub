@@ -3,6 +3,7 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Locale } from '../../../../lib/i18n/config';
+import { pveConfigCache } from '../../data/cache/pveConfigCache';
 
 interface PVEAllocations {
   apartments: number;
@@ -97,6 +98,20 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
 
   const handlePresetChange = (presetId: PresetId) => {
     setSelectedPreset(presetId);
+
+    // If switching to custom preset, try to load from cache
+    if (presetId === 'custom') {
+      const cachedConfig = pveConfigCache.get();
+      if (cachedConfig) {
+        setTotalM2(cachedConfig.totalM2);
+        setPercentages(cachedConfig.percentages);
+        setDisabledCategories(new Set(cachedConfig.disabledCategories as Array<keyof PVEAllocations>));
+        setLockedCategories(new Set(cachedConfig.lockedCategories as Array<keyof PVEAllocations>));
+        return;
+      }
+    }
+
+    // For non-custom presets or if no cache exists, use preset defaults
     const preset = PRESETS.find(p => p.id === presetId);
     if (preset) {
       setPercentages(preset.allocations);
@@ -297,6 +312,42 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
       };
     }
   }, [expandedLabel]);
+
+  // Load cached custom configuration on mount
+  useEffect(() => {
+    const cachedConfig = pveConfigCache.get();
+    if (cachedConfig) {
+      setSelectedPreset('custom');
+      setTotalM2(cachedConfig.totalM2);
+      setPercentages(cachedConfig.percentages);
+      setDisabledCategories(new Set(cachedConfig.disabledCategories as Array<keyof PVEAllocations>));
+      setLockedCategories(new Set(cachedConfig.lockedCategories as Array<keyof PVEAllocations>));
+    }
+  }, []); // Only run on mount
+
+  // Save custom configuration to cache whenever it changes
+  useEffect(() => {
+    if (selectedPreset === 'custom') {
+      pveConfigCache.set({
+        totalM2,
+        percentages,
+        disabledCategories: Array.from(disabledCategories),
+        lockedCategories: Array.from(lockedCategories)
+      });
+    }
+  }, [selectedPreset, totalM2, percentages, disabledCategories, lockedCategories]);
+
+  // Save final PVE state with debounce (for all presets, captures last shown configuration)
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      pveConfigCache.setFinalPVE({
+        totalM2,
+        percentages
+      });
+    }, 500); // Wait 500ms after last change before saving
+
+    return () => clearTimeout(debounceTimer);
+  }, [totalM2, percentages]);
 
   // Calculate absolute values
   const absoluteValues = useMemo(() => {
