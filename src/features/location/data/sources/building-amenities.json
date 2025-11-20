@@ -1,0 +1,330 @@
+{
+  "nl": {
+    "amenities": [
+      {
+        "id": "gym_fitness",
+        "name": "Fitnessruimte",
+        "category": "sport_recreation",
+        "typical_size_m2": 150,
+        "description": "Gemeenschappelijke fitnessruimte voor bewoners",
+        "target_users": ["all"]
+      },
+      {
+        "id": "coworking_space",
+        "name": "Coworking Space",
+        "category": "work",
+        "typical_size_m2": 100,
+        "description": "Flexibele werkplekken voor thuiswerkers",
+        "target_users": ["young_professionals", "entrepreneurs"]
+      },
+      {
+        "id": "community_kitchen",
+        "name": "Gemeenschappelijke Keuken",
+        "category": "social",
+        "typical_size_m2": 80,
+        "description": "Gezamenlijke keuken voor evenementen en ontmoetingen",
+        "target_users": ["all"]
+      },
+      {
+        "id": "kids_playroom",
+        "name": "Kinderspeelruimte",
+        "category": "family",
+        "typical_size_m2": 60,
+        "description": "Indoor speelruimte voor kinderen",
+        "target_users": ["families", "young_families"]
+      },
+      {
+        "id": "rooftop_terrace",
+        "name": "Dakterras",
+        "category": "outdoor",
+        "typical_size_m2": 200,
+        "description": "Gemeenschappelijk dakterras met zitplekken en groen",
+        "target_users": ["all"]
+      },
+      {
+        "id": "bike_storage",
+        "name": "Fietsenstalling",
+        "category": "parking",
+        "typical_size_m2": 120,
+        "description": "Beveiligde overdekte fietsenstalling",
+        "target_users": ["all"]
+      },
+      {
+        "id": "car_parking",
+        "name": "Parkeergarage",
+        "category": "parking",
+        "typical_size_m2": 500,
+        "description": "Ondergrondse parkeergarage voor auto's",
+        "target_users": ["car_owners"]
+      },
+      {
+        "id": "storage_units",
+        "name": "Bergingen",
+        "category": "storage",
+        "typical_size_m2": 200,
+        "description": "Individuele bergingen voor bewoners",
+        "target_users": ["all"]
+      },
+      {
+        "id": "laundry_room",
+        "name": "Wasserette",
+        "category": "services",
+        "typical_size_m2": 40,
+        "description": "Gemeenschappelijke wasruimte met wasmachines en drogers",
+        "target_users": ["all"]
+      },
+      {
+        "id": "meeting_room",
+        "name": "Vergaderruimte",
+        "category": "work",
+        "typical_size_m2": 30,
+        "description": "Boekbare vergaderruimte",
+        "target_users": ["professionals", "entrepreneurs"]
+      },
+      {
+        "id": "lounge",
+        "name": "Bewonerslounge",
+        "category": "social",
+        "typical_size_m2": 80,
+        "description": "Gezellige lounge voor ontmoeting en ontspanning",
+        "target_users": ["all"]
+      },
+      {
+        "id": "package_room",
+        "name": "Pakkettenruimte",
+        "category": "services",
+        "typical_size_m2": 20,
+        "description": "Beveiligde ruimte voor pakketbezorging",
+        "target_users": ["all"]
+      },
+      {
+        "id": "outdoor_playground",
+        "name": "Buitenspeelplaats",
+        "category": "outdoor",
+        "typical_size_m2": 150,
+        "description": "Speeltuin voor kinderen in de buitenruimte",
+        "target_users": ["families", "young_families"]
+      },
+      {
+        "id": "bbq_area",
+        "name": "BBQ-plek",
+        "category": "outdoor",
+        "typical_size_m2": 50,
+        "description": "Gedeelde barbecueplek in de tuin",
+        "target_users": ["all"]
+      },
+      {
+        "id": "cinema_room",
+        "name": "Filmzaal",
+        "category": "entertainment",
+        "typical_size_m2": 40,
+        "description": "Kleine bioscoop voor bewoners",
+        "target_users": ["all"]
+      },
+      {
+        "id": "music_practice",
+        "name": "Muziekruimte",
+        "category": "entertainment",
+        "typical_size_m2": 25,
+        "description": "Geluiddichte ruimte om te musiceren",
+        "target_users": ["musicians", "students"]
+      },
+      {
+        "id": "workshop_space",
+        "name": "Klusruimte",
+        "category": "hobby",
+        "typical_size_m2": 50,
+        "description": "Werkplaats voor doe-het-zelf projecten",
+        "target_users": ["all"]
+      },
+      {
+        "id": "ev_charging",
+        "name": "Laadpalen",
+        "category": "parking",
+        "typical_size_m2": 30,
+        "description": "Elektrische oplaadpunten voor auto's",
+        "target_users": ["ev_owners"]
+      },
+      {
+        "id": "concierge",
+        "name": "Conciërge",
+        "category": "services",
+        "typical_size_m2": 15,
+        "description": "Bemande receptie en conciërgediensten",
+        "target_users": ["all"]
+      },
+      {
+        "id": "guest_room",
+        "name": "Logeerkamer",
+        "category": "services",
+        "typical_size_m2": 25,
+        "description": "Boekbare logeerkamer voor gasten van bewoners",
+        "target_users": ["all"]
+      }
+    ]
+  },
+  "en": {
+    "amenities": [
+      {
+        "id": "gym_fitness",
+        "name": "Fitness Center",
+        "category": "sport_recreation",
+        "typical_size_m2": 150,
+        "description": "Shared fitness center for residents",
+        "target_users": ["all"]
+      },
+      {
+        "id": "coworking_space",
+        "name": "Coworking Space",
+        "category": "work",
+        "typical_size_m2": 100,
+        "description": "Flexible workspace for remote workers",
+        "target_users": ["young_professionals", "entrepreneurs"]
+      },
+      {
+        "id": "community_kitchen",
+        "name": "Community Kitchen",
+        "category": "social",
+        "typical_size_m2": 80,
+        "description": "Shared kitchen for events and gatherings",
+        "target_users": ["all"]
+      },
+      {
+        "id": "kids_playroom",
+        "name": "Kids Playroom",
+        "category": "family",
+        "typical_size_m2": 60,
+        "description": "Indoor play area for children",
+        "target_users": ["families", "young_families"]
+      },
+      {
+        "id": "rooftop_terrace",
+        "name": "Rooftop Terrace",
+        "category": "outdoor",
+        "typical_size_m2": 200,
+        "description": "Shared rooftop terrace with seating and greenery",
+        "target_users": ["all"]
+      },
+      {
+        "id": "bike_storage",
+        "name": "Bike Storage",
+        "category": "parking",
+        "typical_size_m2": 120,
+        "description": "Secure covered bike parking",
+        "target_users": ["all"]
+      },
+      {
+        "id": "car_parking",
+        "name": "Parking Garage",
+        "category": "parking",
+        "typical_size_m2": 500,
+        "description": "Underground parking garage for cars",
+        "target_users": ["car_owners"]
+      },
+      {
+        "id": "storage_units",
+        "name": "Storage Units",
+        "category": "storage",
+        "typical_size_m2": 200,
+        "description": "Individual storage units for residents",
+        "target_users": ["all"]
+      },
+      {
+        "id": "laundry_room",
+        "name": "Laundry Room",
+        "category": "services",
+        "typical_size_m2": 40,
+        "description": "Shared laundry facility with washers and dryers",
+        "target_users": ["all"]
+      },
+      {
+        "id": "meeting_room",
+        "name": "Meeting Room",
+        "category": "work",
+        "typical_size_m2": 30,
+        "description": "Bookable meeting space",
+        "target_users": ["professionals", "entrepreneurs"]
+      },
+      {
+        "id": "lounge",
+        "name": "Residents' Lounge",
+        "category": "social",
+        "typical_size_m2": 80,
+        "description": "Cozy lounge for socializing and relaxation",
+        "target_users": ["all"]
+      },
+      {
+        "id": "package_room",
+        "name": "Package Room",
+        "category": "services",
+        "typical_size_m2": 20,
+        "description": "Secure space for package delivery",
+        "target_users": ["all"]
+      },
+      {
+        "id": "outdoor_playground",
+        "name": "Outdoor Playground",
+        "category": "outdoor",
+        "typical_size_m2": 150,
+        "description": "Children's playground in outdoor area",
+        "target_users": ["families", "young_families"]
+      },
+      {
+        "id": "bbq_area",
+        "name": "BBQ Area",
+        "category": "outdoor",
+        "typical_size_m2": 50,
+        "description": "Shared barbecue area in the garden",
+        "target_users": ["all"]
+      },
+      {
+        "id": "cinema_room",
+        "name": "Cinema Room",
+        "category": "entertainment",
+        "typical_size_m2": 40,
+        "description": "Small cinema for residents",
+        "target_users": ["all"]
+      },
+      {
+        "id": "music_practice",
+        "name": "Music Room",
+        "category": "entertainment",
+        "typical_size_m2": 25,
+        "description": "Soundproof room for music practice",
+        "target_users": ["musicians", "students"]
+      },
+      {
+        "id": "workshop_space",
+        "name": "Workshop Space",
+        "category": "hobby",
+        "typical_size_m2": 50,
+        "description": "Workshop for DIY projects",
+        "target_users": ["all"]
+      },
+      {
+        "id": "ev_charging",
+        "name": "EV Charging Stations",
+        "category": "parking",
+        "typical_size_m2": 30,
+        "description": "Electric vehicle charging points",
+        "target_users": ["ev_owners"]
+      },
+      {
+        "id": "concierge",
+        "name": "Concierge",
+        "category": "services",
+        "typical_size_m2": 15,
+        "description": "Staffed reception and concierge services",
+        "target_users": ["all"]
+      },
+      {
+        "id": "guest_room",
+        "name": "Guest Room",
+        "category": "services",
+        "typical_size_m2": 25,
+        "description": "Bookable guest room for residents' visitors",
+        "target_users": ["all"]
+      }
+    ]
+  }
+}

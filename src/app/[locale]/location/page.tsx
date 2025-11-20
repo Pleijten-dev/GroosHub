@@ -14,7 +14,7 @@ import { DemographicsPage } from '../../../features/location/components/Demograp
 import { SafetyPage } from '../../../features/location/components/Safety';
 import { HealthPage } from '../../../features/location/components/Health';
 import { LivabilityPage } from '../../../features/location/components/Livability';
-import { ExportButton, CompactExportButton } from '../../../features/location/components/ExportButton';
+import { ExportButton, CompactExportButton, GenerateProgramButton } from '../../../features/location/components/ExportButton';
 import { RadialChart, BarChart, DensityChart } from '../../../shared/components/common';
 import { extractLocationScores } from '../../../features/location/utils/extractLocationScores';
 import { LocationAnimation } from '../../../features/location/components/LocationAnimation';
@@ -563,6 +563,59 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* AI Building Program Generation Section */}
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-sm p-base border border-blue-200">
+                <h3 className="text-lg font-semibold text-text-primary mb-base flex items-center gap-2">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                    <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                  {locale === 'nl' ? 'AI Bouwprogramma Generatie' : 'AI Building Program Generation'}
+                </h3>
+                <p className="text-sm text-text-secondary mb-base">
+                  {locale === 'nl'
+                    ? 'Gebruik Claude AI om een gedetailleerd bouwprogramma te genereren op basis van alle verzamelde data, het PVE, en de doelgroep scenarios. De AI analyseert lokale demografische data, voorzieningen, en persona-geschiktheid om een optimaal unit mix en voorzieningen programma voor te stellen.'
+                    : 'Use Claude AI to generate a detailed building program based on all collected data, the PVE, and target group scenarios. The AI analyzes local demographics, amenities, and persona suitability to propose an optimal unit mix and amenities program.'}
+                </p>
+                <div className="bg-white/60 rounded p-3 mb-base text-sm">
+                  <p className="font-medium text-gray-900 mb-2">
+                    {locale === 'nl' ? 'Het gegenereerde programma bevat:' : 'The generated program includes:'}
+                  </p>
+                  <ul className="space-y-1 text-gray-700 ml-5">
+                    <li className="list-disc">
+                      {locale === 'nl'
+                        ? 'Gedetailleerde unit mix per scenario met aantallen en m²'
+                        : 'Detailed unit mix per scenario with quantities and m²'}
+                    </li>
+                    <li className="list-disc">
+                      {locale === 'nl'
+                        ? 'Commerciële ruimtes die lokale voorzieningen aanvullen'
+                        : 'Commercial spaces that complement local amenities'}
+                    </li>
+                    <li className="list-disc">
+                      {locale === 'nl'
+                        ? 'Gemeenschappelijke voorzieningen afgestemd op doelgroepen'
+                        : 'Communal facilities tailored to target groups'}
+                    </li>
+                    <li className="list-disc">
+                      {locale === 'nl'
+                        ? 'Data-gedreven rationale voor elke keuze'
+                        : 'Data-driven rationale for each choice'}
+                    </li>
+                    <li className="list-disc">
+                      {locale === 'nl'
+                        ? 'Vergelijkende analyse van alle scenarios'
+                        : 'Comparative analysis of all scenarios'}
+                    </li>
+                  </ul>
+                </div>
+                <GenerateProgramButton
+                  data={data}
+                  personaScores={sortedPersonas}
+                  scenarios={scenarios}
+                  locale={locale}
+                />
               </div>
 
               {/* Map Export Section */}
