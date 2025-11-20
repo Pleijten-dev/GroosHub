@@ -160,8 +160,9 @@ export const DUTCH_AMENITY_CATEGORIES: AmenityCategory[] = [
     defaultRadius: 1000,
     color: '#dc2626',
     icon: '🍽️',
-    priceLevels: [PRICE_LEVELS.INEXPENSIVE],
-    textQuery: 'budget restaurant fast food goedkoop eten takeaway snackbar'
+    priceLevels: [PRICE_LEVELS.INEXPENSIVE], // Only inexpensive (2), not including free
+    textQuery: 'budget restaurant fast food goedkoop eten takeaway snackbar', // Original budget query
+    // Note: Sends priceLevels=[2] to Google API to find budget restaurants
   },
   {
     id: 'restaurants_midrange',
@@ -181,10 +182,9 @@ export const DUTCH_AMENITY_CATEGORIES: AmenityCategory[] = [
     color: '#dc2626',
     icon: '🍽️',
     priceLevels: [PRICE_LEVELS.MODERATE],
-    textQuery: 'restaurant dining casual restaurant family restaurant',
-    // Note: Mid-range uses special fallback logic to include restaurants without price data.
-    // This prevents excluding restaurants that don't have price levels set in Google Places.
-    // The filter is applied post-search to include both priceLevel=3 (MODERATE) AND priceLevel=undefined.
+    textQuery: 'restaurant', // Simple generic query to get all restaurants
+    // Note: Does NOT send price filter to Google API (gets all restaurants), then post-filters to EXCLUDE budget (1,2) and expensive (4,5)
+    // This ensures restaurants without price data in Google Maps are captured and default to mid-range
   },
   {
     id: 'restaurants_upscale',
@@ -200,8 +200,9 @@ export const DUTCH_AMENITY_CATEGORIES: AmenityCategory[] = [
     defaultRadius: 2000,
     color: '#dc2626',
     icon: '🍽️',
-    priceLevels: [PRICE_LEVELS.EXPENSIVE, PRICE_LEVELS.VERY_EXPENSIVE],
-    textQuery: 'fine dining upscale restaurant gourmet haute cuisine expensive restaurant'
+    priceLevels: [PRICE_LEVELS.EXPENSIVE, PRICE_LEVELS.VERY_EXPENSIVE], // Include expensive (4) and very expensive (5)
+    textQuery: 'fine dining expensive restaurant upscale gourmet michelin duur', // Upscale-specific query to get different results from Google
+    // Note: Sends priceLevels=[4,5] to Google API to find upscale restaurants, uses upscale-focused keywords for better targeting
   },
 
   {
@@ -341,12 +342,12 @@ export const DEFAULT_SEARCH_CONFIG: SearchConfig = {
 // NOTE: NEW Google Places API uses values 1-5 (not 0-4 like legacy API)
 export const RESTAURANT_PRICE_CONFIG = {
   budget: {
-    levels: [PRICE_LEVELS.INEXPENSIVE],  // NEW API: 2 = INEXPENSIVE
+    levels: [PRICE_LEVELS.INEXPENSIVE],  // NEW API: 2=INEXPENSIVE
     description: 'Budget-friendly options (€)',
     maxResults: 20
   },
   midrange: {
-    levels: [PRICE_LEVELS.MODERATE],     // NEW API: 3 = MODERATE
+    levels: [PRICE_LEVELS.MODERATE],     // NEW API: 3 = MODERATE (+ undefined via post-filter)
     description: 'Mid-range dining (€€€)',
     maxResults: 20
   },
