@@ -18,7 +18,11 @@ export const NavigationItem: React.FC<NavigationItemProps> = ({
   const { utils } = useDesignSystem();
   const href = `/${locale}${item.href}`;
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    if (item.disabled) {
+      e.preventDefault();
+      return;
+    }
     if (onClick) {
       onClick();
     }
@@ -31,16 +35,19 @@ export const NavigationItem: React.FC<NavigationItemProps> = ({
         // Base nav item styles
         'flex items-center px-base py-sm rounded-md text-sm font-medium transition-all duration-fast border border-transparent',
         // Default state
-        'text-text-secondary hover:text-text-primary hover:bg-gray-100',
+        !item.disabled && 'text-text-secondary hover:text-text-primary hover:bg-gray-100',
         // Active state
-        isActive && 'bg-primary-light text-primary border-primary font-semibold',
+        isActive && !item.disabled && 'bg-primary-light text-primary border-primary font-semibold',
         // Interactive effects
-        'hover:transform hover:-translate-y-px hover:shadow-sm',
+        !item.disabled && 'hover:transform hover:-translate-y-px hover:shadow-sm',
+        // Disabled state
+        item.disabled && 'text-gray-400 cursor-not-allowed opacity-50 pointer-events-none',
         // Focus state
-        utils.focusRing('primary')
+        !item.disabled && utils.focusRing('primary')
       )}
       onClick={handleClick}
       role="menuitem"
+      aria-disabled={item.disabled}
     >
       <span>
         {t(item.labelKey)}

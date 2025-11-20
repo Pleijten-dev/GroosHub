@@ -7,6 +7,7 @@ export interface NavigationItem {
   href: string;
   icon?: string;
   requiresAuth?: boolean;
+  disabled?: boolean;
 }
 
 export interface NavigationBarProps {
