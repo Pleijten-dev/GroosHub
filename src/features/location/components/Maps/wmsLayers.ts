@@ -37,6 +37,12 @@ export interface WMSLayerConfig {
   fieldMappings?: {
     [fieldName: string]: FieldMapping;
   };
+  /** Amenity category ID for marker-based layers */
+  amenityCategoryId?: string;
+  /** Marker color for amenity layers */
+  markerColor?: string;
+  /** Icon for amenity layers */
+  icon?: string;
 }
 
 export interface WMSCategory {
@@ -77,6 +83,34 @@ function createLayerConfig(
     recommendedZoom,
     opacity: 0.7,
     fieldMappings,
+  };
+}
+
+/**
+ * Create amenity layer config
+ */
+function createAmenityLayerConfig(
+  amenityCategoryId: string,
+  title: string,
+  description: string,
+  color: string,
+  icon: string,
+  minZoom: number = 12,
+  maxZoom: number = 18,
+  recommendedZoom: number = 15
+): WMSLayerConfig {
+  return {
+    url: 'amenity://', // Special URL to indicate this is an amenity layer
+    layers: amenityCategoryId,
+    title,
+    description,
+    minZoom,
+    maxZoom,
+    recommendedZoom,
+    opacity: 1.0, // Markers are always fully opaque
+    amenityCategoryId,
+    markerColor: color,
+    icon,
   };
 }
 
@@ -480,6 +514,158 @@ export const WMS_CATEGORIES: Record<string, WMSCategory> = {
           minimum: { displayName: 'Minimum' },
           maximum: { displayName: 'Maximum' },
         }
+      ),
+    },
+  },
+  voorzieningen: {
+    name: 'Voorzieningen',
+    layers: {
+      zorg_primair: createAmenityLayerConfig(
+        'zorg_primair',
+        'Zorg (Huisarts & Apotheek)',
+        'Huisartsen, ziekenhuizen en apotheken in de buurt. Essentiële gezondheidszorg voorzieningen binnen loopafstand.',
+        '#dc2626',
+        '🏥'
+      ),
+      zorg_paramedisch: createAmenityLayerConfig(
+        'zorg_paramedisch',
+        'Zorg (Paramedische voorzieningen)',
+        'Fysiotherapie, chiropractors, tandheelkunde en medische laboratoria. Aanvullende gezondheidszorg voorzieningen.',
+        '#dc2626',
+        '🏥'
+      ),
+      openbaar_vervoer: createAmenityLayerConfig(
+        'openbaar_vervoer',
+        'Openbaar vervoer (halte)',
+        'Bus-, tram-, metro- en treinstations. Toegang tot openbaar vervoer voor mobiliteit.',
+        '#2563eb',
+        '🚌'
+      ),
+      mobiliteit_parkeren: createAmenityLayerConfig(
+        'mobiliteit_parkeren',
+        'Mobiliteit & Parkeren',
+        'Parkeerplaatsen, tankstations en laadpalen voor elektrische voertuigen. Mobiliteitsvoorzieningen.',
+        '#7c3aed',
+        '🚗'
+      ),
+      onderwijs_basisschool: createAmenityLayerConfig(
+        'onderwijs_basisschool',
+        'Onderwijs (Basisschool)',
+        'Basisscholen in de buurt. Primair onderwijs voor kinderen van 4-12 jaar.',
+        '#059669',
+        '🏫'
+      ),
+      onderwijs_voortgezet: createAmenityLayerConfig(
+        'onderwijs_voortgezet',
+        'Onderwijs (Voortgezet onderwijs)',
+        'Middelbare scholen, HAVO, VWO en MBO instellingen. Voortgezet onderwijs voor jongeren.',
+        '#059669',
+        '🎓'
+      ),
+      onderwijs_hoger: createAmenityLayerConfig(
+        'onderwijs_hoger',
+        'Onderwijs (Hoger onderwijs)',
+        'Universiteiten en hogescholen. HBO en WO instellingen voor hoger onderwijs.',
+        '#059669',
+        '🎓'
+      ),
+      kinderopvang: createAmenityLayerConfig(
+        'kinderopvang',
+        'Kinderopvang & Opvang',
+        'Kinderdagverblijven, peuterspeelzalen en buitenschoolse opvang (BSO). Kinderopvang voorzieningen.',
+        '#db2777',
+        '👶'
+      ),
+      winkels_dagelijks: createAmenityLayerConfig(
+        'winkels_dagelijks',
+        'Winkels (Dagelijkse boodschappen)',
+        'Supermarkten, bakkers en slagers. Winkels voor dagelijkse boodschappen binnen loopafstand.',
+        '#16a34a',
+        '🛒'
+      ),
+      winkels_overig: createAmenityLayerConfig(
+        'winkels_overig',
+        'Winkels (Overige retail)',
+        'Kledingwinkels, elektronicawinkels, boekwinkels en winkelcentra. Overige retail voorzieningen.',
+        '#16a34a',
+        '🛍️'
+      ),
+      restaurants_budget: createAmenityLayerConfig(
+        'restaurants_budget',
+        'Budget Restaurants (€)',
+        'Goedkope restaurants, fastfood en afhaalzaken. Budget-vriendelijke eetgelegenheden.',
+        '#dc2626',
+        '🍽️'
+      ),
+      restaurants_midrange: createAmenityLayerConfig(
+        'restaurants_midrange',
+        'Mid-range Restaurants (€€€)',
+        'Casual dining en family restaurants. Mid-range eetgelegenheden met gevarieerde keukens.',
+        '#dc2626',
+        '🍽️'
+      ),
+      restaurants_upscale: createAmenityLayerConfig(
+        'restaurants_upscale',
+        'Upscale Restaurants (€€€€-€€€€€)',
+        'Fine dining, Michelin restaurants en haute cuisine. Luxe en upscale eetgelegenheden.',
+        '#dc2626',
+        '🍽️'
+      ),
+      cafes_uitgaan: createAmenityLayerConfig(
+        'cafes_uitgaan',
+        'Cafés en avond programma',
+        'Cafés, bars, kroegen en nachtclubs. Uitgaansgelegenheden voor sociale activiteiten.',
+        '#f59e0b',
+        '🍺'
+      ),
+      sport_faciliteiten: createAmenityLayerConfig(
+        'sport_faciliteiten',
+        'Sport faciliteiten',
+        'Sportcomplexen, zwembaden, stadions en sportclubs. Sportfaciliteiten voor recreatie en competitie.',
+        '#ea580c',
+        '⚽'
+      ),
+      sportschool: createAmenityLayerConfig(
+        'sportschool',
+        'Sportschool / Fitnesscentrum',
+        'Sportscholen, fitnesscentra en yoga studio\'s. Faciliteiten voor fitness en training.',
+        '#ea580c',
+        '💪'
+      ),
+      groen_recreatie: createAmenityLayerConfig(
+        'groen_recreatie',
+        'Groen & Recreatie',
+        'Parken, speeltuinen en recreatiegebieden. Groene ruimtes voor ontspanning en recreatie.',
+        '#65a30d',
+        '🌳'
+      ),
+      cultuur_entertainment: createAmenityLayerConfig(
+        'cultuur_entertainment',
+        'Cultuur & Entertainment',
+        'Musea, theaters, bioscopen en bibliotheken. Culturele en entertainment voorzieningen.',
+        '#7c3aed',
+        '🎨'
+      ),
+      wellness: createAmenityLayerConfig(
+        'wellness',
+        'Wellness & Recreatie',
+        'Kappers, wellness centra, spa\'s en massagesalons. Wellness en schoonheidszorg voorzieningen.',
+        '#f97316',
+        '💆'
+      ),
+      zakelijke_diensten: createAmenityLayerConfig(
+        'zakelijke_diensten',
+        'Zakelijke Dienstverlening',
+        'Banken, accountants, advocaten en makelaars. Zakelijke en financiële diensten.',
+        '#374151',
+        '💼'
+      ),
+      nuts_overheid: createAmenityLayerConfig(
+        'nuts_overheid',
+        'Nutsvoorzieningen & Overheid',
+        'Gemeentehuizen en overheidsgebouwen. Publieke diensten en overheidsvoorzieningen.',
+        '#6b7280',
+        '🏛️'
       ),
     },
   },

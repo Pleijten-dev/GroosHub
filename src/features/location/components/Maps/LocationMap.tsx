@@ -7,6 +7,7 @@ import styles from './LocationMap.module.css';
 import { TileLayerConfig, DEFAULT_MAP_STYLE } from './mapStyles';
 import { WMSLayerConfig } from './wmsLayers';
 import { WMSFeatureInfo } from './WMSLayerControl';
+import type { AmenityMultiCategoryResponse, PlaceResult } from '../../data/sources/google-places/types';
 
 // Fix for default marker icons in Leaflet with Next.js
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -27,6 +28,7 @@ interface LocationMapProps {
   wmsOpacity?: number;
   onFeatureClick?: (info: WMSFeatureInfo) => void;
   onZoomChange?: (zoom: number) => void;
+  amenities?: AmenityMultiCategoryResponse | null;
   children?: React.ReactNode;
 }
 
@@ -45,12 +47,49 @@ export const LocationMap: React.FC<LocationMapProps> = ({
   wmsOpacity = 0.7,
   onFeatureClick,
   onZoomChange,
+  amenities = null,
   children,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
   const wmsLayerRef = useRef<L.TileLayer.WMS | null>(null);
+  const amenityMarkersRef = useRef<L.Marker[]>([]);
+
+  // Helper function to create colored circle markers for amenities
+  const createAmenityIcon = useCallback((color: string, icon: string) => {
+    return L.divIcon({
+      html: `
+        <div style="
+          position: relative;
+          width: 28px;
+          height: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        ">
+          <div style="
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background-color: ${color};
+            border: 2px solid white;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          "></div>
+          <span style="
+            position: relative;
+            z-index: 1;
+            font-size: 12px;
+          ">${icon}</span>
+        </div>
+      `,
+      className: 'custom-amenity-marker',
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+      popupAnchor: [0, -14],
+    });
+  }, []);
 
   useEffect(() => {
     // Only initialize the map once
@@ -147,7 +186,7 @@ export const LocationMap: React.FC<LocationMapProps> = ({
     }
   }, [marker, locationName]);
 
-  // Handle WMS layer changes
+  // Handle WMS layer changes and amenity markers
   useEffect(() => {
     if (!mapRef.current) return;
 
@@ -157,25 +196,67 @@ export const LocationMap: React.FC<LocationMapProps> = ({
       wmsLayerRef.current = null;
     }
 
-    // Add new WMS layer if provided
-    if (wmsLayer) {
-      const wms = L.tileLayer.wms(wmsLayer.url, {
-        layers: wmsLayer.layers,
-        format: 'image/png',
-        transparent: true,
-        attribution: wmsLayer.attribution || '',
-        minZoom: wmsLayer.minZoom,
-        maxZoom: wmsLayer.maxZoom,
-        opacity: wmsOpacity,
-        // Request tiles in EPSG:4326 (WGS84) instead of EPSG:28992 (RD)
-        // This ensures proper coordinate transformation from Dutch RD to WGS84
-        crs: L.CRS.EPSG4326,
-      });
+    // Remove existing amenity markers
+    amenityMarkersRef.current.forEach((marker) => marker.remove());
+    amenityMarkersRef.current = [];
 
-      wms.addTo(mapRef.current);
-      wmsLayerRef.current = wms;
+    // Check if this is an amenity layer or a WMS layer
+    if (wmsLayer) {
+      const isAmenityLayer = wmsLayer.url.startsWith('amenity://');
+
+      if (isAmenityLayer && wmsLayer.amenityCategoryId && amenities) {
+        // Handle amenity marker layer
+        const categoryId = wmsLayer.amenityCategoryId;
+        const categoryData = amenities.results.find((r) => r.category.id === categoryId);
+
+        if (categoryData && categoryData.places.length > 0) {
+          const color = wmsLayer.markerColor || '#3b82f6';
+          const icon = wmsLayer.icon || '📍';
+          const amenityIcon = createAmenityIcon(color, icon);
+
+          // Create markers for each amenity
+          const newMarkers = categoryData.places.map((place: PlaceResult) => {
+            const marker = L.marker([place.location.lat, place.location.lng], {
+              icon: amenityIcon,
+            }).addTo(mapRef.current!);
+
+            // Create popup with amenity information
+            const displayName = place.displayName?.text || place.name;
+            const popupContent = `
+              <div style="min-width: 200px;">
+                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600;">${displayName}</h3>
+                ${place.formattedAddress ? `<p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">${place.formattedAddress}</p>` : ''}
+                ${place.rating ? `<p style="margin: 0; font-size: 12px;">⭐ ${place.rating.toFixed(1)}</p>` : ''}
+                ${place.userRatingsTotal ? `<p style="margin: 0; font-size: 11px; color: #888;">${place.userRatingsTotal} beoordelingen</p>` : ''}
+              </div>
+            `;
+
+            marker.bindPopup(popupContent);
+            return marker;
+          });
+
+          amenityMarkersRef.current = newMarkers;
+        }
+      } else {
+        // Handle regular WMS layer
+        const wms = L.tileLayer.wms(wmsLayer.url, {
+          layers: wmsLayer.layers,
+          format: 'image/png',
+          transparent: true,
+          attribution: wmsLayer.attribution || '',
+          minZoom: wmsLayer.minZoom,
+          maxZoom: wmsLayer.maxZoom,
+          opacity: wmsOpacity,
+          // Request tiles in EPSG:4326 (WGS84) instead of EPSG:28992 (RD)
+          // This ensures proper coordinate transformation from Dutch RD to WGS84
+          crs: L.CRS.EPSG4326,
+        });
+
+        wms.addTo(mapRef.current);
+        wmsLayerRef.current = wms;
+      }
     }
-  }, [wmsLayer, wmsOpacity]);
+  }, [wmsLayer, wmsOpacity, amenities, createAmenityIcon]);
 
   // Handle GetFeatureInfo click
   const handleMapClick = useCallback(
