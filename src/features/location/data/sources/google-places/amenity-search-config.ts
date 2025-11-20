@@ -182,8 +182,8 @@ export const DUTCH_AMENITY_CATEGORIES: AmenityCategory[] = [
     color: '#dc2626',
     icon: '🍽️',
     priceLevels: [PRICE_LEVELS.MODERATE],
-    textQuery: 'restaurant dining casual restaurant family restaurant', // Original mid-range query
-    // Note: Does NOT send price filter to Google API (gets all restaurants), then post-filters to INCLUDE MODERATE (3) OR undefined
+    textQuery: 'restaurant', // Simple generic query to get all restaurants
+    // Note: Does NOT send price filter to Google API (gets all restaurants), then post-filters to EXCLUDE budget (1,2) and expensive (4,5)
     // This ensures restaurants without price data in Google Maps are captured and default to mid-range
   },
   {
