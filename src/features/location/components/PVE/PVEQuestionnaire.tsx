@@ -337,12 +337,16 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
     }
   }, [selectedPreset, totalM2, percentages, disabledCategories, lockedCategories]);
 
-  // Save final PVE state (for all presets, captures last shown configuration)
+  // Save final PVE state with debounce (for all presets, captures last shown configuration)
   useEffect(() => {
-    pveConfigCache.setFinalPVE({
-      totalM2,
-      percentages
-    });
+    const debounceTimer = setTimeout(() => {
+      pveConfigCache.setFinalPVE({
+        totalM2,
+        percentages
+      });
+    }, 500); // Wait 500ms after last change before saving
+
+    return () => clearTimeout(debounceTimer);
   }, [totalM2, percentages]);
 
   // Calculate absolute values
