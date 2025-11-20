@@ -147,10 +147,6 @@ export const LocationMap: React.FC<LocationMapProps> = ({
       markerRef.current = null;
     }
 
-    // Remove existing distance circles
-    distanceCirclesRef.current.forEach((circle) => circle.remove());
-    distanceCirclesRef.current = [];
-
     // Add new marker if position is provided
     if (marker) {
       // Create custom white square icon
@@ -176,22 +172,6 @@ export const LocationMap: React.FC<LocationMapProps> = ({
       }
 
       markerRef.current = newMarker;
-
-      // Add distance reference circles (250m, 500m, 1km, 2km)
-      const distances = [250, 500, 1000, 2000]; // in meters
-      const circles = distances.map((distance) => {
-        return L.circle(marker, {
-          radius: distance,
-          color: ACCENT_GREEN,
-          fillColor: 'transparent',
-          fillOpacity: 0,
-          weight: 1.5,
-          opacity: 0.4,
-          dashArray: '5, 10',
-        }).addTo(mapRef.current!);
-      });
-
-      distanceCirclesRef.current = circles;
     }
   }, [marker, locationName]);
 
@@ -209,6 +189,10 @@ export const LocationMap: React.FC<LocationMapProps> = ({
     amenityMarkersRef.current.forEach((marker) => marker.remove());
     amenityMarkersRef.current = [];
 
+    // Remove existing distance circles
+    distanceCirclesRef.current.forEach((circle) => circle.remove());
+    distanceCirclesRef.current = [];
+
     // Check if this is an amenity layer or a WMS layer
     if (wmsLayer) {
       const isAmenityLayer = wmsLayer.url.startsWith('amenity://');
@@ -221,9 +205,27 @@ export const LocationMap: React.FC<LocationMapProps> = ({
         if (categoryData && categoryData.places.length > 0) {
           const amenityIcon = createAmenityIcon();
 
+          // Add distance reference circles for amenity layers only
+          if (marker) {
+            const distances = [250, 500, 1000, 2000]; // in meters
+            const circles = distances.map((distance) => {
+              return L.circle(marker, {
+                radius: distance,
+                color: ACCENT_GREEN,
+                fillColor: 'transparent',
+                fillOpacity: 0,
+                weight: 1.5,
+                opacity: 0.4,
+                dashArray: '5, 10',
+              }).addTo(mapRef.current!);
+            });
+
+            distanceCirclesRef.current = circles;
+          }
+
           // Create markers for each amenity
           const newMarkers = categoryData.places.map((place: PlaceResult) => {
-            const marker = L.marker([place.location.lat, place.location.lng], {
+            const amenityMarker = L.marker([place.location.lat, place.location.lng], {
               icon: amenityIcon,
             }).addTo(mapRef.current!);
 
@@ -294,11 +296,14 @@ export const LocationMap: React.FC<LocationMapProps> = ({
               </div>
             `;
 
-            marker.bindPopup(popupContent, {
+            amenityMarker.bindPopup(popupContent, {
               maxWidth: 300,
-              className: 'amenity-popup'
+              closeButton: true,
+              autoClose: true,
+              autoPan: true,
             });
-            return marker;
+
+            return amenityMarker;
           });
 
           amenityMarkersRef.current = newMarkers;
@@ -322,7 +327,7 @@ export const LocationMap: React.FC<LocationMapProps> = ({
         wmsLayerRef.current = wms;
       }
     }
-  }, [wmsLayer, wmsOpacity, amenities, createAmenityIcon]);
+  }, [wmsLayer, wmsOpacity, amenities, createAmenityIcon, marker]);
 
   // Handle GetFeatureInfo click
   const handleMapClick = useCallback(
