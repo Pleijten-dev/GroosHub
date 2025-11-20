@@ -33,7 +33,9 @@ export const NavigationItem: React.FC<NavigationItemProps> = ({
       href={href}
       className={cn(
         // Base nav item styles
-        'flex items-center px-base py-sm rounded-md text-sm font-medium transition-all duration-fast border border-transparent',
+        'flex items-center justify-center px-base py-sm rounded-md text-sm font-medium transition-all duration-fast border border-transparent',
+        // Prevent text wrapping
+        'whitespace-nowrap',
         // Default state
         !item.disabled && 'text-text-secondary hover:text-text-primary hover:bg-gray-100',
         // Active state
