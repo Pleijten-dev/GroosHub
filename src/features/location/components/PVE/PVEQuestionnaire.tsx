@@ -337,6 +337,14 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
     }
   }, [selectedPreset, totalM2, percentages, disabledCategories, lockedCategories]);
 
+  // Save final PVE state (for all presets, captures last shown configuration)
+  useEffect(() => {
+    pveConfigCache.setFinalPVE({
+      totalM2,
+      percentages
+    });
+  }, [totalM2, percentages]);
+
   // Calculate absolute values
   const absoluteValues = useMemo(() => {
     const result: Record<keyof PVEAllocations, number> = {

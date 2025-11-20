@@ -20,7 +20,14 @@ export interface PVECachedConfig {
   timestamp: number;
 }
 
+export interface PVEFinalState {
+  totalM2: number;
+  percentages: PVEAllocations;
+  timestamp: number;
+}
+
 const CACHE_KEY = 'grooshub_pve_custom_config';
+const FINAL_PVE_CACHE_KEY = 'grooshub_pve_final_state';
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
 class PVEConfigCache {
@@ -109,6 +116,93 @@ class PVEConfigCache {
    */
   has(): boolean {
     return this.get() !== null;
+  }
+
+  /**
+   * Get final PVE state (last shown configuration)
+   */
+  getFinalPVE(): PVEFinalState | null {
+    if (!this.isLocalStorageAvailable()) {
+      return null;
+    }
+
+    try {
+      const cached = localStorage.getItem(FINAL_PVE_CACHE_KEY);
+      if (!cached) {
+        return null;
+      }
+
+      const state: PVEFinalState = JSON.parse(cached);
+
+      // Check if cache has expired
+      if (Date.now() - state.timestamp > CACHE_TTL) {
+        this.clearFinalPVE();
+        return null;
+      }
+
+      console.log('[PVE Cache] Retrieved final PVE state:', {
+        totalM2: state.totalM2,
+        percentages: state.percentages,
+        cachedAt: new Date(state.timestamp).toISOString()
+      });
+
+      return state;
+    } catch (error) {
+      console.error('[PVE Cache] Error reading final PVE state:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Save final PVE state (current configuration snapshot)
+   */
+  setFinalPVE(state: Omit<PVEFinalState, 'timestamp'>): boolean {
+    if (!this.isLocalStorageAvailable()) {
+      return false;
+    }
+
+    try {
+      const cacheData: PVEFinalState = {
+        ...state,
+        timestamp: Date.now()
+      };
+
+      localStorage.setItem(FINAL_PVE_CACHE_KEY, JSON.stringify(cacheData));
+
+      console.log('[PVE Cache] Saved final PVE state:', {
+        totalM2: state.totalM2,
+        percentages: state.percentages,
+        timestamp: new Date(cacheData.timestamp).toISOString()
+      });
+
+      return true;
+    } catch (error) {
+      console.error('[PVE Cache] Error saving final PVE state:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Clear final PVE state
+   */
+  clearFinalPVE(): void {
+    if (!this.isLocalStorageAvailable()) {
+      return;
+    }
+
+    try {
+      localStorage.removeItem(FINAL_PVE_CACHE_KEY);
+      console.log('[PVE Cache] Cleared final PVE state');
+    } catch (error) {
+      console.error('[PVE Cache] Error clearing final PVE state:', error);
+    }
+  }
+
+  /**
+   * Check if final PVE state exists and is valid
+   */
+  hasFinalPVE(): boolean {
+    return this.getFinalPVE() !== null;
   }
 }
 
