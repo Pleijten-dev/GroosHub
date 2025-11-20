@@ -45,7 +45,7 @@ interface CompactPersonaInfo {
   };
 }
 
-interface CompactScenario {
+export interface CompactScenario {
   name: string;
   personaNames: string[];
   avgScore: number;

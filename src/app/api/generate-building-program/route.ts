@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { NextResponse } from 'next/server';
 import housingTypologies from '@/features/location/data/sources/housing-typologies.json';
 import buildingAmenities from '@/features/location/data/sources/building-amenities.json';
+import type { CompactScenario } from '@/features/location/utils/jsonExportCompact';
 
 // Schema for a single unit type in the unit mix
 const UnitMixItemSchema = z.object({
@@ -87,6 +88,9 @@ const BuildingProgramSchema = z.object({
   comparative_analysis: z.string().describe('Comparison of the scenarios and recommendations based on local context'),
 });
 
+// Export the inferred type for use in components
+export type BuildingProgram = z.infer<typeof BuildingProgramSchema>;
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -135,7 +139,7 @@ ${JSON.stringify(amenities, null, 2)}
 
 # DOELGROEPEN SCENARIOS
 Het project moet ${rapportData.targetGroups.recommendedScenarios.length} verschillende scenarios bedienen:
-${rapportData.targetGroups.recommendedScenarios.map((scenario: any, index: number) => `
+${rapportData.targetGroups.recommendedScenarios.map((scenario: CompactScenario, index: number) => `
 Scenario ${index + 1}: ${scenario.name}
 Doelgroep Persona's: ${scenario.personaNames.join(', ')}
 Score: ${scenario.avgScore}
@@ -186,7 +190,7 @@ ${JSON.stringify(amenities, null, 2)}
 
 # TARGET GROUP SCENARIOS
 The project must serve ${rapportData.targetGroups.recommendedScenarios.length} different scenarios:
-${rapportData.targetGroups.recommendedScenarios.map((scenario: any, index: number) => `
+${rapportData.targetGroups.recommendedScenarios.map((scenario: CompactScenario, index: number) => `
 Scenario ${index + 1}: ${scenario.name}
 Target Personas: ${scenario.personaNames.join(', ')}
 Score: ${scenario.avgScore}

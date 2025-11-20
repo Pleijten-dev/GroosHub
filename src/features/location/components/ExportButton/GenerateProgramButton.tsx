@@ -9,6 +9,7 @@ import React, { useState } from 'react';
 import { exportCompactForLLM } from '../../utils/jsonExportCompact';
 import type { UnifiedLocationData } from '../../data/aggregator/multiLevelAggregator';
 import type { PersonaScore } from '../../utils/targetGroupScoring';
+import type { BuildingProgram } from '@/app/api/generate-building-program/route';
 
 export interface GenerateProgramButtonProps {
   data: UnifiedLocationData;
@@ -29,7 +30,7 @@ export const GenerateProgramButton: React.FC<GenerateProgramButtonProps> = ({
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<BuildingProgram | null>(null);
 
   const handleGenerate = async () => {
     try {
