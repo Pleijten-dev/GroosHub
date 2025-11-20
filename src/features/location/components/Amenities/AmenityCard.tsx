@@ -55,7 +55,6 @@ export const AmenityCard: React.FC<AmenityCardProps> = ({ result, locale = 'nl' 
     <>
       <div
         className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-lg transition-shadow duration-200 cursor-pointer"
-        style={{ borderLeftColor: category.color, borderLeftWidth: '4px' }}
         onClick={() => setIsModalOpen(true)}
         role="button"
         tabIndex={0}
@@ -68,25 +67,22 @@ export const AmenityCard: React.FC<AmenityCardProps> = ({ result, locale = 'nl' 
       >
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">{category.icon}</span>
-          <div>
-            <h3 className="font-semibold text-gray-900 text-sm">
-              {category.displayName}
-            </h3>
-            <p className="text-xs text-gray-500">
-              {places.length} {locale === 'nl' ? 'gevonden' : 'found'}
-            </p>
-          </div>
+        <div>
+          <h3 className="font-semibold text-gray-900 text-sm">
+            {category.displayName}
+          </h3>
+          <p className="text-xs text-gray-500">
+            {places.length} {locale === 'nl' ? 'gevonden' : 'found'}
+          </p>
         </div>
 
         {/* Priority badge */}
         <span
           className={`text-xs px-2 py-1 rounded-full ${
-            category.priority === 'essential' ? 'bg-red-100 text-red-700' :
-            category.priority === 'high' ? 'bg-orange-100 text-orange-700' :
-            category.priority === 'medium' ? 'bg-blue-100 text-blue-700' :
-            'bg-gray-100 text-gray-700'
+            category.priority === 'essential' ? 'bg-gray-100 text-gray-900 font-semibold' :
+            category.priority === 'high' ? 'bg-gray-100 text-gray-700' :
+            category.priority === 'medium' ? 'bg-gray-50 text-gray-600' :
+            'bg-gray-50 text-gray-500'
           }`}
         >
           {category.priority === 'essential' ? (locale === 'nl' ? 'Essentieel' : 'Essential') :
@@ -100,7 +96,7 @@ export const AmenityCard: React.FC<AmenityCardProps> = ({ result, locale = 'nl' 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded p-2 mb-3">
           <p className="text-xs text-red-700">
-            ⚠️ {locale === 'nl' ? 'Fout bij ophalen data' : 'Error fetching data'}
+            {locale === 'nl' ? 'Fout bij ophalen data' : 'Error fetching data'}
           </p>
         </div>
       )}
@@ -117,36 +113,26 @@ export const AmenityCard: React.FC<AmenityCardProps> = ({ result, locale = 'nl' 
               {closestPlace.name}
             </p>
             <p className="text-xs text-gray-600">
-              📍 {distanceCalculator.formatDistance(closestPlace.distance || 0)}
+              {distanceCalculator.formatDistance(closestPlace.distance || 0)}
               {closestPlace.rating && (
                 <span className="ml-2">
-                  ⭐ {closestPlace.rating.toFixed(1)}
+                  {closestPlace.rating.toFixed(1)}
                 </span>
               )}
             </p>
-            {closestPlace.openingHours?.openNow !== undefined && (
-              <p className="text-xs mt-1">
-                <span className={closestPlace.openingHours.openNow ? 'text-green-600' : 'text-red-600'}>
-                  {closestPlace.openingHours.openNow
-                    ? (locale === 'nl' ? '🟢 Nu open' : '🟢 Open now')
-                    : (locale === 'nl' ? '🔴 Gesloten' : '🔴 Closed')
-                  }
-                </span>
-              </p>
-            )}
           </div>
 
           {/* Quick stats */}
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="bg-blue-50 rounded p-2">
+            <div className="bg-gray-50 rounded p-2">
               <p className="text-gray-600">{locale === 'nl' ? 'Gem. afstand' : 'Avg. distance'}</p>
-              <p className="font-semibold text-blue-700">
+              <p className="font-semibold text-gray-900">
                 {distanceCalculator.formatDistance(averageDistance)}
               </p>
             </div>
-            <div className="bg-green-50 rounded p-2">
+            <div className="bg-gray-50 rounded p-2">
               <p className="text-gray-600">{locale === 'nl' ? 'Loopafstand' : 'Walking dist.'}</p>
-              <p className="font-semibold text-green-700">
+              <p className="font-semibold text-gray-900">
                 {withinWalkingDistance} {locale === 'nl' ? 'binnen 1km' : 'within 1km'}
               </p>
             </div>
@@ -219,36 +205,6 @@ export const AmenityCard: React.FC<AmenityCardProps> = ({ result, locale = 'nl' 
             </p>
           </div>
         </div>
-
-        {/* Combined Score */}
-        <div className="mt-2 pt-2 border-t border-gray-100">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-gray-600">
-              {locale === 'nl' ? 'Gecombineerde score' : 'Combined score'}
-            </p>
-            <span className={`px-2 py-1 text-xs font-semibold rounded border ${getScoreColor(amenityScore.combinedScore * 2 - 1)}`}>
-              {(amenityScore.combinedScore * 100).toFixed(0)}%
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Search strategy indicator */}
-      <div className="mt-3 pt-2 border-t border-gray-100">
-        <p className="text-xs text-gray-400">
-          {searchStrategy === 'text' ? '🔍 ' : '📍 '}
-          {searchStrategy === 'text'
-            ? (locale === 'nl' ? 'Tekst zoeken' : 'Text search')
-            : (locale === 'nl' ? 'Nabij zoeken' : 'Nearby search')
-          }
-        </p>
-      </div>
-
-      {/* Click hint */}
-      <div className="mt-3 pt-2 border-t border-gray-100 text-center">
-        <p className="text-xs text-blue-600 font-medium">
-          {locale === 'nl' ? '👆 Klik voor details' : '👆 Click for details'}
-        </p>
       </div>
     </div>
 
