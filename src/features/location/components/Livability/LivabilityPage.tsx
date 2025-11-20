@@ -9,6 +9,7 @@ import React, { useState, useMemo } from 'react';
 import type { UnifiedLocationData, UnifiedDataRow } from '../../data/aggregator/multiLevelAggregator';
 import { DensityChart } from '../../../../shared/components/common';
 import type { DensityChartData } from '../../../../shared/components/common/DensityChart/DensityChart';
+import { MultiLevelDataTable } from '../DataTables';
 import {
   GeographicLevelSelector,
   ExpandButton,
@@ -152,6 +153,7 @@ export const LivabilityPage: React.FC<LivabilityPageProps> = ({ data, locale }) 
   const [selectedArea, setSelectedArea] = useState<GeographicLevel>('neighborhood');
   const [comparisonLevel, setComparisonLevel] = useState<GeographicLevel>('municipality');
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Get available geographic levels from both livability and health data
   const availableLevels = useMemo<GeographicLevel[]>(() => {
@@ -368,39 +370,98 @@ export const LivabilityPage: React.FC<LivabilityPageProps> = ({ data, locale }) 
 
   return (
     <div className="h-full w-full flex flex-col bg-white">
-      {/* Geographic Level Selector */}
-      <GeographicLevelSelector
-        selectedLevel={selectedArea}
-        comparisonLevel={comparisonLevel}
-        availableLevels={availableLevels}
-        onSelectedLevelChange={setSelectedArea}
-        onComparisonLevelChange={setComparisonLevel}
-        levelLabels={LEVEL_LABELS}
-        locale={locale}
-      />
+      {/* Only show header and sections when not expanded */}
+      {!isExpanded && (
+        <>
+          {/* Geographic Level Selector */}
+          <GeographicLevelSelector
+            selectedLevel={selectedArea}
+            comparisonLevel={comparisonLevel}
+            availableLevels={availableLevels}
+            onSelectedLevelChange={setSelectedArea}
+            onComparisonLevelChange={setComparisonLevel}
+            levelLabels={LEVEL_LABELS}
+            locale={locale}
+          />
 
-      {/* Sections */}
-      <div className="flex-1 overflow-auto px-6">
-        <div className="space-y-0">
-          {LIVABILITY_SECTIONS.map((section) => (
-            <DataSection
-              key={section.id}
-              title={section.title[locale]}
-              description={section.description[locale]}
-              expandButton={
-                section.type === 'chart' ? (
-                  <ExpandButton
-                    isExpanded={expandedSection === section.id}
-                    onClick={() => setExpandedSection(expandedSection === section.id ? null : section.id)}
-                  />
-                ) : undefined
-              }
+          {/* Sections */}
+          <div className="flex-1 overflow-auto px-6">
+            <div className="space-y-0">
+              {LIVABILITY_SECTIONS.map((section) => (
+                <DataSection
+                  key={section.id}
+                  title={section.title[locale]}
+                  description={section.description[locale]}
+                  expandButton={
+                    section.type === 'chart' ? (
+                      <ExpandButton
+                        isExpanded={expandedSection === section.id}
+                        onClick={() => setExpandedSection(expandedSection === section.id ? null : section.id)}
+                      />
+                    ) : undefined
+                  }
+                >
+                  {renderSectionContent(section)}
+                </DataSection>
+              ))}
+            </div>
+          </div>
+
+          {/* Expandable Arrow Button */}
+          <div className="flex-shrink-0 flex justify-center py-4 border-t border-gray-200">
+            <button
+              className="group cursor-pointer bg-transparent border-none p-0 m-0 focus:outline-none transition-transform duration-200 hover:scale-110"
+              onClick={() => setIsExpanded(true)}
             >
-              {renderSectionContent(section)}
-            </DataSection>
-          ))}
+              <svg
+                width="48"
+                height="24"
+                viewBox="0 0 48 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="transition-colors duration-200"
+              >
+                <path
+                  d="M12 8 L24 20 L36 8"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-gray-700 group-hover:text-gray-900"
+                />
+              </svg>
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* Expanded Table Section - Full Screen */}
+      {isExpanded && (
+        <div className="flex-1 flex flex-col h-full bg-gray-50">
+          {/* Close button */}
+          <div className="flex-shrink-0 flex justify-between items-center p-4 bg-white border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">
+              {locale === 'nl' ? 'Volledige Leefbaarheids Tabel' : 'Full Livability Table'}
+            </h3>
+            <button
+              onClick={() => setIsExpanded(false)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+            >
+              {locale === 'nl' ? 'Sluiten' : 'Close'}
+            </button>
+          </div>
+
+          {/* Table content */}
+          <div className="flex-1 overflow-auto p-6">
+            <MultiLevelDataTable
+              data={data}
+              locale={locale}
+              defaultSource="livability"
+              lockSourceFilter={true}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
