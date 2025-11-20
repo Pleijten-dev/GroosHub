@@ -34,7 +34,7 @@ export async function getTranslations(locale: Locale) {
     nl: {
       nav: {
         aiAssistant: 'AI Assistent',
-        urbanAnalysis: 'Stedelijke Analyse',
+        urbanAnalysis: 'Doelgroepen & Programma',
         projectAnalysis: 'Project Analyse',
         projectDesign: 'Project Ontwerp',
         projectOverview: 'Project Overzicht',
@@ -84,7 +84,7 @@ export async function getTranslations(locale: Locale) {
     en: {
       nav: {
         aiAssistant: 'AI Assistant',
-        urbanAnalysis: 'Urban Analysis',
+        urbanAnalysis: 'Target Groups & Program',
         projectAnalysis: 'Project Analysis',
         projectDesign: 'Project Design',
         projectOverview: 'Project Overview',
