@@ -98,6 +98,20 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
 
   const handlePresetChange = (presetId: PresetId) => {
     setSelectedPreset(presetId);
+
+    // If switching to custom preset, try to load from cache
+    if (presetId === 'custom') {
+      const cachedConfig = pveConfigCache.get();
+      if (cachedConfig) {
+        setTotalM2(cachedConfig.totalM2);
+        setPercentages(cachedConfig.percentages);
+        setDisabledCategories(new Set(cachedConfig.disabledCategories as Array<keyof PVEAllocations>));
+        setLockedCategories(new Set(cachedConfig.lockedCategories as Array<keyof PVEAllocations>));
+        return;
+      }
+    }
+
+    // For non-custom presets or if no cache exists, use preset defaults
     const preset = PRESETS.find(p => p.id === presetId);
     if (preset) {
       setPercentages(preset.allocations);
