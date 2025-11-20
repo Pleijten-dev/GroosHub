@@ -301,11 +301,19 @@ export const LocationMap: React.FC<LocationMapProps> = ({
               </div>
             `;
 
+            // Bind popup to marker
             amenityMarker.bindPopup(popupContent, {
               maxWidth: 300,
               closeButton: true,
               autoClose: true,
               autoPan: true,
+            });
+
+            // Add explicit click handler to open popup
+            amenityMarker.on('click', (e) => {
+              // Stop event propagation to prevent map click
+              L.DomEvent.stopPropagation(e);
+              amenityMarker.openPopup();
             });
 
             return amenityMarker;
