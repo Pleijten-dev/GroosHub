@@ -25,6 +25,7 @@ interface CompactAmenity {
   countScore: number;
   proximityCount: number;
   proximityBonus: number;
+  scoringNote: string;
 }
 
 interface CompactPersonaInfo {
@@ -65,12 +66,12 @@ export interface CompactLocationExport {
     description: string;
     totalM2: number;
     percentages: {
-      apartments: { value: number; description: string };
-      commercial: { value: number; description: string };
-      hospitality: { value: number; description: string };
-      social: { value: number; description: string };
-      communal: { value: number; description: string };
-      offices: { value: number; description: string };
+      apartments: { percentage: number; m2: number; description: string };
+      commercial: { percentage: number; m2: number; description: string };
+      hospitality: { percentage: number; m2: number; description: string };
+      social: { percentage: number; m2: number; description: string };
+      communal: { percentage: number; m2: number; description: string };
+      offices: { percentage: number; m2: number; description: string };
     };
     timestamp: string;
   };
@@ -226,45 +227,51 @@ export function exportCompactForLLM(
   const pveFinalState = pveConfigCache.getFinalPVE();
   const pveData = pveFinalState ? {
     description: locale === 'nl'
-      ? 'Program van Eisen (PvE) - De definitieve verdeling van het te ontwikkelen programma in vierkante meters'
-      : 'Program of Requirements (PvE) - The final distribution of the development program in square meters',
+      ? 'Program van Eisen (PvE) - De definitieve verdeling van het te ontwikkelen programma. Alle waarden zijn uitgedrukt in percentages van het totaal en vierkante meters (m²).'
+      : 'Program of Requirements (PvE) - The final distribution of the development program. All values are expressed as percentages of the total and square meters (m²).',
     totalM2: pveFinalState.totalM2,
     percentages: {
       apartments: {
-        value: pveFinalState.percentages.apartments,
+        percentage: pveFinalState.percentages.apartments,
+        m2: Math.round((pveFinalState.percentages.apartments / 100) * pveFinalState.totalM2),
         description: locale === 'nl'
-          ? 'Percentage van het totaal voor woningen/appartementen'
-          : 'Percentage of total for residential apartments'
+          ? 'Woningen/appartementen - Het percentage en m² toegewezen aan residentiële wooneenheden'
+          : 'Residential apartments - The percentage and m² allocated to residential housing units'
       },
       commercial: {
-        value: pveFinalState.percentages.commercial,
+        percentage: pveFinalState.percentages.commercial,
+        m2: Math.round((pveFinalState.percentages.commercial / 100) * pveFinalState.totalM2),
         description: locale === 'nl'
-          ? 'Percentage van het totaal voor commerciële ruimtes (winkels, retail)'
-          : 'Percentage of total for commercial spaces (shops, retail)'
+          ? 'Commercieel - Het percentage en m² voor winkels, retail en commerciële activiteiten'
+          : 'Commercial - The percentage and m² for shops, retail and commercial activities'
       },
       hospitality: {
-        value: pveFinalState.percentages.hospitality,
+        percentage: pveFinalState.percentages.hospitality,
+        m2: Math.round((pveFinalState.percentages.hospitality / 100) * pveFinalState.totalM2),
         description: locale === 'nl'
-          ? 'Percentage van het totaal voor horeca (restaurants, cafés)'
-          : 'Percentage of total for hospitality (restaurants, cafés)'
+          ? 'Horeca - Het percentage en m² voor restaurants, cafés en horecagelegenheden'
+          : 'Hospitality - The percentage and m² for restaurants, cafés and hospitality venues'
       },
       social: {
-        value: pveFinalState.percentages.social,
+        percentage: pveFinalState.percentages.social,
+        m2: Math.round((pveFinalState.percentages.social / 100) * pveFinalState.totalM2),
         description: locale === 'nl'
-          ? 'Percentage van het totaal voor sociale voorzieningen (zorg, onderwijs)'
-          : 'Percentage of total for social facilities (healthcare, education)'
+          ? 'Sociaal - Het percentage en m² voor sociale voorzieningen zoals zorg, onderwijs en welzijn'
+          : 'Social - The percentage and m² for social facilities such as healthcare, education and welfare'
       },
       communal: {
-        value: pveFinalState.percentages.communal,
+        percentage: pveFinalState.percentages.communal,
+        m2: Math.round((pveFinalState.percentages.communal / 100) * pveFinalState.totalM2),
         description: locale === 'nl'
-          ? 'Percentage van het totaal voor gemeenschappelijke ruimtes'
-          : 'Percentage of total for communal spaces'
+          ? 'Gemeenschappelijk - Het percentage en m² voor gedeelde ruimtes en gemeenschappelijke voorzieningen'
+          : 'Communal - The percentage and m² for shared spaces and communal facilities'
       },
       offices: {
-        value: pveFinalState.percentages.offices,
+        percentage: pveFinalState.percentages.offices,
+        m2: Math.round((pveFinalState.percentages.offices / 100) * pveFinalState.totalM2),
         description: locale === 'nl'
-          ? 'Percentage van het totaal voor kantoorruimtes'
-          : 'Percentage of total for office spaces'
+          ? 'Kantoren - Het percentage en m² voor kantoorruimtes en werkplekken'
+          : 'Offices - The percentage and m² for office spaces and workplaces'
       }
     },
     timestamp: new Date(pveFinalState.timestamp).toISOString()
@@ -442,6 +449,10 @@ export function exportCompactForLLM(
     'Culturele voorzieningen': { nl: 'Aantal culturele voorzieningen en nabijheid binnen 250m', en: 'Number of cultural facilities and proximity within 250m' },
   };
 
+  const scoringNote = locale === 'nl'
+    ? 'Scores liggen tussen -1 en 1, waarbij 1 de best mogelijke score is. De proximityBonus geeft +1 wanneer een voorziening binnen 250m van de locatie ligt.'
+    : 'Scores range from -1 to 1, where 1 is the best possible score. The proximityBonus awards +1 when an amenity is within 250m of the location.';
+
   const amenities: CompactAmenity[] = Array.from(amenitiesMap.entries())
     .map(([name, data]) => ({
       name,
@@ -450,6 +461,7 @@ export function exportCompactForLLM(
       countScore: Math.round(data.countScore * 100) / 100,
       proximityCount: data.proximityCount,
       proximityBonus: Math.round(data.proximityBonus * 100) / 100,
+      scoringNote,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -589,8 +601,8 @@ export function exportCompactForLLM(
     livability,
     amenities: {
       description: locale === 'nl'
-        ? 'Voorzieningen in de buurt met aantal, nabijheid en scores'
-        : 'Local amenities with count, proximity and scores',
+        ? 'Voorzieningen in de buurt met aantal, nabijheid en scores. Alle scores liggen tussen -1 en 1, waarbij 1 de best mogelijke score is. De proximityBonus geeft +1 wanneer een voorziening binnen 250m van de locatie ligt.'
+        : 'Local amenities with count, proximity and scores. All scores range from -1 to 1, where 1 is the best possible score. The proximityBonus awards +1 when an amenity is within 250m of the location.',
       items: amenities,
     },
     housingMarket,
