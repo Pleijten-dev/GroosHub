@@ -380,10 +380,12 @@ export const LocationMap: React.FC<LocationMapProps> = ({
   );
 
   // Add/remove click handler based on whether we have a WMS layer and callback
+  // Note: Don't add click handler for amenity layers - they use marker popups instead
   useEffect(() => {
     if (!mapRef.current) return;
 
-    if (wmsLayer && onFeatureClick) {
+    const isAmenityLayer = wmsLayer?.url.startsWith('amenity://');
+    if (wmsLayer && onFeatureClick && !isAmenityLayer) {
       mapRef.current.on('click', handleMapClick);
     }
 
