@@ -8,9 +8,11 @@
 import type { UnifiedLocationData, UnifiedDataRow } from '../data/aggregator/multiLevelAggregator';
 import type { PersonaScore } from './targetGroupScoring';
 import housingPersonasData from '../data/sources/housing-personas.json';
+import { pveConfigCache, type PVEFinalState } from '../data/cache/pveConfigCache';
 
 interface CompactMetric {
   name: string;
+  description: string;
   neighborhood: string;
   municipality: string;
   national?: string;
@@ -18,6 +20,7 @@ interface CompactMetric {
 
 interface CompactAmenity {
   name: string;
+  description: string;
   count: number;
   countScore: number;
   proximityCount: number;
@@ -57,6 +60,21 @@ export interface CompactLocationExport {
     coordinates?: { lat: number; lon: number };
   };
 
+  // PVE (Program van Eisen) - Final configuration from cache
+  pve?: {
+    description: string;
+    totalM2: number;
+    percentages: {
+      apartments: { value: number; description: string };
+      commercial: { value: number; description: string };
+      hospitality: { value: number; description: string };
+      social: { value: number; description: string };
+      communal: { value: number; description: string };
+      offices: { value: number; description: string };
+    };
+    timestamp: string;
+  };
+
   // All personas with their full information
   allPersonas: {
     id: string;
@@ -69,53 +87,61 @@ export interface CompactLocationExport {
 
   // Demographics - all sections shown on UI
   demographics: {
+    description: string;
     age: CompactMetric[]; // 5 age groups
     status: CompactMetric[]; // 4 marital statuses
     immigration: CompactMetric[]; // 8 immigration categories
-    familySize: { neighborhood: string; municipality: string; national?: string };
+    familySize: { description: string; neighborhood: string; municipality: string; national?: string };
     familyType: CompactMetric[]; // 3 family types
-    income: { neighborhood: string; municipality: string; national?: string };
+    income: { description: string; neighborhood: string; municipality: string; national?: string };
   };
 
   // Health - sections as shown on UI
   health: {
-    experiencedHealth: { neighborhood: string; municipality: string; national?: string };
-    sports: { neighborhood: string; municipality: string; national?: string };
+    description: string;
+    experiencedHealth: { description: string; neighborhood: string; municipality: string; national?: string };
+    sports: { description: string; neighborhood: string; municipality: string; national?: string };
     weight: CompactMetric[]; // 4 weight categories
-    smoker: { neighborhood: string; municipality: string; national?: string };
+    smoker: { description: string; neighborhood: string; municipality: string; national?: string };
     alcohol: CompactMetric[]; // 4 alcohol categories
-    limitedHealth: { neighborhood: string; municipality: string; national?: string };
+    limitedHealth: { description: string; neighborhood: string; municipality: string; national?: string };
     loneliness: CompactMetric[]; // 4 loneliness categories
-    emotionalSupport: { neighborhood: string; municipality: string; national?: string };
+    emotionalSupport: { description: string; neighborhood: string; municipality: string; national?: string };
     psychologicalHealth: CompactMetric[]; // 3 psychological indicators
   };
 
   // Safety - sections as shown on UI
   safety: {
-    totalCrimes: { neighborhood: string; municipality: string; national?: string };
-    burglary: { neighborhood: string; municipality: string; national?: string };
-    pickpocketing: { neighborhood: string; municipality: string; national?: string };
-    accidents: { neighborhood: string; municipality: string; national?: string };
-    feelsUnsafe: { neighborhood: string; municipality: string; national?: string };
-    streetLighting: { neighborhood: string; municipality: string; national?: string };
+    description: string;
+    totalCrimes: { description: string; neighborhood: string; municipality: string; national?: string };
+    burglary: { description: string; neighborhood: string; municipality: string; national?: string };
+    pickpocketing: { description: string; neighborhood: string; municipality: string; national?: string };
+    accidents: { description: string; neighborhood: string; municipality: string; national?: string };
+    feelsUnsafe: { description: string; neighborhood: string; municipality: string; national?: string };
+    streetLighting: { description: string; neighborhood: string; municipality: string; national?: string };
   };
 
   // Livability - sections as shown on UI (only 7 sections)
   livability: {
+    description: string;
     maintenance: CompactMetric[]; // 2 metrics
-    streetLighting: { neighborhood: string; municipality: string; national?: string };
+    streetLighting: { description: string; neighborhood: string; municipality: string; national?: string };
     youthFacilities: CompactMetric[]; // 2 metrics
     contact: CompactMetric[]; // 4 metrics
-    volunteers: { neighborhood: string; municipality: string; national?: string }; // from health data
-    socialCohesion: { neighborhood: string; municipality: string; national?: string };
-    livabilityScore: { neighborhood: string; municipality: string; national?: string };
+    volunteers: { description: string; neighborhood: string; municipality: string; national?: string }; // from health data
+    socialCohesion: { description: string; neighborhood: string; municipality: string; national?: string };
+    livabilityScore: { description: string; neighborhood: string; municipality: string; national?: string };
   };
 
   // Amenities - grouped by category with scores
-  amenities: CompactAmenity[];
+  amenities: {
+    description: string;
+    items: CompactAmenity[];
+  };
 
   // Housing market summary
   housingMarket?: {
+    description: string;
     avgPrice: number;
     avgSize: number;
     avgBuildYear: number;
@@ -125,6 +151,7 @@ export interface CompactLocationExport {
 
   // Target groups - all 27 personas ranked
   targetGroups: {
+    description: string;
     rankedPersonas: CompactPersonaInfo[]; // All 27 personas in rank order
     recommendedScenarios: CompactScenario[];
   };
@@ -144,6 +171,7 @@ function getFieldValue(rows: UnifiedDataRow[], fieldKey: string): string {
  */
 function createMetric(
   name: string,
+  description: string,
   fieldKey: string,
   neighborhoodData: UnifiedDataRow[],
   municipalityData: UnifiedDataRow[],
@@ -151,6 +179,7 @@ function createMetric(
 ): CompactMetric {
   return {
     name,
+    description,
     neighborhood: getFieldValue(neighborhoodData, fieldKey),
     municipality: getFieldValue(municipalityData, fieldKey),
     national: getFieldValue(nationalData, fieldKey),
@@ -161,12 +190,14 @@ function createMetric(
  * Create single value metric (for isValue: true sections)
  */
 function createValueMetric(
+  description: string,
   fieldKey: string,
   neighborhoodData: UnifiedDataRow[],
   municipalityData: UnifiedDataRow[],
   nationalData: UnifiedDataRow[]
-): { neighborhood: string; municipality: string; national?: string } {
+): { description: string; neighborhood: string; municipality: string; national?: string } {
   return {
+    description,
     neighborhood: getFieldValue(neighborhoodData, fieldKey),
     municipality: getFieldValue(municipalityData, fieldKey),
     national: getFieldValue(nationalData, fieldKey),
@@ -180,7 +211,8 @@ export function exportCompactForLLM(
   data: UnifiedLocationData,
   personaScores: PersonaScore[],
   scenarios: { scenario1: number[]; scenario2: number[]; scenario3: number[] },
-  locale: 'nl' | 'en' = 'nl'
+  locale: 'nl' | 'en' = 'nl',
+  customScenarioPersonaIds: string[] = []
 ): CompactLocationExport {
   // Format location string
   const locationParts = [
@@ -189,6 +221,54 @@ export function exportCompactForLLM(
     data.location.municipality.statnaam,
   ].filter(Boolean);
   const locationString = locationParts.join(', ');
+
+  // Get PVE final state from cache
+  const pveFinalState = pveConfigCache.getFinalPVE();
+  const pveData = pveFinalState ? {
+    description: locale === 'nl'
+      ? 'Program van Eisen (PvE) - De definitieve verdeling van het te ontwikkelen programma in vierkante meters'
+      : 'Program of Requirements (PvE) - The final distribution of the development program in square meters',
+    totalM2: pveFinalState.totalM2,
+    percentages: {
+      apartments: {
+        value: pveFinalState.percentages.apartments,
+        description: locale === 'nl'
+          ? 'Percentage van het totaal voor woningen/appartementen'
+          : 'Percentage of total for residential apartments'
+      },
+      commercial: {
+        value: pveFinalState.percentages.commercial,
+        description: locale === 'nl'
+          ? 'Percentage van het totaal voor commerciële ruimtes (winkels, retail)'
+          : 'Percentage of total for commercial spaces (shops, retail)'
+      },
+      hospitality: {
+        value: pveFinalState.percentages.hospitality,
+        description: locale === 'nl'
+          ? 'Percentage van het totaal voor horeca (restaurants, cafés)'
+          : 'Percentage of total for hospitality (restaurants, cafés)'
+      },
+      social: {
+        value: pveFinalState.percentages.social,
+        description: locale === 'nl'
+          ? 'Percentage van het totaal voor sociale voorzieningen (zorg, onderwijs)'
+          : 'Percentage of total for social facilities (healthcare, education)'
+      },
+      communal: {
+        value: pveFinalState.percentages.communal,
+        description: locale === 'nl'
+          ? 'Percentage van het totaal voor gemeenschappelijke ruimtes'
+          : 'Percentage of total for communal spaces'
+      },
+      offices: {
+        value: pveFinalState.percentages.offices,
+        description: locale === 'nl'
+          ? 'Percentage van het totaal voor kantoorruimtes'
+          : 'Percentage of total for office spaces'
+      }
+    },
+    timestamp: new Date(pveFinalState.timestamp).toISOString()
+  } : undefined;
 
   // Get all personas from the source data
   const allPersonasSource = housingPersonasData[locale].housing_personas;
@@ -205,101 +285,113 @@ export function exportCompactForLLM(
 
   // === DEMOGRAPHICS ===
   const demographics = {
+    description: locale === 'nl'
+      ? 'Demografische kenmerken van de bevolking, inclusief leeftijd, burgerlijke staat, herkomst en inkomen'
+      : 'Demographic characteristics of the population, including age, marital status, origin and income',
     age: [
-      createMetric('0-15 jaar', 'k_0Tot15Jaar_8', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
-      createMetric('15-25 jaar', 'k_15Tot25Jaar_9', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
-      createMetric('25-45 jaar', 'k_25Tot45Jaar_10', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
-      createMetric('45-65 jaar', 'k_45Tot65Jaar_11', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
-      createMetric('65+ jaar', 'k_65JaarOfOuder_12', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
+      createMetric('0-15 jaar', locale === 'nl' ? 'Percentage kinderen en jongeren' : 'Percentage children and youth', 'k_0Tot15Jaar_8', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
+      createMetric('15-25 jaar', locale === 'nl' ? 'Percentage jongvolwassenen' : 'Percentage young adults', 'k_15Tot25Jaar_9', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
+      createMetric('25-45 jaar', locale === 'nl' ? 'Percentage volwassenen in de werkzame leeftijd' : 'Percentage working-age adults', 'k_25Tot45Jaar_10', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
+      createMetric('45-65 jaar', locale === 'nl' ? 'Percentage middelbare leeftijd' : 'Percentage middle-aged', 'k_45Tot65Jaar_11', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
+      createMetric('65+ jaar', locale === 'nl' ? 'Percentage ouderen (gepensioneerd)' : 'Percentage elderly (retired)', 'k_65JaarOfOuder_12', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
     ],
     status: [
-      createMetric('Ongehuwd', 'Ongehuwd_13', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
-      createMetric('Gehuwd', 'Gehuwd_14', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
-      createMetric('Gescheiden', 'Gescheiden_15', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
-      createMetric('Verweduwd', 'Verweduwd_16', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
+      createMetric('Ongehuwd', locale === 'nl' ? 'Percentage ongehuwden' : 'Percentage unmarried', 'Ongehuwd_13', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
+      createMetric('Gehuwd', locale === 'nl' ? 'Percentage gehuwden' : 'Percentage married', 'Gehuwd_14', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
+      createMetric('Gescheiden', locale === 'nl' ? 'Percentage gescheidenen' : 'Percentage divorced', 'Gescheiden_15', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
+      createMetric('Verweduwd', locale === 'nl' ? 'Percentage weduwen/weduwnaars' : 'Percentage widowed', 'Verweduwd_16', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
     ],
     immigration: [
-      createMetric('Autochtoon', 'Autochtoon', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
-      createMetric('Westers', 'WestersTotaal_17', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
-      createMetric('Niet-Westers', 'NietWestersTotaal_18', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
-      createMetric('Marokko', 'Marokko_19', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
-      createMetric('Antillen/Aruba', 'NederlandseAntillenEnAruba_20', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
-      createMetric('Suriname', 'Suriname_21', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
-      createMetric('Turkije', 'Turkije_22', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
-      createMetric('Overig Niet-Westers', 'OverigNietWesters_23', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
+      createMetric('Autochtoon', locale === 'nl' ? 'Percentage met Nederlandse herkomst' : 'Percentage of Dutch origin', 'Autochtoon', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
+      createMetric('Westers', locale === 'nl' ? 'Percentage met Westerse migratieachtergrond' : 'Percentage with Western migration background', 'WestersTotaal_17', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
+      createMetric('Niet-Westers', locale === 'nl' ? 'Percentage met niet-Westerse migratieachtergrond' : 'Percentage with non-Western migration background', 'NietWestersTotaal_18', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
+      createMetric('Marokko', locale === 'nl' ? 'Percentage met Marokkaanse herkomst' : 'Percentage of Moroccan origin', 'Marokko_19', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
+      createMetric('Antillen/Aruba', locale === 'nl' ? 'Percentage met Antilliaanse/Arubaanse herkomst' : 'Percentage of Antillean/Aruban origin', 'NederlandseAntillenEnAruba_20', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
+      createMetric('Suriname', locale === 'nl' ? 'Percentage met Surinaamse herkomst' : 'Percentage of Surinamese origin', 'Suriname_21', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
+      createMetric('Turkije', locale === 'nl' ? 'Percentage met Turkse herkomst' : 'Percentage of Turkish origin', 'Turkije_22', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
+      createMetric('Overig Niet-Westers', locale === 'nl' ? 'Percentage met overige niet-Westerse herkomst' : 'Percentage with other non-Western origin', 'OverigNietWesters_23', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
     ],
-    familySize: createValueMetric('GemiddeldeHuishoudensgrootte_32', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
+    familySize: createValueMetric(locale === 'nl' ? 'Gemiddeld aantal personen per huishouden' : 'Average number of persons per household', 'GemiddeldeHuishoudensgrootte_32', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
     familyType: [
-      createMetric('Eenpersoons', 'Eenpersoonshuishoudens_29', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
-      createMetric('Zonder kinderen', 'HuishoudensZonderKinderen_30', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
-      createMetric('Met kinderen', 'HuishoudensMetKinderen_31', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
+      createMetric('Eenpersoons', locale === 'nl' ? 'Percentage alleenstaanden' : 'Percentage single-person households', 'Eenpersoonshuishoudens_29', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
+      createMetric('Zonder kinderen', locale === 'nl' ? 'Percentage huishoudens zonder kinderen' : 'Percentage households without children', 'HuishoudensZonderKinderen_30', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
+      createMetric('Met kinderen', locale === 'nl' ? 'Percentage huishoudens met kinderen' : 'Percentage households with children', 'HuishoudensMetKinderen_31', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
     ],
-    income: createValueMetric('GemiddeldInkomenPerInwoner_72', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
+    income: createValueMetric(locale === 'nl' ? 'Gemiddeld inkomen per inwoner per jaar (in euro)' : 'Average income per resident per year (in euros)', 'GemiddeldInkomenPerInwoner_72', data.demographics.neighborhood, data.demographics.municipality, data.demographics.national),
   };
 
   // === HEALTH (using actual field keys from HealthPage) ===
   const health = {
-    experiencedHealth: createValueMetric('ErvarenGezondheidGoedZeerGoed_4', data.health.neighborhood, data.health.municipality, data.health.national),
-    sports: createValueMetric('WekelijkseSporters_6', data.health.neighborhood, data.health.municipality, data.health.national),
+    description: locale === 'nl'
+      ? 'Gezondheidskenmerken van de bevolking, inclusief fysieke en mentale gezondheid'
+      : 'Health characteristics of the population, including physical and mental health',
+    experiencedHealth: createValueMetric(locale === 'nl' ? 'Percentage dat eigen gezondheid als goed of zeer goed ervaart' : 'Percentage experiencing own health as good or very good', 'ErvarenGezondheidGoedZeerGoed_4', data.health.neighborhood, data.health.municipality, data.health.national),
+    sports: createValueMetric(locale === 'nl' ? 'Percentage dat wekelijks sport' : 'Percentage exercising weekly', 'WekelijkseSporters_6', data.health.neighborhood, data.health.municipality, data.health.national),
     weight: [
-      createMetric('Ondergewicht', 'Ondergewicht_7', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('Normaal gewicht', 'NormaalGewicht_8', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('Overgewicht', 'Overgewicht_9', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('Ernstig overgewicht', 'ErnstigOvergewicht_10', data.health.neighborhood, data.health.municipality, data.health.national),
+      createMetric('Ondergewicht', locale === 'nl' ? 'Percentage met ondergewicht (BMI < 18.5)' : 'Percentage underweight (BMI < 18.5)', 'Ondergewicht_7', data.health.neighborhood, data.health.municipality, data.health.national),
+      createMetric('Normaal gewicht', locale === 'nl' ? 'Percentage met gezond gewicht (BMI 18.5-25)' : 'Percentage normal weight (BMI 18.5-25)', 'NormaalGewicht_8', data.health.neighborhood, data.health.municipality, data.health.national),
+      createMetric('Overgewicht', locale === 'nl' ? 'Percentage met overgewicht (BMI 25-30)' : 'Percentage overweight (BMI 25-30)', 'Overgewicht_9', data.health.neighborhood, data.health.municipality, data.health.national),
+      createMetric('Ernstig overgewicht', locale === 'nl' ? 'Percentage met obesitas (BMI > 30)' : 'Percentage obese (BMI > 30)', 'ErnstigOvergewicht_10', data.health.neighborhood, data.health.municipality, data.health.national),
     ],
-    smoker: createValueMetric('Roker_11', data.health.neighborhood, data.health.municipality, data.health.national),
+    smoker: createValueMetric(locale === 'nl' ? 'Percentage rokers' : 'Percentage smokers', 'Roker_11', data.health.neighborhood, data.health.municipality, data.health.national),
     alcohol: [
-      createMetric('Voldoet aan alcoholrichtlijn', 'VoldoetAanAlcoholRichtlijn_12', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('Drinker', 'Drinker_13', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('Zware drinker', 'ZwareDrinker_14', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('Overmatige drinker', 'OvermatigeDrinker_15', data.health.neighborhood, data.health.municipality, data.health.national),
+      createMetric('Voldoet aan alcoholrichtlijn', locale === 'nl' ? 'Percentage dat zich houdt aan gezonde alcoholrichtlijnen' : 'Percentage adhering to healthy alcohol guidelines', 'VoldoetAanAlcoholRichtlijn_12', data.health.neighborhood, data.health.municipality, data.health.national),
+      createMetric('Drinker', locale === 'nl' ? 'Percentage dat alcohol drinkt' : 'Percentage drinking alcohol', 'Drinker_13', data.health.neighborhood, data.health.municipality, data.health.national),
+      createMetric('Zware drinker', locale === 'nl' ? 'Percentage zware drinkers (>14 glazen/week)' : 'Percentage heavy drinkers (>14 drinks/week)', 'ZwareDrinker_14', data.health.neighborhood, data.health.municipality, data.health.national),
+      createMetric('Overmatige drinker', locale === 'nl' ? 'Percentage overmatige drinkers (>21 glazen/week)' : 'Percentage excessive drinkers (>21 drinks/week)', 'OvermatigeDrinker_15', data.health.neighborhood, data.health.municipality, data.health.national),
     ],
-    limitedHealth: createValueMetric('BeperktVanwegeGezondheid_17', data.health.neighborhood, data.health.municipality, data.health.national),
+    limitedHealth: createValueMetric(locale === 'nl' ? 'Percentage met langdurige beperkingen vanwege gezondheidsproblemen' : 'Percentage with long-term health limitations', 'BeperktVanwegeGezondheid_17', data.health.neighborhood, data.health.municipality, data.health.national),
     loneliness: [
-      createMetric('Eenzaam', 'Eenzaam_27', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('Ernstig/zeer ernstig eenzaam', 'ErnstigZeerErnstigEenzaam_28', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('Emotioneel eenzaam', 'EmotioneelEenzaam_29', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('Sociaal eenzaam', 'SociaalEenzaam_30', data.health.neighborhood, data.health.municipality, data.health.national),
+      createMetric('Eenzaam', locale === 'nl' ? 'Percentage dat zich eenzaam voelt' : 'Percentage feeling lonely', 'Eenzaam_27', data.health.neighborhood, data.health.municipality, data.health.national),
+      createMetric('Ernstig/zeer ernstig eenzaam', locale === 'nl' ? 'Percentage met ernstige eenzaamheidsgevoelens' : 'Percentage with severe loneliness', 'ErnstigZeerErnstigEenzaam_28', data.health.neighborhood, data.health.municipality, data.health.national),
+      createMetric('Emotioneel eenzaam', locale === 'nl' ? 'Percentage dat emotionele verbinding mist' : 'Percentage missing emotional connection', 'EmotioneelEenzaam_29', data.health.neighborhood, data.health.municipality, data.health.national),
+      createMetric('Sociaal eenzaam', locale === 'nl' ? 'Percentage dat sociaal netwerk mist' : 'Percentage missing social network', 'SociaalEenzaam_30', data.health.neighborhood, data.health.municipality, data.health.national),
     ],
-    emotionalSupport: createValueMetric('MistEmotioneleSteun_23', data.health.neighborhood, data.health.municipality, data.health.national),
+    emotionalSupport: createValueMetric(locale === 'nl' ? 'Percentage dat emotionele steun mist' : 'Percentage lacking emotional support', 'MistEmotioneleSteun_23', data.health.neighborhood, data.health.municipality, data.health.national),
     psychologicalHealth: [
-      createMetric('Suïcidegedachten laatste 12 maanden', 'SuicideGedachtenLaatste12Maanden_24', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('Hoog risico op angst/depressie', 'HoogRisicoOpAngstOfDepressie_25', data.health.neighborhood, data.health.municipality, data.health.national),
-      createMetric('Veel stress afgelopen 4 weken', 'HeelVeelStressInAfgelopen4Weken_26', data.health.neighborhood, data.health.municipality, data.health.national),
+      createMetric('Suïcidegedachten laatste 12 maanden', locale === 'nl' ? 'Percentage met suïcidale gedachten in afgelopen jaar' : 'Percentage with suicidal thoughts in past year', 'SuicideGedachtenLaatste12Maanden_24', data.health.neighborhood, data.health.municipality, data.health.national),
+      createMetric('Hoog risico op angst/depressie', locale === 'nl' ? 'Percentage met verhoogd risico op angststoornissen of depressie' : 'Percentage at high risk for anxiety or depression', 'HoogRisicoOpAngstOfDepressie_25', data.health.neighborhood, data.health.municipality, data.health.national),
+      createMetric('Veel stress afgelopen 4 weken', locale === 'nl' ? 'Percentage met veel stress in afgelopen maand' : 'Percentage with high stress in past month', 'HeelVeelStressInAfgelopen4Weken_26', data.health.neighborhood, data.health.municipality, data.health.national),
     ],
   };
 
   // === SAFETY (using actual field keys from SafetyPage) ===
   const safety = {
-    totalCrimes: createValueMetric('Crime_0.0.0', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-    burglary: createValueMetric('Crime_1.1.1', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-    pickpocketing: createValueMetric('Crime_1.2.4', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-    accidents: createValueMetric('Crime_1.3.1', data.safety.neighborhood, data.safety.municipality, data.safety.national),
-    feelsUnsafe: createValueMetric('VoeltZichWeleensOnveilig_43', data.livability.municipality, data.livability.municipality, data.livability.national),
-    streetLighting: createValueMetric('Straatverlichting_3', data.livability.municipality, data.livability.municipality, data.livability.national),
+    description: locale === 'nl'
+      ? 'Veiligheidsindicatoren inclusief criminaliteit en veiligheidsbeleving'
+      : 'Safety indicators including crime rates and safety perception',
+    totalCrimes: createValueMetric(locale === 'nl' ? 'Totaal aantal geregistreerde misdrijven per 1000 inwoners' : 'Total registered crimes per 1000 residents', 'Crime_0.0.0', data.safety.neighborhood, data.safety.municipality, data.safety.national),
+    burglary: createValueMetric(locale === 'nl' ? 'Aantal woninginbraken per 1000 woningen' : 'Residential burglaries per 1000 homes', 'Crime_1.1.1', data.safety.neighborhood, data.safety.municipality, data.safety.national),
+    pickpocketing: createValueMetric(locale === 'nl' ? 'Aantal zakkenrollerij incidenten per 1000 inwoners' : 'Pickpocketing incidents per 1000 residents', 'Crime_1.2.4', data.safety.neighborhood, data.safety.municipality, data.safety.national),
+    accidents: createValueMetric(locale === 'nl' ? 'Aantal verkeersongevallen per 1000 inwoners' : 'Traffic accidents per 1000 residents', 'Crime_1.3.1', data.safety.neighborhood, data.safety.municipality, data.safety.national),
+    feelsUnsafe: createValueMetric(locale === 'nl' ? 'Percentage dat zich weleens onveilig voelt in de buurt' : 'Percentage sometimes feeling unsafe in the neighborhood', 'VoeltZichWeleensOnveilig_43', data.livability.municipality, data.livability.municipality, data.livability.national),
+    streetLighting: createValueMetric(locale === 'nl' ? 'Waardering voor straatverlichting (schaal 1-10)' : 'Rating for street lighting (scale 1-10)', 'Straatverlichting_3', data.livability.municipality, data.livability.municipality, data.livability.national),
   };
 
   // === LIVABILITY (using actual field keys from LivabilityPage - only 7 sections shown) ===
   const livability = {
+    description: locale === 'nl'
+      ? 'Leefbaarheid van de buurt, inclusief onderhoud, voorzieningen en sociale cohesie'
+      : 'Neighborhood livability, including maintenance, facilities and social cohesion',
     maintenance: [
-      createMetric('Onderhoud stoepen, straten en pleintjes', 'OnderhoudStoepenStratenEnPleintjes_1', data.livability.municipality, data.livability.municipality, data.livability.national),
-      createMetric('Onderhoud plantsoenen en parken', 'OnderhoudVanPlantsoenenEnParken_2', data.livability.municipality, data.livability.municipality, data.livability.national),
+      createMetric('Onderhoud stoepen, straten en pleintjes', locale === 'nl' ? 'Waardering onderhoud openbare ruimte (schaal 1-10)' : 'Rating for public space maintenance (scale 1-10)', 'OnderhoudStoepenStratenEnPleintjes_1', data.livability.municipality, data.livability.municipality, data.livability.national),
+      createMetric('Onderhoud plantsoenen en parken', locale === 'nl' ? 'Waardering onderhoud groen (schaal 1-10)' : 'Rating for green space maintenance (scale 1-10)', 'OnderhoudVanPlantsoenenEnParken_2', data.livability.municipality, data.livability.municipality, data.livability.national),
     ],
-    streetLighting: createValueMetric('Straatverlichting_3', data.livability.municipality, data.livability.municipality, data.livability.national),
+    streetLighting: createValueMetric(locale === 'nl' ? 'Waardering voor straatverlichting (schaal 1-10)' : 'Rating for street lighting (scale 1-10)', 'Straatverlichting_3', data.livability.municipality, data.livability.municipality, data.livability.national),
     youthFacilities: [
-      createMetric('Speelplekken voor kinderen', 'SpeelplekkenVoorKinderen_4', data.livability.municipality, data.livability.municipality, data.livability.national),
-      createMetric('Voorzieningen voor jongeren', 'VoorzieningenVoorJongeren_5', data.livability.municipality, data.livability.municipality, data.livability.national),
+      createMetric('Speelplekken voor kinderen', locale === 'nl' ? 'Waardering speelvoorzieningen (schaal 1-10)' : 'Rating for play facilities (scale 1-10)', 'SpeelplekkenVoorKinderen_4', data.livability.municipality, data.livability.municipality, data.livability.national),
+      createMetric('Voorzieningen voor jongeren', locale === 'nl' ? 'Waardering jongerenvoorzieningen (schaal 1-10)' : 'Rating for youth facilities (scale 1-10)', 'VoorzieningenVoorJongeren_5', data.livability.municipality, data.livability.municipality, data.livability.national),
     ],
     contact: [
-      createMetric('Mensen kennen elkaar nauwelijks', 'MensenKennenElkaarNauwelijks_7', data.livability.municipality, data.livability.municipality, data.livability.national),
-      createMetric('Mensen gaan prettig met elkaar om', 'MensenGaanPrettigMetElkaarOm_8', data.livability.municipality, data.livability.municipality, data.livability.national),
-      createMetric('Gezellige buurt waar men elkaar helpt', 'GezelligeBuurtWaarMenElkaarHelpt_9', data.livability.municipality, data.livability.municipality, data.livability.national),
-      createMetric('Veel contact met andere buurtbewoners', 'VeelContactMetAndereBuurtbewoners_11', data.livability.municipality, data.livability.municipality, data.livability.national),
+      createMetric('Mensen kennen elkaar nauwelijks', locale === 'nl' ? 'Percentage dat weinig contact heeft met buurtbewoners' : 'Percentage with little contact with neighbors', 'MensenKennenElkaarNauwelijks_7', data.livability.municipality, data.livability.municipality, data.livability.national),
+      createMetric('Mensen gaan prettig met elkaar om', locale === 'nl' ? 'Percentage dat positief is over onderlinge omgang' : 'Percentage positive about mutual interaction', 'MensenGaanPrettigMetElkaarOm_8', data.livability.municipality, data.livability.municipality, data.livability.national),
+      createMetric('Gezellige buurt waar men elkaar helpt', locale === 'nl' ? 'Percentage dat buurt als gezellig en helpend ervaart' : 'Percentage experiencing neighborhood as pleasant and helpful', 'GezelligeBuurtWaarMenElkaarHelpt_9', data.livability.municipality, data.livability.municipality, data.livability.national),
+      createMetric('Veel contact met andere buurtbewoners', locale === 'nl' ? 'Percentage met veel buurtcontact' : 'Percentage with frequent neighbor contact', 'VeelContactMetAndereBuurtbewoners_11', data.livability.municipality, data.livability.municipality, data.livability.national),
     ],
     // Volunteers comes from HEALTH data source, not livability
-    volunteers: createValueMetric('Vrijwilligerswerk_32', data.health.neighborhood, data.health.municipality, data.health.national),
-    socialCohesion: createValueMetric('SocialeCohesieSchaalscore_15', data.livability.municipality, data.livability.municipality, data.livability.national),
-    livabilityScore: createValueMetric('RapportcijferLeefbaarheidWoonbuurt_18', data.livability.municipality, data.livability.municipality, data.livability.national),
+    volunteers: createValueMetric(locale === 'nl' ? 'Percentage dat vrijwilligerswerk doet' : 'Percentage doing volunteer work', 'Vrijwilligerswerk_32', data.health.neighborhood, data.health.municipality, data.health.national),
+    socialCohesion: createValueMetric(locale === 'nl' ? 'Score voor sociale cohesie (schaal 0-100)' : 'Social cohesion score (scale 0-100)', 'SocialeCohesieSchaalscore_15', data.livability.municipality, data.livability.municipality, data.livability.national),
+    livabilityScore: createValueMetric(locale === 'nl' ? 'Rapportcijfer voor leefbaarheid woonbuurt (schaal 1-10)' : 'Overall livability rating (scale 1-10)', 'RapportcijferLeefbaarheidWoonbuurt_18', data.livability.municipality, data.livability.municipality, data.livability.national),
   };
 
   // === AMENITIES - Group by category with count and scores ===
@@ -331,9 +423,29 @@ export function exportCompactForLLM(
     }
   });
 
+  // Amenity descriptions
+  const amenityDescriptions: Record<string, { nl: string; en: string }> = {
+    'Supermarkt': { nl: 'Aantal supermarkten en nabijheid binnen 250m', en: 'Number of supermarkets and proximity within 250m' },
+    'Huisartsen': { nl: 'Aantal huisartsen en nabijheid binnen 250m', en: 'Number of general practitioners and proximity within 250m' },
+    'Tandarts': { nl: 'Aantal tandartsen en nabijheid binnen 250m', en: 'Number of dentists and proximity within 250m' },
+    'Basisscholen': { nl: 'Aantal basisscholen en nabijheid binnen 250m', en: 'Number of primary schools and proximity within 250m' },
+    'Middelbare scholen': { nl: 'Aantal middelbare scholen en nabijheid binnen 250m', en: 'Number of secondary schools and proximity within 250m' },
+    'Restaurants': { nl: 'Aantal restaurants en nabijheid binnen 250m', en: 'Number of restaurants and proximity within 250m' },
+    'Cafés/Bars': { nl: 'Aantal cafés en bars en nabijheid binnen 250m', en: 'Number of cafés/bars and proximity within 250m' },
+    'Sportfaciliteiten': { nl: 'Aantal sportfaciliteiten en nabijheid binnen 250m', en: 'Number of sports facilities and proximity within 250m' },
+    'Parken': { nl: 'Aantal parken en nabijheid binnen 250m', en: 'Number of parks and proximity within 250m' },
+    'Openbaar vervoer': { nl: 'Aantal OV-haltes en nabijheid binnen 250m', en: 'Number of public transport stops and proximity within 250m' },
+    'Kinderdagverblijven': { nl: 'Aantal kinderdagverblijven en nabijheid binnen 250m', en: 'Number of daycare centers and proximity within 250m' },
+    'Bibliotheken': { nl: 'Aantal bibliotheken en nabijheid binnen 250m', en: 'Number of libraries and proximity within 250m' },
+    'Apotheken': { nl: 'Aantal apotheken en nabijheid binnen 250m', en: 'Number of pharmacies and proximity within 250m' },
+    'Banken': { nl: 'Aantal banken en nabijheid binnen 250m', en: 'Number of banks and proximity within 250m' },
+    'Culturele voorzieningen': { nl: 'Aantal culturele voorzieningen en nabijheid binnen 250m', en: 'Number of cultural facilities and proximity within 250m' },
+  };
+
   const amenities: CompactAmenity[] = Array.from(amenitiesMap.entries())
     .map(([name, data]) => ({
       name,
+      description: amenityDescriptions[name]?.[locale] || (locale === 'nl' ? `Aantal ${name.toLowerCase()} en nabijheid` : `Number of ${name.toLowerCase()} and proximity`),
       count: data.count,
       countScore: Math.round(data.countScore * 100) / 100,
       proximityCount: data.proximityCount,
@@ -388,6 +500,9 @@ export function exportCompactForLLM(
     }));
 
     housingMarket = {
+      description: locale === 'nl'
+        ? 'Woningmarkt statistieken gebaseerd op referentiewoningen in het gebied'
+        : 'Housing market statistics based on reference homes in the area',
       avgPrice: Math.round(avgPrice),
       avgSize: Math.round(avgSize),
       avgBuildYear: Math.round(avgBuildYear),
@@ -437,6 +552,23 @@ export function exportCompactForLLM(
     buildScenario('Scenario 3', scenarios.scenario3),
   ];
 
+  // Add custom scenario if provided
+  if (customScenarioPersonaIds.length > 0) {
+    const customPersonas = customScenarioPersonaIds
+      .map(id => sortedPersonas.find(p => p.personaId === id))
+      .filter((p): p is PersonaScore => p !== undefined);
+
+    const avgScore = customPersonas.length > 0
+      ? customPersonas.reduce((sum, p) => sum + p.rRank, 0) / customPersonas.length
+      : 0;
+
+    recommendedScenarios.push({
+      name: locale === 'nl' ? 'Op maat' : 'Custom',
+      personaNames: customPersonas.map(p => p.personaName),
+      avgScore: Math.round(avgScore * 100) / 100,
+    });
+  }
+
   return {
     metadata: {
       location: locationString,
@@ -449,14 +581,23 @@ export function exportCompactForLLM(
         lon: data.location.coordinates.wgs84.longitude,
       } : undefined,
     },
+    pve: pveData,
     allPersonas,
     demographics,
     health,
     safety,
     livability,
-    amenities,
+    amenities: {
+      description: locale === 'nl'
+        ? 'Voorzieningen in de buurt met aantal, nabijheid en scores'
+        : 'Local amenities with count, proximity and scores',
+      items: amenities,
+    },
     housingMarket,
     targetGroups: {
+      description: locale === 'nl'
+        ? 'Alle 27 woonpersona\'s gerangschikt op geschiktheid voor deze locatie, met geautomatiseerde scenario\'s en optioneel een op maat samengesteld scenario'
+        : 'All 27 housing personas ranked by suitability for this location, with automated scenarios and optionally a custom scenario',
       rankedPersonas,
       recommendedScenarios,
     },

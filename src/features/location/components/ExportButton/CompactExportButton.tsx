@@ -26,7 +26,21 @@ export const CompactExportButton: React.FC<CompactExportButtonProps> = ({
   locale,
 }) => {
   const handleExport = () => {
-    const exportData = exportCompactForLLM(data, personaScores, scenarios, locale);
+    // Get custom scenario from localStorage if available
+    let customScenarioPersonaIds: string[] = [];
+    try {
+      const stored = localStorage.getItem('grooshub_doelgroepen_scenario_selection');
+      if (stored) {
+        const { scenario, customIds } = JSON.parse(stored);
+        if (scenario === 'custom' && customIds && Array.isArray(customIds)) {
+          customScenarioPersonaIds = customIds;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load custom scenario from cache:', error);
+    }
+
+    const exportData = exportCompactForLLM(data, personaScores, scenarios, locale, customScenarioPersonaIds);
 
     // Generate filename
     const locationName =
