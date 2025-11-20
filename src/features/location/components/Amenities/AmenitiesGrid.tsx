@@ -228,7 +228,7 @@ export const AmenitiesGrid: React.FC<AmenitiesGridProps> = ({ data, locale = 'nl
                     onClick={() => setFilter(option)}
                     className={`px-6 py-3 rounded-full font-medium text-sm transition-all duration-300 ${
                       filter === option
-                        ? 'bg-gray-900 text-white shadow-md'
+                        ? 'bg-gradient-3-mid text-gray-900 shadow-md'
                         : 'text-gray-700 hover:bg-gray-100'
                     }`}
                   >
