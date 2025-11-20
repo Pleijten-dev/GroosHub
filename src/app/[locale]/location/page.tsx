@@ -62,7 +62,6 @@ interface LocationPageProps {
 const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   const [activeTab, setActiveTab] = useState<TabName>('doelgroepen');
   const [locale, setLocale] = useState<Locale>('nl');
-  const [showRightMenu, setShowRightMenu] = useState<boolean>(false);
   const [animationStage, setAnimationStage] = useState<'welcome' | 'loading' | 'result'>('welcome');
 
   // WMS layer state
@@ -131,10 +130,6 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
   const handleTabChange = (tab: TabName): void => {
     setActiveTab(tab);
-  };
-
-  const handleRightMenuToggle = (): void => {
-    setShowRightMenu(!showRightMenu);
   };
 
   const handleAddressSearch = async (address: string): Promise<void> => {
@@ -665,96 +660,6 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
       `}>
         {renderMainContent()}
       </main>
-
-      {/* RIGHT MENU - Fixed in proper position */}
-      <aside className={`
-        fixed right-0 top-[64px] bottom-0 z-40
-        bg-white/80 backdrop-blur-md border-l border-gray-200/50
-        transition-transform duration-300 w-70 flex flex-col shadow-lg
-        ${showRightMenu ? 'translate-x-0' : 'translate-x-full'}
-      `}>
-        <button
-          type="button"
-          onClick={handleRightMenuToggle}
-          className="absolute -left-10 top-1/2 -translate-y-1/2 bg-blue-500 text-white w-10 h-15 rounded-l-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 text-base font-bold z-20 shadow-lg"
-        >
-          {showRightMenu ? '→' : '←'}
-        </button>
-
-        {showRightMenu && (
-          <div className="p-lg overflow-y-auto h-full">
-            <h3 className="text-lg font-semibold mb-base text-gray-900">
-              {locale === 'nl' ? 'Analyse Tools' : 'Analysis Tools'}
-            </h3>
-            <p className="text-sm text-gray-600 mb-base">
-              {locale === 'nl'
-                ? 'Snelle toegang tot analyse-opties en instellingen.'
-                : 'Quick access to analysis options and settings.'
-              }
-            </p>
-
-            <div className="space-y-base">
-              <div className="bg-white/60 rounded-lg p-base border border-gray-200/50">
-                <h4 className="font-medium text-gray-900 mb-sm">
-                  {locale === 'nl' ? 'Export Opties' : 'Export Options'}
-                </h4>
-                {activeTab === 'doelgroepen' && data ? (
-                  <div className="space-y-2">
-                    <ExportButton
-                      data={data}
-                      personaScores={(() => {
-                        const locationScores = extractLocationScores(data);
-                        const personas = housingPersonasData[locale].housing_personas;
-                        return calculatePersonaScores(personas, locationScores).sort((a, b) => a.rRankPosition - b.rRankPosition);
-                      })()}
-                      scenarios={(() => {
-                        const locationScores = extractLocationScores(data);
-                        const personas = housingPersonasData[locale].housing_personas;
-                        const personaScores = calculatePersonaScores(personas, locationScores);
-                        const sortedPersonas = [...personaScores].sort((a, b) => a.rRankPosition - b.rRankPosition);
-                        const connections = calculateConnections(personas, sortedPersonas);
-                        return calculateScenarios(personas, sortedPersonas, connections);
-                      })()}
-                      customScenarioPersonaIds={[]}
-                      locale={locale}
-                    />
-                  </div>
-                ) : (
-                  <ul className="space-y-1 text-sm text-gray-600">
-                    <li>• PDF {locale === 'nl' ? 'Rapport' : 'Report'}</li>
-                    <li>• Excel {locale === 'nl' ? 'Gegevens' : 'Data'}</li>
-                    <li>• {locale === 'nl' ? 'Afbeelding Export' : 'Image Export'}</li>
-                  </ul>
-                )}
-              </div>
-
-              {data && (
-                <div className="bg-white/60 rounded-lg p-base border border-gray-200/50">
-                  <h4 className="font-medium text-gray-900 mb-sm">
-                    {locale === 'nl' ? 'Huidige Locatie' : 'Current Location'}
-                  </h4>
-                  <ul className="space-y-1 text-sm text-gray-600">
-                    <li>• {data.location.municipality.statnaam}</li>
-                    {data.location.district && <li>• {data.location.district.statnaam}</li>}
-                    {data.location.neighborhood && <li>• {data.location.neighborhood.statnaam}</li>}
-                  </ul>
-                </div>
-              )}
-
-              <div className="bg-white/60 rounded-lg p-base border border-gray-200/50">
-                <h4 className="font-medium text-gray-900 mb-sm">
-                  {locale === 'nl' ? 'Help & Ondersteuning' : 'Help & Support'}
-                </h4>
-                <ul className="space-y-1 text-sm text-gray-600">
-                  <li>• {locale === 'nl' ? 'Documentatie' : 'Documentation'}</li>
-                  <li>• {locale === 'nl' ? 'Tutorials' : 'Tutorials'}</li>
-                  <li>• {locale === 'nl' ? 'Contact Support' : 'Contact Support'}</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        )}
-      </aside>
     </div>
   );
 };
