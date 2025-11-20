@@ -162,7 +162,7 @@ export const DUTCH_AMENITY_CATEGORIES: AmenityCategory[] = [
     icon: '🍽️',
     priceLevels: [PRICE_LEVELS.FREE, PRICE_LEVELS.INEXPENSIVE], // Include both free (1) and cheap (2) restaurants
     textQuery: 'cheap restaurant budget fast food inexpensive affordable goedkoop', // Budget-specific query to get different results from Google
-    // Note: Uses budget-focused query to get relevant restaurants from Google, then post-filters by priceLevel 1 (FREE) and 2 (INEXPENSIVE)
+    // Note: Sends priceLevels=[1,2] to Google API to find budget restaurants, uses budget-focused keywords for better targeting
   },
   {
     id: 'restaurants_midrange',
@@ -183,8 +183,8 @@ export const DUTCH_AMENITY_CATEGORIES: AmenityCategory[] = [
     icon: '🍽️',
     priceLevels: [PRICE_LEVELS.MODERATE],
     textQuery: 'restaurant dining eten', // Generic query to get main restaurant set
-    // Note: Uses generic "restaurant" query to get the main set, then post-filters to EXCLUDE budget (1,2) and expensive (4,5)
-    // This keeps MODERATE (3), undefined (no price data), and ensures coverage of standard restaurants
+    // Note: Does NOT send price filter to Google API (gets all restaurants), then post-filters to EXCLUDE budget (1,2) and expensive (4,5)
+    // This ensures restaurants without price data in Google Maps are captured and default to mid-range
   },
   {
     id: 'restaurants_upscale',
@@ -202,7 +202,7 @@ export const DUTCH_AMENITY_CATEGORIES: AmenityCategory[] = [
     icon: '🍽️',
     priceLevels: [PRICE_LEVELS.EXPENSIVE, PRICE_LEVELS.VERY_EXPENSIVE], // Include expensive (4) and very expensive (5)
     textQuery: 'fine dining expensive restaurant upscale gourmet michelin duur', // Upscale-specific query to get different results from Google
-    // Note: Uses upscale-focused query to get relevant restaurants from Google, then post-filters by priceLevel 4 (EXPENSIVE) and 5 (VERY_EXPENSIVE)
+    // Note: Sends priceLevels=[4,5] to Google API to find upscale restaurants, uses upscale-focused keywords for better targeting
   },
 
   {
