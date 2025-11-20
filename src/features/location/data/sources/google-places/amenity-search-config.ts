@@ -106,7 +106,7 @@ export const DUTCH_AMENITY_CATEGORIES: AmenityCategory[] = [
     displayName: 'Kinderopvang & Opvang',
     priority: 'high',
     searchStrategy: 'both',
-    placeTypes: ['school', 'child_care_agency'],
+    placeTypes: ['child_care_agency'],
     keywords: ['kinderopvang', 'kinderdagverblijf', 'peuterspeelzaal', 'naschoolse opvang', 'bso'],
     defaultRadius: 1000,
     color: '#db2777',
