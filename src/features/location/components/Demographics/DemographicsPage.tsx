@@ -235,18 +235,6 @@ export const DemographicsPage: React.FC<DemographicsPageProps> = ({ data, locale
             locale={locale}
           />
 
-          {/* Legend showing which location is which */}
-          <div className="flex-shrink-0 flex justify-center items-center gap-8 py-3 px-6 bg-gray-50 border-b border-gray-200">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-black rounded"></div>
-              <span className="text-sm text-gray-700 font-medium">{getLocationName(selectedLevel)}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-black opacity-30 rounded"></div>
-              <span className="text-sm text-gray-500">{getLocationName(comparisonLevel)}</span>
-            </div>
-          </div>
-
           {/* Main Content - Demographic Sections */}
           <div className="flex-1 overflow-y-auto p-8">
             <div className="space-y-0">
