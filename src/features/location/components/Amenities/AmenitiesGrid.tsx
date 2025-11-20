@@ -220,7 +220,7 @@ export const AmenitiesGrid: React.FC<AmenitiesGridProps> = ({ data, locale = 'nl
             </div>
 
             {/* Segmented Filter Buttons */}
-            <div className="flex items-center justify-center gap-4">
+            <div className="relative flex items-center justify-center">
               <div className="flex items-center gap-2 p-2 bg-white/80 backdrop-blur-md rounded-full border border-gray-200 shadow-lg">
                 {(['all', 'essential', 'high', 'medium', 'low'] as FilterOption[]).map((option) => (
                   <button
@@ -247,7 +247,7 @@ export const AmenitiesGrid: React.FC<AmenitiesGridProps> = ({ data, locale = 'nl
                 placeholder={locale === 'nl' ? 'Zoek categorie...' : 'Search category...'}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+                className="absolute right-0 px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
               />
             </div>
 
