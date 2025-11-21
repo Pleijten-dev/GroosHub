@@ -85,12 +85,12 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
   const translations = {
     nl: {
       title: 'Verbanden tussen Doelgroepen',
-      subtitle: 'Verbindingen op basis van gedeelde kenmerken en score-overeenkomsten',
+      subtitle: 'Verbindingen op basis van gedeelde voorzieningen en ruimtes',
       connections: 'verbindingen',
     },
     en: {
       title: 'Target Group Connections',
-      subtitle: 'Connections based on shared characteristics and score similarity',
+      subtitle: 'Connections based on shared amenities and spaces',
       connections: 'connections',
     }
   };
@@ -114,8 +114,12 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
               const from = nodePositions[conn.from];
               const to = nodePositions[conn.to];
 
+              // Cap connection count at 13 for thickness calculation
+              const cappedCount = Math.min(conn.count, 13);
+              const maxConnectionsCapped = Math.min(maxConnections, 13);
+
               // Use exponential scale for thickness - makes weak connections much thinner
-              const normalizedStrength = conn.count / maxConnections;
+              const normalizedStrength = cappedCount / maxConnectionsCapped;
               const thickness = 0.2 + Math.pow(normalizedStrength, 2) * 5; // 0.2 to 5.2px (exponential)
               const baseOpacity = 0.05 + Math.pow(normalizedStrength, 1.5) * 0.5; // 0.05 to 0.55 (power scale)
 
@@ -216,7 +220,7 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
             <svg width="40" height="4">
               <line x1="0" y1="2" x2="40" y2="2" stroke="#6e8154" strokeWidth="4" opacity="0.5" strokeLinecap="round" />
             </svg>
-            <span>{locale === 'nl' ? 'Sterkere overeenkomsten' : 'Stronger similarity'}</span>
+            <span>{locale === 'nl' ? 'Meer gedeelde voorzieningen' : 'More shared amenities'}</span>
           </div>
           <div className="flex items-center gap-2 text-xs text-gray-500">
             <span>{locale === 'nl' ? 'Tip: Hover/klik om top 5 verbindingen te zien' : 'Tip: Hover/click to see top 5 connections'}</span>
