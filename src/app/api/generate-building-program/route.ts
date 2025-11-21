@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 import housingTypologies from '@/features/location/data/sources/housing-typologies.json';
 import buildingAmenities from '@/features/location/data/sources/building-amenities.json';
 import communalSpaces from '@/features/location/data/sources/communal-spaces.json';
+import publicSpaces from '@/features/location/data/sources/public-spaces.json';
 import propertyTypeMapping from '@/features/location/data/sources/property-type-mapping.json';
 import type { CompactScenario } from '@/features/location/utils/jsonExportCompact';
 
@@ -109,6 +110,7 @@ export async function POST(request: Request) {
     const typologies = housingTypologies[locale as 'nl' | 'en'].typologies;
     const amenities = buildingAmenities[locale as 'nl' | 'en'].amenities;
     const spaces = communalSpaces[locale as 'nl' | 'en'].spaces;
+    const publicSpacesList = publicSpaces[locale as 'nl' | 'en'].spaces;
     const mapping = propertyTypeMapping[locale as 'nl' | 'en'];
 
     // Build the prompt
@@ -161,6 +163,24 @@ ${JSON.stringify(spaces, null, 2)}
 
 BELANGRIJK: Selecteer gemeenschappelijke ruimtes die passen bij de doelgroep persona's in elk scenario. Gebruik de target_groups lijst om te bepalen welke ruimtes relevant zijn. Let op de schaal - kleinere projecten hebben kleinere schaal ruimtes nodig, grotere projecten kunnen grotere schaal ruimtes ondersteunen.
 
+# BESCHIKBARE PUBLIEKE EN COMMERCIËLE RUIMTES
+De volgende publieke en commerciële ruimtes kunnen worden toegevoegd aan het project. Deze ruimtes zijn typisch commercieel/publiek-gericht en kunnen inkomsten genereren of publieke functies vervullen. Elke ruimte heeft:
+- schaal (kleine_schaal / middenschaal / grotere_schaal / grote_schaal) - bepaalt welke schaal project dit nodig heeft
+- category - het type ruimte
+- area_min_m2 en area_max_m2 - minimale en maximale oppervlakte
+- m2_per_resident - aanbevolen oppervlakte per bewoner
+- min_residents en max_residents - optimaal aantal bewoners voor deze ruimte
+- target_groups - welke doelgroepen het meest profiteren van deze ruimte
+- regulations - relevante wet- en regelgeving
+- parking_impact - of deze ruimte invloed heeft op parkeerbehoefte
+
+${JSON.stringify(publicSpacesList, null, 2)}
+
+BELANGRIJK: Publieke/commerciële ruimtes zijn anders dan gemeenschappelijke ruimtes:
+- Gemeenschappelijke ruimtes zijn voor bewoners (gratis toegang, gedeeld beheer)
+- Publieke/commerciële ruimtes zijn voor een breder publiek (vaak commercieel geëxploiteerd)
+Gebruik publieke ruimtes voor commerciële functies, detailhandel, horeca, gezondheidszorg, kinderopvang, etc. Kies ruimtes die aansluiten bij de target_groups van de doelgroep persona's en die de buurt aanvullen (niet concurreren met nabije voorzieningen).
+
 # DOELGROEPEN SCENARIOS
 Het project moet ${rapportData.targetGroups.recommendedScenarios.length} verschillende scenarios bedienen:
 ${rapportData.targetGroups.recommendedScenarios.map((scenario: CompactScenario, index: number) => `
@@ -177,7 +197,7 @@ Maak voor ELK scenario een gedetailleerd bouwprogramma dat:
 
 1. Een unit mix voorstelt die perfect aansluit bij de doelgroep persona's - Gebruik de MAPPING VAN PERSONA WONINGTYPEN om de gewenste woningtypen van persona's te vertalen naar de beschikbare typology_ids. Analyseer de "desired_property_types" van elke persona in het scenario en match deze met de juiste typologieën uit de mapping.
 2. Rekening houdt met lokale demografische gegevens (leeftijd, gezinssamenstelling, inkomen)
-3. Commerciële ruimtes voorstelt die de bestaande voorzieningen in de buurt aanvullen
+3. Publieke en commerciële ruimtes selecteert uit de BESCHIKBARE PUBLIEKE EN COMMERCIËLE RUIMTES lijst die passen bij de target_groups. Kies functies die inkomsten kunnen genereren (retail, horeca, gezondheidszorg) of belangrijke publieke functies vervullen, en die de bestaande voorzieningen in de buurt aanvullen (niet concurreren).
 4. Gemeenschappelijke ruimtes selecteert uit de BESCHIKBARE GEMEENSCHAPPELIJKE RUIMTES lijst die passen bij de target_groups van de doelgroep persona's. Kies ruimtes waarvan de target_groups overeenkomen met de persona's in het scenario.
 5. Sociale faciliteiten plant die de lokale gemeenschap versterken
 6. De veiligheids-, gezondheids- en leefbaarheidsindicatoren meeneemt in de overwegingen
@@ -233,6 +253,24 @@ ${JSON.stringify(spaces, null, 2)}
 
 IMPORTANT: Select communal spaces that match the target group personas in each scenario. Use the target_groups list to determine which spaces are relevant. Pay attention to scale - smaller projects need smaller scale spaces, larger projects can support larger scale spaces.
 
+# AVAILABLE PUBLIC AND COMMERCIAL SPACES
+The following public and commercial spaces can be added to the project. These spaces are typically commercial/public-facing and can generate income or fulfill public functions. Each space has:
+- scale (small_scale / medium_scale / larger_scale / large_scale) - determines what project scale requires this
+- category - the type of space
+- area_min_m2 and area_max_m2 - minimum and maximum area
+- m2_per_resident - recommended area per resident
+- min_residents and max_residents - optimal number of residents for this space
+- target_groups - which target groups benefit most from this space
+- regulations - relevant legislation and regulations
+- parking_impact - whether this space impacts parking requirements
+
+${JSON.stringify(publicSpacesList, null, 2)}
+
+IMPORTANT: Public/commercial spaces are different from communal spaces:
+- Communal spaces are for residents (free access, shared management)
+- Public/commercial spaces are for a broader public (often commercially operated)
+Use public spaces for commercial functions, retail, hospitality, healthcare, childcare, etc. Choose spaces that align with the target_groups of the target personas and complement the neighborhood (don't compete with nearby amenities).
+
 # TARGET GROUP SCENARIOS
 The project must serve ${rapportData.targetGroups.recommendedScenarios.length} different scenarios:
 ${rapportData.targetGroups.recommendedScenarios.map((scenario: CompactScenario, index: number) => `
@@ -249,7 +287,7 @@ Create a detailed building program for EACH scenario that:
 
 1. Proposes a unit mix that perfectly matches the target persona groups - Use the MAPPING OF PERSONA HOUSING TYPES to translate persona desired housing types into available typology_ids. Analyze the "desired_property_types" of each persona in the scenario and match them to the appropriate typologies from the mapping.
 2. Accounts for local demographics (age, household composition, income)
-3. Suggests commercial spaces that complement existing local amenities
+3. Selects public and commercial spaces from the AVAILABLE PUBLIC AND COMMERCIAL SPACES list that match the target_groups. Choose functions that can generate income (retail, hospitality, healthcare) or fulfill important public functions, and complement (not compete with) existing neighborhood amenities.
 4. Selects communal spaces from the AVAILABLE COMMUNAL SPACES list that match the target_groups of the target personas. Choose spaces whose target_groups align with the personas in the scenario.
 5. Plans social facilities that strengthen the local community
 6. Considers safety, health, and livability indicators in the decisions
