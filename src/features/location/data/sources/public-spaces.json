@@ -64,11 +64,11 @@
         "parking_impact": true,
         "references": "AHOY Rotterdam",
         "target_groups": [
-          "Carrièrestarter",
           "Succesvolle Singles",
           "Laat Bloeiers",
           "Welvarende Bourgondiërs",
-          "Vermogende Gezinnen"
+          "Vermogende Gezinnen",
+          "Ambitieuze Singles"
         ]
       },
       {
@@ -91,7 +91,7 @@
           "Succesvolle Singles",
           "Grenzeloos Duo",
           "Zelfbewuste Solisten",
-          "Samen Starters"
+          "Ambitieuze Singles"
         ]
       },
       {

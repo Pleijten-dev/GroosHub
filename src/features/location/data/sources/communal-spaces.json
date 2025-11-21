@@ -45,7 +45,7 @@
         "target_groups": [
           "Jonge Starters",
           "De Groeiers",
-          "De Rentenier",
+          "Senioren met Thuiswonende Kinderen",
           "De Zwitserlevers",
           "Gezellige Nesthouders"
         ]
@@ -117,9 +117,9 @@
         "target_groups": [
           "Knusse Gezinnen",
           "De Groeigezinnen",
-          "Actieve Jonge Gezinnen",
           "Senioren met Thuiswonende Kinderen",
-          "Vermogende Gezinnen"
+          "De Groeiers",
+          "De Doorzetter"
         ]
       },
       {
@@ -187,7 +187,8 @@
         "parking_impact": false,
         "references": "Prince of Delft",
         "target_groups": [
-          "geschikt voor elke doelgroep"
+          "geschikt voor elke doelgroep",
+          "De Doorzetter"
         ]
       },
       {
@@ -209,9 +210,9 @@
         "target_groups": [
           "De Doorzetter",
           "Senior op Budget",
-          "De Zwitserlevers",
-          "Laat Bloeiers",
-          "Zelfstandige Senior"
+          "Zelfstandige Senior",
+          "De Groeiers",
+          "Senioren met Thuiswonende Kinderen"
         ]
       },
       {
@@ -282,8 +283,8 @@
           "Jonge Starters",
           "De Groeigezinnen",
           "Actieve Jonge Gezinnen",
-          "Samen Starters",
-          "Bescheiden Stellen"
+          "Bescheiden Stellen",
+          "De Groeiers"
         ]
       },
       {
@@ -306,8 +307,8 @@
           "Senior op Budget",
           "De Levensgenieters",
           "Gezellige Nesthouders",
-          "De Rentenier",
-          "Welvarende Bourgondiërs"
+          "De Groeiers",
+          "De Doorzetter"
         ]
       },
       {
@@ -445,9 +446,9 @@
         "target_groups": [
           "De Levensgenieters",
           "Gezellige Nesthouders",
-          "Senior op Budget",
-          "Laat Bloeiers",
-          "Zelfstandige Senior"
+          "Zelfstandige Senior",
+          "De Groeiers",
+          "De Doorzetter"
         ]
       },
       {
@@ -539,11 +540,11 @@
         "parking_impact": false,
         "references": "",
         "target_groups": [
-          "Jonge Starters",
           "De Doorzetter",
           "De Groeigezinnen",
           "Bescheiden Stellen",
-          "Laat Bloeiers"
+          "De Groeiers",
+          "Senioren met Thuiswonende Kinderen"
         ]
       },
       {
@@ -587,11 +588,11 @@
         "parking_impact": false,
         "references": "Schalkwijk Haarlem / Tijdelijke bibliotheek Papendrecht",
         "target_groups": [
-          "De Levensgenieters",
           "Zelfstandige Senior",
           "Senior op Budget",
-          "Laat Bloeiers",
-          "Gezellige Nesthouders"
+          "Gezellige Nesthouders",
+          "De Groeiers",
+          "Ambitieuze Singles"
         ]
       },
       {
@@ -637,9 +638,9 @@
         "target_groups": [
           "Carrière Stampers",
           "Grenzeloos Duo",
-          "Carrièrestarter",
           "Hard van Start",
-          "Succesvolle Singles"
+          "Succesvolle Singles",
+          "Ambitieuze Singles"
         ]
       },
       {
@@ -659,7 +660,8 @@
         "parking_impact": true,
         "references": "Milieustraat Dordrecht",
         "target_groups": [
-          "geschikt voor elke doelgroep"
+          "geschikt voor elke doelgroep",
+          "De Groeiers"
         ]
       },
       {
@@ -850,8 +852,8 @@
           "Zelfstandige Senior",
           "Senior op Budget",
           "De Levensgenieters",
-          "Gezellige Nesthouders",
-          "De Rentenier"
+          "Senioren met Thuiswonende Kinderen",
+          "De Doorzetter"
         ]
       },
       {
@@ -922,7 +924,7 @@
           "De Balanszoekers",
           "Zelfstandige Senior",
           "Zelfbewuste Solisten",
-          "Samen Starters",
+          "Ambitieuze Singles",
           "De Zwitserlevers"
         ]
       },
@@ -994,7 +996,7 @@
           "De Balanszoekers",
           "Gezellige Nesthouders",
           "Samen Starters",
-          "Actieve Jonge Gezinnen",
+          "Ambitieuze Singles",
           "De Levensgenieters"
         ]
       },
@@ -1091,7 +1093,7 @@
           "De Groeigezinnen",
           "Actieve Jonge Gezinnen",
           "Gezellige Nesthouders",
-          "Stabiele Gezinnen"
+          "Senioren met Thuiswonende Kinderen"
         ]
       },
       {
@@ -1115,7 +1117,7 @@
           "De Groeigezinnen",
           "Actieve Jonge Gezinnen",
           "Gezellige Nesthouders",
-          "De Levensgenieters"
+          "Senioren met Thuiswonende Kinderen"
         ]
       },
       {
@@ -1360,7 +1362,9 @@
           "Growing Families",
           "Active Young Families",
           "Seniors with Children at Home",
-          "Wealthy Families"
+          "Wealthy Families",
+          "De Groeiers",
+          "De Doorzetter"
         ]
       },
       {
@@ -1452,7 +1456,9 @@
           "Senior on a Budget",
           "Modest Couples",
           "The Comfortable Livers",
-          "Late Bloomers"
+          "Late Bloomers",
+          "De Groeiers",
+          "Senioren met Thuiswonende Kinderen"
         ]
       },
       {
@@ -1548,7 +1554,9 @@
           "The Life Enjoyers",
           "Cozy Nesters",
           "The Person of Independent Means",
-          "Affluent Bon Vivants"
+          "Affluent Bon Vivants",
+          "De Groeiers",
+          "De Doorzetter"
         ]
       },
       {
@@ -1688,7 +1696,9 @@
           "Cozy Nesters",
           "Senior on a Budget",
           "Modest Couples",
-          "Late Bloomers"
+          "Late Bloomers",
+          "De Groeiers",
+          "De Doorzetter"
         ]
       },
       {
@@ -1832,7 +1842,9 @@
           "Independent Senior",
           "Senior on a Budget",
           "Affluent Bon Vivants",
-          "Late Bloomers"
+          "Late Bloomers",
+          "De Groeiers",
+          "Ambitieuze Singles"
         ]
       },
       {
@@ -2092,7 +2104,9 @@
           "Senior on a Budget",
           "The Life Enjoyers",
           "Cozy Nesters",
-          "The Person of Independent Means"
+          "The Person of Independent Means",
+          "Senioren met Thuiswonende Kinderen",
+          "De Doorzetter"
         ]
       },
       {
