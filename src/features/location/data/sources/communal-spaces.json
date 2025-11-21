@@ -19,11 +19,11 @@
         "parking_impact": false,
         "references": "Prince of Delft",
         "target_groups": [
-          "De Groeiers",
           "Jonge Starters",
           "De Doorzetter",
           "Bescheiden Stellen",
-          "Zelfstandige Senior"
+          "Zelfstandige Senior",
+          "Gezellige Nesthouders"
         ]
       },
       {
@@ -45,9 +45,9 @@
         "target_groups": [
           "Jonge Starters",
           "De Groeiers",
-          "Ambitieuze Singles",
           "De Rentenier",
-          "De Zwitserlevers"
+          "De Zwitserlevers",
+          "Gezellige Nesthouders"
         ]
       },
       {
@@ -95,7 +95,7 @@
           "De Doorzetter",
           "Senior op Budget",
           "Bescheiden Stellen",
-          "De Rentenier"
+          "De Groeiers"
         ]
       },
       {
@@ -163,11 +163,11 @@
         "parking_impact": false,
         "references": "Prince of Delft",
         "target_groups": [
-          "Ambitieuze Singles",
           "Zelfbewuste Solisten",
           "Samen Starters",
           "Carrièrestarter",
-          "Carrière Stampers"
+          "Carrière Stampers",
+          "Succesvolle Singles"
         ]
       },
       {
@@ -209,9 +209,9 @@
         "target_groups": [
           "De Doorzetter",
           "Senior op Budget",
-          "Bescheiden Stellen",
           "De Zwitserlevers",
-          "Laat Bloeiers"
+          "Laat Bloeiers",
+          "Zelfstandige Senior"
         ]
       },
       {
@@ -258,8 +258,8 @@
           "De Doorzetter",
           "Knusse Gezinnen",
           "Zelfbewuste Solisten",
-          "Carrière Stampers",
-          "Senioren met Thuiswonende Kinderen"
+          "Senioren met Thuiswonende Kinderen",
+          "Zelfstandige Senior"
         ]
       },
       {
@@ -373,9 +373,9 @@
         "target_groups": [
           "Senior op Budget",
           "De Levensgenieters",
-          "Bescheiden Stellen",
           "Laat Bloeiers",
-          "De Zwitserlevers"
+          "De Zwitserlevers",
+          "Zelfstandige Senior"
         ]
       },
       {
@@ -423,7 +423,7 @@
           "Samen Starters",
           "De Balanszoekers",
           "Carrièrestarter",
-          "Carrière Stampers"
+          "Zelfstandige Senior"
         ]
       },
       {
@@ -446,8 +446,8 @@
           "De Levensgenieters",
           "Gezellige Nesthouders",
           "Senior op Budget",
-          "Bescheiden Stellen",
-          "Laat Bloeiers"
+          "Laat Bloeiers",
+          "Zelfstandige Senior"
         ]
       },
       {
@@ -468,10 +468,10 @@
         "references": "Materieeldienst VORM Papendrecht",
         "target_groups": [
           "Zelfbewuste Solisten",
-          "Ambitieuze Singles",
           "De Doorzetter",
           "Carrière Stampers",
-          "De Groeiers"
+          "De Groeiers",
+          "Succesvolle Singles"
         ]
       },
       {
@@ -590,8 +590,8 @@
           "De Levensgenieters",
           "Zelfstandige Senior",
           "Senior op Budget",
-          "Welvarende Bourgondiërs",
-          "Laat Bloeiers"
+          "Laat Bloeiers",
+          "Gezellige Nesthouders"
         ]
       },
       {
@@ -637,9 +637,9 @@
         "target_groups": [
           "Carrière Stampers",
           "Grenzeloos Duo",
-          "Ambitieuze Singles",
           "Carrièrestarter",
-          "Hard van Start"
+          "Hard van Start",
+          "Succesvolle Singles"
         ]
       },
       {
@@ -679,11 +679,11 @@
         "parking_impact": false,
         "references": "INIT Amsterdam",
         "target_groups": [
-          "Ambitieuze Singles",
           "Samen Starters",
           "De Zwitserlevers",
           "De Rentenier",
-          "Laat Bloeiers"
+          "Laat Bloeiers",
+          "Gezellige Nesthouders"
         ]
       },
       {
@@ -706,8 +706,8 @@
           "De Levensgenieters",
           "Senior op Budget",
           "Laat Bloeiers",
-          "Bescheiden Stellen",
-          "De Zwitserlevers"
+          "De Zwitserlevers",
+          "Gezellige Nesthouders"
         ]
       },
       {
@@ -780,6 +780,462 @@
           "De Rentenier",
           "De Zwitserlevers",
           "Welvarende Bourgondiërs"
+        ]
+      },
+      {
+        "id": "senior_fitness_studio",
+        "name": "Senioren Fitness Studio",
+        "scale": "middenschaal",
+        "category": "sport_en_beweging",
+        "area_min_m2": 60,
+        "area_max_m2": 120,
+        "m2_per_resident": 0.15,
+        "min_residents": 400,
+        "max_residents": 800,
+        "calculation": "",
+        "spatial_considerations": "low-impact apparatuur, antislip vloer, goede verlichting",
+        "location": "binnen, begane grond of met lift",
+        "regulations": "",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "Zelfstandige Senior",
+          "Senior op Budget",
+          "De Levensgenieters",
+          "De Zwitserlevers",
+          "De Rentenier"
+        ]
+      },
+      {
+        "id": "hobby_workshop",
+        "name": "Hobby Werkplaats",
+        "scale": "middenschaal",
+        "category": "werken_en_creeren",
+        "area_min_m2": 40,
+        "area_max_m2": 80,
+        "m2_per_resident": 0.12,
+        "min_residents": 333,
+        "max_residents": 667,
+        "calculation": "",
+        "spatial_considerations": "werkbanken, opslag, goede ventilatie, veiligheidseisen",
+        "location": "binnen of aangebouwd",
+        "regulations": "",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "Zelfstandige Senior",
+          "De Levensgenieters",
+          "De Zwitserlevers",
+          "Zelfbewuste Solisten",
+          "De Doorzetter"
+        ]
+      },
+      {
+        "id": "community_cafe_tea_room",
+        "name": "Gemeenschaps Café / Theekamer",
+        "scale": "middenschaal",
+        "category": "sociaal_en_gastvrij",
+        "area_min_m2": 50,
+        "area_max_m2": 100,
+        "m2_per_resident": 0.2,
+        "min_residents": 250,
+        "max_residents": 500,
+        "calculation": "",
+        "spatial_considerations": "keuken faciliteiten, comfortabele zitplaatsen, gezellige sfeer",
+        "location": "binnen, centraal gelegen",
+        "regulations": "Horeca wetgeving indien van toepassing",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "Zelfstandige Senior",
+          "Senior op Budget",
+          "De Levensgenieters",
+          "Gezellige Nesthouders",
+          "De Rentenier"
+        ]
+      },
+      {
+        "id": "home_theater_room",
+        "name": "Thuisbioscoop Ruimte",
+        "scale": "middenschaal",
+        "category": "ontspanning_en_vrije_tijd",
+        "area_min_m2": 30,
+        "area_max_m2": 60,
+        "m2_per_resident": 0.1,
+        "min_residents": 300,
+        "max_residents": 600,
+        "calculation": "",
+        "spatial_considerations": "akoestiek, projectie systeem, comfortabele stoelen, verduistering",
+        "location": "binnen",
+        "regulations": "",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "Gezellige Nesthouders",
+          "Stabiele Gezinnen",
+          "De Levensgenieters",
+          "Welvarende Bourgondiërs",
+          "De Rentenier"
+        ]
+      },
+      {
+        "id": "wine_beer_tasting_room",
+        "name": "Wijn/Bier Proeverij Ruimte",
+        "scale": "middenschaal",
+        "category": "sociaal_en_gastvrij",
+        "area_min_m2": 40,
+        "area_max_m2": 80,
+        "m2_per_resident": 0.12,
+        "min_residents": 333,
+        "max_residents": 667,
+        "calculation": "",
+        "spatial_considerations": "opslag, koeling, bar setup, ventilatie",
+        "location": "binnen",
+        "regulations": "Alcoholvergunning mogelijk vereist",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "Gezellige Nesthouders",
+          "De Levensgenieters",
+          "Welvarende Bourgondiërs",
+          "De Balanszoekers",
+          "De Zwitserlevers"
+        ]
+      },
+      {
+        "id": "meditation_mindfulness_room",
+        "name": "Meditatie/Mindfulness Ruimte",
+        "scale": "kleinste_schaal",
+        "category": "gezondheid",
+        "area_min_m2": 20,
+        "area_max_m2": 40,
+        "m2_per_resident": 0.08,
+        "min_residents": 250,
+        "max_residents": 500,
+        "calculation": "",
+        "spatial_considerations": "rustige locatie, natuurlijk licht, zachte vloer, minimalistisch",
+        "location": "binnen, rustige hoek",
+        "regulations": "",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "De Balanszoekers",
+          "Zelfstandige Senior",
+          "Zelfbewuste Solisten",
+          "Samen Starters",
+          "De Zwitserlevers"
+        ]
+      },
+      {
+        "id": "hybrid_work_pods",
+        "name": "Hybride Werk Pods",
+        "scale": "middenschaal",
+        "category": "werken_en_creeren",
+        "area_min_m2": 30,
+        "area_max_m2": 60,
+        "m2_per_resident": 0.15,
+        "min_residents": 200,
+        "max_residents": 400,
+        "calculation": "",
+        "spatial_considerations": "goede internet, privacy, geluidsisolatie, ergonomie",
+        "location": "binnen",
+        "regulations": "",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "De Balanszoekers",
+          "Succesvolle Singles",
+          "Carrière Stampers",
+          "Ambitieuze Singles",
+          "Zelfbewuste Solisten"
+        ]
+      },
+      {
+        "id": "wellness_center",
+        "name": "Wellness Center",
+        "scale": "grotere_schaal",
+        "category": "gezondheid",
+        "area_min_m2": 80,
+        "area_max_m2": 150,
+        "m2_per_resident": 0.25,
+        "min_residents": 320,
+        "max_residents": 600,
+        "calculation": "",
+        "spatial_considerations": "sauna, massage ruimtes, douches, ventilatie, wateraansluiting",
+        "location": "binnen",
+        "regulations": "Gezondheids- en veiligheidsvoorschriften",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "De Balanszoekers",
+          "Succesvolle Singles",
+          "Carrière Stampers",
+          "Grenzeloos Duo",
+          "Welvarende Bourgondiërs"
+        ]
+      },
+      {
+        "id": "cooking_class_kitchen",
+        "name": "Kookcursus Keuken",
+        "scale": "middenschaal",
+        "category": "sociaal_en_gastvrij",
+        "area_min_m2": 50,
+        "area_max_m2": 100,
+        "m2_per_resident": 0.15,
+        "min_residents": 333,
+        "max_residents": 667,
+        "calculation": "",
+        "spatial_considerations": "meerdere kookstations, opslag, ventilatie, vaatwasser",
+        "location": "binnen",
+        "regulations": "Hygiënevoorschriften",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "De Balanszoekers",
+          "Gezellige Nesthouders",
+          "Samen Starters",
+          "Actieve Jonge Gezinnen",
+          "De Levensgenieters"
+        ]
+      },
+      {
+        "id": "wine_bar_cocktail_lounge",
+        "name": "Wijnbar / Cocktail Lounge",
+        "scale": "grotere_schaal",
+        "category": "sociaal_en_gastvrij",
+        "area_min_m2": 60,
+        "area_max_m2": 120,
+        "m2_per_resident": 0.18,
+        "min_residents": 333,
+        "max_residents": 667,
+        "calculation": "",
+        "spatial_considerations": "bar setup, koeling, luxe inrichting, verlichting, geluid",
+        "location": "binnen, aantrekkelijke locatie",
+        "regulations": "Horeca wetgeving, alcoholvergunning",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "Succesvolle Singles",
+          "Carrière Stampers",
+          "Welvarende Bourgondiërs",
+          "Grenzeloos Duo",
+          "De Rentenier"
+        ]
+      },
+      {
+        "id": "private_dining_room",
+        "name": "Privé Eetruimte",
+        "scale": "middenschaal",
+        "category": "sociaal_en_gastvrij",
+        "area_min_m2": 40,
+        "area_max_m2": 80,
+        "m2_per_resident": 0.12,
+        "min_residents": 333,
+        "max_residents": 667,
+        "calculation": "",
+        "spatial_considerations": "reserveringssysteem, keuken faciliteiten, elegante inrichting",
+        "location": "binnen",
+        "regulations": "",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "Succesvolle Singles",
+          "Carrière Stampers",
+          "Vermogende Gezinnen",
+          "Welvarende Bourgondiërs",
+          "De Rentenier"
+        ]
+      },
+      {
+        "id": "concierge_service_space",
+        "name": "Conciërge Service Ruimte",
+        "scale": "kleinste_schaal",
+        "category": "praktisch",
+        "area_min_m2": 15,
+        "area_max_m2": 30,
+        "m2_per_resident": 0.05,
+        "min_residents": 300,
+        "max_residents": 600,
+        "calculation": "",
+        "spatial_considerations": "receptie desk, opslag, computersystemen",
+        "location": "binnen, nabij entree",
+        "regulations": "",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "Succesvolle Singles",
+          "Carrière Stampers",
+          "Vermogende Gezinnen",
+          "Welvarende Bourgondiërs",
+          "De Rentenier"
+        ]
+      },
+      {
+        "id": "family_game_night_room",
+        "name": "Gezinsspelletjes Avond Ruimte",
+        "scale": "middenschaal",
+        "category": "gezin_en_kindvriendelijk",
+        "area_min_m2": 40,
+        "area_max_m2": 80,
+        "m2_per_resident": 0.15,
+        "min_residents": 267,
+        "max_residents": 533,
+        "calculation": "",
+        "spatial_considerations": "opslag voor spellen, tafels en stoelen, kindvriendelijk",
+        "location": "binnen",
+        "regulations": "",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "Knusse Gezinnen",
+          "De Groeigezinnen",
+          "Actieve Jonge Gezinnen",
+          "Gezellige Nesthouders",
+          "Stabiele Gezinnen"
+        ]
+      },
+      {
+        "id": "craft_room",
+        "name": "Knutsel Ruimte",
+        "scale": "middenschaal",
+        "category": "gezin_en_kindvriendelijk",
+        "area_min_m2": 40,
+        "area_max_m2": 80,
+        "m2_per_resident": 0.12,
+        "min_residents": 333,
+        "max_residents": 667,
+        "calculation": "",
+        "spatial_considerations": "wasbare oppervlakken, opslag, goede verlichting, ventilatie",
+        "location": "binnen",
+        "regulations": "",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "Knusse Gezinnen",
+          "De Groeigezinnen",
+          "Actieve Jonge Gezinnen",
+          "Gezellige Nesthouders",
+          "De Levensgenieters"
+        ]
+      },
+      {
+        "id": "small_family_garden_plots",
+        "name": "Kleine Gezins Moestuinen",
+        "scale": "grotere_schaal",
+        "category": "gezin_en_kindvriendelijk",
+        "area_min_m2": 100,
+        "area_max_m2": 200,
+        "m2_per_resident": 0.4,
+        "min_residents": 250,
+        "max_residents": 500,
+        "calculation": "",
+        "spatial_considerations": "individuele plots, wateraansluiting, gereedschapsopslag",
+        "location": "buiten, zonnige plek",
+        "regulations": "",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "Knusse Gezinnen",
+          "Actieve Jonge Gezinnen",
+          "Stabiele Gezinnen",
+          "De Groeigezinnen",
+          "Gezellige Nesthouders"
+        ]
+      },
+      {
+        "id": "art_gallery_exhibition_space",
+        "name": "Kunstgalerij / Expositieruimte",
+        "scale": "grotere_schaal",
+        "category": "cultuur_en_educatie",
+        "area_min_m2": 80,
+        "area_max_m2": 150,
+        "m2_per_resident": 0.2,
+        "min_residents": 400,
+        "max_residents": 750,
+        "calculation": "",
+        "spatial_considerations": "verstelbare verlichting, wanden voor ophangen, veiligheid",
+        "location": "binnen, representatieve ruimte",
+        "regulations": "",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "De Rentenier",
+          "Welvarende Bourgondiërs",
+          "Succesvolle Singles",
+          "De Levensgenieters",
+          "Carrière Stampers"
+        ]
+      },
+      {
+        "id": "bridge_card_game_room",
+        "name": "Bridge / Kaartspel Ruimte",
+        "scale": "middenschaal",
+        "category": "ontspanning_en_vrije_tijd",
+        "area_min_m2": 40,
+        "area_max_m2": 80,
+        "m2_per_resident": 0.12,
+        "min_residents": 333,
+        "max_residents": 667,
+        "calculation": "",
+        "spatial_considerations": "kaart tafels, goede verlichting, rustige omgeving",
+        "location": "binnen",
+        "regulations": "",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "De Rentenier",
+          "De Levensgenieters",
+          "Senior op Budget",
+          "Welvarende Bourgondiërs",
+          "Zelfstandige Senior"
+        ]
+      },
+      {
+        "id": "couples_wellness_studio",
+        "name": "Koppel Wellness Studio",
+        "scale": "middenschaal",
+        "category": "gezondheid",
+        "area_min_m2": 50,
+        "area_max_m2": 100,
+        "m2_per_resident": 0.15,
+        "min_residents": 333,
+        "max_residents": 667,
+        "calculation": "",
+        "spatial_considerations": "massage tafels, privacy, rustgevende sfeer, douches",
+        "location": "binnen",
+        "regulations": "",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "De Rentenier",
+          "Welvarende Bourgondiërs",
+          "Carrière Stampers",
+          "Gezellige Nesthouders",
+          "De Balanszoekers"
+        ]
+      },
+      {
+        "id": "champagne_bar_tasting_room",
+        "name": "Champagne Bar / Proeverij Ruimte",
+        "scale": "grotere_schaal",
+        "category": "sociaal_en_gastvrij",
+        "area_min_m2": 50,
+        "area_max_m2": 100,
+        "m2_per_resident": 0.15,
+        "min_residents": 333,
+        "max_residents": 667,
+        "calculation": "",
+        "spatial_considerations": "luxe bar, koeling, elegante inrichting, verlichting",
+        "location": "binnen, exclusieve locatie",
+        "regulations": "Alcoholvergunning",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "De Zwitserlevers",
+          "Welvarende Bourgondiërs",
+          "De Rentenier",
+          "Carrière Stampers",
+          "Succesvolle Singles"
         ]
       }
     ]
@@ -1565,6 +2021,462 @@
           "The Person of Independent Means",
           "The Comfortable Livers",
           "Affluent Bon Vivants"
+        ]
+      },
+      {
+        "id": "senior_fitness_studio",
+        "name": "Senior Fitness Studio",
+        "scale": "medium_scale",
+        "category": "sport_and_movement",
+        "area_min_m2": 60,
+        "area_max_m2": 120,
+        "m2_per_resident": 0.15,
+        "min_residents": 400,
+        "max_residents": 800,
+        "calculation": "",
+        "spatial_considerations": "low-impact equipment, non-slip flooring, good lighting",
+        "location": "indoors, ground floor or with elevator",
+        "regulations": "",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "Independent Senior",
+          "Senior on a Budget",
+          "The Life Enjoyers",
+          "The Comfortable Livers",
+          "The Person of Independent Means"
+        ]
+      },
+      {
+        "id": "hobby_workshop",
+        "name": "Hobby Workshop",
+        "scale": "medium_scale",
+        "category": "work_and_create",
+        "area_min_m2": 40,
+        "area_max_m2": 80,
+        "m2_per_resident": 0.12,
+        "min_residents": 333,
+        "max_residents": 667,
+        "calculation": "",
+        "spatial_considerations": "workbenches, storage, good ventilation, safety requirements",
+        "location": "indoors or attached",
+        "regulations": "",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "Independent Senior",
+          "The Life Enjoyers",
+          "The Comfortable Livers",
+          "Self-Assured Soloists",
+          "The Perseverer"
+        ]
+      },
+      {
+        "id": "community_cafe_tea_room",
+        "name": "Community Café / Tea Room",
+        "scale": "medium_scale",
+        "category": "social_and_hospitable",
+        "area_min_m2": 50,
+        "area_max_m2": 100,
+        "m2_per_resident": 0.2,
+        "min_residents": 250,
+        "max_residents": 500,
+        "calculation": "",
+        "spatial_considerations": "kitchen facilities, comfortable seating, cozy atmosphere",
+        "location": "indoors, centrally located",
+        "regulations": "Hospitality legislation if applicable",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "Independent Senior",
+          "Senior on a Budget",
+          "The Life Enjoyers",
+          "Cozy Nesters",
+          "The Person of Independent Means"
+        ]
+      },
+      {
+        "id": "home_theater_room",
+        "name": "Home Theater Room",
+        "scale": "medium_scale",
+        "category": "recreation_and_leisure",
+        "area_min_m2": 30,
+        "area_max_m2": 60,
+        "m2_per_resident": 0.1,
+        "min_residents": 300,
+        "max_residents": 600,
+        "calculation": "",
+        "spatial_considerations": "acoustics, projection system, comfortable seating, blackout",
+        "location": "indoors",
+        "regulations": "",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "Cozy Nesters",
+          "Stable Families",
+          "The Life Enjoyers",
+          "Affluent Bon Vivants",
+          "The Person of Independent Means"
+        ]
+      },
+      {
+        "id": "wine_beer_tasting_room",
+        "name": "Wine/Beer Tasting Room",
+        "scale": "medium_scale",
+        "category": "social_and_hospitable",
+        "area_min_m2": 40,
+        "area_max_m2": 80,
+        "m2_per_resident": 0.12,
+        "min_residents": 333,
+        "max_residents": 667,
+        "calculation": "",
+        "spatial_considerations": "storage, cooling, bar setup, ventilation",
+        "location": "indoors",
+        "regulations": "Alcohol license may be required",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "Cozy Nesters",
+          "The Life Enjoyers",
+          "Affluent Bon Vivants",
+          "The Balance Seekers",
+          "The Comfortable Livers"
+        ]
+      },
+      {
+        "id": "meditation_mindfulness_room",
+        "name": "Meditation/Mindfulness Room",
+        "scale": "smallest_scale",
+        "category": "health",
+        "area_min_m2": 20,
+        "area_max_m2": 40,
+        "m2_per_resident": 0.08,
+        "min_residents": 250,
+        "max_residents": 500,
+        "calculation": "",
+        "spatial_considerations": "quiet location, natural light, soft flooring, minimalist",
+        "location": "indoors, quiet corner",
+        "regulations": "",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "The Balance Seekers",
+          "Independent Senior",
+          "Self-Assured Soloists",
+          "Starting Together",
+          "The Comfortable Livers"
+        ]
+      },
+      {
+        "id": "hybrid_work_pods",
+        "name": "Hybrid Work Pods",
+        "scale": "medium_scale",
+        "category": "work_and_create",
+        "area_min_m2": 30,
+        "area_max_m2": 60,
+        "m2_per_resident": 0.15,
+        "min_residents": 200,
+        "max_residents": 400,
+        "calculation": "",
+        "spatial_considerations": "good internet, privacy, sound insulation, ergonomics",
+        "location": "indoors",
+        "regulations": "",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "The Balance Seekers",
+          "Successful Singles",
+          "Career Stampers",
+          "Ambitious Singles",
+          "Self-Assured Soloists"
+        ]
+      },
+      {
+        "id": "wellness_center",
+        "name": "Wellness Center",
+        "scale": "larger_scale",
+        "category": "health",
+        "area_min_m2": 80,
+        "area_max_m2": 150,
+        "m2_per_resident": 0.25,
+        "min_residents": 320,
+        "max_residents": 600,
+        "calculation": "",
+        "spatial_considerations": "sauna, massage rooms, showers, ventilation, water connection",
+        "location": "indoors",
+        "regulations": "Health and safety regulations",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "The Balance Seekers",
+          "Successful Singles",
+          "Career Stampers",
+          "Limitless Duo",
+          "Affluent Bon Vivants"
+        ]
+      },
+      {
+        "id": "cooking_class_kitchen",
+        "name": "Cooking Class Kitchen",
+        "scale": "medium_scale",
+        "category": "social_and_hospitable",
+        "area_min_m2": 50,
+        "area_max_m2": 100,
+        "m2_per_resident": 0.15,
+        "min_residents": 333,
+        "max_residents": 667,
+        "calculation": "",
+        "spatial_considerations": "multiple cooking stations, storage, ventilation, dishwasher",
+        "location": "indoors",
+        "regulations": "Hygiene regulations",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "The Balance Seekers",
+          "Cozy Nesters",
+          "Starting Together",
+          "Active Young Families",
+          "The Life Enjoyers"
+        ]
+      },
+      {
+        "id": "wine_bar_cocktail_lounge",
+        "name": "Wine Bar / Cocktail Lounge",
+        "scale": "larger_scale",
+        "category": "social_and_hospitable",
+        "area_min_m2": 60,
+        "area_max_m2": 120,
+        "m2_per_resident": 0.18,
+        "min_residents": 333,
+        "max_residents": 667,
+        "calculation": "",
+        "spatial_considerations": "bar setup, cooling, luxury furnishings, lighting, sound",
+        "location": "indoors, attractive location",
+        "regulations": "Hospitality legislation, alcohol license",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "Successful Singles",
+          "Career Stampers",
+          "Affluent Bon Vivants",
+          "Limitless Duo",
+          "The Person of Independent Means"
+        ]
+      },
+      {
+        "id": "private_dining_room",
+        "name": "Private Dining Room",
+        "scale": "medium_scale",
+        "category": "social_and_hospitable",
+        "area_min_m2": 40,
+        "area_max_m2": 80,
+        "m2_per_resident": 0.12,
+        "min_residents": 333,
+        "max_residents": 667,
+        "calculation": "",
+        "spatial_considerations": "reservation system, kitchen facilities, elegant furnishings",
+        "location": "indoors",
+        "regulations": "",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "Successful Singles",
+          "Career Stampers",
+          "Wealthy Families",
+          "Affluent Bon Vivants",
+          "The Person of Independent Means"
+        ]
+      },
+      {
+        "id": "concierge_service_space",
+        "name": "Concierge Service Space",
+        "scale": "smallest_scale",
+        "category": "practical",
+        "area_min_m2": 15,
+        "area_max_m2": 30,
+        "m2_per_resident": 0.05,
+        "min_residents": 300,
+        "max_residents": 600,
+        "calculation": "",
+        "spatial_considerations": "reception desk, storage, computer systems",
+        "location": "indoors, near entrance",
+        "regulations": "",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "Successful Singles",
+          "Career Stampers",
+          "Wealthy Families",
+          "Affluent Bon Vivants",
+          "The Person of Independent Means"
+        ]
+      },
+      {
+        "id": "family_game_night_room",
+        "name": "Family Game Night Room",
+        "scale": "medium_scale",
+        "category": "family_and_child_friendly",
+        "area_min_m2": 40,
+        "area_max_m2": 80,
+        "m2_per_resident": 0.15,
+        "min_residents": 267,
+        "max_residents": 533,
+        "calculation": "",
+        "spatial_considerations": "game storage, tables and chairs, child-friendly",
+        "location": "indoors",
+        "regulations": "",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "Cozy Families",
+          "The Growing Families",
+          "Active Young Families",
+          "Cozy Nesters",
+          "Stable Families"
+        ]
+      },
+      {
+        "id": "craft_room",
+        "name": "Craft Room",
+        "scale": "medium_scale",
+        "category": "family_and_child_friendly",
+        "area_min_m2": 40,
+        "area_max_m2": 80,
+        "m2_per_resident": 0.12,
+        "min_residents": 333,
+        "max_residents": 667,
+        "calculation": "",
+        "spatial_considerations": "washable surfaces, storage, good lighting, ventilation",
+        "location": "indoors",
+        "regulations": "",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "Cozy Families",
+          "The Growing Families",
+          "Active Young Families",
+          "Cozy Nesters",
+          "The Life Enjoyers"
+        ]
+      },
+      {
+        "id": "small_family_garden_plots",
+        "name": "Small Family Garden Plots",
+        "scale": "larger_scale",
+        "category": "family_and_child_friendly",
+        "area_min_m2": 100,
+        "area_max_m2": 200,
+        "m2_per_resident": 0.4,
+        "min_residents": 250,
+        "max_residents": 500,
+        "calculation": "",
+        "spatial_considerations": "individual plots, water connection, tool storage",
+        "location": "outdoors, sunny spot",
+        "regulations": "",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "Cozy Families",
+          "Active Young Families",
+          "Stable Families",
+          "The Growing Families",
+          "Cozy Nesters"
+        ]
+      },
+      {
+        "id": "art_gallery_exhibition_space",
+        "name": "Art Gallery / Exhibition Space",
+        "scale": "larger_scale",
+        "category": "culture_and_education",
+        "area_min_m2": 80,
+        "area_max_m2": 150,
+        "m2_per_resident": 0.2,
+        "min_residents": 400,
+        "max_residents": 750,
+        "calculation": "",
+        "spatial_considerations": "adjustable lighting, walls for hanging, security",
+        "location": "indoors, representative space",
+        "regulations": "",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "The Person of Independent Means",
+          "Affluent Bon Vivants",
+          "Successful Singles",
+          "The Life Enjoyers",
+          "Career Stampers"
+        ]
+      },
+      {
+        "id": "bridge_card_game_room",
+        "name": "Bridge / Card Game Room",
+        "scale": "medium_scale",
+        "category": "recreation_and_leisure",
+        "area_min_m2": 40,
+        "area_max_m2": 80,
+        "m2_per_resident": 0.12,
+        "min_residents": 333,
+        "max_residents": 667,
+        "calculation": "",
+        "spatial_considerations": "card tables, good lighting, quiet environment",
+        "location": "indoors",
+        "regulations": "",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "The Person of Independent Means",
+          "The Life Enjoyers",
+          "Senior on a Budget",
+          "Affluent Bon Vivants",
+          "Independent Senior"
+        ]
+      },
+      {
+        "id": "couples_wellness_studio",
+        "name": "Couple's Wellness Studio",
+        "scale": "medium_scale",
+        "category": "health",
+        "area_min_m2": 50,
+        "area_max_m2": 100,
+        "m2_per_resident": 0.15,
+        "min_residents": 333,
+        "max_residents": 667,
+        "calculation": "",
+        "spatial_considerations": "massage tables, privacy, calming atmosphere, showers",
+        "location": "indoors",
+        "regulations": "",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "The Person of Independent Means",
+          "Affluent Bon Vivants",
+          "Career Stampers",
+          "Cozy Nesters",
+          "The Balance Seekers"
+        ]
+      },
+      {
+        "id": "champagne_bar_tasting_room",
+        "name": "Champagne Bar / Tasting Room",
+        "scale": "larger_scale",
+        "category": "social_and_hospitable",
+        "area_min_m2": 50,
+        "area_max_m2": 100,
+        "m2_per_resident": 0.15,
+        "min_residents": 333,
+        "max_residents": 667,
+        "calculation": "",
+        "spatial_considerations": "luxury bar, cooling, elegant furnishings, lighting",
+        "location": "indoors, exclusive location",
+        "regulations": "Alcohol license",
+        "parking_impact": false,
+        "references": "",
+        "target_groups": [
+          "The Comfortable Livers",
+          "Affluent Bon Vivants",
+          "The Person of Independent Means",
+          "Career Stampers",
+          "Successful Singles"
         ]
       }
     ]

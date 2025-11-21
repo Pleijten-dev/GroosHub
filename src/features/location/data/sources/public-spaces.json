@@ -3,52 +3,6 @@
     "description": "Publieke en commerciële ruimtes voor gemengde ontwikkelingsprojecten",
     "spaces": [
       {
-        "id": "vending_machine",
-        "name": "Eet-/ en drinkautomaat",
-        "scale": "kleine_schaal",
-        "category": "food",
-        "area_min_m2": 1,
-        "area_max_m2": 4,
-        "m2_per_resident": 0.28,
-        "min_residents": 36,
-        "max_residents": 144,
-        "spatial_considerations": "exploitatievorm, wateraansluiting, sanitair, schoonmaak",
-        "location": "bij gebouw",
-        "regulations": "Horeca wetgeving / exploitatievergunning",
-        "parking_impact": false,
-        "references": "",
-        "target_groups": [
-          "Jonge Starters",
-          "Ambitieuze Singles",
-          "De Groeiers",
-          "Zelfbewuste Solisten",
-          "Bescheiden Stellen"
-        ]
-      },
-      {
-        "id": "snack_wall",
-        "name": "Automatiek (snackmuur)",
-        "scale": "middenschaal",
-        "category": "food",
-        "area_min_m2": 4,
-        "area_max_m2": 50,
-        "m2_per_resident": 0.07,
-        "min_residents": 1800,
-        "max_residents": 7200,
-        "spatial_considerations": "exploitatievorm, wateraansluiting, sanitair, schoonmaak",
-        "location": "bij gebouw",
-        "regulations": "Horeca wetgeving / exploitatievergunning",
-        "parking_impact": false,
-        "references": "",
-        "target_groups": [
-          "Jonge Starters",
-          "Ambitieuze Singles",
-          "Samen Starters",
-          "De Groeiers",
-          "Zelfbewuste Solisten"
-        ]
-      },
-      {
         "id": "tiny_cafe",
         "name": "Tiny caféhoek / koffiebar",
         "scale": "middenschaal",
@@ -64,11 +18,11 @@
         "parking_impact": true,
         "references": "Centrumplan De Hoge Singel Berkel en Rodenrijs",
         "target_groups": [
-          "Ambitieuze Singles",
           "Samen Starters",
           "Bescheiden Stellen",
           "De Zwitserlevers",
-          "Welvarende Bourgondiërs"
+          "Welvarende Bourgondiërs",
+          "Gezellige Nesthouders"
         ]
       },
       {
@@ -202,11 +156,11 @@
         "parking_impact": true,
         "references": "Schalkwijk Haarlem / Tijdelijke bibliotheek Papendrecht",
         "target_groups": [
-          "Senior op Budget",
           "De Levensgenieters",
           "Gezellige Nesthouders",
           "De Rentenier",
-          "Laat Bloeiers"
+          "Laat Bloeiers",
+          "Zelfstandige Senior"
         ]
       },
       {
@@ -293,8 +247,8 @@
           "Samen Starters",
           "De Balanszoekers",
           "Senioren met Thuiswonende Kinderen",
-          "Laat Bloeiers",
-          "Welvarende Bourgondiërs"
+          "Welvarende Bourgondiërs",
+          "Gezellige Nesthouders"
         ]
       },
       {
@@ -504,11 +458,11 @@
         "parking_impact": true,
         "references": "",
         "target_groups": [
-          "Ambitieuze Singles",
           "Zelfbewuste Solisten",
           "Welvarende Bourgondiërs",
           "Succesvolle Singles",
-          "Carrière Stampers"
+          "Carrière Stampers",
+          "De Balanszoekers"
         ]
       },
       {
@@ -527,11 +481,11 @@
         "parking_impact": true,
         "references": "",
         "target_groups": [
-          "Ambitieuze Singles",
           "Carrière Stampers",
           "Grenzeloos Duo",
           "Carrièrestarter",
-          "Samen Starters"
+          "Samen Starters",
+          "De Balanszoekers"
         ]
       },
       {
@@ -619,29 +573,6 @@
         ]
       },
       {
-        "id": "veterinary",
-        "name": "Dierenarts / veterinair centrum",
-        "scale": "middenschaal",
-        "category": "praktisch",
-        "area_min_m2": 80,
-        "area_max_m2": 200,
-        "m2_per_resident": 0.08,
-        "min_residents": 1000,
-        "max_residents": 2500,
-        "spatial_considerations": "wachtruimte, behandelkamers, hygiëne, parkeren",
-        "location": "begane grond",
-        "regulations": "Wet dieren",
-        "parking_impact": true,
-        "references": "",
-        "target_groups": [
-          "Stabiele Gezinnen",
-          "De Balanszoekers",
-          "Vermogende Gezinnen",
-          "Gezellige Nesthouders",
-          "Welvarende Bourgondiërs"
-        ]
-      },
-      {
         "id": "florist",
         "name": "Bloemist",
         "scale": "kleine_schaal",
@@ -680,11 +611,11 @@
         "parking_impact": true,
         "references": "",
         "target_groups": [
-          "Ambitieuze Singles",
           "Grenzeloos Duo",
           "Succesvolle Singles",
           "Welvarende Bourgondiërs",
-          "Carrièrestarter"
+          "Carrièrestarter",
+          "De Zwitserlevers"
         ]
       },
       {
@@ -703,34 +634,11 @@
         "parking_impact": true,
         "references": "",
         "target_groups": [
-          "Ambitieuze Singles",
           "Zelfbewuste Solisten",
           "Samen Starters",
           "Welvarende Bourgondiërs",
-          "De Levensgenieters"
-        ]
-      },
-      {
-        "id": "bank_office",
-        "name": "Bankkantoor / financiële diensten",
-        "scale": "middenschaal",
-        "category": "praktisch",
-        "area_min_m2": 60,
-        "area_max_m2": 150,
-        "m2_per_resident": 0.1,
-        "min_residents": 600,
-        "max_residents": 1500,
-        "spatial_considerations": "privacy, beveiliging, wachtruimte",
-        "location": "begane grond, centraal",
-        "regulations": "AFM toezicht, Wft",
-        "parking_impact": true,
-        "references": "",
-        "target_groups": [
-          "Carrière Stampers",
-          "Succesvolle Singles",
-          "Welvarende Bourgondiërs",
-          "Carrièrestarter",
-          "Stabiele Gezinnen"
+          "De Levensgenieters",
+          "Gezellige Nesthouders"
         ]
       },
       {
@@ -774,32 +682,9 @@
         "target_groups": [
           "Jonge Starters",
           "Samen Starters",
-          "Ambitieuze Singles",
           "Grenzeloos Duo",
-          "Actieve Jonge Gezinnen"
-        ]
-      },
-      {
-        "id": "gaming_lounge",
-        "name": "Gaming lounge / e-sports arena",
-        "scale": "grotere_schaal",
-        "category": "ontspanning_en_vrije_tijd",
-        "area_min_m2": 100,
-        "area_max_m2": 400,
-        "m2_per_resident": 0.25,
-        "min_residents": 400,
-        "max_residents": 1600,
-        "spatial_considerations": "internetsnelheid, koeling, geluidsisolatie",
-        "location": "binnen",
-        "regulations": "Horeca wetgeving (bij verkoop F&B)",
-        "parking_impact": true,
-        "references": "",
-        "target_groups": [
-          "Jonge Starters",
-          "Ambitieuze Singles",
-          "Carrièrestarter",
-          "Samen Starters",
-          "De Groeiers"
+          "Actieve Jonge Gezinnen",
+          "Knusse Gezinnen"
         ]
       }
     ]
@@ -1508,11 +1393,11 @@
         "parking_impact": true,
         "references": "",
         "target_groups": [
-          "Ambitious Singles",
           "Self-Assured Soloists",
           "Starting Together",
           "Affluent Bon Vivants",
-          "The Life Enjoyers"
+          "The Life Enjoyers",
+          "Cozy Nesters"
         ]
       },
       {
@@ -1579,32 +1464,9 @@
         "target_groups": [
           "Young Starters",
           "Starting Together",
-          "Ambitious Singles",
           "Limitless Duo",
-          "Active Young Families"
-        ]
-      },
-      {
-        "id": "gaming_lounge",
-        "name": "Gaming Lounge / E-sports Arena",
-        "scale": "larger_scale",
-        "category": "recreation_and_leisure",
-        "area_min_m2": 100,
-        "area_max_m2": 400,
-        "m2_per_resident": 0.25,
-        "min_residents": 400,
-        "max_residents": 1600,
-        "spatial_considerations": "internet speed, cooling, sound insulation",
-        "location": "indoors",
-        "regulations": "Hospitality legislation (if F&B sales)",
-        "parking_impact": true,
-        "references": "",
-        "target_groups": [
-          "Young Starters",
-          "Ambitious Singles",
-          "Career Starter",
-          "Starting Together",
-          "The Growers"
+          "Active Young Families",
+          "Cozy Families"
         ]
       }
     ]
