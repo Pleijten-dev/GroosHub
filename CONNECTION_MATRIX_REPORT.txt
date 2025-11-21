@@ -1,0 +1,393 @@
+====================================================================================================
+PERSONA CONNECTION MATRIX
+====================================================================================================
+
+Shows how many times each persona pair appears together in the same space.
+
+
+====================================================================================================
+CHUNK 1/3
+====================================================================================================
+
+                                      1   2   3   4   5   6   7   8   9  10
+ 1. Welvarende Bourgondiërs         
+ 2. Carrière Stampers               
+ 3. De Levensgenieters              
+ 4. Gezellige Nesthouders           
+ 5. Actieve Jonge Gezinnen          
+ 6. Succesvolle Singles             
+ 7. Vermogende Gezinnen             
+ 8. Zelfstandige Senior             
+ 9. De Doorzetter                   
+10. Hard van Start                  
+
+----------------------------------------------------------------------------------------------------
+Welvarende Bourgondiërs            -   10   9   7   0  10   3   3   0   0
+Carrière Stampers                  10  -    2   1   2  13   4   1   1   2
+De Levensgenieters                  9   2  -    9   0   1   0   9   5   0
+Gezellige Nesthouders               7   1   9  -    3   0   0   4   3   0
+Actieve Jonge Gezinnen              0   2   0   3  -    0  12   0   0  11
+Succesvolle Singles                10  13   1   0   0  -    3   0   1   1
+Vermogende Gezinnen                 3   4   0   0  12   3  -    0   0  10
+Zelfstandige Senior                 3   1   9   4   0   0   0  -    6   0
+De Doorzetter                       0   1   5   3   0   1   0   6  -    0
+Hard van Start                      0   2   0   0  11   1  10   0   0  - 
+Senioren met Thuiswonende K...      1   0   1   4   6   0   4   3   6   3
+Ambitieuze Singles                  1   4   1   2   2   4   2   3   0   3
+De Rentenier                       10   6   7   5   0   5   2   3   0   0
+Senior op Budget                    2   0   8   3   0   0   0   6   6   1
+De Balanszoekers                    5   5   2   4   2   3   2   2   0   2
+De Groeiers                         0   2   2   4   1   1   0   3   7   1
+De Groeigezinnen                    0   0   0   3  10   0   6   0   2   5
+De Zwitserlevers                    5   1   6   5   0   2   0   4   1   0
+Zelfbewuste Solisten                2   6   2   1   0   6   0   3   3   0
+Bescheiden Stellen                  3   1   3   2   1   0   0   3   6   1
+Grenzeloos Duo                      4   8   0   0   2   7   1   0   0   1
+Jonge Starters                      0   0   0   2   3   0   0   1   4   3
+Knusse Gezinnen                     1   0   1   4   7   0   3   1   3   3
+Samen Starters                      3   2   2   5   1   1   0   1   0   1
+Stabiele Gezinnen                   2   1   2   2   8   0   7   1   0   6
+Carrièrestarter                     1   3   0   0   1   4   0   1   0   2
+Laat Bloeiers                       2   1   4   3   0   2   1   2   2   0
+
+----------------------------------------------------------------------------------------------------
+Min:                               0   0   0   0   0   0   0   0   0   0
+Max:                              10  13   9   9  12  13  12   9   7  11
+Avg:                             3.2 2.9 2.9 2.9 2.8 2.5 2.3 2.3 2.2 2.2
+Total:                            84  76  76  76  72  64  60  60  56  56
+
+====================================================================================================
+CHUNK 2/3
+====================================================================================================
+
+                                      1   2   3   4   5   6   7   8   9  10
+ 1. Senioren met Thuiswonende K...  
+ 2. Ambitieuze Singles              
+ 3. De Rentenier                    
+ 4. Senior op Budget                
+ 5. De Balanszoekers                
+ 6. De Groeiers                     
+ 7. De Groeigezinnen                
+ 8. De Zwitserlevers                
+ 9. Zelfbewuste Solisten            
+10. Bescheiden Stellen              
+
+----------------------------------------------------------------------------------------------------
+Welvarende Bourgondiërs             1   1  10   2   5   0   0   5   2   3
+Carrière Stampers                   0   4   6   0   5   2   0   1   6   1
+De Levensgenieters                  1   1   7   8   2   2   0   6   2   3
+Gezellige Nesthouders               4   2   5   3   4   4   3   5   1   2
+Actieve Jonge Gezinnen              6   2   0   0   2   1  10   0   0   1
+Succesvolle Singles                 0   4   5   0   3   1   0   2   6   0
+Vermogende Gezinnen                 4   2   2   0   2   0   6   0   0   0
+Zelfstandige Senior                 3   3   3   6   2   3   0   4   3   3
+De Doorzetter                       6   0   0   6   0   7   2   1   3   6
+Hard van Start                      3   3   0   1   2   1   5   0   0   1
+Senioren met Thuiswonende K...     -    0   0   2   1   4   6   1   1   2
+Ambitieuze Singles                  0  -    0   1   4   2   0   1   5   0
+De Rentenier                        0   0  -    3   1   0   0   4   0   0
+Senior op Budget                    2   1   3  -    0   5   0   4   0   4
+De Balanszoekers                    1   4   1   0  -    0   0   2   3   0
+De Groeiers                         4   2   0   5   0  -    3   1   2   4
+De Groeigezinnen                    6   0   0   0   0   3  -    0   0   2
+De Zwitserlevers                    1   1   4   4   2   1   0  -    2   1
+Zelfbewuste Solisten                1   5   0   0   3   2   0   2  -    0
+Bescheiden Stellen                  2   0   0   4   0   4   2   1   0  - 
+Grenzeloos Duo                      0   4   1   0   2   1   0   1   3   0
+Jonge Starters                      2   3   0   3   0   4   1   1   1   6
+Knusse Gezinnen                     5   0   1   0   0   1   7   0   1   1
+Samen Starters                      1   3   1   0   4   0   0   2   2   1
+Stabiele Gezinnen                   3   0   1   0   2   0   3   0   0   1
+Carrièrestarter                     0   5   0   0   2   0   0   1   4   0
+Laat Bloeiers                       0   2   2   4   0   0   0   3   1   2
+
+----------------------------------------------------------------------------------------------------
+Min:                               0   0   0   0   0   0   0   0   0   0
+Max:                               6   5  10   8   5   7  10   6   6   6
+Avg:                             2.2 2.0 2.0 2.0 1.8 1.8 1.8 1.8 1.8 1.7
+Total:                            56  52  52  52  48  48  48  48  48  44
+
+====================================================================================================
+CHUNK 3/3
+====================================================================================================
+
+                                      1   2   3   4   5   6   7
+ 1. Grenzeloos Duo                  
+ 2. Jonge Starters                  
+ 3. Knusse Gezinnen                 
+ 4. Samen Starters                  
+ 5. Stabiele Gezinnen               
+ 6. Carrièrestarter                 
+ 7. Laat Bloeiers                   
+
+----------------------------------------------------------------------------------------------------
+Welvarende Bourgondiërs             4   0   1   3   2   1   2
+Carrière Stampers                   8   0   0   2   1   3   1
+De Levensgenieters                  0   0   1   2   2   0   4
+Gezellige Nesthouders               0   2   4   5   2   0   3
+Actieve Jonge Gezinnen              2   3   7   1   8   1   0
+Succesvolle Singles                 7   0   0   1   0   4   2
+Vermogende Gezinnen                 1   0   3   0   7   0   1
+Zelfstandige Senior                 0   1   1   1   1   1   2
+De Doorzetter                       0   4   3   0   0   0   2
+Hard van Start                      1   3   3   1   6   2   0
+Senioren met Thuiswonende K...      0   2   5   1   3   0   0
+Ambitieuze Singles                  4   3   0   3   0   5   2
+De Rentenier                        1   0   1   1   1   0   2
+Senior op Budget                    0   3   0   0   0   0   4
+De Balanszoekers                    2   0   0   4   2   2   0
+De Groeiers                         1   4   1   0   0   0   0
+De Groeigezinnen                    0   1   7   0   3   0   0
+De Zwitserlevers                    1   1   0   2   0   1   3
+Zelfbewuste Solisten                3   1   1   2   0   4   1
+Bescheiden Stellen                  0   6   1   1   1   0   2
+Grenzeloos Duo                     -    1   1   2   0   4   1
+Jonge Starters                      1  -    2   2   0   3   2
+Knusse Gezinnen                     1   2  -    1   1   0   0
+Samen Starters                      2   2   1  -    0   4   1
+Stabiele Gezinnen                   0   0   1   0  -    0   0
+Carrièrestarter                     4   3   0   4   0  -    1
+Laat Bloeiers                       1   2   0   1   0   1  - 
+
+----------------------------------------------------------------------------------------------------
+Min:                               0   0   0   0   0   0   0
+Max:                               8   6   7   5   8   5   4
+Avg:                             1.7 1.7 1.7 1.5 1.5 1.4 1.4
+Total:                            44  44  44  40  40  36  36
+
+
+====================================================================================================
+SUMMARY STATISTICS
+====================================================================================================
+
+Total persona pairs: 351
+Average connections per pair: 2.1
+Min connection: 0
+Max connection: 13
+Range: 13
+Max/Min Ratio: Infinityx
+
+📊 CONNECTION DISTRIBUTION:
+Never connected (0):       117 pairs (33.3%)
+Weakly (1-2):              121 pairs (34.5%)
+Moderately (3-5):           78 pairs (22.2%)
+Strongly (6-10):            32 pairs (9.1%)
+Very strongly (11+):         3 pairs (0.9%)
+
+🔗 TOP 20 STRONGEST CONNECTIONS:
+ 1. 13x: Carrière Stampers <-> Succesvolle Singles
+ 2. 12x: Actieve Jonge Gezinnen <-> Vermogende Gezinnen
+ 3. 11x: Actieve Jonge Gezinnen <-> Hard van Start
+ 4. 10x: Welvarende Bourgondiërs <-> Carrière Stampers
+ 5. 10x: Welvarende Bourgondiërs <-> Succesvolle Singles
+ 6. 10x: Welvarende Bourgondiërs <-> De Rentenier
+ 7. 10x: Actieve Jonge Gezinnen <-> De Groeigezinnen
+ 8. 10x: Vermogende Gezinnen <-> Hard van Start
+ 9.  9x: Welvarende Bourgondiërs <-> De Levensgenieters
+10.  9x: De Levensgenieters <-> Gezellige Nesthouders
+11.  9x: De Levensgenieters <-> Zelfstandige Senior
+12.  8x: Carrière Stampers <-> Grenzeloos Duo
+13.  8x: De Levensgenieters <-> Senior op Budget
+14.  8x: Actieve Jonge Gezinnen <-> Stabiele Gezinnen
+15.  7x: Welvarende Bourgondiërs <-> Gezellige Nesthouders
+16.  7x: De Levensgenieters <-> De Rentenier
+17.  7x: Actieve Jonge Gezinnen <-> Knusse Gezinnen
+18.  7x: Succesvolle Singles <-> Grenzeloos Duo
+19.  7x: Vermogende Gezinnen <-> Stabiele Gezinnen
+20.  7x: De Doorzetter <-> De Groeiers
+
+🔗 BOTTOM 20 WEAKEST (NON-ZERO) CONNECTIONS:
+ 1.  1x: Carrièrestarter <-> Laat Bloeiers
+ 2.  1x: Samen Starters <-> Laat Bloeiers
+ 3.  1x: Knusse Gezinnen <-> Stabiele Gezinnen
+ 4.  1x: Knusse Gezinnen <-> Samen Starters
+ 5.  1x: Grenzeloos Duo <-> Laat Bloeiers
+ 6.  1x: Grenzeloos Duo <-> Knusse Gezinnen
+ 7.  1x: Grenzeloos Duo <-> Jonge Starters
+ 8.  1x: Bescheiden Stellen <-> Stabiele Gezinnen
+ 9.  1x: Bescheiden Stellen <-> Samen Starters
+10.  1x: Bescheiden Stellen <-> Knusse Gezinnen
+11.  1x: Zelfbewuste Solisten <-> Laat Bloeiers
+12.  1x: Zelfbewuste Solisten <-> Knusse Gezinnen
+13.  1x: Zelfbewuste Solisten <-> Jonge Starters
+14.  1x: De Zwitserlevers <-> Carrièrestarter
+15.  1x: De Zwitserlevers <-> Jonge Starters
+16.  1x: De Zwitserlevers <-> Grenzeloos Duo
+17.  1x: De Zwitserlevers <-> Bescheiden Stellen
+18.  1x: De Groeigezinnen <-> Jonge Starters
+19.  1x: De Groeiers <-> Knusse Gezinnen
+20.  1x: De Groeiers <-> Grenzeloos Duo
+
+❌ NEVER CONNECTED PAIRS (117):
+    Welvarende Bourgondiërs <-> Actieve Jonge Gezinnen
+    Welvarende Bourgondiërs <-> De Doorzetter
+    Welvarende Bourgondiërs <-> Hard van Start
+    Welvarende Bourgondiërs <-> De Groeiers
+    Welvarende Bourgondiërs <-> De Groeigezinnen
+    Welvarende Bourgondiërs <-> Jonge Starters
+    Carrière Stampers <-> Senioren met Thuiswonende Kinderen
+    Carrière Stampers <-> Senior op Budget
+    Carrière Stampers <-> De Groeigezinnen
+    Carrière Stampers <-> Jonge Starters
+    Carrière Stampers <-> Knusse Gezinnen
+    De Levensgenieters <-> Actieve Jonge Gezinnen
+    De Levensgenieters <-> Vermogende Gezinnen
+    De Levensgenieters <-> Hard van Start
+    De Levensgenieters <-> De Groeigezinnen
+    De Levensgenieters <-> Grenzeloos Duo
+    De Levensgenieters <-> Jonge Starters
+    De Levensgenieters <-> Carrièrestarter
+    Gezellige Nesthouders <-> Succesvolle Singles
+    Gezellige Nesthouders <-> Vermogende Gezinnen
+    Gezellige Nesthouders <-> Hard van Start
+    Gezellige Nesthouders <-> Grenzeloos Duo
+    Gezellige Nesthouders <-> Carrièrestarter
+    Actieve Jonge Gezinnen <-> Succesvolle Singles
+    Actieve Jonge Gezinnen <-> Zelfstandige Senior
+    Actieve Jonge Gezinnen <-> De Doorzetter
+    Actieve Jonge Gezinnen <-> De Rentenier
+    Actieve Jonge Gezinnen <-> Senior op Budget
+    Actieve Jonge Gezinnen <-> De Zwitserlevers
+    Actieve Jonge Gezinnen <-> Zelfbewuste Solisten
+    Actieve Jonge Gezinnen <-> Laat Bloeiers
+    Succesvolle Singles <-> Zelfstandige Senior
+    Succesvolle Singles <-> Senioren met Thuiswonende Kinderen
+    Succesvolle Singles <-> Senior op Budget
+    Succesvolle Singles <-> De Groeigezinnen
+    Succesvolle Singles <-> Bescheiden Stellen
+    Succesvolle Singles <-> Jonge Starters
+    Succesvolle Singles <-> Knusse Gezinnen
+    Succesvolle Singles <-> Stabiele Gezinnen
+    Vermogende Gezinnen <-> Zelfstandige Senior
+    Vermogende Gezinnen <-> De Doorzetter
+    Vermogende Gezinnen <-> Senior op Budget
+    Vermogende Gezinnen <-> De Groeiers
+    Vermogende Gezinnen <-> De Zwitserlevers
+    Vermogende Gezinnen <-> Zelfbewuste Solisten
+    Vermogende Gezinnen <-> Bescheiden Stellen
+    Vermogende Gezinnen <-> Jonge Starters
+    Vermogende Gezinnen <-> Samen Starters
+    Vermogende Gezinnen <-> Carrièrestarter
+    Zelfstandige Senior <-> Hard van Start
+    Zelfstandige Senior <-> De Groeigezinnen
+    Zelfstandige Senior <-> Grenzeloos Duo
+    De Doorzetter <-> Hard van Start
+    De Doorzetter <-> Ambitieuze Singles
+    De Doorzetter <-> De Rentenier
+    De Doorzetter <-> De Balanszoekers
+    De Doorzetter <-> Grenzeloos Duo
+    De Doorzetter <-> Samen Starters
+    De Doorzetter <-> Stabiele Gezinnen
+    De Doorzetter <-> Carrièrestarter
+    Hard van Start <-> De Rentenier
+    Hard van Start <-> De Zwitserlevers
+    Hard van Start <-> Zelfbewuste Solisten
+    Hard van Start <-> Laat Bloeiers
+    Senioren met Thuiswonende Kinderen <-> Ambitieuze Singles
+    Senioren met Thuiswonende Kinderen <-> De Rentenier
+    Senioren met Thuiswonende Kinderen <-> Grenzeloos Duo
+    Senioren met Thuiswonende Kinderen <-> Carrièrestarter
+    Senioren met Thuiswonende Kinderen <-> Laat Bloeiers
+    Ambitieuze Singles <-> De Rentenier
+    Ambitieuze Singles <-> De Groeigezinnen
+    Ambitieuze Singles <-> Bescheiden Stellen
+    Ambitieuze Singles <-> Knusse Gezinnen
+    Ambitieuze Singles <-> Stabiele Gezinnen
+    De Rentenier <-> De Groeiers
+    De Rentenier <-> De Groeigezinnen
+    De Rentenier <-> Zelfbewuste Solisten
+    De Rentenier <-> Bescheiden Stellen
+    De Rentenier <-> Jonge Starters
+    De Rentenier <-> Carrièrestarter
+    Senior op Budget <-> De Balanszoekers
+    Senior op Budget <-> De Groeigezinnen
+    Senior op Budget <-> Zelfbewuste Solisten
+    Senior op Budget <-> Grenzeloos Duo
+    Senior op Budget <-> Knusse Gezinnen
+    Senior op Budget <-> Samen Starters
+    Senior op Budget <-> Stabiele Gezinnen
+    Senior op Budget <-> Carrièrestarter
+    De Balanszoekers <-> De Groeiers
+    De Balanszoekers <-> De Groeigezinnen
+    De Balanszoekers <-> Bescheiden Stellen
+    De Balanszoekers <-> Jonge Starters
+    De Balanszoekers <-> Knusse Gezinnen
+    De Balanszoekers <-> Laat Bloeiers
+    De Groeiers <-> Samen Starters
+    De Groeiers <-> Stabiele Gezinnen
+    De Groeiers <-> Carrièrestarter
+    De Groeiers <-> Laat Bloeiers
+    De Groeigezinnen <-> De Zwitserlevers
+    De Groeigezinnen <-> Zelfbewuste Solisten
+    De Groeigezinnen <-> Grenzeloos Duo
+    De Groeigezinnen <-> Samen Starters
+    De Groeigezinnen <-> Carrièrestarter
+    De Groeigezinnen <-> Laat Bloeiers
+    De Zwitserlevers <-> Knusse Gezinnen
+    De Zwitserlevers <-> Stabiele Gezinnen
+    Zelfbewuste Solisten <-> Bescheiden Stellen
+    Zelfbewuste Solisten <-> Stabiele Gezinnen
+    Bescheiden Stellen <-> Grenzeloos Duo
+    Bescheiden Stellen <-> Carrièrestarter
+    Grenzeloos Duo <-> Stabiele Gezinnen
+    Jonge Starters <-> Stabiele Gezinnen
+    Knusse Gezinnen <-> Carrièrestarter
+    Knusse Gezinnen <-> Laat Bloeiers
+    Samen Starters <-> Stabiele Gezinnen
+    Stabiele Gezinnen <-> Carrièrestarter
+    Stabiele Gezinnen <-> Laat Bloeiers
+
+
+📊 PER-PERSONA CONNECTION STATISTICS:
+====================================================================================================
+Persona                                  Total  Min  Max   Avg
+----------------------------------------------------------------------------------------------------
+Welvarende Bourgondiërs                     84    0   10   3.2
+Carrière Stampers                           76    0   13   2.9
+De Levensgenieters                          76    0    9   2.9
+Gezellige Nesthouders                       76    0    9   2.9
+Actieve Jonge Gezinnen                      72    0   12   2.8
+Succesvolle Singles                         64    0   13   2.5
+Vermogende Gezinnen                         60    0   12   2.3
+Zelfstandige Senior                         60    0    9   2.3
+De Doorzetter                               56    0    7   2.2
+Hard van Start                              56    0   11   2.2
+Senioren met Thuiswonende Kinderen          56    0    6   2.2
+Ambitieuze Singles                          52    0    5   2.0
+De Rentenier                                52    0   10   2.0
+Senior op Budget                            52    0    8   2.0
+De Balanszoekers                            48    0    5   1.8
+De Groeiers                                 48    0    7   1.8
+De Groeigezinnen                            48    0   10   1.8
+De Zwitserlevers                            48    0    6   1.8
+Zelfbewuste Solisten                        48    0    6   1.8
+Bescheiden Stellen                          44    0    6   1.7
+Grenzeloos Duo                              44    0    8   1.7
+Jonge Starters                              44    0    6   1.7
+Knusse Gezinnen                             44    0    7   1.7
+Samen Starters                              40    0    5   1.5
+Stabiele Gezinnen                           40    0    8   1.5
+Carrièrestarter                             36    0    5   1.4
+Laat Bloeiers                               36    0    4   1.4
+
+
+⚠️  BALANCE ISSUES:
+
+Personas with very strong connections to specific others:
+  Welvarende Bourgondiërs: max=10 (4.8x average)
+  Carrière Stampers: max=13 (6.3x average)
+  De Levensgenieters: max=9 (4.3x average)
+  Gezellige Nesthouders: max=9 (4.3x average)
+  Actieve Jonge Gezinnen: max=12 (5.8x average)
+  Succesvolle Singles: max=13 (6.3x average)
+  Vermogende Gezinnen: max=12 (5.8x average)
+  Zelfstandige Senior: max=9 (4.3x average)
+  De Doorzetter: max=7 (3.4x average)
+  Hard van Start: max=11 (5.3x average)
+  De Rentenier: max=10 (4.8x average)
+  Senior op Budget: max=8 (3.8x average)
+  De Groeiers: max=7 (3.4x average)
+  De Groeigezinnen: max=10 (4.8x average)
+  Grenzeloos Duo: max=8 (3.8x average)
+  Knusse Gezinnen: max=7 (3.4x average)
+  Stabiele Gezinnen: max=8 (3.8x average)
