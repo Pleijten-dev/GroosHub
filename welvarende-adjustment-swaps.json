@@ -1,0 +1,50 @@
+[
+  {
+    "file": "communal",
+    "name": "Logeerappartement (zelfstandig)",
+    "remove": "Gezellige Nesthouders",
+    "add": "Welvarende Bourgondiërs"
+  },
+  {
+    "file": "communal",
+    "name": "Thuisbioscoop Ruimte",
+    "remove": "Gezellige Nesthouders",
+    "add": "Welvarende Bourgondiërs"
+  },
+  {
+    "file": "communal",
+    "name": "Wijn/Bier Proeverij Ruimte",
+    "remove": "Gezellige Nesthouders",
+    "add": "Welvarende Bourgondiërs"
+  },
+  {
+    "file": "communal",
+    "name": "Kookcursus Keuken",
+    "remove": "Gezellige Nesthouders",
+    "add": "Welvarende Bourgondiërs"
+  },
+  {
+    "file": "communal",
+    "name": "Kunstgalerij / Expositieruimte",
+    "remove": "Succesvolle Singles",
+    "add": "Welvarende Bourgondiërs"
+  },
+  {
+    "file": "public",
+    "name": "Bibliotheek (dependence)",
+    "remove": "Gezellige Nesthouders",
+    "add": "Welvarende Bourgondiërs"
+  },
+  {
+    "file": "public",
+    "name": "Pedicure / nagelsalon",
+    "remove": "Gezellige Nesthouders",
+    "add": "Welvarende Bourgondiërs"
+  },
+  {
+    "file": "communal",
+    "name": "Gezamenlijke woonkamer",
+    "remove": "Gezellige Nesthouders",
+    "add": "Welvarende Bourgondiërs"
+  }
+]

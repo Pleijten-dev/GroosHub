@@ -1,0 +1,436 @@
+================================================================================
+COMPLETE AMENITY LIST WITH PERSONAS
+================================================================================
+
+================================================================================
+COMMUNAL SPACES (52 total)
+================================================================================
+
+1. Gezamenlijke woonkamer
+   Category: sociaal_en_gastvrij
+   Scale: kleinste_schaal
+   Personas (5): Jonge Starters, De Doorzetter, Bescheiden Stellen, Zelfstandige Senior, Welvarende Bourgondiërs
+
+2. Logeerkamer
+   Category: sociaal_en_gastvrij
+   Scale: kleinste_schaal
+   Personas (5): Jonge Starters, De Groeiers, Senioren met Thuiswonende Kinderen, De Zwitserlevers, Welvarende Bourgondiërs
+
+3. Keuken (gedeeld)
+   Category: food
+   Scale: kleinste_schaal
+   Personas (5): Jonge Starters, De Groeiers, Senior op Budget, Bescheiden Stellen, Hard van Start
+
+4. Wasruimte/ washok
+   Category: praktisch
+   Scale: kleinste_schaal
+   Personas (5): Jonge Starters, De Doorzetter, Senior op Budget, Bescheiden Stellen, De Groeiers
+
+5. Voorraadkast / bulkinkopen
+   Category: food
+   Scale: kleinste_schaal
+   Personas (5): Knusse Gezinnen, De Groeigezinnen, Senioren met Thuiswonende Kinderen, De Groeiers, De Doorzetter
+
+6. Speelkamer
+   Category: gezin_en_kindvriendelijk
+   Scale: kleinste_schaal
+   Personas (5): De Groeigezinnen, Knusse Gezinnen, Hard van Start, Vermogende Gezinnen, Grenzeloos Duo
+
+7. Werkruimte
+   Category: werken_en_creeren
+   Scale: kleinste_schaal
+   Personas (5): Zelfbewuste Solisten, Samen Starters, Carrièrestarter, Succesvolle Singles, Grenzeloos Duo
+
+8. Klein terras met zitplek
+   Category: ontspanning_en_vrije_tijd
+   Scale: kleinste_schaal
+   Personas (1): De Doorzetter
+
+9. Gemeenschapsruimte
+   Category: sociaal_en_gastvrij
+   Scale: kleine_schaal
+   Personas (5): De Doorzetter, Senior op Budget, De Groeiers, Senioren met Thuiswonende Kinderen, Welvarende Bourgondiërs
+
+10. Muziekruimte
+   Category: ontspanning_en_vrije_tijd
+   Scale: kleine_schaal
+   Personas (5): Jonge Starters, Ambitieuze Singles, Zelfbewuste Solisten, Carrièrestarter, Laat Bloeiers
+
+11. Klusruimte
+   Category: werken_en_creeren
+   Scale: kleine_schaal
+   Personas (5): De Doorzetter, Knusse Gezinnen, Zelfbewuste Solisten, Senioren met Thuiswonende Kinderen, Zelfstandige Senior
+
+12. Gamekamer met ook bordspellen
+   Category: ontspanning_en_vrije_tijd
+   Scale: kleine_schaal
+   Personas (5): Jonge Starters, De Groeigezinnen, Actieve Jonge Gezinnen, Bescheiden Stellen, De Groeiers
+
+13. Tiny bibliotheek / boekenkast
+   Category: ontspanning_en_vrije_tijd
+   Scale: kleine_schaal
+   Personas (5): Senior op Budget, De Groeiers, De Doorzetter, Knusse Gezinnen, Welvarende Bourgondiërs
+
+14. Oppasplek
+   Category: gezin_en_kindvriendelijk
+   Scale: kleine_schaal
+   Personas (5): De Groeigezinnen, Knusse Gezinnen, Hard van Start, Vermogende Gezinnen, De Balanszoekers
+
+15. Centrale binnentuin of hof
+   Category: ontspanning_en_vrije_tijd
+   Scale: kleine_schaal
+   Personas (0): (empty)
+
+16. Buurtkamer
+   Category: sociaal_en_gastvrij
+   Scale: middenschaal
+   Personas (5): Senior op Budget, Laat Bloeiers, De Zwitserlevers, Zelfstandige Senior, Welvarende Bourgondiërs
+
+17. Speeltuin of -veldje
+   Category: gezin_en_kindvriendelijk
+   Scale: middenschaal
+   Personas (5): De Groeigezinnen, Senioren met Thuiswonende Kinderen, Vermogende Gezinnen, Hard van Start, Knusse Gezinnen
+
+18. Kleine fitnessruimte
+   Category: gezondheid
+   Scale: middenschaal
+   Personas (5): Ambitieuze Singles, Samen Starters, De Balanszoekers, Carrièrestarter, Zelfstandige Senior
+
+19. Buurtmoestuin
+   Category: ontspanning_en_vrije_tijd
+   Scale: middenschaal
+   Personas (5): Zelfstandige Senior, De Groeiers, De Doorzetter, De Groeigezinnen, Welvarende Bourgondiërs
+
+20. Werkplaats / maker space
+   Category: werken_en_creeren
+   Scale: middenschaal
+   Personas (5): Zelfbewuste Solisten, De Doorzetter, Carrière Stampers, De Groeiers, Succesvolle Singles
+
+21. Tool library
+   Category: werken_en_creeren
+   Scale: middenschaal
+   Personas (5): De Doorzetter, Jonge Starters, Knusse Gezinnen, Senioren met Thuiswonende Kinderen, Bescheiden Stellen
+
+22. Logeerappartement (zelfstandig)
+   Category: sociaal_en_gastvrij
+   Scale: middenschaal
+   Personas (5): Knusse Gezinnen, De Levensgenieters, De Rentenier, Carrièrestarter, Welvarende Bourgondiërs
+
+23. Ruilhoek
+   Category: praktisch
+   Scale: middenschaal
+   Personas (5): De Doorzetter, De Groeigezinnen, Bescheiden Stellen, De Groeiers, Senioren met Thuiswonende Kinderen
+
+24. Mini bios / projectorruimte
+   Category: ontspanning_en_vrije_tijd
+   Scale: middenschaal
+   Personas (5): Jonge Starters, Ambitieuze Singles, Samen Starters, Carrièrestarter, Hard van Start
+
+25. Leeszaal
+   Category: ontspanning_en_vrije_tijd
+   Scale: middenschaal
+   Personas (5): Zelfstandige Senior, Senior op Budget, Gezellige Nesthouders, De Groeiers, Ambitieuze Singles
+
+26. Speelkamer / kinderopvang
+   Category: gezin_en_kindvriendelijk
+   Scale: middenschaal
+   Personas (5): De Groeigezinnen, Stabiele Gezinnen, Senioren met Thuiswonende Kinderen, Vermogende Gezinnen, De Groeiers
+
+27. Fitnessruimte
+   Category: gezondheid
+   Scale: middenschaal
+   Personas (5): Grenzeloos Duo, Hard van Start, Succesvolle Singles, Ambitieuze Singles, De Zwitserlevers
+
+28. Afval/recycle hub
+   Category: praktisch
+   Scale: middenschaal
+   Personas (1): De Groeiers
+
+29. Gedeelde daktuinen
+   Category: ontspanning_en_vrije_tijd
+   Scale: grotere_schaal
+   Personas (5): Samen Starters, De Zwitserlevers, De Rentenier, Laat Bloeiers, Gezellige Nesthouders
+
+30. Buurtmoestuin groot
+   Category: ontspanning_en_vrije_tijd
+   Scale: grotere_schaal
+   Personas (5): Senior op Budget, Laat Bloeiers, De Zwitserlevers, Gezellige Nesthouders, Zelfbewuste Solisten
+
+31. Educatieve tuin
+   Category: gezin_en_kindvriendelijk
+   Scale: grotere_schaal
+   Personas (5): Actieve Jonge Gezinnen, Stabiele Gezinnen, Vermogende Gezinnen, Hard van Start, Senioren met Thuiswonende Kinderen
+
+32. Spelotheek / speelgoed leenplek
+   Category: gezin_en_kindvriendelijk
+   Scale: grotere_schaal
+   Personas (5): De Groeigezinnen, Knusse Gezinnen, Actieve Jonge Gezinnen, Hard van Start, Vermogende Gezinnen
+
+33. Zorglogeerkamer
+   Category: sociaal_en_gastvrij
+   Scale: grotere_schaal
+   Personas (5): Senior op Budget, De Levensgenieters, De Rentenier, De Zwitserlevers, Welvarende Bourgondiërs
+
+34. Senioren Fitness Studio
+   Category: sport_en_beweging
+   Scale: middenschaal
+   Personas (5): Zelfstandige Senior, Senior op Budget, De Levensgenieters, De Zwitserlevers, De Rentenier
+
+35. Hobby Werkplaats
+   Category: werken_en_creeren
+   Scale: middenschaal
+   Personas (5): Zelfstandige Senior, De Levensgenieters, De Zwitserlevers, Zelfbewuste Solisten, De Doorzetter
+
+36. Gemeenschaps Café / Theekamer
+   Category: sociaal_en_gastvrij
+   Scale: middenschaal
+   Personas (5): Zelfstandige Senior, Senior op Budget, De Levensgenieters, Senioren met Thuiswonende Kinderen, De Doorzetter
+
+37. Thuisbioscoop Ruimte
+   Category: ontspanning_en_vrije_tijd
+   Scale: middenschaal
+   Personas (5): Gezellige Nesthouders, Stabiele Gezinnen, De Levensgenieters, De Rentenier, Carrièrestarter
+
+38. Wijn/Bier Proeverij Ruimte
+   Category: sociaal_en_gastvrij
+   Scale: middenschaal
+   Personas (5): Gezellige Nesthouders, De Levensgenieters, De Balanszoekers, De Zwitserlevers, Carrièrestarter
+
+39. Meditatie/Mindfulness Ruimte
+   Category: gezondheid
+   Scale: kleinste_schaal
+   Personas (5): De Balanszoekers, Zelfstandige Senior, Zelfbewuste Solisten, Ambitieuze Singles, De Zwitserlevers
+
+40. Hybride Werk Pods
+   Category: werken_en_creeren
+   Scale: middenschaal
+   Personas (5): De Balanszoekers, Succesvolle Singles, Carrière Stampers, Ambitieuze Singles, Zelfbewuste Solisten
+
+41. Wellness Center
+   Category: gezondheid
+   Scale: grotere_schaal
+   Personas (5): De Balanszoekers, Succesvolle Singles, Carrière Stampers, Grenzeloos Duo, Laat Bloeiers
+
+42. Kookcursus Keuken
+   Category: sociaal_en_gastvrij
+   Scale: middenschaal
+   Personas (5): De Balanszoekers, Gezellige Nesthouders, Samen Starters, Ambitieuze Singles, De Levensgenieters
+
+43. Wijnbar / Cocktail Lounge
+   Category: sociaal_en_gastvrij
+   Scale: grotere_schaal
+   Personas (5): Carrière Stampers, Grenzeloos Duo, De Rentenier, Carrièrestarter, Welvarende Bourgondiërs
+
+44. Privé Eetruimte
+   Category: sociaal_en_gastvrij
+   Scale: middenschaal
+   Personas (5): Succesvolle Singles, Carrière Stampers, Vermogende Gezinnen, De Rentenier, Laat Bloeiers
+
+45. Conciërge Service Ruimte
+   Category: praktisch
+   Scale: kleinste_schaal
+   Personas (5): Succesvolle Singles, Carrière Stampers, Vermogende Gezinnen, De Rentenier, Laat Bloeiers
+
+46. Gezinsspelletjes Avond Ruimte
+   Category: gezin_en_kindvriendelijk
+   Scale: middenschaal
+   Personas (5): Knusse Gezinnen, De Groeigezinnen, Actieve Jonge Gezinnen, Gezellige Nesthouders, Senioren met Thuiswonende Kinderen
+
+47. Knutsel Ruimte
+   Category: gezin_en_kindvriendelijk
+   Scale: middenschaal
+   Personas (5): Knusse Gezinnen, De Groeigezinnen, Actieve Jonge Gezinnen, Gezellige Nesthouders, Senioren met Thuiswonende Kinderen
+
+48. Kleine Gezins Moestuinen
+   Category: gezin_en_kindvriendelijk
+   Scale: grotere_schaal
+   Personas (5): Knusse Gezinnen, Actieve Jonge Gezinnen, Stabiele Gezinnen, De Groeigezinnen, Gezellige Nesthouders
+
+49. Kunstgalerij / Expositieruimte
+   Category: cultuur_en_educatie
+   Scale: grotere_schaal
+   Personas (5): De Rentenier, Succesvolle Singles, De Levensgenieters, Carrière Stampers, Laat Bloeiers
+
+50. Bridge / Kaartspel Ruimte
+   Category: ontspanning_en_vrije_tijd
+   Scale: middenschaal
+   Personas (5): De Rentenier, De Levensgenieters, Senior op Budget, Welvarende Bourgondiërs, Zelfstandige Senior
+
+51. Koppel Wellness Studio
+   Category: gezondheid
+   Scale: middenschaal
+   Personas (5): De Rentenier, Carrière Stampers, Gezellige Nesthouders, De Balanszoekers, Samen Starters
+
+52. Champagne Bar / Proeverij Ruimte
+   Category: sociaal_en_gastvrij
+   Scale: grotere_schaal
+   Personas (5): De Zwitserlevers, De Rentenier, Carrière Stampers, Succesvolle Singles, Samen Starters
+
+
+================================================================================
+PUBLIC/COMMERCIAL SPACES (31 total)
+================================================================================
+
+1. Tiny caféhoek / koffiebar
+   Category: sociaal_en_gastvrij
+   Scale: middenschaal
+   Personas (5): Samen Starters, Bescheiden Stellen, De Zwitserlevers, Welvarende Bourgondiërs, Gezellige Nesthouders
+
+2. Wijkcentrum (met zalen)
+   Category: sociaal_en_gastvrij
+   Scale: grotere_schaal
+   Personas (5): Senior op Budget, De Levensgenieters, De Doorzetter, Bescheiden Stellen, Laat Bloeiers
+
+3. Culturele voorzieningen
+   Category: ontspanning_en_vrije_tijd
+   Scale: grotere_schaal
+   Personas (5): Succesvolle Singles, Laat Bloeiers, Vermogende Gezinnen, Ambitieuze Singles, Samen Starters
+
+4. Arthouse bioscoop
+   Category: ontspanning_en_vrije_tijd
+   Scale: grotere_schaal
+   Personas (5): Carrièrestarter, Succesvolle Singles, Grenzeloos Duo, Zelfbewuste Solisten, Ambitieuze Singles
+
+5. Sportgelegenheid groter
+   Category: gezondheid
+   Scale: grotere_schaal
+   Personas (5): Stabiele Gezinnen, Actieve Jonge Gezinnen, De Balanszoekers, Hard van Start, Vermogende Gezinnen
+
+6. Werkhub / co-working space
+   Category: werken_en_creeren
+   Scale: grotere_schaal
+   Personas (5): Ambitieuze Singles, Zelfbewuste Solisten, Grenzeloos Duo, Carrière Stampers, De Groeiers
+
+7. Bibliotheek (dependence)
+   Category: ontspanning_en_vrije_tijd
+   Scale: grotere_schaal
+   Personas (5): De Levensgenieters, Gezellige Nesthouders, De Rentenier, Laat Bloeiers, Zelfstandige Senior
+
+8. Studio / atelier voor muziek en dans
+   Category: ontspanning_en_vrije_tijd
+   Scale: grotere_schaal
+   Personas (5): Jonge Starters, Ambitieuze Singles, Actieve Jonge Gezinnen, Carrièrestarter, Hard van Start
+
+9. BSO ruimte
+   Category: gezin_en_kindvriendelijk
+   Scale: grotere_schaal
+   Personas (5): Actieve Jonge Gezinnen, Stabiele Gezinnen, Hard van Start, Vermogende Gezinnen, Senioren met Thuiswonende Kinderen
+
+10. Afvalhub / milieustraatje
+   Category: praktisch
+   Scale: grotere_schaal
+   Personas (0): (empty)
+
+11. Buurtcafé
+   Category: food
+   Scale: grotere_schaal
+   Personas (5): Samen Starters, De Balanszoekers, Senioren met Thuiswonende Kinderen, Welvarende Bourgondiërs, Gezellige Nesthouders
+
+12. Huisartsenpost / zorgpunt
+   Category: gezondheid
+   Scale: grotere_schaal
+   Personas (0): (empty)
+
+13. Wijkbrede sporthal
+   Category: gezondheid
+   Scale: grote_schaal
+   Personas (5): Stabiele Gezinnen, Actieve Jonge Gezinnen, De Balanszoekers, Hard van Start, Vermogende Gezinnen
+
+14. Kennis- of innovatiehub
+   Category: werken_en_creeren
+   Scale: grote_schaal
+   Personas (5): Carrièrestarter, Succesvolle Singles, Grenzeloos Duo, Zelfbewuste Solisten, Carrière Stampers
+
+15. Reparatiecafé
+   Category: praktisch
+   Scale: grote_schaal
+   Personas (5): De Doorzetter, Jonge Starters, Senior op Budget, Bescheiden Stellen, Laat Bloeiers
+
+16. Supermarkt / buurtsupermarkt
+   Category: food
+   Scale: grotere_schaal
+   Personas (0): (empty)
+
+17. Bakkerij / vers brood
+   Category: food
+   Scale: middenschaal
+   Personas (5): De Levensgenieters, Welvarende Bourgondiërs, Bescheiden Stellen, Zelfstandige Senior, Stabiele Gezinnen
+
+18. Restaurant
+   Category: food
+   Scale: grotere_schaal
+   Personas (5): Carrière Stampers, Grenzeloos Duo, Succesvolle Singles, Laat Bloeiers, Stabiele Gezinnen
+
+19. Drogist / apotheek
+   Category: gezondheid
+   Scale: middenschaal
+   Personas (0): (empty)
+
+20. Winkel / retail
+   Category: praktisch
+   Scale: grotere_schaal
+   Personas (0): (empty)
+
+21. Kapperszaak / schoonheidssalon
+   Category: gezondheid
+   Scale: middenschaal
+   Personas (5): Zelfbewuste Solisten, Succesvolle Singles, Carrière Stampers, De Balanszoekers, Stabiele Gezinnen
+
+22. Yogastudio / fitnesscentrum commercieel
+   Category: gezondheid
+   Scale: grotere_schaal
+   Personas (5): Carrière Stampers, Grenzeloos Duo, Carrièrestarter, Samen Starters, De Balanszoekers
+
+23. Peuterspeelzaal commercieel
+   Category: gezin_en_kindvriendelijk
+   Scale: grotere_schaal
+   Personas (5): Actieve Jonge Gezinnen, Stabiele Gezinnen, Vermogende Gezinnen, Hard van Start, De Groeigezinnen
+
+24. Tandartspraktijk
+   Category: gezondheid
+   Scale: middenschaal
+   Personas (0): (empty)
+
+25. Fysiotherapie / paramedisch centrum
+   Category: gezondheid
+   Scale: middenschaal
+   Personas (0): (empty)
+
+26. Kinderopvang / crèche commercieel
+   Category: gezin_en_kindvriendelijk
+   Scale: grotere_schaal
+   Personas (5): Actieve Jonge Gezinnen, Stabiele Gezinnen, Vermogende Gezinnen, Hard van Start, Bescheiden Stellen
+
+27. Bloemist
+   Category: praktisch
+   Scale: kleine_schaal
+   Personas (5): De Levensgenieters, Carrière Stampers, Bescheiden Stellen, Zelfstandige Senior, Stabiele Gezinnen
+
+28. Concept store / lifestyle winkel
+   Category: praktisch
+   Scale: middenschaal
+   Personas (5): Grenzeloos Duo, Succesvolle Singles, Carrièrestarter, De Zwitserlevers, Jonge Starters
+
+29. Pedicure / nagelsalon
+   Category: gezondheid
+   Scale: kleine_schaal
+   Personas (5): Zelfbewuste Solisten, Samen Starters, De Levensgenieters, Gezellige Nesthouders, Bescheiden Stellen
+
+30. Fotostudio
+   Category: werken_en_creeren
+   Scale: middenschaal
+   Personas (5): Ambitieuze Singles, Grenzeloos Duo, Actieve Jonge Gezinnen, Vermogende Gezinnen, Jonge Starters
+
+31. Escape room / entertainment
+   Category: ontspanning_en_vrije_tijd
+   Scale: middenschaal
+   Personas (5): Jonge Starters, Samen Starters, Grenzeloos Duo, Actieve Jonge Gezinnen, Knusse Gezinnen
+
+
+================================================================================
+SUMMARY
+================================================================================
+Total amenities: 83
+With 5 personas: 73 ✅
+With 1 persona: 2 ⚠️
+With 0 personas: 8 ⚠️
