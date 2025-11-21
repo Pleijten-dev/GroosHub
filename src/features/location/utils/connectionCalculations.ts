@@ -22,7 +22,7 @@ interface AmenitySpace {
   id: string;
   name: string;
   target_groups: string[];
-  [key: string]: any;
+  [key: string]: string | string[] | number | boolean | undefined;
 }
 
 interface AmenityData {
@@ -39,8 +39,7 @@ interface AmenityData {
  * from communal-spaces.json and public-spaces.json
  */
 export function calculateConnections(
-  allPersonas: HousingPersona[],
-  allPersonaScores: PersonaScore[]
+  allPersonas: HousingPersona[]
 ): Connection[] {
   const connectionMap = new Map<string, number>();
 

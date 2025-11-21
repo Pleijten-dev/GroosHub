@@ -215,7 +215,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         const sortedPersonas = [...personaScores].sort((a, b) => a.rRankPosition - b.rRankPosition);
 
         // Calculate connections between personas
-        const connections = calculateConnections(personas, sortedPersonas);
+        const connections = calculateConnections(personas);
 
         // Calculate scenarios using R-rank and connection cross-reference
         const scenarios = calculateScenarios(personas, sortedPersonas, connections);
@@ -466,7 +466,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         const personas = housingPersonasData[locale].housing_personas;
         const personaScores = calculatePersonaScores(personas, locationScores);
         const sortedPersonas = [...personaScores].sort((a, b) => a.rRankPosition - b.rRankPosition);
-        const connections = calculateConnections(personas, sortedPersonas);
+        const connections = calculateConnections(personas);
         const scenarios = calculateScenarios(personas, sortedPersonas, connections);
 
         return (

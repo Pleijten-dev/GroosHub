@@ -32,10 +32,10 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
   const [hoveredNode, setHoveredNode] = useState<number | null>(null);
   const [selectedNode, setSelectedNode] = useState<number | null>(null);
 
-  // Calculate connections between target groups based on similarity
+  // Calculate connections between target groups based on shared amenities
   const connections = useMemo(() => {
-    return calculateConnections(allPersonas, allPersonaScores);
-  }, [allPersonas, allPersonaScores]);
+    return calculateConnections(allPersonas);
+  }, [allPersonas]);
 
   // Calculate positions for nodes in a circle
   const nodePositions = useMemo(() => {

@@ -67,8 +67,8 @@ export const DoelgroepenResult: React.FC<DoelgroepenResultProps> = ({
 
   // Calculate connections for popup
   const connections = useMemo(() => {
-    return calculateConnections(allPersonas, allPersonaScores);
-  }, [allPersonas, allPersonaScores]);
+    return calculateConnections(allPersonas);
+  }, [allPersonas]);
 
   // Load scenario selection from localStorage on mount
   useEffect(() => {
