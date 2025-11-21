@@ -40,6 +40,11 @@
         "match_type": "exact",
         "description": "Middensegment 2-kamer appartementen"
       },
+      "Middensegment 2-kamer grondgebonden woning": {
+        "typology_ids": ["one_bed_55", "one_bed_65"],
+        "match_type": "exact",
+        "description": "Middensegment 2-kamer grondgebonden woning"
+      },
       "Middensegment 3-kamer grondgebonden woning": {
         "typology_ids": [],
         "match_type": "not_available",
@@ -110,6 +115,11 @@
         "typology_ids": ["two_bed_75", "two_bed_85"],
         "match_type": "exact",
         "description": "Mid-range 2-bedroom apartments"
+      },
+      "Mid-range 2-room ground-level dwelling": {
+        "typology_ids": ["one_bed_55", "one_bed_65"],
+        "match_type": "exact",
+        "description": "Mid-range 2-room ground-level dwelling"
       },
       "Mid-range 3-room ground-level dwelling": {
         "typology_ids": [],
