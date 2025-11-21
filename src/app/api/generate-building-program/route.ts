@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { NextResponse } from 'next/server';
 import housingTypologies from '@/features/location/data/sources/housing-typologies.json';
 import buildingAmenities from '@/features/location/data/sources/building-amenities.json';
+import communalSpaces from '@/features/location/data/sources/communal-spaces.json';
 import propertyTypeMapping from '@/features/location/data/sources/property-type-mapping.json';
 import type { CompactScenario } from '@/features/location/utils/jsonExportCompact';
 
@@ -107,6 +108,7 @@ export async function POST(request: Request) {
     // Get the appropriate locale data
     const typologies = housingTypologies[locale as 'nl' | 'en'].typologies;
     const amenities = buildingAmenities[locale as 'nl' | 'en'].amenities;
+    const spaces = communalSpaces[locale as 'nl' | 'en'].spaces;
     const mapping = propertyTypeMapping[locale as 'nl' | 'en'];
 
     // Build the prompt
@@ -146,6 +148,19 @@ BELANGRIJK: Gebruik deze mapping om de gewenste woningtypen van persona's te mat
 # BESCHIKBARE GEBOUWVOORZIENINGEN
 ${JSON.stringify(amenities, null, 2)}
 
+# BESCHIKBARE GEMEENSCHAPPELIJKE RUIMTES
+De volgende gemeenschappelijke ruimtes kunnen worden toegevoegd aan het gebouw. Elke ruimte heeft:
+- schaal (kleinste_schaal / kleine_schaal / middenschaal / grotere_schaal) - bepaalt welke schaal project dit nodig heeft
+- category - het type ruimte
+- area_min_m2 en area_max_m2 - minimale en maximale oppervlakte
+- m2_per_resident - aanbevolen oppervlakte per bewoner
+- min_residents en max_residents - optimaal aantal bewoners voor deze ruimte
+- target_groups - welke doelgroepen het meest profiteren van deze ruimte
+
+${JSON.stringify(spaces, null, 2)}
+
+BELANGRIJK: Selecteer gemeenschappelijke ruimtes die passen bij de doelgroep persona's in elk scenario. Gebruik de target_groups lijst om te bepalen welke ruimtes relevant zijn. Let op de schaal - kleinere projecten hebben kleinere schaal ruimtes nodig, grotere projecten kunnen grotere schaal ruimtes ondersteunen.
+
 # DOELGROEPEN SCENARIOS
 Het project moet ${rapportData.targetGroups.recommendedScenarios.length} verschillende scenarios bedienen:
 ${rapportData.targetGroups.recommendedScenarios.map((scenario: CompactScenario, index: number) => `
@@ -163,7 +178,7 @@ Maak voor ELK scenario een gedetailleerd bouwprogramma dat:
 1. Een unit mix voorstelt die perfect aansluit bij de doelgroep persona's - Gebruik de MAPPING VAN PERSONA WONINGTYPEN om de gewenste woningtypen van persona's te vertalen naar de beschikbare typology_ids. Analyseer de "desired_property_types" van elke persona in het scenario en match deze met de juiste typologieën uit de mapping.
 2. Rekening houdt met lokale demografische gegevens (leeftijd, gezinssamenstelling, inkomen)
 3. Commerciële ruimtes voorstelt die de bestaande voorzieningen in de buurt aanvullen
-4. Gemeenschappelijke voorzieningen selecteert die de behoeften van de doelgroepen dienen
+4. Gemeenschappelijke ruimtes selecteert uit de BESCHIKBARE GEMEENSCHAPPELIJKE RUIMTES lijst die passen bij de target_groups van de doelgroep persona's. Kies ruimtes waarvan de target_groups overeenkomen met de persona's in het scenario.
 5. Sociale faciliteiten plant die de lokale gemeenschap versterken
 6. De veiligheids-, gezondheids- en leefbaarheidsindicatoren meeneemt in de overwegingen
 7. BELANGRIJK: Vermijd het voorstellen van voorzieningen die al dichtbij aanwezig zijn. Let op de 'closestDistance' en 'averageDistance' velden in de amenities data. Als een voorziening al binnen 500m aanwezig is (closestDistance < 500), stel deze NIET voor als gebouwvoorziening tenzij er een duidelijke behoefte is aan extra capaciteit.
@@ -205,6 +220,19 @@ IMPORTANT: Use this mapping to match persona desired housing types with availabl
 # AVAILABLE BUILDING AMENITIES
 ${JSON.stringify(amenities, null, 2)}
 
+# AVAILABLE COMMUNAL SPACES
+The following communal spaces can be added to the building. Each space has:
+- scale (smallest_scale / small_scale / medium_scale / larger_scale) - determines what project scale requires this
+- category - the type of space
+- area_min_m2 and area_max_m2 - minimum and maximum area
+- m2_per_resident - recommended area per resident
+- min_residents and max_residents - optimal number of residents for this space
+- target_groups - which target groups benefit most from this space
+
+${JSON.stringify(spaces, null, 2)}
+
+IMPORTANT: Select communal spaces that match the target group personas in each scenario. Use the target_groups list to determine which spaces are relevant. Pay attention to scale - smaller projects need smaller scale spaces, larger projects can support larger scale spaces.
+
 # TARGET GROUP SCENARIOS
 The project must serve ${rapportData.targetGroups.recommendedScenarios.length} different scenarios:
 ${rapportData.targetGroups.recommendedScenarios.map((scenario: CompactScenario, index: number) => `
@@ -222,7 +250,7 @@ Create a detailed building program for EACH scenario that:
 1. Proposes a unit mix that perfectly matches the target persona groups - Use the MAPPING OF PERSONA HOUSING TYPES to translate persona desired housing types into available typology_ids. Analyze the "desired_property_types" of each persona in the scenario and match them to the appropriate typologies from the mapping.
 2. Accounts for local demographics (age, household composition, income)
 3. Suggests commercial spaces that complement existing local amenities
-4. Selects communal facilities that serve the needs of target groups
+4. Selects communal spaces from the AVAILABLE COMMUNAL SPACES list that match the target_groups of the target personas. Choose spaces whose target_groups align with the personas in the scenario.
 5. Plans social facilities that strengthen the local community
 6. Considers safety, health, and livability indicators in the decisions
 7. IMPORTANT: Avoid recommending amenities that are already nearby. Pay attention to the 'closestDistance' and 'averageDistance' fields in the amenities data. If an amenity is already within 500m (closestDistance < 500), do NOT recommend it as a building amenity unless there is a clear need for additional capacity.
