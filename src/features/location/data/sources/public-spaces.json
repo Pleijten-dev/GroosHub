@@ -710,6 +710,552 @@
           "Actieve Jonge Gezinnen",
           "Knusse Gezinnen"
         ]
+      },
+      {
+        "id": "wijnbar-cocktail-lounge",
+        "name": "Wijnbar / Cocktail Lounge",
+        "scale": "grotere_schaal",
+        "category": "sociaal_en_gastvrij",
+        "target_groups": [
+          "Carrière Stampers",
+          "Grenzeloos Duo",
+          "De Rentenier",
+          "Carrièrestarter",
+          "Welvarende Bourgondiërs"
+        ]
+      },
+      {
+        "id": "champagne-bar-proeverij-ruimte",
+        "name": "Champagne Bar / Proeverij Ruimte",
+        "scale": "grotere_schaal",
+        "category": "sociaal_en_gastvrij",
+        "target_groups": [
+          "De Zwitserlevers",
+          "De Rentenier",
+          "Carrière Stampers",
+          "Succesvolle Singles",
+          "Samen Starters"
+        ]
+      },
+      {
+        "id": "wellness-center",
+        "name": "Wellness Center",
+        "scale": "grotere_schaal",
+        "category": "ontspanning_en_vrije_tijd",
+        "target_groups": [
+          "De Balanszoekers",
+          "Succesvolle Singles",
+          "Carrière Stampers",
+          "Grenzeloos Duo",
+          "Laat Bloeiers"
+        ]
+      },
+      {
+        "id": "slagerij",
+        "name": "Slagerij",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "De Levensgenieters",
+          "Welvarende Bourgondiërs",
+          "Stabiele Gezinnen",
+          "Gezellige Nesthouders",
+          "Knusse Gezinnen"
+        ]
+      },
+      {
+        "id": "viswinkel",
+        "name": "Viswinkel",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "De Levensgenieters",
+          "Welvarende Bourgondiërs",
+          "De Zwitserlevers",
+          "De Rentenier",
+          "Stabiele Gezinnen"
+        ]
+      },
+      {
+        "id": "groentewinkel-biowinkel",
+        "name": "Groentewinkel/biowinkel",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "De Balanszoekers",
+          "De Levensgenieters",
+          "Zelfbewuste Solisten",
+          "Samen Starters",
+          "Gezellige Nesthouders"
+        ]
+      },
+      {
+        "id": "delicatessenzaak-kaaswinkel",
+        "name": "Delicatessenzaak/kaaswinkel",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "De Levensgenieters",
+          "Welvarende Bourgondiërs",
+          "De Rentenier",
+          "Carrière Stampers",
+          "De Zwitserlevers"
+        ]
+      },
+      {
+        "id": "slijterij",
+        "name": "Slijterij",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "Carrière Stampers",
+          "Grenzeloos Duo",
+          "Succesvolle Singles",
+          "De Zwitserlevers",
+          "Welvarende Bourgondiërs"
+        ]
+      },
+      {
+        "id": "ijssalon",
+        "name": "IJssalon",
+        "scale": "middenschaal",
+        "category": "food",
+        "target_groups": [
+          "Actieve Jonge Gezinnen",
+          "Knusse Gezinnen",
+          "Jonge Starters",
+          "Samen Starters",
+          "Gezellige Nesthouders"
+        ]
+      },
+      {
+        "id": "snackbar-cafetaria",
+        "name": "Snackbar/cafetaria",
+        "scale": "middenschaal",
+        "category": "food",
+        "target_groups": [
+          "Jonge Starters",
+          "De Groeiers",
+          "Actieve Jonge Gezinnen",
+          "Bescheiden Stellen",
+          "Stabiele Gezinnen"
+        ]
+      },
+      {
+        "id": "afhaalrestaurant",
+        "name": "Afhaalrestaurant",
+        "scale": "middenschaal",
+        "category": "food",
+        "target_groups": [
+          "Samen Starters",
+          "Actieve Jonge Gezinnen",
+          "Ambitieuze Singles",
+          "Carrièrestarter",
+          "Stabiele Gezinnen"
+        ]
+      },
+      {
+        "id": "lunchroom-broodjeswinkel",
+        "name": "Lunchroom/broodjeswinkel",
+        "scale": "middenschaal",
+        "category": "food",
+        "target_groups": [
+          "Ambitieuze Singles",
+          "Samen Starters",
+          "Carrièrestarter",
+          "Zelfbewuste Solisten",
+          "Stabiele Gezinnen"
+        ]
+      },
+      {
+        "id": "fietsenmaker",
+        "name": "Fietsenmaker",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep"
+        ]
+      },
+      {
+        "id": "schoenmaker",
+        "name": "Schoenmaker",
+        "scale": "kleinste_schaal",
+        "category": "praktisch",
+        "target_groups": [
+          "Senior op Budget",
+          "De Doorzetter",
+          "Bescheiden Stellen",
+          "Zelfstandige Senior",
+          "De Levensgenieters"
+        ]
+      },
+      {
+        "id": "kringloopwinkel",
+        "name": "Kringloopwinkel",
+        "scale": "grotere_schaal",
+        "category": "praktisch",
+        "target_groups": [
+          "De Doorzetter",
+          "Jonge Starters",
+          "Senior op Budget",
+          "Bescheiden Stellen",
+          "De Groeiers"
+        ]
+      },
+      {
+        "id": "wasserette",
+        "name": "Wasserette",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "Jonge Starters",
+          "Ambitieuze Singles",
+          "De Groeiers",
+          "Carrièrestarter",
+          "Samen Starters"
+        ]
+      },
+      {
+        "id": "stomerij",
+        "name": "Stomerij",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "Succesvolle Singles",
+          "Carrière Stampers",
+          "Carrièrestarter",
+          "De Balanszoekers",
+          "Ambitieuze Singles"
+        ]
+      },
+      {
+        "id": "opticien",
+        "name": "Opticien",
+        "scale": "middenschaal",
+        "category": "gezondheid",
+        "target_groups": [
+          "Zelfstandige Senior",
+          "Senior op Budget",
+          "De Zwitserlevers",
+          "Stabiele Gezinnen",
+          "Gezellige Nesthouders"
+        ]
+      },
+      {
+        "id": "huisdierenwinkel",
+        "name": "Huisdierenwinkel",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "Gezellige Nesthouders",
+          "Stabiele Gezinnen",
+          "Zelfbewuste Solisten",
+          "De Balanszoekers",
+          "Knusse Gezinnen"
+        ]
+      },
+      {
+        "id": "postpunt-postnl-punt",
+        "name": "Postpunt/PostNL punt",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep"
+        ]
+      },
+      {
+        "id": "basisschool",
+        "name": "Basisschool",
+        "scale": "grotere_schaal",
+        "category": "cultuur_en_educatie",
+        "target_groups": [
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep"
+        ]
+      },
+      {
+        "id": "peuterspeelzaal-gemeentelijk",
+        "name": "Peuterspeelzaal (gemeentelijk)",
+        "scale": "grotere_schaal",
+        "category": "gezin_en_kindvriendelijk",
+        "target_groups": [
+          "De Groeigezinnen",
+          "Actieve Jonge Gezinnen",
+          "Knusse Gezinnen",
+          "Bescheiden Stellen",
+          "De Groeiers"
+        ]
+      },
+      {
+        "id": "muziekschool",
+        "name": "Muziekschool",
+        "scale": "grotere_schaal",
+        "category": "cultuur_en_educatie",
+        "target_groups": [
+          "Actieve Jonge Gezinnen",
+          "Vermogende Gezinnen",
+          "Ambitieuze Singles",
+          "Laat Bloeiers",
+          "Stabiele Gezinnen"
+        ]
+      },
+      {
+        "id": "dansschool",
+        "name": "Dansschool",
+        "scale": "grotere_schaal",
+        "category": "cultuur_en_educatie",
+        "target_groups": [
+          "Actieve Jonge Gezinnen",
+          "Jonge Starters",
+          "Ambitieuze Singles",
+          "Grenzeloos Duo",
+          "Stabiele Gezinnen"
+        ]
+      },
+      {
+        "id": "taalschool",
+        "name": "Taalschool",
+        "scale": "grotere_schaal",
+        "category": "cultuur_en_educatie",
+        "target_groups": [
+          "Jonge Starters",
+          "Ambitieuze Singles",
+          "Grenzeloos Duo",
+          "Samen Starters",
+          "Carrièrestarter"
+        ]
+      },
+      {
+        "id": "huiswerkbegeleiding",
+        "name": "Huiswerkbegeleiding",
+        "scale": "middenschaal",
+        "category": "gezin_en_kindvriendelijk",
+        "target_groups": [
+          "De Groeigezinnen",
+          "Knusse Gezinnen",
+          "Actieve Jonge Gezinnen",
+          "Stabiele Gezinnen",
+          "Bescheiden Stellen"
+        ]
+      },
+      {
+        "id": "zwembad",
+        "name": "Zwembad",
+        "scale": "grotere_schaal",
+        "category": "gezondheid",
+        "target_groups": [
+          "Actieve Jonge Gezinnen",
+          "Stabiele Gezinnen",
+          "Vermogende Gezinnen",
+          "De Balanszoekers",
+          "Gezellige Nesthouders"
+        ]
+      },
+      {
+        "id": "massagepraktijk",
+        "name": "Massagepraktijk",
+        "scale": "middenschaal",
+        "category": "ontspanning_en_vrije_tijd",
+        "target_groups": [
+          "De Balanszoekers",
+          "Succesvolle Singles",
+          "Carrière Stampers",
+          "De Levensgenieters",
+          "De Zwitserlevers"
+        ]
+      },
+      {
+        "id": "diëtist",
+        "name": "Diëtist",
+        "scale": "middenschaal",
+        "category": "gezondheid",
+        "target_groups": [
+          "De Balanszoekers",
+          "Zelfstandige Senior",
+          "Actieve Jonge Gezinnen",
+          "Stabiele Gezinnen",
+          "Ambitieuze Singles"
+        ]
+      },
+      {
+        "id": "speelgoedwinkel",
+        "name": "Speelgoedwinkel",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "De Groeigezinnen",
+          "Knusse Gezinnen",
+          "Actieve Jonge Gezinnen",
+          "Vermogende Gezinnen",
+          "Gezellige Nesthouders"
+        ]
+      },
+      {
+        "id": "boekwinkel",
+        "name": "Boekwinkel",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "De Levensgenieters",
+          "Laat Bloeiers",
+          "Gezellige Nesthouders",
+          "Ambitieuze Singles",
+          "Zelfstandige Senior"
+        ]
+      },
+      {
+        "id": "board-game-café",
+        "name": "Board game café",
+        "scale": "middenschaal",
+        "category": "sociaal_en_gastvrij",
+        "target_groups": [
+          "Jonge Starters",
+          "Samen Starters",
+          "Ambitieuze Singles",
+          "Grenzeloos Duo",
+          "Gezellige Nesthouders"
+        ]
+      },
+      {
+        "id": "craft-beer-bar-brouwerij",
+        "name": "Craft beer bar/brouwerij",
+        "scale": "grotere_schaal",
+        "category": "sociaal_en_gastvrij",
+        "target_groups": [
+          "Grenzeloos Duo",
+          "Carrièrestarter",
+          "Samen Starters",
+          "Ambitieuze Singles",
+          "Carrière Stampers"
+        ]
+      },
+      {
+        "id": "theater-podium",
+        "name": "Theater/podium",
+        "scale": "grotere_schaal",
+        "category": "cultuur_en_educatie",
+        "target_groups": [
+          "De Levensgenieters",
+          "De Rentenier",
+          "Laat Bloeiers",
+          "Succesvolle Singles",
+          "Carrière Stampers"
+        ]
+      },
+      {
+        "id": "telefoon-computer-reparatie",
+        "name": "Telefoon/computer reparatie",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "Jonge Starters",
+          "Ambitieuze Singles",
+          "Carrièrestarter",
+          "Zelfbewuste Solisten",
+          "Samen Starters"
+        ]
+      },
+      {
+        "id": "voortgezet-onderwijs-middelbare-school",
+        "name": "Voortgezet onderwijs (middelbare school)",
+        "scale": "grotere_schaal",
+        "category": "cultuur_en_educatie",
+        "target_groups": [
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep"
+        ]
+      },
+      {
+        "id": "hoger-onderwijs-dependance",
+        "name": "Hoger onderwijs (dependance)",
+        "scale": "grotere_schaal",
+        "category": "cultuur_en_educatie",
+        "target_groups": [
+          "Jonge Starters",
+          "De Groeiers",
+          "Ambitieuze Singles",
+          "Samen Starters",
+          "Zelfbewuste Solisten"
+        ]
+      },
+      {
+        "id": "buurtpark-met-speeltuin",
+        "name": "Buurtpark (met speeltuin)",
+        "scale": "grotere_schaal",
+        "category": "ontspanning_en_vrije_tijd",
+        "target_groups": [
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep"
+        ]
+      },
+      {
+        "id": "buiten-sportveld-openbaar",
+        "name": "Buiten sportveld (openbaar)",
+        "scale": "middenschaal",
+        "category": "gezondheid",
+        "target_groups": [
+          "Jonge Starters",
+          "Ambitieuze Singles",
+          "Samen Starters",
+          "Knusse Gezinnen",
+          "Stabiele Gezinnen"
+        ]
+      },
+      {
+        "id": "dierenartspraktijk",
+        "name": "Dierenartspraktijk",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "Gezellige Nesthouders",
+          "Stabiele Gezinnen",
+          "Zelfbewuste Solisten",
+          "De Balanszoekers",
+          "Knusse Gezinnen"
+        ]
+      },
+      {
+        "id": "consultatiebureau-baby-peuterzorg",
+        "name": "Consultatiebureau (baby/peuterzorg)",
+        "scale": "middenschaal",
+        "category": "gezondheid",
+        "target_groups": [
+          "De Groeigezinnen",
+          "Actieve Jonge Gezinnen",
+          "Hard van Start",
+          "Knusse Gezinnen",
+          "Stabiele Gezinnen"
+        ]
+      },
+      {
+        "id": "luxe-restaurant-hoog-segment",
+        "name": "Luxe restaurant (hoog segment)",
+        "scale": "grotere_schaal",
+        "category": "sociaal_en_gastvrij",
+        "target_groups": [
+          "Carrière Stampers",
+          "Welvarende Bourgondiërs",
+          "Succesvolle Singles",
+          "De Rentenier",
+          "Grenzeloos Duo"
+        ]
       }
     ]
   },

@@ -1246,6 +1246,175 @@
           "Succesvolle Singles",
           "Samen Starters"
         ]
+      },
+      {
+        "id": "gemeenschapsruimte-gezamenlijke-woonkamer",
+        "name": "Gemeenschapsruimte / Gezamenlijke woonkamer",
+        "scale": "middenschaal",
+        "category": "ontspanning_en_vrije_tijd",
+        "target_groups": [
+          "De Doorzetter",
+          "Senior op Budget",
+          "Senioren met Thuiswonende Kinderen",
+          "Welvarende Bourgondiërs",
+          "Zelfstandige Senior"
+        ]
+      },
+      {
+        "id": "wasruimte-washok",
+        "name": "Wasruimte / washok",
+        "scale": "kleinste_schaal",
+        "category": "ontspanning_en_vrije_tijd",
+        "target_groups": [
+          "Jonge Starters",
+          "De Doorzetter",
+          "Senior op Budget",
+          "Bescheiden Stellen",
+          "De Groeiers"
+        ]
+      },
+      {
+        "id": "gamekamer-met-bordspellen",
+        "name": "Gamekamer met bordspellen",
+        "scale": "kleinste_schaal",
+        "category": "cultuur_en_educatie",
+        "target_groups": [
+          "Jonge Starters",
+          "De Groeigezinnen",
+          "Actieve Jonge Gezinnen",
+          "Bescheiden Stellen",
+          "De Groeiers"
+        ]
+      },
+      {
+        "id": "pakketkamer-pakketpunt",
+        "name": "Pakketkamer/pakketpunt",
+        "scale": "kleinste_schaal",
+        "category": "ontspanning_en_vrije_tijd",
+        "target_groups": [
+          "Jonge Starters",
+          "Ambitieuze Singles",
+          "Succesvolle Singles",
+          "De Groeiers",
+          "Carrièrestarter"
+        ]
+      },
+      {
+        "id": "hondenuitlaatplaats",
+        "name": "Hondenuitlaatplaats",
+        "scale": "middenschaal",
+        "category": "ontspanning_en_vrije_tijd",
+        "target_groups": [
+          "Zelfbewuste Solisten",
+          "Gezellige Nesthouders",
+          "De Balanszoekers",
+          "Stabiele Gezinnen",
+          "Welvarende Bourgondiërs"
+        ]
+      },
+      {
+        "id": "gezamenlijke-bbq-plek-terras",
+        "name": "Gezamenlijke BBQ plek/terras",
+        "scale": "middenschaal",
+        "category": "ontspanning_en_vrije_tijd",
+        "target_groups": [
+          "Samen Starters",
+          "Actieve Jonge Gezinnen",
+          "Grenzeloos Duo",
+          "Gezellige Nesthouders",
+          "De Zwitserlevers"
+        ]
+      },
+      {
+        "id": "sauna",
+        "name": "Sauna",
+        "scale": "middenschaal",
+        "category": "ontspanning_en_vrije_tijd",
+        "target_groups": [
+          "De Balanszoekers",
+          "Succesvolle Singles",
+          "De Zwitserlevers",
+          "De Rentenier",
+          "Welvarende Bourgondiërs"
+        ]
+      },
+      {
+        "id": "teenager-jeugdruimte",
+        "name": "Teenager/jeugdruimte",
+        "scale": "middenschaal",
+        "category": "gezin_en_kindvriendelijk",
+        "target_groups": [
+          "De Groeigezinnen",
+          "Stabiele Gezinnen",
+          "Actieve Jonge Gezinnen",
+          "Senioren met Thuiswonende Kinderen",
+          "Gezellige Nesthouders"
+        ]
+      },
+      {
+        "id": "huiswerkruimte-studieruimte",
+        "name": "Huiswerkruimte/studieruimte",
+        "scale": "middenschaal",
+        "category": "gezin_en_kindvriendelijk",
+        "target_groups": [
+          "De Groeigezinnen",
+          "Stabiele Gezinnen",
+          "Actieve Jonge Gezinnen",
+          "Jonge Starters",
+          "Ambitieuze Singles"
+        ]
+      },
+      {
+        "id": "buurtkas-voor-voedsel",
+        "name": "Buurtkas voor voedsel",
+        "scale": "kleinste_schaal",
+        "category": "ontspanning_en_vrije_tijd",
+        "target_groups": [
+          "De Doorzetter",
+          "Senior op Budget",
+          "De Groeiers",
+          "Bescheiden Stellen",
+          "Jonge Starters"
+        ]
+      },
+      {
+        "id": "muziekrepetitieruimte-geluiddicht",
+        "name": "Muziekrepetitieruimte (geluiddicht)",
+        "scale": "kleinste_schaal",
+        "category": "cultuur_en_educatie",
+        "target_groups": [
+          "Jonge Starters",
+          "Ambitieuze Singles",
+          "Zelfbewuste Solisten",
+          "Laat Bloeiers",
+          "Grenzeloos Duo"
+        ]
+      },
+      {
+        "id": "atelier-kunstwerkruimte",
+        "name": "Atelier/kunstwerkruimte",
+        "scale": "middenschaal",
+        "category": "cultuur_en_educatie",
+        "target_groups": [
+          "Zelfbewuste Solisten",
+          "Ambitieuze Singles",
+          "De Levensgenieters",
+          "Laat Bloeiers",
+          "De Rentenier"
+        ]
+      },
+      {
+        "id": "filmkamer-met-console-gaming",
+        "name": "Filmkamer met console gaming",
+        "scale": "middenschaal",
+        "category": "cultuur_en_educatie",
+        "target_groups": [
+          "Jonge Starters",
+          "Ambitieuze Singles",
+          "Grenzeloos Duo",
+          "Carrièrestarter",
+          "Hard van Start"
+        ]
       }
     ]
   },
