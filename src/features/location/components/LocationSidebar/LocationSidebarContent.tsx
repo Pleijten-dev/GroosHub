@@ -117,11 +117,15 @@ export const useLocationSidebarSections = ({
 
   const handleRapportToggle = (): void => {
     if (hasRapport) {
+      // If rapport exists, toggle dropdown
       setIsRapportExpanded(!isRapportExpanded);
       if (!isRapportExpanded) {
         // Navigate to housing page
         router.push(`/${locale}/location/housing`);
       }
+    } else {
+      // If no rapport, navigate to genereer-rapport section on main page
+      onTabChange('genereer-rapport');
     }
   };
 
@@ -186,10 +190,8 @@ export const useLocationSidebarSections = ({
                (section.id === 'omgeving' && OMGEVING_SUBSECTIONS.some(sub => sub.id === activeTab)) ||
                (section.id === 'genereer-rapport' && RAPPORT_SUBSECTIONS.some(sub => sub.id === activeTab)))
                 ? 'bg-primary-light text-primary border border-primary'
-                : 'text-text-secondary hover:bg-gray-100 hover:text-text-primary',
-              section.id === 'genereer-rapport' && !hasRapport && 'opacity-50 cursor-not-allowed'
+                : 'text-text-secondary hover:bg-gray-100 hover:text-text-primary'
             )}
-            disabled={section.id === 'genereer-rapport' && !hasRapport}
           >
             <span className="font-medium">{getSectionText(section)}</span>
             {section.id === 'omgeving' && (
