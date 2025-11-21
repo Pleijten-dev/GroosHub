@@ -1,0 +1,262 @@
+{
+  "nl": {
+    "typologies": [
+      {
+        "id": "studio_35",
+        "name": "Studio",
+        "size_m2": 35,
+        "bedrooms": 0,
+        "suitable_for": ["singles", "students", "young_professionals"],
+        "price_category": "affordable",
+        "description": "Compact studio appartement, ideaal voor alleenstaanden"
+      },
+      {
+        "id": "studio_45",
+        "name": "Studio Plus",
+        "size_m2": 45,
+        "bedrooms": 0,
+        "suitable_for": ["singles", "young_professionals"],
+        "price_category": "mid",
+        "description": "Ruimere studio met aparte keuken"
+      },
+      {
+        "id": "one_bed_55",
+        "name": "1-Kamer Appartement",
+        "size_m2": 55,
+        "bedrooms": 1,
+        "suitable_for": ["singles", "couples", "young_professionals"],
+        "price_category": "mid",
+        "description": "Appartement met 1 slaapkamer"
+      },
+      {
+        "id": "one_bed_65",
+        "name": "1-Kamer Appartement Plus",
+        "size_m2": 65,
+        "bedrooms": 1,
+        "suitable_for": ["couples", "young_professionals"],
+        "price_category": "mid",
+        "description": "Ruim appartement met 1 slaapkamer en balkon"
+      },
+      {
+        "id": "two_bed_75",
+        "name": "2-Kamer Appartement",
+        "size_m2": 75,
+        "bedrooms": 2,
+        "suitable_for": ["couples", "small_families", "young_families"],
+        "price_category": "mid",
+        "description": "Appartement met 2 slaapkamers"
+      },
+      {
+        "id": "two_bed_85",
+        "name": "2-Kamer Appartement Plus",
+        "size_m2": 85,
+        "bedrooms": 2,
+        "suitable_for": ["couples", "small_families"],
+        "price_category": "mid_high",
+        "description": "Ruim appartement met 2 slaapkamers en berging"
+      },
+      {
+        "id": "three_bed_95",
+        "name": "3-Kamer Appartement",
+        "size_m2": 95,
+        "bedrooms": 3,
+        "suitable_for": ["families", "large_families"],
+        "price_category": "mid_high",
+        "description": "Gezinsappartement met 3 slaapkamers"
+      },
+      {
+        "id": "three_bed_110",
+        "name": "3-Kamer Appartement Plus",
+        "size_m2": 110,
+        "bedrooms": 3,
+        "suitable_for": ["families", "large_families"],
+        "price_category": "high",
+        "description": "Ruim gezinsappartement met 3 slaapkamers en groot balkon"
+      },
+      {
+        "id": "four_bed_125",
+        "name": "4-Kamer Appartement",
+        "size_m2": 125,
+        "bedrooms": 4,
+        "suitable_for": ["large_families"],
+        "price_category": "high",
+        "description": "Groot appartement met 4 slaapkamers"
+      },
+      {
+        "id": "penthouse_150",
+        "name": "Penthouse",
+        "size_m2": 150,
+        "bedrooms": 3,
+        "suitable_for": ["couples", "families", "affluent"],
+        "price_category": "luxury",
+        "description": "Luxe penthouse met dakterras"
+      },
+      {
+        "id": "social_housing_50",
+        "name": "Sociale Huurwoning",
+        "size_m2": 50,
+        "bedrooms": 1,
+        "suitable_for": ["singles", "elderly", "low_income"],
+        "price_category": "social",
+        "description": "Betaalbare sociale huurwoning"
+      },
+      {
+        "id": "social_housing_70",
+        "name": "Sociale Huurwoning 2-Kamer",
+        "size_m2": 70,
+        "bedrooms": 2,
+        "suitable_for": ["couples", "small_families", "low_income"],
+        "price_category": "social",
+        "description": "Betaalbare sociale huurwoning met 2 slaapkamers"
+      },
+      {
+        "id": "senior_apartment_60",
+        "name": "Seniorenwoning",
+        "size_m2": 60,
+        "bedrooms": 1,
+        "suitable_for": ["elderly", "seniors"],
+        "price_category": "mid",
+        "description": "Gelijkvloers appartement voor senioren met lift"
+      },
+      {
+        "id": "accessible_apartment_75",
+        "name": "Toegankelijke Woning",
+        "size_m2": 75,
+        "bedrooms": 2,
+        "suitable_for": ["disabled", "elderly", "wheelchair_users"],
+        "price_category": "mid",
+        "description": "Volledig toegankelijk appartement volgens NEN-normen"
+      }
+    ]
+  },
+  "en": {
+    "typologies": [
+      {
+        "id": "studio_35",
+        "name": "Studio",
+        "size_m2": 35,
+        "bedrooms": 0,
+        "suitable_for": ["singles", "students", "young_professionals"],
+        "price_category": "affordable",
+        "description": "Compact studio apartment, ideal for singles"
+      },
+      {
+        "id": "studio_45",
+        "name": "Studio Plus",
+        "size_m2": 45,
+        "bedrooms": 0,
+        "suitable_for": ["singles", "young_professionals"],
+        "price_category": "mid",
+        "description": "Spacious studio with separate kitchen"
+      },
+      {
+        "id": "one_bed_55",
+        "name": "1-Bedroom Apartment",
+        "size_m2": 55,
+        "bedrooms": 1,
+        "suitable_for": ["singles", "couples", "young_professionals"],
+        "price_category": "mid",
+        "description": "Apartment with 1 bedroom"
+      },
+      {
+        "id": "one_bed_65",
+        "name": "1-Bedroom Apartment Plus",
+        "size_m2": 65,
+        "bedrooms": 1,
+        "suitable_for": ["couples", "young_professionals"],
+        "price_category": "mid",
+        "description": "Spacious apartment with 1 bedroom and balcony"
+      },
+      {
+        "id": "two_bed_75",
+        "name": "2-Bedroom Apartment",
+        "size_m2": 75,
+        "bedrooms": 2,
+        "suitable_for": ["couples", "small_families", "young_families"],
+        "price_category": "mid",
+        "description": "Apartment with 2 bedrooms"
+      },
+      {
+        "id": "two_bed_85",
+        "name": "2-Bedroom Apartment Plus",
+        "size_m2": 85,
+        "bedrooms": 2,
+        "suitable_for": ["couples", "small_families"],
+        "price_category": "mid_high",
+        "description": "Spacious apartment with 2 bedrooms and storage"
+      },
+      {
+        "id": "three_bed_95",
+        "name": "3-Bedroom Apartment",
+        "size_m2": 95,
+        "bedrooms": 3,
+        "suitable_for": ["families", "large_families"],
+        "price_category": "mid_high",
+        "description": "Family apartment with 3 bedrooms"
+      },
+      {
+        "id": "three_bed_110",
+        "name": "3-Bedroom Apartment Plus",
+        "size_m2": 110,
+        "bedrooms": 3,
+        "suitable_for": ["families", "large_families"],
+        "price_category": "high",
+        "description": "Spacious family apartment with 3 bedrooms and large balcony"
+      },
+      {
+        "id": "four_bed_125",
+        "name": "4-Bedroom Apartment",
+        "size_m2": 125,
+        "bedrooms": 4,
+        "suitable_for": ["large_families"],
+        "price_category": "high",
+        "description": "Large apartment with 4 bedrooms"
+      },
+      {
+        "id": "penthouse_150",
+        "name": "Penthouse",
+        "size_m2": 150,
+        "bedrooms": 3,
+        "suitable_for": ["couples", "families", "affluent"],
+        "price_category": "luxury",
+        "description": "Luxury penthouse with rooftop terrace"
+      },
+      {
+        "id": "social_housing_50",
+        "name": "Social Housing Unit",
+        "size_m2": 50,
+        "bedrooms": 1,
+        "suitable_for": ["singles", "elderly", "low_income"],
+        "price_category": "social",
+        "description": "Affordable social housing unit"
+      },
+      {
+        "id": "social_housing_70",
+        "name": "Social Housing 2-Bedroom",
+        "size_m2": 70,
+        "bedrooms": 2,
+        "suitable_for": ["couples", "small_families", "low_income"],
+        "price_category": "social",
+        "description": "Affordable social housing with 2 bedrooms"
+      },
+      {
+        "id": "senior_apartment_60",
+        "name": "Senior Apartment",
+        "size_m2": 60,
+        "bedrooms": 1,
+        "suitable_for": ["elderly", "seniors"],
+        "price_category": "mid",
+        "description": "Ground floor apartment for seniors with elevator"
+      },
+      {
+        "id": "accessible_apartment_75",
+        "name": "Accessible Apartment",
+        "size_m2": 75,
+        "bedrooms": 2,
+        "suitable_for": ["disabled", "elderly", "wheelchair_users"],
+        "price_category": "mid",
+        "description": "Fully accessible apartment according to accessibility standards"
+      }
+    ]
+  }
+}

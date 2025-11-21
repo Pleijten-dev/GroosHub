@@ -7,7 +7,9 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "db:migrate": "tsx scripts/init-database.ts"
+    "db:migrate": "tsx scripts/init-database.ts",
+    "validate:data": "tsx scripts/validate-data-integrity.ts",
+    "setup:hooks": "bash scripts/install-git-hooks.sh"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.39",

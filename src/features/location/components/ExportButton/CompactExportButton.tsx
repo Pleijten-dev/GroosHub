@@ -6,6 +6,7 @@
 import React from 'react';
 import type { UnifiedLocationData } from '../../data/aggregator/multiLevelAggregator';
 import type { PersonaScore } from '../../utils/targetGroupScoring';
+import type { AmenityMultiCategoryResponse } from '../../data/sources/google-places/types';
 import { exportCompactForLLM, downloadCompactJSON } from '../../utils/jsonExportCompact';
 
 interface CompactExportButtonProps {
@@ -17,6 +18,7 @@ interface CompactExportButtonProps {
     scenario3: number[];
   };
   locale: 'nl' | 'en';
+  amenitiesData: AmenityMultiCategoryResponse | null;
 }
 
 export const CompactExportButton: React.FC<CompactExportButtonProps> = ({
@@ -24,9 +26,24 @@ export const CompactExportButton: React.FC<CompactExportButtonProps> = ({
   personaScores,
   scenarios,
   locale,
+  amenitiesData,
 }) => {
   const handleExport = () => {
-    const exportData = exportCompactForLLM(data, personaScores, scenarios, locale);
+    // Get custom scenario from localStorage if available
+    let customScenarioPersonaIds: string[] = [];
+    try {
+      const stored = localStorage.getItem('grooshub_doelgroepen_scenario_selection');
+      if (stored) {
+        const { scenario, customIds } = JSON.parse(stored);
+        if (scenario === 'custom' && customIds && Array.isArray(customIds)) {
+          customScenarioPersonaIds = customIds;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load custom scenario from cache:', error);
+    }
+
+    const exportData = exportCompactForLLM(data, personaScores, scenarios, locale, customScenarioPersonaIds, amenitiesData);
 
     // Generate filename
     const locationName =
