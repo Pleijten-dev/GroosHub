@@ -102,7 +102,7 @@ export default function CommunityPage() {
   const spacesByCategory: Record<string, typeof currentScenario.communal_spaces.spaces> = {};
   currentScenario.communal_spaces.spaces.forEach((space) => {
     // Find the space in the JSON to get its category
-    const fullSpaceData = communalSpaces[locale].spaces.find((s: { id: string }) => s.id === space.amenity_id);
+    const fullSpaceData = communalSpaces[locale].spaces.find((s: any) => s.id === space.amenity_id);
     const category = fullSpaceData?.category || 'other';
 
     if (!spacesByCategory[category]) {
@@ -152,8 +152,8 @@ export default function CommunityPage() {
 
           // Get all amenities in this category from JSON
           const allCategoryAmenities = communalSpaces[locale].spaces
-            .filter((s: { category: string }) => s.category === category)
-            .map((s: { id: string; name: string; area_min_m2: number; area_max_m2: number; category: string }) => ({
+            .filter((s: any) => s.category === category && s.area_min_m2 !== undefined && s.area_max_m2 !== undefined)
+            .map((s: any) => ({
               id: s.id,
               name: s.name,
               area_min_m2: s.area_min_m2,
