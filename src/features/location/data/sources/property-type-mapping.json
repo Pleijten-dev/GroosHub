@@ -1,0 +1,144 @@
+{
+  "nl": {
+    "description": "Mapping van persona woningtypen naar beschikbare woningtypologieën voor appartementengebouw",
+    "note": "Grondgebonden woningen zijn niet beschikbaar in een appartementengebouw",
+    "mappings": {
+      "Goedkoop 1-kamer appartement": {
+        "typology_ids": ["studio_35", "social_housing_50"],
+        "match_type": "exact",
+        "description": "Studio's en sociale huurwoningen voor alleenstaanden"
+      },
+      "Goedkoop 2-kamer appartement": {
+        "typology_ids": ["social_housing_70", "one_bed_55"],
+        "match_type": "exact",
+        "description": "Betaalbare 1-2 kamer appartementen en sociale huurwoningen"
+      },
+      "Goedkoop 3-kamer appartement": {
+        "typology_ids": ["two_bed_75"],
+        "match_type": "exact",
+        "description": "Betaalbare 2-kamer appartementen voor gezinnen"
+      },
+      "Goedkope 2-kamer grondgebonden woning": {
+        "typology_ids": [],
+        "match_type": "not_available",
+        "description": "Grondgebonden woningen zijn niet beschikbaar in een appartementengebouw",
+        "alternative_suggestion": "social_housing_70"
+      },
+      "Goedkope 3-kamer grondgebonden woning": {
+        "typology_ids": [],
+        "match_type": "not_available",
+        "description": "Grondgebonden woningen zijn niet beschikbaar in een appartementengebouw",
+        "alternative_suggestion": "two_bed_75"
+      },
+      "Middensegment 2-kamer appartement": {
+        "typology_ids": ["one_bed_55", "one_bed_65"],
+        "match_type": "exact",
+        "description": "Middensegment 1-kamer appartementen"
+      },
+      "Middensegment 3-kamer appartement": {
+        "typology_ids": ["two_bed_75", "two_bed_85"],
+        "match_type": "exact",
+        "description": "Middensegment 2-kamer appartementen"
+      },
+      "Middensegment 3-kamer grondgebonden woning": {
+        "typology_ids": [],
+        "match_type": "not_available",
+        "description": "Grondgebonden woningen zijn niet beschikbaar in een appartementengebouw",
+        "alternative_suggestion": "two_bed_85"
+      },
+      "Luxe 2-kamer appartement": {
+        "typology_ids": ["one_bed_65", "two_bed_85"],
+        "match_type": "exact",
+        "description": "Luxe 1-2 kamer appartementen"
+      },
+      "Luxe 3-kamer appartement": {
+        "typology_ids": ["three_bed_95", "three_bed_110", "penthouse_150"],
+        "match_type": "exact",
+        "description": "Luxe 3-kamer appartementen en penthouses"
+      },
+      "Luxe 2-kamer grondgebonden woning": {
+        "typology_ids": [],
+        "match_type": "not_available",
+        "description": "Grondgebonden woningen zijn niet beschikbaar in een appartementengebouw",
+        "alternative_suggestion": "two_bed_85"
+      },
+      "Luxe 3-kamer grondgebonden woning": {
+        "typology_ids": [],
+        "match_type": "not_available",
+        "description": "Grondgebonden woningen zijn niet beschikbaar in een appartementengebouw",
+        "alternative_suggestion": "penthouse_150"
+      }
+    }
+  },
+  "en": {
+    "description": "Mapping of persona housing types to available housing typologies for apartment building",
+    "note": "Ground-level dwellings are not available in an apartment building",
+    "mappings": {
+      "Affordable 1-room apartment": {
+        "typology_ids": ["studio_35", "social_housing_50"],
+        "match_type": "exact",
+        "description": "Studios and social housing for singles"
+      },
+      "Affordable 2-room apartment": {
+        "typology_ids": ["social_housing_70", "one_bed_55"],
+        "match_type": "exact",
+        "description": "Affordable 1-2 bedroom apartments and social housing"
+      },
+      "Affordable 3-room apartment": {
+        "typology_ids": ["two_bed_75"],
+        "match_type": "exact",
+        "description": "Affordable 2-bedroom apartments for families"
+      },
+      "Affordable 2-room ground-level dwelling": {
+        "typology_ids": [],
+        "match_type": "not_available",
+        "description": "Ground-level dwellings are not available in an apartment building",
+        "alternative_suggestion": "social_housing_70"
+      },
+      "Affordable 3-room ground-level dwelling": {
+        "typology_ids": [],
+        "match_type": "not_available",
+        "description": "Ground-level dwellings are not available in an apartment building",
+        "alternative_suggestion": "two_bed_75"
+      },
+      "Mid-range 2-room apartment": {
+        "typology_ids": ["one_bed_55", "one_bed_65"],
+        "match_type": "exact",
+        "description": "Mid-range 1-bedroom apartments"
+      },
+      "Mid-range 3-room apartment": {
+        "typology_ids": ["two_bed_75", "two_bed_85"],
+        "match_type": "exact",
+        "description": "Mid-range 2-bedroom apartments"
+      },
+      "Mid-range 3-room ground-level dwelling": {
+        "typology_ids": [],
+        "match_type": "not_available",
+        "description": "Ground-level dwellings are not available in an apartment building",
+        "alternative_suggestion": "two_bed_85"
+      },
+      "Luxury 2-room apartment": {
+        "typology_ids": ["one_bed_65", "two_bed_85"],
+        "match_type": "exact",
+        "description": "Luxury 1-2 bedroom apartments"
+      },
+      "Luxury 3-room apartment": {
+        "typology_ids": ["three_bed_95", "three_bed_110", "penthouse_150"],
+        "match_type": "exact",
+        "description": "Luxury 3-bedroom apartments and penthouses"
+      },
+      "Luxury 2-room ground-level dwelling": {
+        "typology_ids": [],
+        "match_type": "not_available",
+        "description": "Ground-level dwellings are not available in an apartment building",
+        "alternative_suggestion": "two_bed_85"
+      },
+      "Luxury 3-room ground-level dwelling": {
+        "typology_ids": [],
+        "match_type": "not_available",
+        "description": "Ground-level dwellings are not available in an apartment building",
+        "alternative_suggestion": "penthouse_150"
+      }
+    }
+  }
+}

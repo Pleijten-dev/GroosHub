@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { NextResponse } from 'next/server';
 import housingTypologies from '@/features/location/data/sources/housing-typologies.json';
 import buildingAmenities from '@/features/location/data/sources/building-amenities.json';
+import propertyTypeMapping from '@/features/location/data/sources/property-type-mapping.json';
 import type { CompactScenario } from '@/features/location/utils/jsonExportCompact';
 
 // Schema for a single unit type in the unit mix
@@ -106,6 +107,7 @@ export async function POST(request: Request) {
     // Get the appropriate locale data
     const typologies = housingTypologies[locale as 'nl' | 'en'].typologies;
     const amenities = buildingAmenities[locale as 'nl' | 'en'].amenities;
+    const mapping = propertyTypeMapping[locale as 'nl' | 'en'];
 
     // Build the prompt
     const prompt = locale === 'nl' ? `
@@ -134,6 +136,13 @@ Het project heeft een totaal van ${rapportData.pve.totalM2} m² met de volgende 
 # BESCHIKBARE WONINGTYPOLOGIEËN
 ${JSON.stringify(typologies, null, 2)}
 
+# MAPPING VAN PERSONA WONINGTYPEN NAAR TYPOLOGIEËN
+${mapping.note}
+
+${JSON.stringify(mapping.mappings, null, 2)}
+
+BELANGRIJK: Gebruik deze mapping om de gewenste woningtypen van persona's te matchen met de beschikbare typologieën. Als een persona "Goedkoop 2-kamer appartement" zoekt, kies dan uit de typology_ids in de mapping (bijv. "social_housing_70" of "one_bed_55"). Let op: grondgebonden woningen zijn NIET beschikbaar - gebruik de voorgestelde alternatieven voor die gevallen.
+
 # BESCHIKBARE GEBOUWVOORZIENINGEN
 ${JSON.stringify(amenities, null, 2)}
 
@@ -151,7 +160,7 @@ ${JSON.stringify(rapportData, null, 2)}
 # OPDRACHT
 Maak voor ELK scenario een gedetailleerd bouwprogramma dat:
 
-1. Een unit mix voorstelt die perfect aansluit bij de doelgroep persona's
+1. Een unit mix voorstelt die perfect aansluit bij de doelgroep persona's - Gebruik de MAPPING VAN PERSONA WONINGTYPEN om de gewenste woningtypen van persona's te vertalen naar de beschikbare typology_ids. Analyseer de "desired_property_types" van elke persona in het scenario en match deze met de juiste typologieën uit de mapping.
 2. Rekening houdt met lokale demografische gegevens (leeftijd, gezinssamenstelling, inkomen)
 3. Commerciële ruimtes voorstelt die de bestaande voorzieningen in de buurt aanvullen
 4. Gemeenschappelijke voorzieningen selecteert die de behoeften van de doelgroepen dienen
@@ -186,6 +195,13 @@ The project has a total of ${rapportData.pve.totalM2} m² with the following all
 # AVAILABLE HOUSING TYPOLOGIES
 ${JSON.stringify(typologies, null, 2)}
 
+# MAPPING OF PERSONA HOUSING TYPES TO TYPOLOGIES
+${mapping.note}
+
+${JSON.stringify(mapping.mappings, null, 2)}
+
+IMPORTANT: Use this mapping to match persona desired housing types with available typologies. If a persona seeks "Affordable 2-room apartment", choose from the typology_ids in the mapping (e.g., "social_housing_70" or "one_bed_55"). Note: ground-level dwellings are NOT available - use the suggested alternatives for those cases.
+
 # AVAILABLE BUILDING AMENITIES
 ${JSON.stringify(amenities, null, 2)}
 
@@ -203,7 +219,7 @@ ${JSON.stringify(rapportData, null, 2)}
 # ASSIGNMENT
 Create a detailed building program for EACH scenario that:
 
-1. Proposes a unit mix that perfectly matches the target persona groups
+1. Proposes a unit mix that perfectly matches the target persona groups - Use the MAPPING OF PERSONA HOUSING TYPES to translate persona desired housing types into available typology_ids. Analyze the "desired_property_types" of each persona in the scenario and match them to the appropriate typologies from the mapping.
 2. Accounts for local demographics (age, household composition, income)
 3. Suggests commercial spaces that complement existing local amenities
 4. Selects communal facilities that serve the needs of target groups
