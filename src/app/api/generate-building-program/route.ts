@@ -1,13 +1,16 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { generateObject } from 'ai';
+import { streamObject } from 'ai';
 import { z } from 'zod';
-import { NextResponse } from 'next/server';
 import housingTypologies from '@/features/location/data/sources/housing-typologies.json';
 import buildingAmenities from '@/features/location/data/sources/building-amenities.json';
 import communalSpaces from '@/features/location/data/sources/communal-spaces.json';
 import publicSpaces from '@/features/location/data/sources/public-spaces.json';
 import propertyTypeMapping from '@/features/location/data/sources/property-type-mapping.json';
 import type { CompactScenario } from '@/features/location/utils/jsonExportCompact';
+
+// Set maximum duration for Vercel serverless function (in seconds)
+// Pro plan allows up to 300s, Enterprise can go higher
+export const maxDuration = 300;
 
 // Schema for a single unit type in the unit mix
 const UnitMixItemSchema = z.object({
@@ -131,9 +134,12 @@ export async function POST(request: Request) {
     const { rapportData, locale = 'nl' } = body;
 
     if (!rapportData) {
-      return NextResponse.json(
-        { error: 'Rapport data is required' },
-        { status: 400 }
+      return new Response(
+        JSON.stringify({ error: 'Rapport data is required' }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
       );
     }
 
@@ -347,8 +353,8 @@ Create a detailed building program for EACH scenario that:
 Be specific, data-driven, and explain why you make certain choices based on the provided location data.
 `;
 
-    // Generate the building program using Claude
-    const result = await generateObject({
+    // Generate the building program using Claude with streaming
+    const result = await streamObject({
       model: anthropic('claude-sonnet-4-20250514'),
       schema: BuildingProgramSchema,
       schemaName: 'BuildingProgram',
@@ -359,12 +365,19 @@ Be specific, data-driven, and explain why you make certain choices based on the 
       temperature: 0.7,
     });
 
-    return NextResponse.json(result.object);
+    // Return the streaming response
+    return result.toTextStreamResponse();
   } catch (error) {
     console.error('Error generating building program:', error);
-    return NextResponse.json(
-      { error: 'Failed to generate building program', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
+    return new Response(
+      JSON.stringify({
+        error: 'Failed to generate building program',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
     );
   }
 }
