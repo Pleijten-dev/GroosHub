@@ -187,8 +187,11 @@
         "parking_impact": false,
         "references": "Prince of Delft",
         "target_groups": [
-          "geschikt voor elke doelgroep",
-          "De Doorzetter"
+          "De Doorzetter",
+          "Senior op Budget",
+          "Zelfstandige Senior",
+          "Bescheiden Stellen",
+          "De Zwitserlevers"
         ]
       },
       {
@@ -218,7 +221,7 @@
       {
         "id": "music_room",
         "name": "Muziekruimte",
-        "scale": "kleine_schaal",
+        "scale": "kleinste_schaal",
         "category": "ontspanning_en_vrije_tijd",
         "area_min_m2": 7.5,
         "area_max_m2": 30,
@@ -242,7 +245,7 @@
       {
         "id": "workshop_room",
         "name": "Klusruimte",
-        "scale": "kleine_schaal",
+        "scale": "kleinste_schaal",
         "category": "werken_en_creeren",
         "area_min_m2": 15,
         "area_max_m2": 40,
@@ -290,7 +293,7 @@
       {
         "id": "tiny_library",
         "name": "Tiny bibliotheek / boekenkast",
-        "scale": "kleine_schaal",
+        "scale": "kleinste_schaal",
         "category": "ontspanning_en_vrije_tijd",
         "area_min_m2": 1,
         "area_max_m2": 4,
@@ -314,7 +317,7 @@
       {
         "id": "babysitting_space",
         "name": "Oppasplek",
-        "scale": "kleine_schaal",
+        "scale": "kleinste_schaal",
         "category": "gezin_en_kindvriendelijk",
         "area_min_m2": 10,
         "area_max_m2": 20,
@@ -338,7 +341,7 @@
       {
         "id": "central_courtyard",
         "name": "Centrale binnentuin of hof",
-        "scale": "kleine_schaal",
+        "scale": "middenschaal",
         "category": "ontspanning_en_vrije_tijd",
         "area_min_m2": 100,
         "area_max_m2": 500,
@@ -352,6 +355,10 @@
         "parking_impact": false,
         "references": "Glasfabriek Schiedam",
         "target_groups": [
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
           "geschikt voor elke doelgroep"
         ]
       },
