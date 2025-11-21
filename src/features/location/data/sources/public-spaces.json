@@ -17,7 +17,13 @@
         "regulations": "Horeca wetgeving / exploitatievergunning",
         "parking_impact": false,
         "references": "",
-        "target_groups": ["Jonge Starter", "Ambitieuze Singles", "De Groeiers", "Zelfbewuste Solist", "Bescheiden Stellen"]
+        "target_groups": [
+          "Jonge Starters",
+          "Ambitieuze Singles",
+          "De Groeiers",
+          "Zelfbewuste Solisten",
+          "Bescheiden Stellen"
+        ]
       },
       {
         "id": "snack_wall",
@@ -34,7 +40,13 @@
         "regulations": "Horeca wetgeving / exploitatievergunning",
         "parking_impact": false,
         "references": "",
-        "target_groups": ["Jonge Starter", "Ambitieuze Singles", "Samen Starters", "De Groeiers", "Zelfbewuste Solist"]
+        "target_groups": [
+          "Jonge Starters",
+          "Ambitieuze Singles",
+          "Samen Starters",
+          "De Groeiers",
+          "Zelfbewuste Solisten"
+        ]
       },
       {
         "id": "tiny_cafe",
@@ -51,7 +63,13 @@
         "regulations": "Horeca wetgeving / exploitatievergunning",
         "parking_impact": true,
         "references": "Centrumplan De Hoge Singel Berkel en Rodenrijs",
-        "target_groups": ["Ambitieuze Singles", "Samen Starters", "Bescheiden Stellen", "De Zwitserlevers", "Welvarende Bourgondiërs"]
+        "target_groups": [
+          "Ambitieuze Singles",
+          "Samen Starters",
+          "Bescheiden Stellen",
+          "De Zwitserlevers",
+          "Welvarende Bourgondiërs"
+        ]
       },
       {
         "id": "community_center",
@@ -68,7 +86,13 @@
         "regulations": "Horeca wetgeving / exploitatievergunning",
         "parking_impact": true,
         "references": "Kerk aan het Lint Utrecht",
-        "target_groups": ["Senior op Budget", "De Levensgenieters", "De Doorzetter", "Bescheiden Stellen", "Laat Bloeiers"]
+        "target_groups": [
+          "Senior op Budget",
+          "De Levensgenieters",
+          "De Doorzetter",
+          "Bescheiden Stellen",
+          "Laat Bloeiers"
+        ]
       },
       {
         "id": "cultural_facilities",
@@ -85,7 +109,13 @@
         "regulations": "Horeca wetgeving / exploitatievergunning",
         "parking_impact": true,
         "references": "AHOY Rotterdam",
-        "target_groups": ["De Carriërestarter", "Succesvolle Singles", "Laat Bloeiers", "Welvarende Bourgondiërs", "Vermogende Gezinnen"]
+        "target_groups": [
+          "Carrièrestarter",
+          "Succesvolle Singles",
+          "Laat Bloeiers",
+          "Welvarende Bourgondiërs",
+          "Vermogende Gezinnen"
+        ]
       },
       {
         "id": "arthouse_cinema",
@@ -102,7 +132,13 @@
         "regulations": "Horeca wetgeving / exploitatievergunning",
         "parking_impact": true,
         "references": "Cinerama Rotterdam",
-        "target_groups": ["De Carriërestarter", "Succesvolle Singles", "Grenzeloos Duo", "Zelfbewuste Solist", "Samen Starters"]
+        "target_groups": [
+          "Carrièrestarter",
+          "Succesvolle Singles",
+          "Grenzeloos Duo",
+          "Zelfbewuste Solisten",
+          "Samen Starters"
+        ]
       },
       {
         "id": "sports_facility_large",
@@ -119,7 +155,13 @@
         "regulations": "Hygiënerichtlijnen / horeca wetgeving / exploitatievergunning",
         "parking_impact": true,
         "references": "AHOY Rotterdam",
-        "target_groups": ["Stabiele Gezinnen", "Actieve Jonge Gezinnen", "De Balanszoekers", "Hard van Start", "Vermogende Gezinnen"]
+        "target_groups": [
+          "Stabiele Gezinnen",
+          "Actieve Jonge Gezinnen",
+          "De Balanszoekers",
+          "Hard van Start",
+          "Vermogende Gezinnen"
+        ]
       },
       {
         "id": "coworking_hub",
@@ -136,7 +178,13 @@
         "regulations": "Arbowet",
         "parking_impact": true,
         "references": "RDM Innovation Dock Rotterdam",
-        "target_groups": ["Ambitieuze Singles", "Zelfbewuste Solist", "Grenzeloos Duo", "Carrière Stampers", "De Groeiers"]
+        "target_groups": [
+          "Ambitieuze Singles",
+          "Zelfbewuste Solisten",
+          "Grenzeloos Duo",
+          "Carrière Stampers",
+          "De Groeiers"
+        ]
       },
       {
         "id": "library_branch",
@@ -153,7 +201,13 @@
         "regulations": "Bibliotheekwet (Wsob)",
         "parking_impact": true,
         "references": "Schalkwijk Haarlem / Tijdelijke bibliotheek Papendrecht",
-        "target_groups": ["Senior op Budget", "De Levensgenieters", "Gezellige Nesthouders", "De Rentenier", "Laat Bloeiers"]
+        "target_groups": [
+          "Senior op Budget",
+          "De Levensgenieters",
+          "Gezellige Nesthouders",
+          "De Rentenier",
+          "Laat Bloeiers"
+        ]
       },
       {
         "id": "music_dance_studio",
@@ -170,7 +224,13 @@
         "regulations": "",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Jonge Starter", "Ambitieuze Singles", "Actieve Jonge Gezinnen", "De Carriërestarter", "Hard van Start"]
+        "target_groups": [
+          "Jonge Starters",
+          "Ambitieuze Singles",
+          "Actieve Jonge Gezinnen",
+          "Carrièrestarter",
+          "Hard van Start"
+        ]
       },
       {
         "id": "after_school_care",
@@ -187,7 +247,13 @@
         "regulations": "Wet kinderopvang",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Actieve Jonge Gezinnen", "Stabiele Gezinnen", "Hard van Start", "Vermogende Gezinnen", "Senioren met Thuiswonende Kinderen"]
+        "target_groups": [
+          "Actieve Jonge Gezinnen",
+          "Stabiele Gezinnen",
+          "Hard van Start",
+          "Vermogende Gezinnen",
+          "Senioren met Thuiswonende Kinderen"
+        ]
       },
       {
         "id": "waste_hub_large",
@@ -204,7 +270,9 @@
         "regulations": "Wet milieubeheer (Wm)",
         "parking_impact": true,
         "references": "Milieustraat Dordrecht",
-        "target_groups": ["geschikt voor elke doelgroep"]
+        "target_groups": [
+          "geschikt voor elke doelgroep"
+        ]
       },
       {
         "id": "neighborhood_cafe",
@@ -221,7 +289,13 @@
         "regulations": "Horeca wetgeving / exploitatievergunning",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Samen Starters", "De Balanszoekers", "Senioren met Thuiswonende Kinderen", "Laat Bloeiers", "Welvarende Bourgondiërs"]
+        "target_groups": [
+          "Samen Starters",
+          "De Balanszoekers",
+          "Senioren met Thuiswonende Kinderen",
+          "Laat Bloeiers",
+          "Welvarende Bourgondiërs"
+        ]
       },
       {
         "id": "health_center",
@@ -238,7 +312,9 @@
         "regulations": "LHV-bouwnorm",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["geschikt voor elke doelgroep"]
+        "target_groups": [
+          "geschikt voor elke doelgroep"
+        ]
       },
       {
         "id": "sports_hall_district",
@@ -255,7 +331,13 @@
         "regulations": "Hygiënerichtlijnen / horeca wetgeving / exploitatievergunning",
         "parking_impact": true,
         "references": "AHOY Rotterdam",
-        "target_groups": ["Stabiele Gezinnen", "Actieve Jonge Gezinnen", "De Balanszoekers", "Hard van Start", "Vermogende Gezinnen"]
+        "target_groups": [
+          "Stabiele Gezinnen",
+          "Actieve Jonge Gezinnen",
+          "De Balanszoekers",
+          "Hard van Start",
+          "Vermogende Gezinnen"
+        ]
       },
       {
         "id": "innovation_hub",
@@ -272,7 +354,13 @@
         "regulations": "Arbowet",
         "parking_impact": true,
         "references": "RDM Innovation Dock Rotterdam",
-        "target_groups": ["De Carriërestarter", "Succesvolle Singles", "Grenzeloos Duo", "Zelfbewuste Solist", "Carrière Stampers"]
+        "target_groups": [
+          "Carrièrestarter",
+          "Succesvolle Singles",
+          "Grenzeloos Duo",
+          "Zelfbewuste Solisten",
+          "Carrière Stampers"
+        ]
       },
       {
         "id": "repair_cafe",
@@ -289,7 +377,13 @@
         "regulations": "Arbowet",
         "parking_impact": false,
         "references": "",
-        "target_groups": ["De Doorzetter", "Jonge Starter", "Senior op Budget", "Bescheiden Stellen", "Laat Bloeiers"]
+        "target_groups": [
+          "De Doorzetter",
+          "Jonge Starters",
+          "Senior op Budget",
+          "Bescheiden Stellen",
+          "Laat Bloeiers"
+        ]
       },
       {
         "id": "supermarket",
@@ -306,7 +400,9 @@
         "regulations": "Warenwet, HACCP",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["geschikt voor elke doelgroep"]
+        "target_groups": [
+          "geschikt voor elke doelgroep"
+        ]
       },
       {
         "id": "bakery",
@@ -323,7 +419,13 @@
         "regulations": "Warenwet, HACCP",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["De Levensgenieters", "Welvarende Bourgondiërs", "Bescheiden Stellen", "Zelfstandige Senior", "Stabiele Gezinnen"]
+        "target_groups": [
+          "De Levensgenieters",
+          "Welvarende Bourgondiërs",
+          "Bescheiden Stellen",
+          "Zelfstandige Senior",
+          "Stabiele Gezinnen"
+        ]
       },
       {
         "id": "restaurant",
@@ -340,7 +442,13 @@
         "regulations": "Horeca wetgeving / exploitatievergunning",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Carrière Stampers", "Welvarende Bourgondiërs", "Grenzeloos Duo", "Succesvolle Singles", "Laat Bloeiers"]
+        "target_groups": [
+          "Carrière Stampers",
+          "Welvarende Bourgondiërs",
+          "Grenzeloos Duo",
+          "Succesvolle Singles",
+          "Laat Bloeiers"
+        ]
       },
       {
         "id": "pharmacy",
@@ -357,7 +465,9 @@
         "regulations": "Geneesmiddelenwet",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["geschikt voor elke doelgroep"]
+        "target_groups": [
+          "geschikt voor elke doelgroep"
+        ]
       },
       {
         "id": "retail_shop",
@@ -374,7 +484,9 @@
         "regulations": "",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["geschikt voor elke doelgroep"]
+        "target_groups": [
+          "geschikt voor elke doelgroep"
+        ]
       },
       {
         "id": "hair_salon",
@@ -391,7 +503,13 @@
         "regulations": "Hygiënerichtlijnen",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Ambitieuze Singles", "Zelfbewuste Solist", "Welvarende Bourgondiërs", "Succesvolle Singles", "Carrière Stampers"]
+        "target_groups": [
+          "Ambitieuze Singles",
+          "Zelfbewuste Solisten",
+          "Welvarende Bourgondiërs",
+          "Succesvolle Singles",
+          "Carrière Stampers"
+        ]
       },
       {
         "id": "yoga_fitness_commercial",
@@ -408,7 +526,13 @@
         "regulations": "Hygiënerichtlijnen",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Ambitieuze Singles", "Carrière Stampers", "Grenzeloos Duo", "De Carriërestarter", "Samen Starters"]
+        "target_groups": [
+          "Ambitieuze Singles",
+          "Carrière Stampers",
+          "Grenzeloos Duo",
+          "Carrièrestarter",
+          "Samen Starters"
+        ]
       },
       {
         "id": "toddler_playgroup_commercial",
@@ -425,7 +549,13 @@
         "regulations": "Wet kinderopvang",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Actieve Jonge Gezinnen", "Stabiele Gezinnen", "Vermogende Gezinnen", "Hard van Start", "De Groeigezinnen"]
+        "target_groups": [
+          "Actieve Jonge Gezinnen",
+          "Stabiele Gezinnen",
+          "Vermogende Gezinnen",
+          "Hard van Start",
+          "De Groeigezinnen"
+        ]
       },
       {
         "id": "dental_practice",
@@ -442,7 +572,9 @@
         "regulations": "IGJ toezicht, Kwaliteitswet zorginstellingen",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["geschikt voor elke doelgroep"]
+        "target_groups": [
+          "geschikt voor elke doelgroep"
+        ]
       },
       {
         "id": "physiotherapy",
@@ -459,7 +591,9 @@
         "regulations": "IGJ toezicht, Kwaliteitswet zorginstellingen",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["geschikt voor elke doelgroep"]
+        "target_groups": [
+          "geschikt voor elke doelgroep"
+        ]
       },
       {
         "id": "daycare_commercial",
@@ -476,7 +610,13 @@
         "regulations": "Wet kinderopvang",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Actieve Jonge Gezinnen", "Stabiele Gezinnen", "Vermogende Gezinnen", "Hard van Start", "Carrière Stampers"]
+        "target_groups": [
+          "Actieve Jonge Gezinnen",
+          "Stabiele Gezinnen",
+          "Vermogende Gezinnen",
+          "Hard van Start",
+          "Carrière Stampers"
+        ]
       },
       {
         "id": "veterinary",
@@ -493,7 +633,13 @@
         "regulations": "Wet dieren",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Stabiele Gezinnen", "De Balanszoekers", "Vermogende Gezinnen", "Gezellige Nesthouders", "Welvarende Bourgondiërs"]
+        "target_groups": [
+          "Stabiele Gezinnen",
+          "De Balanszoekers",
+          "Vermogende Gezinnen",
+          "Gezellige Nesthouders",
+          "Welvarende Bourgondiërs"
+        ]
       },
       {
         "id": "florist",
@@ -510,7 +656,13 @@
         "regulations": "Warenwet",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["De Levensgenieters", "Welvarende Bourgondiërs", "Carrière Stampers", "Bescheiden Stellen", "Zelfstandige Senior"]
+        "target_groups": [
+          "De Levensgenieters",
+          "Welvarende Bourgondiërs",
+          "Carrière Stampers",
+          "Bescheiden Stellen",
+          "Zelfstandige Senior"
+        ]
       },
       {
         "id": "concept_store",
@@ -527,7 +679,13 @@
         "regulations": "",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Ambitieuze Singles", "Grenzeloos Duo", "Succesvolle Singles", "Welvarende Bourgondiërs", "De Carriërestarter"]
+        "target_groups": [
+          "Ambitieuze Singles",
+          "Grenzeloos Duo",
+          "Succesvolle Singles",
+          "Welvarende Bourgondiërs",
+          "Carrièrestarter"
+        ]
       },
       {
         "id": "nail_salon",
@@ -544,7 +702,13 @@
         "regulations": "Hygiënerichtlijnen",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Ambitieuze Singles", "Zelfbewuste Solist", "Samen Starters", "Welvarende Bourgondiërs", "De Levensgenieters"]
+        "target_groups": [
+          "Ambitieuze Singles",
+          "Zelfbewuste Solisten",
+          "Samen Starters",
+          "Welvarende Bourgondiërs",
+          "De Levensgenieters"
+        ]
       },
       {
         "id": "bank_office",
@@ -561,7 +725,13 @@
         "regulations": "AFM toezicht, Wft",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Carrière Stampers", "Succesvolle Singles", "Welvarende Bourgondiërs", "De Carriërestarter", "Stabiele Gezinnen"]
+        "target_groups": [
+          "Carrière Stampers",
+          "Succesvolle Singles",
+          "Welvarende Bourgondiërs",
+          "Carrièrestarter",
+          "Stabiele Gezinnen"
+        ]
       },
       {
         "id": "photo_studio",
@@ -578,7 +748,13 @@
         "regulations": "",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Ambitieuze Singles", "Carrière Stampers", "Grenzeloos Duo", "Actieve Jonge Gezinnen", "Vermogende Gezinnen"]
+        "target_groups": [
+          "Ambitieuze Singles",
+          "Carrière Stampers",
+          "Grenzeloos Duo",
+          "Actieve Jonge Gezinnen",
+          "Vermogende Gezinnen"
+        ]
       },
       {
         "id": "escape_room",
@@ -595,7 +771,13 @@
         "regulations": "Bouwbesluit (veiligheid)",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Jonge Starter", "Samen Starters", "Ambitieuze Singles", "Grenzeloos Duo", "Actieve Jonge Gezinnen"]
+        "target_groups": [
+          "Jonge Starters",
+          "Samen Starters",
+          "Ambitieuze Singles",
+          "Grenzeloos Duo",
+          "Actieve Jonge Gezinnen"
+        ]
       },
       {
         "id": "gaming_lounge",
@@ -612,7 +794,13 @@
         "regulations": "Horeca wetgeving (bij verkoop F&B)",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Jonge Starter", "Ambitieuze Singles", "De Carriërestarter", "Samen Starters", "De Groeiers"]
+        "target_groups": [
+          "Jonge Starters",
+          "Ambitieuze Singles",
+          "Carrièrestarter",
+          "Samen Starters",
+          "De Groeiers"
+        ]
       }
     ]
   },
@@ -634,7 +822,13 @@
         "regulations": "Hospitality legislation / operating license",
         "parking_impact": false,
         "references": "",
-        "target_groups": ["Jonge Starter", "Ambitieuze Singles", "De Groeiers", "Zelfbewuste Solist", "Bescheiden Stellen"]
+        "target_groups": [
+          "Young Starters",
+          "Ambitious Singles",
+          "The Growers",
+          "Self-Assured Soloists",
+          "Modest Couples"
+        ]
       },
       {
         "id": "snack_wall",
@@ -651,7 +845,13 @@
         "regulations": "Hospitality legislation / operating license",
         "parking_impact": false,
         "references": "",
-        "target_groups": ["Jonge Starter", "Ambitieuze Singles", "Samen Starters", "De Groeiers", "Zelfbewuste Solist"]
+        "target_groups": [
+          "Young Starters",
+          "Ambitious Singles",
+          "Starting Together",
+          "The Growers",
+          "Self-Assured Soloists"
+        ]
       },
       {
         "id": "tiny_cafe",
@@ -668,7 +868,13 @@
         "regulations": "Hospitality legislation / operating license",
         "parking_impact": true,
         "references": "Centrumplan De Hoge Singel Berkel en Rodenrijs",
-        "target_groups": ["Ambitieuze Singles", "Samen Starters", "Bescheiden Stellen", "De Zwitserlevers", "Welvarende Bourgondiërs"]
+        "target_groups": [
+          "Ambitious Singles",
+          "Starting Together",
+          "Modest Couples",
+          "The Comfortable Livers",
+          "Affluent Bon Vivants"
+        ]
       },
       {
         "id": "community_center",
@@ -685,7 +891,13 @@
         "regulations": "Hospitality legislation / operating license",
         "parking_impact": true,
         "references": "Kerk aan het Lint Utrecht",
-        "target_groups": ["Senior op Budget", "De Levensgenieters", "De Doorzetter", "Bescheiden Stellen", "Laat Bloeiers"]
+        "target_groups": [
+          "Senior on a Budget",
+          "The Life Enjoyers",
+          "The Perseverer",
+          "Modest Couples",
+          "Late Bloomers"
+        ]
       },
       {
         "id": "cultural_facilities",
@@ -702,7 +914,13 @@
         "regulations": "Hospitality legislation / operating license",
         "parking_impact": true,
         "references": "AHOY Rotterdam",
-        "target_groups": ["De Carriërestarter", "Succesvolle Singles", "Laat Bloeiers", "Welvarende Bourgondiërs", "Vermogende Gezinnen"]
+        "target_groups": [
+          "Career Starter",
+          "Successful Singles",
+          "Late Bloomers",
+          "Affluent Bon Vivants",
+          "Wealthy Families"
+        ]
       },
       {
         "id": "arthouse_cinema",
@@ -719,7 +937,13 @@
         "regulations": "Hospitality legislation / operating license",
         "parking_impact": true,
         "references": "Cinerama Rotterdam",
-        "target_groups": ["De Carriërestarter", "Succesvolle Singles", "Grenzeloos Duo", "Zelfbewuste Solist", "Samen Starters"]
+        "target_groups": [
+          "Career Starter",
+          "Successful Singles",
+          "Limitless Duo",
+          "Self-Assured Soloists",
+          "Starting Together"
+        ]
       },
       {
         "id": "sports_facility_large",
@@ -736,7 +960,13 @@
         "regulations": "Hygiene guidelines / hospitality legislation / operating license",
         "parking_impact": true,
         "references": "AHOY Rotterdam",
-        "target_groups": ["Stabiele Gezinnen", "Actieve Jonge Gezinnen", "De Balanszoekers", "Hard van Start", "Vermogende Gezinnen"]
+        "target_groups": [
+          "Stable Families",
+          "Active Young Families",
+          "The Balance Seekers",
+          "Fast Starters",
+          "Wealthy Families"
+        ]
       },
       {
         "id": "coworking_hub",
@@ -753,7 +983,13 @@
         "regulations": "Working Conditions Act",
         "parking_impact": true,
         "references": "RDM Innovation Dock Rotterdam",
-        "target_groups": ["Ambitieuze Singles", "Zelfbewuste Solist", "Grenzeloos Duo", "Carrière Stampers", "De Groeiers"]
+        "target_groups": [
+          "Ambitious Singles",
+          "Self-Assured Soloists",
+          "Limitless Duo",
+          "Career Stampers",
+          "The Growers"
+        ]
       },
       {
         "id": "library_branch",
@@ -770,7 +1006,13 @@
         "regulations": "Library Act (Wsob)",
         "parking_impact": true,
         "references": "Schalkwijk Haarlem / Temporary library Papendrecht",
-        "target_groups": ["Senior op Budget", "De Levensgenieters", "Gezellige Nesthouders", "De Rentenier", "Laat Bloeiers"]
+        "target_groups": [
+          "Senior on a Budget",
+          "The Life Enjoyers",
+          "Cozy Nesters",
+          "The Person of Independent Means",
+          "Late Bloomers"
+        ]
       },
       {
         "id": "music_dance_studio",
@@ -787,7 +1029,13 @@
         "regulations": "",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Jonge Starter", "Ambitieuze Singles", "Actieve Jonge Gezinnen", "De Carriërestarter", "Hard van Start"]
+        "target_groups": [
+          "Young Starters",
+          "Ambitious Singles",
+          "Active Young Families",
+          "Career Starter",
+          "Fast Starters"
+        ]
       },
       {
         "id": "after_school_care",
@@ -804,7 +1052,13 @@
         "regulations": "Childcare Act",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Actieve Jonge Gezinnen", "Stabiele Gezinnen", "Hard van Start", "Vermogende Gezinnen", "Senioren met Thuiswonende Kinderen"]
+        "target_groups": [
+          "Active Young Families",
+          "Stable Families",
+          "Fast Starters",
+          "Wealthy Families",
+          "Seniors with Children at Home"
+        ]
       },
       {
         "id": "waste_hub_large",
@@ -821,7 +1075,9 @@
         "regulations": "Environmental Management Act",
         "parking_impact": true,
         "references": "Milieustraat Dordrecht",
-        "target_groups": ["suitable for all target groups"]
+        "target_groups": [
+          "suitable for all target groups"
+        ]
       },
       {
         "id": "neighborhood_cafe",
@@ -838,7 +1094,13 @@
         "regulations": "Hospitality legislation / operating license",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Samen Starters", "De Balanszoekers", "Senioren met Thuiswonende Kinderen", "Laat Bloeiers", "Welvarende Bourgondiërs"]
+        "target_groups": [
+          "Starting Together",
+          "The Balance Seekers",
+          "Seniors with Children at Home",
+          "Late Bloomers",
+          "Affluent Bon Vivants"
+        ]
       },
       {
         "id": "health_center",
@@ -855,7 +1117,9 @@
         "regulations": "LHV building standard",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["suitable for all target groups"]
+        "target_groups": [
+          "suitable for all target groups"
+        ]
       },
       {
         "id": "sports_hall_district",
@@ -872,7 +1136,13 @@
         "regulations": "Hygiene guidelines / hospitality legislation / operating license",
         "parking_impact": true,
         "references": "AHOY Rotterdam",
-        "target_groups": ["Stabiele Gezinnen", "Actieve Jonge Gezinnen", "De Balanszoekers", "Hard van Start", "Vermogende Gezinnen"]
+        "target_groups": [
+          "Stable Families",
+          "Active Young Families",
+          "The Balance Seekers",
+          "Fast Starters",
+          "Wealthy Families"
+        ]
       },
       {
         "id": "innovation_hub",
@@ -889,7 +1159,13 @@
         "regulations": "Working Conditions Act",
         "parking_impact": true,
         "references": "RDM Innovation Dock Rotterdam",
-        "target_groups": ["De Carriërestarter", "Succesvolle Singles", "Grenzeloos Duo", "Zelfbewuste Solist", "Carrière Stampers"]
+        "target_groups": [
+          "Career Starter",
+          "Successful Singles",
+          "Limitless Duo",
+          "Self-Assured Soloists",
+          "Career Stampers"
+        ]
       },
       {
         "id": "repair_cafe",
@@ -906,7 +1182,13 @@
         "regulations": "Working Conditions Act",
         "parking_impact": false,
         "references": "",
-        "target_groups": ["De Doorzetter", "Jonge Starter", "Senior op Budget", "Bescheiden Stellen", "Laat Bloeiers"]
+        "target_groups": [
+          "The Perseverer",
+          "Young Starters",
+          "Senior on a Budget",
+          "Modest Couples",
+          "Late Bloomers"
+        ]
       },
       {
         "id": "supermarket",
@@ -923,7 +1205,9 @@
         "regulations": "Food Law, HACCP",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["suitable for all target groups"]
+        "target_groups": [
+          "suitable for all target groups"
+        ]
       },
       {
         "id": "bakery",
@@ -940,7 +1224,13 @@
         "regulations": "Food Law, HACCP",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["De Levensgenieters", "Welvarende Bourgondiërs", "Bescheiden Stellen", "Zelfstandige Senior", "Stabiele Gezinnen"]
+        "target_groups": [
+          "The Life Enjoyers",
+          "Affluent Bon Vivants",
+          "Modest Couples",
+          "Independent Senior",
+          "Stable Families"
+        ]
       },
       {
         "id": "restaurant",
@@ -957,7 +1247,13 @@
         "regulations": "Hospitality legislation / operating license",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Carrière Stampers", "Welvarende Bourgondiërs", "Grenzeloos Duo", "Succesvolle Singles", "Laat Bloeiers"]
+        "target_groups": [
+          "Career Stampers",
+          "Affluent Bon Vivants",
+          "Limitless Duo",
+          "Successful Singles",
+          "Late Bloomers"
+        ]
       },
       {
         "id": "pharmacy",
@@ -974,7 +1270,9 @@
         "regulations": "Medicines Act",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["suitable for all target groups"]
+        "target_groups": [
+          "suitable for all target groups"
+        ]
       },
       {
         "id": "retail_shop",
@@ -991,7 +1289,9 @@
         "regulations": "",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["suitable for all target groups"]
+        "target_groups": [
+          "suitable for all target groups"
+        ]
       },
       {
         "id": "hair_salon",
@@ -1008,7 +1308,13 @@
         "regulations": "Hygiene guidelines",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Ambitieuze Singles", "Zelfbewuste Solist", "Welvarende Bourgondiërs", "Succesvolle Singles", "Carrière Stampers"]
+        "target_groups": [
+          "Ambitious Singles",
+          "Self-Assured Soloists",
+          "Affluent Bon Vivants",
+          "Successful Singles",
+          "Career Stampers"
+        ]
       },
       {
         "id": "yoga_fitness_commercial",
@@ -1025,7 +1331,13 @@
         "regulations": "Hygiene guidelines",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Ambitieuze Singles", "Carrière Stampers", "Grenzeloos Duo", "De Carriërestarter", "Samen Starters"]
+        "target_groups": [
+          "Ambitious Singles",
+          "Career Stampers",
+          "Limitless Duo",
+          "Career Starter",
+          "Starting Together"
+        ]
       },
       {
         "id": "toddler_playgroup_commercial",
@@ -1042,7 +1354,13 @@
         "regulations": "Childcare Act",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Actieve Jonge Gezinnen", "Stabiele Gezinnen", "Vermogende Gezinnen", "Hard van Start", "De Groeigezinnen"]
+        "target_groups": [
+          "Active Young Families",
+          "Stable Families",
+          "Wealthy Families",
+          "Fast Starters",
+          "Growing Families"
+        ]
       },
       {
         "id": "dental_practice",
@@ -1059,7 +1377,9 @@
         "regulations": "Health Inspectorate supervision, Healthcare Quality Act",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["suitable for all target groups"]
+        "target_groups": [
+          "suitable for all target groups"
+        ]
       },
       {
         "id": "physiotherapy",
@@ -1076,7 +1396,9 @@
         "regulations": "Health Inspectorate supervision, Healthcare Quality Act",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["suitable for all target groups"]
+        "target_groups": [
+          "suitable for all target groups"
+        ]
       },
       {
         "id": "daycare_commercial",
@@ -1093,7 +1415,13 @@
         "regulations": "Childcare Act",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Actieve Jonge Gezinnen", "Stabiele Gezinnen", "Vermogende Gezinnen", "Hard van Start", "Carrière Stampers"]
+        "target_groups": [
+          "Active Young Families",
+          "Stable Families",
+          "Wealthy Families",
+          "Fast Starters",
+          "Career Stampers"
+        ]
       },
       {
         "id": "veterinary",
@@ -1110,7 +1438,13 @@
         "regulations": "Animal Welfare Act",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Stabiele Gezinnen", "De Balanszoekers", "Vermogende Gezinnen", "Gezellige Nesthouders", "Welvarende Bourgondiërs"]
+        "target_groups": [
+          "Stable Families",
+          "The Balance Seekers",
+          "Wealthy Families",
+          "Cozy Nesters",
+          "Affluent Bon Vivants"
+        ]
       },
       {
         "id": "florist",
@@ -1127,7 +1461,13 @@
         "regulations": "Food Law",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["De Levensgenieters", "Welvarende Bourgondiërs", "Carrière Stampers", "Bescheiden Stellen", "Zelfstandige Senior"]
+        "target_groups": [
+          "The Life Enjoyers",
+          "Affluent Bon Vivants",
+          "Career Stampers",
+          "Modest Couples",
+          "Independent Senior"
+        ]
       },
       {
         "id": "concept_store",
@@ -1144,7 +1484,13 @@
         "regulations": "",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Ambitieuze Singles", "Grenzeloos Duo", "Succesvolle Singles", "Welvarende Bourgondiërs", "De Carriërestarter"]
+        "target_groups": [
+          "Ambitious Singles",
+          "Limitless Duo",
+          "Successful Singles",
+          "Affluent Bon Vivants",
+          "Career Starter"
+        ]
       },
       {
         "id": "nail_salon",
@@ -1161,7 +1507,13 @@
         "regulations": "Hygiene guidelines",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Ambitieuze Singles", "Zelfbewuste Solist", "Samen Starters", "Welvarende Bourgondiërs", "De Levensgenieters"]
+        "target_groups": [
+          "Ambitious Singles",
+          "Self-Assured Soloists",
+          "Starting Together",
+          "Affluent Bon Vivants",
+          "The Life Enjoyers"
+        ]
       },
       {
         "id": "bank_office",
@@ -1178,7 +1530,13 @@
         "regulations": "AFM supervision, Financial Supervision Act",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Carrière Stampers", "Succesvolle Singles", "Welvarende Bourgondiërs", "De Carriërestarter", "Stabiele Gezinnen"]
+        "target_groups": [
+          "Career Stampers",
+          "Successful Singles",
+          "Affluent Bon Vivants",
+          "Career Starter",
+          "Stable Families"
+        ]
       },
       {
         "id": "photo_studio",
@@ -1195,7 +1553,13 @@
         "regulations": "",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Ambitieuze Singles", "Carrière Stampers", "Grenzeloos Duo", "Actieve Jonge Gezinnen", "Vermogende Gezinnen"]
+        "target_groups": [
+          "Ambitious Singles",
+          "Career Stampers",
+          "Limitless Duo",
+          "Active Young Families",
+          "Wealthy Families"
+        ]
       },
       {
         "id": "escape_room",
@@ -1212,7 +1576,13 @@
         "regulations": "Building Decree (safety)",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Jonge Starter", "Samen Starters", "Ambitieuze Singles", "Grenzeloos Duo", "Actieve Jonge Gezinnen"]
+        "target_groups": [
+          "Young Starters",
+          "Starting Together",
+          "Ambitious Singles",
+          "Limitless Duo",
+          "Active Young Families"
+        ]
       },
       {
         "id": "gaming_lounge",
@@ -1229,7 +1599,13 @@
         "regulations": "Hospitality legislation (if F&B sales)",
         "parking_impact": true,
         "references": "",
-        "target_groups": ["Jonge Starter", "Ambitieuze Singles", "De Carriërestarter", "Samen Starters", "De Groeiers"]
+        "target_groups": [
+          "Young Starters",
+          "Ambitious Singles",
+          "Career Starter",
+          "Starting Together",
+          "The Growers"
+        ]
       }
     ]
   }
