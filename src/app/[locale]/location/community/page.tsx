@@ -102,6 +102,7 @@ export default function CommunityPage() {
   const spacesByCategory: Record<string, typeof currentScenario.communal_spaces.spaces> = {};
   currentScenario.communal_spaces.spaces.forEach((space) => {
     // Find the space in the JSON to get its category
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const fullSpaceData = communalSpaces[locale].spaces.find((s: any) => s.id === space.amenity_id);
     const category = fullSpaceData?.category || 'other';
 
@@ -152,7 +153,9 @@ export default function CommunityPage() {
 
           // Get all amenities in this category from JSON
           const allCategoryAmenities = communalSpaces[locale].spaces
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .filter((s: any) => s.category === category && s.area_min_m2 !== undefined && s.area_max_m2 !== undefined)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .map((s: any) => ({
               id: s.id,
               name: s.name,
