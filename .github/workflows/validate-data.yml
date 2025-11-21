@@ -1,0 +1,54 @@
+name: Data Integrity Validation
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - 'claude/**'
+    paths:
+      - 'src/features/location/data/sources/**/*.json'
+      - 'scripts/validate-data-integrity.ts'
+      - 'scripts/fix-persona-names.ts'
+  pull_request:
+    paths:
+      - 'src/features/location/data/sources/**/*.json'
+      - 'scripts/validate-data-integrity.ts'
+      - 'scripts/fix-persona-names.ts'
+
+jobs:
+  validate:
+    name: Validate JSON Data Integrity
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run data validation
+        run: npm run validate:data
+
+      - name: Post validation results
+        if: failure()
+        run: |
+          echo "❌ Data validation failed!"
+          echo "Please fix the errors and run 'npm run validate:data' locally"
+          echo ""
+          echo "To fix persona name mismatches, run:"
+          echo "  npx tsx scripts/fix-persona-names.ts"
+          exit 1
+
+      - name: Success message
+        if: success()
+        run: |
+          echo "✅ All data validation checks passed!"
+          echo "Data integrity is intact across all JSON files."
