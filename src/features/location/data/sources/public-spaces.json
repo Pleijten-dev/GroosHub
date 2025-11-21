@@ -66,9 +66,9 @@
         "target_groups": [
           "Succesvolle Singles",
           "Laat Bloeiers",
-          "Welvarende Bourgondiërs",
           "Vermogende Gezinnen",
-          "Ambitieuze Singles"
+          "Ambitieuze Singles",
+          "Samen Starters"
         ]
       },
       {
@@ -398,10 +398,10 @@
         "references": "",
         "target_groups": [
           "Carrière Stampers",
-          "Welvarende Bourgondiërs",
           "Grenzeloos Duo",
           "Succesvolle Singles",
-          "Laat Bloeiers"
+          "Laat Bloeiers",
+          "Stabiele Gezinnen"
         ]
       },
       {
@@ -459,10 +459,10 @@
         "references": "",
         "target_groups": [
           "Zelfbewuste Solisten",
-          "Welvarende Bourgondiërs",
           "Succesvolle Singles",
           "Carrière Stampers",
-          "De Balanszoekers"
+          "De Balanszoekers",
+          "Stabiele Gezinnen"
         ]
       },
       {
@@ -569,7 +569,7 @@
           "Stabiele Gezinnen",
           "Vermogende Gezinnen",
           "Hard van Start",
-          "Carrière Stampers"
+          "Bescheiden Stellen"
         ]
       },
       {
@@ -589,10 +589,10 @@
         "references": "",
         "target_groups": [
           "De Levensgenieters",
-          "Welvarende Bourgondiërs",
           "Carrière Stampers",
           "Bescheiden Stellen",
-          "Zelfstandige Senior"
+          "Zelfstandige Senior",
+          "Stabiele Gezinnen"
         ]
       },
       {
@@ -613,9 +613,9 @@
         "target_groups": [
           "Grenzeloos Duo",
           "Succesvolle Singles",
-          "Welvarende Bourgondiërs",
           "Carrièrestarter",
-          "De Zwitserlevers"
+          "De Zwitserlevers",
+          "Jonge Starters"
         ]
       },
       {
@@ -636,9 +636,9 @@
         "target_groups": [
           "Zelfbewuste Solisten",
           "Samen Starters",
-          "Welvarende Bourgondiërs",
           "De Levensgenieters",
-          "Gezellige Nesthouders"
+          "Gezellige Nesthouders",
+          "Bescheiden Stellen"
         ]
       },
       {
@@ -658,10 +658,10 @@
         "references": "",
         "target_groups": [
           "Ambitieuze Singles",
-          "Carrière Stampers",
           "Grenzeloos Duo",
           "Actieve Jonge Gezinnen",
-          "Vermogende Gezinnen"
+          "Vermogende Gezinnen",
+          "Jonge Starters"
         ]
       },
       {
