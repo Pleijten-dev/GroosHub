@@ -1,6 +1,8 @@
 // Utility functions for calculating connections between target groups
 
 import { PersonaScore } from './targetGroupScoring';
+import communalSpacesData from '../data/sources/communal-spaces.json';
+import publicSpacesData from '../data/sources/public-spaces.json';
 
 export interface Connection {
   from: number;
@@ -16,8 +18,25 @@ interface HousingPersona {
   age_group: string;
 }
 
+interface AmenitySpace {
+  id: string;
+  name: string;
+  target_groups: string[];
+  [key: string]: any;
+}
+
+interface AmenityData {
+  nl: {
+    spaces: AmenitySpace[];
+  };
+  en: {
+    spaces: AmenitySpace[];
+  };
+}
+
 /**
- * Calculate connections between all personas based on shared characteristics and score similarity
+ * Calculate connections between all personas based on shared amenities
+ * from communal-spaces.json and public-spaces.json
  */
 export function calculateConnections(
   allPersonas: HousingPersona[],
@@ -25,38 +44,54 @@ export function calculateConnections(
 ): Connection[] {
   const connectionMap = new Map<string, number>();
 
-  // Calculate connections based on similar characteristics
-  for (let i = 0; i < allPersonas.length; i++) {
-    for (let j = i + 1; j < allPersonas.length; j++) {
-      const persona1 = allPersonas[i];
-      const persona2 = allPersonas[j];
+  // Get all amenities from both files (use Dutch locale)
+  const communalSpaces = (communalSpacesData as AmenityData).nl.spaces;
+  const publicSpaces = (publicSpacesData as AmenityData).nl.spaces;
+  const allAmenities = [...communalSpaces, ...publicSpaces];
 
-      // Count shared characteristics
-      let sharedCount = 0;
+  // Build a map of persona name to persona index
+  const personaNameToIndex = new Map<string, number>();
+  allPersonas.forEach((persona, index) => {
+    personaNameToIndex.set(persona.name, index);
+  });
 
-      if (persona1.income_level === persona2.income_level) sharedCount += 3;
-      if (persona1.household_type === persona2.household_type) sharedCount += 3;
-      if (persona1.age_group === persona2.age_group) sharedCount += 3;
+  // For each amenity, find which personas are connected through it
+  allAmenities.forEach(amenity => {
+    const targetGroups = amenity.target_groups || [];
 
-      // Also consider scoring similarity
-      const score1 = allPersonaScores.find(ps => ps.personaId === persona1.id);
-      const score2 = allPersonaScores.find(ps => ps.personaId === persona2.id);
+    // Check if this amenity is suitable for all target groups
+    const isSuitableForAll = targetGroups.some(group =>
+      group === 'geschikt voor elke doelgroep' ||
+      group === 'suitable for all target groups'
+    );
 
-      if (score1 && score2) {
-        // Normalize scores and calculate similarity (closer scores = stronger connection)
-        const scoreDiff = Math.abs(score1.weightedTotal - score2.weightedTotal);
-        const maxDiff = 100; // Assume max difference is 100
-        const scoreSimilarity = Math.max(0, maxDiff - scoreDiff) / maxDiff;
-        sharedCount += Math.floor(scoreSimilarity * 5); // Add 0-5 points based on score similarity
-      }
+    let connectedPersonaIndices: number[] = [];
 
-      // Only add connection if there's some similarity
-      if (sharedCount > 0) {
-        const key = `${i}-${j}`;
-        connectionMap.set(key, sharedCount);
+    if (isSuitableForAll) {
+      // All personas are connected through this amenity
+      connectedPersonaIndices = allPersonas.map((_, index) => index);
+    } else {
+      // Only personas listed in target_groups are connected
+      connectedPersonaIndices = targetGroups
+        .map(groupName => personaNameToIndex.get(groupName))
+        .filter((index): index is number => index !== undefined);
+    }
+
+    // Create connections between all personas that share this amenity
+    for (let i = 0; i < connectedPersonaIndices.length; i++) {
+      for (let j = i + 1; j < connectedPersonaIndices.length; j++) {
+        const idx1 = connectedPersonaIndices[i];
+        const idx2 = connectedPersonaIndices[j];
+
+        // Ensure we always use the same order (smaller index first)
+        const [from, to] = idx1 < idx2 ? [idx1, idx2] : [idx2, idx1];
+        const key = `${from}-${to}`;
+
+        // Increment connection count for this pair
+        connectionMap.set(key, (connectionMap.get(key) || 0) + 1);
       }
     }
-  }
+  });
 
   // Convert to array
   const connectionsArray: Connection[] = [];
