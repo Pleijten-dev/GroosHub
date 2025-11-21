@@ -6,7 +6,7 @@
 'use client';
 
 import React from 'react';
-import { RadialChart } from '@/shared/components/common/RadialChart/RadialChart';
+import RadialChart from '@/shared/components/common/RadialChart/RadialChart';
 
 export interface CategoryData {
   name: string;
