@@ -49,7 +49,16 @@ const OMGEVING_SUBSECTIONS = [
   { id: 'kaarten', nl: 'Kaarten', en: 'Maps' }
 ] as const;
 
-type SectionId = typeof MAIN_SECTIONS[number]['id'] | typeof OMGEVING_SUBSECTIONS[number]['id'];
+// Rapport subsections with dual language support
+const RAPPORT_SUBSECTIONS = [
+  { id: 'housing', nl: 'Woningen', en: 'Housing' },
+  { id: 'community', nl: 'Gemeenschappelijk', en: 'Community' },
+  { id: 'public', nl: 'Publiek', en: 'Public' }
+] as const;
+
+type SectionId = typeof MAIN_SECTIONS[number]['id'] |
+                 typeof OMGEVING_SUBSECTIONS[number]['id'] |
+                 typeof RAPPORT_SUBSECTIONS[number]['id'];
 type TabName = SectionId;
 
 interface LocationPageProps {
