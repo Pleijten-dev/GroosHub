@@ -1,0 +1,58 @@
+[
+  {
+    "file": "communal",
+    "name": "Gezamenlijke woonkamer",
+    "remove": "Gezellige Nesthouders",
+    "add": "Welvarende Bourgondiërs",
+    "reason": "Has 6 removal capacity left"
+  },
+  {
+    "file": "communal",
+    "name": "Logeerkamer",
+    "remove": "Gezellige Nesthouders",
+    "add": "Welvarende Bourgondiërs",
+    "reason": "Has 5 removal capacity left"
+  },
+  {
+    "file": "communal",
+    "name": "Tiny bibliotheek / boekenkast",
+    "remove": "Gezellige Nesthouders",
+    "add": "Welvarende Bourgondiërs",
+    "reason": "Has 4 removal capacity left"
+  },
+  {
+    "file": "communal",
+    "name": "Buurtkamer",
+    "remove": "De Levensgenieters",
+    "add": "Welvarende Bourgondiërs",
+    "reason": "Has 3 removal capacity left"
+  },
+  {
+    "file": "communal",
+    "name": "Buurtmoestuin",
+    "remove": "Gezellige Nesthouders",
+    "add": "Welvarende Bourgondiërs",
+    "reason": "Has 3 removal capacity left"
+  },
+  {
+    "file": "communal",
+    "name": "Wijnbar / Cocktail Lounge",
+    "remove": "Succesvolle Singles",
+    "add": "Welvarende Bourgondiërs",
+    "reason": "Has 3 removal capacity left"
+  },
+  {
+    "file": "communal",
+    "name": "Gemeenschapsruimte",
+    "remove": "Zelfstandige Senior",
+    "add": "Welvarende Bourgondiërs",
+    "reason": "Has 2 removal capacity left"
+  },
+  {
+    "file": "communal",
+    "name": "Logeerappartement (zelfstandig)",
+    "remove": "Gezellige Nesthouders",
+    "add": "Welvarende Bourgondiërs",
+    "reason": "Has 2 removal capacity left"
+  }
+]
