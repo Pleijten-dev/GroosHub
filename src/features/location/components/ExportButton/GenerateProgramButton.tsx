@@ -11,6 +11,7 @@ import type { UnifiedLocationData } from '../../data/aggregator/multiLevelAggreg
 import type { PersonaScore } from '../../utils/targetGroupScoring';
 import type { AmenityMultiCategoryResponse } from '../../data/sources/google-places/types';
 import type { BuildingProgram } from '@/app/api/generate-building-program/route';
+import { locationDataCache } from '../../data/cache/locationDataCache';
 
 export interface GenerateProgramButtonProps {
   data: UnifiedLocationData;
@@ -78,12 +79,25 @@ export const GenerateProgramButton: React.FC<GenerateProgramButtonProps> = ({
       const buildingProgram = await response.json();
       setResult(buildingProgram);
 
-      // Download the result as JSON
-      const date = new Date().toISOString().split('T')[0];
+      // Save rapport to cache
       const locationName =
         data.location.neighborhood?.statnaam ||
         data.location.district?.statnaam ||
         data.location.municipality.statnaam;
+
+      // Save the rapport to the cache
+      const cacheSuccess = locationDataCache.setRapport(locationName, buildingProgram);
+
+      if (cacheSuccess) {
+        console.log('Rapport saved to cache successfully');
+        // Store current address in localStorage for page navigation
+        localStorage.setItem('grooshub_current_address', locationName);
+      } else {
+        console.warn('Failed to save rapport to cache');
+      }
+
+      // Download the result as JSON
+      const date = new Date().toISOString().split('T')[0];
       const filename = `${locationName.replace(/\s+/g, '-')}-building-program-${date}.json`;
 
       const jsonString = JSON.stringify(buildingProgram, null, 2);

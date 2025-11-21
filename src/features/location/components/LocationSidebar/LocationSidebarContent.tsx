@@ -2,11 +2,13 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Locale } from '../../../../lib/i18n/config';
 import { SidebarSection } from '../../../../shared/components/UI/Sidebar/types';
 import { Button } from '../../../../shared/components/UI';
 import { cn } from '../../../../shared/utils/cn';
 import { AddressAutocomplete } from '../AddressAutocomplete/AddressAutocomplete';
+import { locationDataCache } from '../../data/cache/locationDataCache';
 
 // Types for location analysis sections
 const MAIN_SECTIONS = [
@@ -27,7 +29,13 @@ const OMGEVING_SUBSECTIONS = [
   { id: 'kaarten', nl: 'Kaarten', en: 'Maps' }
 ] as const;
 
-type SectionId = typeof MAIN_SECTIONS[number]['id'] | typeof OMGEVING_SUBSECTIONS[number]['id'];
+const RAPPORT_SUBSECTIONS = [
+  { id: 'housing', nl: 'Woningen', en: 'Housing' },
+  { id: 'community', nl: 'Gemeenschappelijk', en: 'Community' },
+  { id: 'public', nl: 'Publiek', en: 'Public' }
+] as const;
+
+type SectionId = typeof MAIN_SECTIONS[number]['id'] | typeof OMGEVING_SUBSECTIONS[number]['id'] | typeof RAPPORT_SUBSECTIONS[number]['id'];
 
 interface LocationSidebarContentProps {
   locale: Locale;
@@ -46,8 +54,31 @@ export const useLocationSidebarSections = ({
   onAddressSearch,
   isSearching = false,
 }: LocationSidebarContentProps): SidebarSection[] => {
+  const router = useRouter();
   const [searchAddress, setSearchAddress] = useState<string>('');
   const [isOmgevingExpanded, setIsOmgevingExpanded] = useState<boolean>(false);
+  const [isRapportExpanded, setIsRapportExpanded] = useState<boolean>(false);
+  const [hasRapport, setHasRapport] = useState<boolean>(false);
+
+  // Check if rapport exists
+  React.useEffect(() => {
+    const checkRapport = () => {
+      try {
+        const cachedAddress = localStorage.getItem('grooshub_current_address');
+        if (cachedAddress) {
+          const rapport = locationDataCache.getRapport(cachedAddress);
+          setHasRapport(!!rapport);
+        }
+      } catch (error) {
+        console.error('Error checking rapport:', error);
+      }
+    };
+
+    checkRapport();
+    // Check periodically in case rapport is generated
+    const interval = setInterval(checkRapport, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Auto-expand Omgeving dropdown when activeTab is one of its subsections
   React.useEffect(() => {
@@ -56,6 +87,14 @@ export const useLocationSidebarSections = ({
       setIsOmgevingExpanded(true);
     }
   }, [activeTab, isOmgevingExpanded]);
+
+  // Auto-expand Rapport dropdown when activeTab is one of its subsections
+  React.useEffect(() => {
+    const isRapportSubsection = RAPPORT_SUBSECTIONS.some(sub => sub.id === activeTab);
+    if (isRapportSubsection && !isRapportExpanded) {
+      setIsRapportExpanded(true);
+    }
+  }, [activeTab, isRapportExpanded]);
 
   const handleAddressSearch = (): void => {
     if (searchAddress.trim() && onAddressSearch) {
@@ -74,6 +113,20 @@ export const useLocationSidebarSections = ({
     if (!isOmgevingExpanded) {
       onTabChange('score');
     }
+  };
+
+  const handleRapportToggle = (): void => {
+    if (hasRapport) {
+      setIsRapportExpanded(!isRapportExpanded);
+      if (!isRapportExpanded) {
+        // Navigate to housing page
+        router.push(`/${locale}/location/housing`);
+      }
+    }
+  };
+
+  const handleRapportPageNav = (page: string): void => {
+    router.push(`/${locale}/location/${page}`);
   };
 
   const getSectionText = (section: typeof MAIN_SECTIONS[number] | typeof OMGEVING_SUBSECTIONS[number]): string => {
@@ -120,6 +173,8 @@ export const useLocationSidebarSections = ({
             onClick={() => {
               if (section.id === 'omgeving') {
                 handleOmgevingToggle();
+              } else if (section.id === 'genereer-rapport') {
+                handleRapportToggle();
               } else {
                 onTabChange(section.id);
               }
@@ -128,10 +183,13 @@ export const useLocationSidebarSections = ({
             className={cn(
               'w-full justify-between text-left p-sm rounded-md',
               (activeTab === section.id ||
-               (section.id === 'omgeving' && OMGEVING_SUBSECTIONS.some(sub => sub.id === activeTab)))
+               (section.id === 'omgeving' && OMGEVING_SUBSECTIONS.some(sub => sub.id === activeTab)) ||
+               (section.id === 'genereer-rapport' && RAPPORT_SUBSECTIONS.some(sub => sub.id === activeTab)))
                 ? 'bg-primary-light text-primary border border-primary'
-                : 'text-text-secondary hover:bg-gray-100 hover:text-text-primary'
+                : 'text-text-secondary hover:bg-gray-100 hover:text-text-primary',
+              section.id === 'genereer-rapport' && !hasRapport && 'opacity-50 cursor-not-allowed'
             )}
+            disabled={section.id === 'genereer-rapport' && !hasRapport}
           >
             <span className="font-medium">{getSectionText(section)}</span>
             {section.id === 'omgeving' && (
@@ -139,6 +197,18 @@ export const useLocationSidebarSections = ({
                 className={cn(
                   'w-4 h-4 transition-transform duration-fast',
                   isOmgevingExpanded ? 'rotate-90' : 'rotate-0'
+                )}
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z"/>
+              </svg>
+            )}
+            {section.id === 'genereer-rapport' && hasRapport && (
+              <svg
+                className={cn(
+                  'w-4 h-4 transition-transform duration-fast',
+                  isRapportExpanded ? 'rotate-90' : 'rotate-0'
                 )}
                 viewBox="0 0 24 24"
                 fill="currentColor"
@@ -164,6 +234,27 @@ export const useLocationSidebarSections = ({
                   )}
                 >
                   {getSectionText(subsection)}
+                </Button>
+              ))}
+            </div>
+          )}
+
+          {/* Rapport Subsections */}
+          {section.id === 'genereer-rapport' && isRapportExpanded && hasRapport && (
+            <div className="mt-xs ml-md space-y-xs">
+              {RAPPORT_SUBSECTIONS.map((subsection) => (
+                <Button
+                  key={subsection.id}
+                  onClick={() => handleRapportPageNav(subsection.id)}
+                  variant="ghost"
+                  className={cn(
+                    'w-full justify-start text-left p-sm rounded-md text-sm',
+                    activeTab === subsection.id
+                      ? 'bg-primary-light text-primary border border-primary'
+                      : 'text-text-muted hover:bg-gray-50 hover:text-text-secondary'
+                  )}
+                >
+                  {subsection[locale]}
                 </Button>
               ))}
             </div>
