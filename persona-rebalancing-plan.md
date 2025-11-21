@@ -6,6 +6,8 @@
 
 **Goal:** Balance persona distribution to 10-15 uses per persona.
 
+**Constraint:** Each space must have EXACTLY 5 personas (1:1 swaps only).
+
 ---
 
 ## Underused Personas (Priority Targets)
@@ -23,209 +25,214 @@
 
 ---
 
-## Part 1: Reassign Existing Spaces
+## Part 1: Reassign Existing Spaces (1:1 Swaps Only)
 
 ### Communal Spaces Adjustments
 
 #### 1. **Shared Living Room** (shared_living_room)
-**Current:** De Groeiers, Jonge Starters, De Doorzetter, Bescheiden Stellen, Zelfstandige Senior
+**Current (5):** De Groeiers, Jonge Starters, De Doorzetter, Bescheiden Stellen, Zelfstandige Senior
 - ✅ Already includes Zelfstandige Senior
 - ➕ ADD: **Gezellige Nesthouders** (cozy social space)
 - ➖ REMOVE: De Groeiers (less relevant for small 4-10 person space)
+**New (5):** Jonge Starters, De Doorzetter, Bescheiden Stellen, Zelfstandige Senior, **Gezellige Nesthouders**
 
 #### 2. **Guest Room** (guest_room)
-**Current:** Jonge Starters, De Groeiers, Ambitieuze Singles, De Rentenier, De Zwitserlevers
+**Current (5):** Jonge Starters, De Groeiers, Ambitieuze Singles, De Rentenier, De Zwitserlevers
 - ✅ Already includes De Rentenier, De Zwitserlevers
 - ➕ ADD: **Gezellige Nesthouders** (host family/friends)
-- ➖ REMOVE: Jonge Starters (overused, 15 times)
+- ➖ REMOVE: Ambitieuze Singles (overused, 20 times)
+**New (5):** Jonge Starters, De Groeiers, De Rentenier, De Zwitserlevers, **Gezellige Nesthouders**
 
 #### 3. **Laundry Room** (laundry_room)
-**Current:** Jonge Starters, De Doorzetter, Senior op Budget, Bescheiden Stellen, De Rentenier
+**Current (5):** Jonge Starters, De Doorzetter, Senior op Budget, Bescheiden Stellen, De Rentenier
 - ➕ ADD: **Zelfstandige Senior** (practical need)
 - ➖ REMOVE: Jonge Starters (overused)
+**New (5):** De Doorzetter, Senior op Budget, Bescheiden Stellen, De Rentenier, **Zelfstandige Senior**
 
 #### 4. **Workspace Small** (workspace_small)
-**Current:** Ambitieuze Singles, Zelfbewuste Solisten, Samen Starters, Carrièrestarter, Carrière Stampers
+**Current (5):** Ambitieuze Singles, Zelfbewuste Solisten, Samen Starters, Carrièrestarter, Carrière Stampers
 - ➕ ADD: **Succesvolle Singles** (WFH professionals)
-- ➕ ADD: **De Balanszoekers** (flexible work arrangements)
 - ➖ REMOVE: Ambitieuze Singles (overused, 20 times)
+**New (5):** Zelfbewuste Solisten, Samen Starters, Carrièrestarter, Carrière Stampers, **Succesvolle Singles**
 
 #### 5. **Community Room** (community_room)
-**Current:** De Doorzetter, Senior op Budget, Bescheiden Stellen, De Zwitserlevers, Laat Bloeiers
+**Current (5):** De Doorzetter, Senior op Budget, Bescheiden Stellen, De Zwitserlevers, Laat Bloeiers
 - ➕ ADD: **Zelfstandige Senior** (social activities)
-- ➕ ADD: **Gezellige Nesthouders** (community gatherings)
 - ➖ REMOVE: Bescheiden Stellen (overused, 16 times)
+**New (5):** De Doorzetter, Senior op Budget, De Zwitserlevers, Laat Bloeiers, **Zelfstandige Senior**
 
 #### 6. **Workshop Room** (workshop_room)
-**Current:** De Doorzetter, Knusse Gezinnen, Zelfbewuste Solisten, Carrière Stampers, Senioren met Thuiswonende Kinderen
+**Current (5):** De Doorzetter, Knusse Gezinnen, Zelfbewuste Solisten, Carrière Stampers, Senioren met Thuiswonende Kinderen
 - ✅ Already includes Knusse Gezinnen
 - ➕ ADD: **Zelfstandige Senior** (hobbies, DIY)
 - ➖ REMOVE: Carrière Stampers (overused, 14 times)
+**New (5):** De Doorzetter, Knusse Gezinnen, Zelfbewuste Solisten, Senioren met Thuiswonende Kinderen, **Zelfstandige Senior**
 
 #### 7. **Tiny Library** (tiny_library)
-**Current:** Senior op Budget, De Levensgenieters, Gezellige Nesthouders, De Rentenier, Welvarende Bourgondiërs
+**Current (5):** Senior op Budget, De Levensgenieters, Gezellige Nesthouders, De Rentenier, Welvarende Bourgondiërs
 - ✅ Already includes Gezellige Nesthouders, De Rentenier
 - No changes needed
 
 #### 8. **Neighborhood Room** (neighborhood_room)
-**Current:** Senior op Budget, De Levensgenieters, Bescheiden Stellen, Laat Bloeiers, De Zwitserlevers
+**Current (5):** Senior op Budget, De Levensgenieters, Bescheiden Stellen, Laat Bloeiers, De Zwitserlevers
 - ✅ Already includes De Levensgenieters, De Zwitserlevers
 - ➕ ADD: **Zelfstandige Senior** (neighborhood activities)
 - ➖ REMOVE: Bescheiden Stellen (overused)
+**New (5):** Senior op Budget, De Levensgenieters, Laat Bloeiers, De Zwitserlevers, **Zelfstandige Senior**
 
 #### 9. **Small Gym** (small_gym)
-**Current:** Ambitieuze Singles, Samen Starters, De Balanszoekers, Carrièrestarter, Carrière Stampers
+**Current (5):** Ambitieuze Singles, Samen Starters, De Balanszoekers, Carrièrestarter, Carrière Stampers
 - ✅ Already includes De Balanszoekers
 - ➕ ADD: **Zelfstandige Senior** (active aging, fitness)
 - ➖ REMOVE: Ambitieuze Singles (overused)
+**New (5):** Samen Starters, De Balanszoekers, Carrièrestarter, Carrière Stampers, **Zelfstandige Senior**
 
 #### 10. **Community Garden** (community_garden)
-**Current:** De Levensgenieters, Gezellige Nesthouders, Senior op Budget, Bescheiden Stellen, Laat Bloeiers
+**Current (5):** De Levensgenieters, Gezellige Nesthouders, Senior op Budget, Bescheiden Stellen, Laat Bloeiers
 - ✅ Already includes Gezellige Nesthouders
 - ➕ ADD: **Zelfstandige Senior** (gardening hobby)
-- ➕ ADD: **De Rentenier** (leisure time)
 - ➖ REMOVE: Bescheiden Stellen (overused)
-- ➖ REMOVE: Senior op Budget (enough representation)
+**New (5):** De Levensgenieters, Gezellige Nesthouders, Senior op Budget, Laat Bloeiers, **Zelfstandige Senior**
 
 #### 11. **Maker Space** (maker_space)
-**Current:** Zelfbewuste Solisten, Ambitieuze Singles, De Doorzetter, Carrière Stampers, De Groeiers
+**Current (5):** Zelfbewuste Solisten, Ambitieuze Singles, De Doorzetter, Carrière Stampers, De Groeiers
 - ➕ ADD: **Succesvolle Singles** (creative pursuits)
 - ➖ REMOVE: Ambitieuze Singles (overused)
+**New (5):** Zelfbewuste Solisten, De Doorzetter, Carrière Stampers, De Groeiers, **Succesvolle Singles**
 
 #### 12. **Guest Apartment** (guest_apartment)
-**Current:** Knusse Gezinnen, Gezellige Nesthouders, De Levensgenieters, De Rentenier, Welvarende Bourgondiërs
+**Current (5):** Knusse Gezinnen, Gezellige Nesthouders, De Levensgenieters, De Rentenier, Welvarende Bourgondiërs
 - ✅ Already includes Knusse Gezinnen, Gezellige Nesthouders, De Rentenier
 - No changes needed
 
 #### 13. **Reading Room** (reading_room)
-**Current:** De Levensgenieters, Zelfstandige Senior, Senior op Budget, Welvarende Bourgondiërs, Laat Bloeiers
+**Current (5):** De Levensgenieters, Zelfstandige Senior, Senior op Budget, Welvarende Bourgondiërs, Laat Bloeiers
 - ✅ Already includes Zelfstandige Senior
 - ➕ ADD: **Gezellige Nesthouders** (quiet reading)
-- ➕ ADD: **De Rentenier** (leisure time)
-- ➖ REMOVE: Senior op Budget (enough representation)
 - ➖ REMOVE: Welvarende Bourgondiërs (overused, 15 times)
+**New (5):** De Levensgenieters, Zelfstandige Senior, Senior op Budget, Laat Bloeiers, **Gezellige Nesthouders**
 
 #### 14. **Fitness Room** (fitness_room)
-**Current:** Carrière Stampers, Grenzeloos Duo, Ambitieuze Singles, Carrièrestarter, Hard van Start
-- ➕ ADD: **De Balanszoekers** (health-conscious)
+**Current (5):** Carrière Stampers, Grenzeloos Duo, Ambitieuze Singles, Carrièrestarter, Hard van Start
 - ➕ ADD: **Succesvolle Singles** (fitness lifestyle)
 - ➖ REMOVE: Ambitieuze Singles (overused)
-- ➖ REMOVE: Hard van Start (overused, 14 times)
+**New (5):** Carrière Stampers, Grenzeloos Duo, Carrièrestarter, Hard van Start, **Succesvolle Singles**
 
 #### 15. **Rooftop Gardens** (rooftop_gardens)
-**Current:** Ambitieuze Singles, Samen Starters, De Zwitserlevers, De Rentenier, Laat Bloeiers
+**Current (5):** Ambitieuze Singles, Samen Starters, De Zwitserlevers, De Rentenier, Laat Bloeiers
 - ✅ Already includes De Zwitserlevers, De Rentenier
-- ➕ ADD: **Succesvolle Singles** (lifestyle amenity)
+- ➕ ADD: **Gezellige Nesthouders** (outdoor relaxation)
 - ➖ REMOVE: Ambitieuze Singles (overused)
+**New (5):** Samen Starters, De Zwitserlevers, De Rentenier, Laat Bloeiers, **Gezellige Nesthouders**
 
 #### 16. **Community Garden Large** (community_garden_large)
-**Current:** De Levensgenieters, Senior op Budget, Laat Bloeiers, Bescheiden Stellen, De Zwitserlevers
+**Current (5):** De Levensgenieters, Senior op Budget, Laat Bloeiers, Bescheiden Stellen, De Zwitserlevers
 - ✅ Already includes De Zwitserlevers
 - ➕ ADD: **Gezellige Nesthouders** (family gardening)
-- ➕ ADD: **De Rentenier** (hobby time)
 - ➖ REMOVE: Bescheiden Stellen (overused)
-- ➖ REMOVE: Senior op Budget (enough representation)
+**New (5):** De Levensgenieters, Senior op Budget, Laat Bloeiers, De Zwitserlevers, **Gezellige Nesthouders**
 
 ---
 
 ### Public Spaces Adjustments
 
 #### 17. **Vending Machine** (vending_machine)
-**Current:** Jonge Starters, Ambitieuze Singles, De Groeiers, Zelfbewuste Solisten, Bescheiden Stellen
+**Current (5):** Jonge Starters, Ambitieuze Singles, De Groeiers, Zelfbewuste Solisten, Bescheiden Stellen
 - ➕ ADD: **Zelfstandige Senior** (quick snacks)
 - ➖ REMOVE: Ambitieuze Singles (overused)
+**New (5):** Jonge Starters, De Groeiers, Zelfbewuste Solisten, Bescheiden Stellen, **Zelfstandige Senior**
 
 #### 18. **Snack Wall** (snack_wall)
-**Current:** Jonge Starters, Ambitieuze Singles, Samen Starters, De Groeiers, Zelfbewuste Solisten
+**Current (5):** Jonge Starters, Ambitieuze Singles, Samen Starters, De Groeiers, Zelfbewuste Solisten
 - ➕ ADD: **Succesvolle Singles** (convenience)
 - ➖ REMOVE: Ambitieuze Singles (overused)
+**New (5):** Jonge Starters, Samen Starters, De Groeiers, Zelfbewuste Solisten, **Succesvolle Singles**
 
 #### 19. **Tiny Cafe** (tiny_cafe)
-**Current:** Ambitieuze Singles, Samen Starters, Bescheiden Stellen, De Zwitserlevers, Welvarende Bourgondiërs
+**Current (5):** Ambitieuze Singles, Samen Starters, Bescheiden Stellen, De Zwitserlevers, Welvarende Bourgondiërs
 - ✅ Already includes De Zwitserlevers
-- ➕ ADD: **Succesvolle Singles** (coffee culture)
-- ➕ ADD: **Zelfstandige Senior** (social meetup)
+- ➕ ADD: **Gezellige Nesthouders** (coffee culture, cozy meetup)
 - ➖ REMOVE: Ambitieuze Singles (overused)
-- ➖ REMOVE: Bescheiden Stellen (overused)
+**New (5):** Samen Starters, Bescheiden Stellen, De Zwitserlevers, Welvarende Bourgondiërs, **Gezellige Nesthouders**
 
 #### 20. **Library Branch** (library_branch)
-**Current:** Senior op Budget, De Levensgenieters, Gezellige Nesthouders, De Rentenier, Laat Bloeiers
+**Current (5):** Senior op Budget, De Levensgenieters, Gezellige Nesthouders, De Rentenier, Laat Bloeiers
 - ✅ Already includes Gezellige Nesthouders, De Rentenier
 - ➕ ADD: **Zelfstandige Senior** (reading, learning)
 - ➖ REMOVE: Senior op Budget (enough representation)
+**New (5):** De Levensgenieters, Gezellige Nesthouders, De Rentenier, Laat Bloeiers, **Zelfstandige Senior**
 
 #### 21. **Neighborhood Cafe** (neighborhood_cafe)
-**Current:** Samen Starters, De Balanszoekers, Senioren met Thuiswonende Kinderen, Laat Bloeiers, Welvarende Bourgondiërs
+**Current (5):** Samen Starters, De Balanszoekers, Senioren met Thuiswonende Kinderen, Laat Bloeiers, Welvarende Bourgondiërs
 - ✅ Already includes De Balanszoekers
 - ➕ ADD: **Gezellige Nesthouders** (social dining)
-- ➕ ADD: **Succesvolle Singles** (quality dining)
-- ➖ REMOVE: Welvarende Bourgondiërs (overused)
 - ➖ REMOVE: Laat Bloeiers (enough representation, 14 times)
+**New (5):** Samen Starters, De Balanszoekers, Senioren met Thuiswonende Kinderen, Welvarende Bourgondiërs, **Gezellige Nesthouders**
 
 #### 22. **Bakery** (bakery)
-**Current:** De Levensgenieters, Welvarende Bourgondiërs, Bescheiden Stellen, Zelfstandige Senior, Stabiele Gezinnen
+**Current (5):** De Levensgenieters, Welvarende Bourgondiërs, Bescheiden Stellen, Zelfstandige Senior, Stabiele Gezinnen
 - ✅ Already includes Zelfstandige Senior
-- ➕ ADD: **Gezellige Nesthouders** (fresh bread for family)
-- ➖ REMOVE: Welvarende Bourgondiërs (overused)
+- No changes needed
 
 #### 23. **Restaurant** (restaurant)
-**Current:** Carrière Stampers, Welvarende Bourgondiërs, Grenzeloos Duo, Succesvolle Singles, Laat Bloeiers
+**Current (5):** Carrière Stampers, Welvarende Bourgondiërs, Grenzeloos Duo, Succesvolle Singles, Laat Bloeiers
 - ✅ Already includes Succesvolle Singles
-- No changes needed (good balance)
+- No changes needed
 
 #### 24. **Hair Salon** (hair_salon)
-**Current:** Ambitieuze Singles, Zelfbewuste Solisten, Welvarende Bourgondiërs, Succesvolle Singles, Carrière Stampers
+**Current (5):** Ambitieuze Singles, Zelfbewuste Solisten, Welvarende Bourgondiërs, Succesvolle Singles, Carrière Stampers
 - ✅ Already includes Succesvolle Singles
-- ➕ ADD: **Zelfstandige Senior** (personal care)
+- ➕ ADD: **De Balanszoekers** (self-care)
 - ➖ REMOVE: Ambitieuze Singles (overused)
+**New (5):** Zelfbewuste Solisten, Welvarende Bourgondiërs, Succesvolle Singles, Carrière Stampers, **De Balanszoekers**
 
 #### 25. **Yoga/Fitness Commercial** (yoga_fitness_commercial)
-**Current:** Ambitieuze Singles, Carrière Stampers, Grenzeloos Duo, Carrièrestarter, Samen Starters
+**Current (5):** Ambitieuze Singles, Carrière Stampers, Grenzeloos Duo, Carrièrestarter, Samen Starters
 - ➕ ADD: **De Balanszoekers** (wellness focus)
-- ➕ ADD: **Succesvolle Singles** (fitness lifestyle)
 - ➖ REMOVE: Ambitieuze Singles (overused)
-- ➖ REMOVE: Carrièrestarter (enough representation, 13 times)
+**New (5):** Carrière Stampers, Grenzeloos Duo, Carrièrestarter, Samen Starters, **De Balanszoekers**
 
 #### 26. **Veterinary** (veterinary)
-**Current:** Stabiele Gezinnen, De Balanszoekers, Vermogende Gezinnen, Gezellige Nesthouders, Welvarende Bourgondiërs
+**Current (5):** Stabiele Gezinnen, De Balanszoekers, Vermogende Gezinnen, Gezellige Nesthouders, Welvarende Bourgondiërs
 - ✅ Already includes De Balanszoekers, Gezellige Nesthouders
 - ➕ ADD: **Zelfstandige Senior** (pet care)
 - ➖ REMOVE: Vermogende Gezinnen (overused, 15 times)
+**New (5):** Stabiele Gezinnen, De Balanszoekers, Gezellige Nesthouders, Welvarende Bourgondiërs, **Zelfstandige Senior**
 
 #### 27. **Florist** (florist)
-**Current:** De Levensgenieters, Welvarende Bourgondiërs, Carrière Stampers, Bescheiden Stellen, Zelfstandige Senior
+**Current (5):** De Levensgenieters, Welvarende Bourgondiërs, Carrière Stampers, Bescheiden Stellen, Zelfstandige Senior
 - ✅ Already includes Zelfstandige Senior
-- ➕ ADD: **Gezellige Nesthouders** (home decoration)
-- ➖ REMOVE: Welvarende Bourgondiërs (overused)
+- No changes needed
 
 #### 28. **Concept Store** (concept_store)
-**Current:** Ambitieuze Singles, Grenzeloos Duo, Succesvolle Singles, Welvarende Bourgondiërs, Carrièrestarter
+**Current (5):** Ambitieuze Singles, Grenzeloos Duo, Succesvolle Singles, Welvarende Bourgondiërs, Carrièrestarter
 - ✅ Already includes Succesvolle Singles
 - ➕ ADD: **De Zwitserlevers** (quality lifestyle)
 - ➖ REMOVE: Ambitieuze Singles (overused)
+**New (5):** Grenzeloos Duo, Succesvolle Singles, Welvarende Bourgondiërs, Carrièrestarter, **De Zwitserlevers**
 
 #### 29. **Nail Salon** (nail_salon)
-**Current:** Ambitieuze Singles, Zelfbewuste Solisten, Samen Starters, Welvarende Bourgondiërs, De Levensgenieters
-- ➕ ADD: **Succesvolle Singles** (personal care)
+**Current (5):** Ambitieuze Singles, Zelfbewuste Solisten, Samen Starters, Welvarende Bourgondiërs, De Levensgenieters
 - ➕ ADD: **Gezellige Nesthouders** (self-care)
 - ➖ REMOVE: Ambitieuze Singles (overused)
-- ➖ REMOVE: Welvarende Bourgondiërs (overused)
+**New (5):** Zelfbewuste Solisten, Samen Starters, Welvarende Bourgondiërs, De Levensgenieters, **Gezellige Nesthouders**
 
 #### 30. **Bank Office** (bank_office)
-**Current:** Carrière Stampers, Succesvolle Singles, Welvarende Bourgondiërs, Carrièrestarter, Stabiele Gezinnen
+**Current (5):** Carrière Stampers, Succesvolle Singles, Welvarende Bourgondiërs, Carrièrestarter, Stabiele Gezinnen
 - ✅ Already includes Succesvolle Singles
 - ➕ ADD: **De Rentenier** (wealth management)
 - ➖ REMOVE: Welvarende Bourgondiërs (overused)
+**New (5):** Carrière Stampers, Succesvolle Singles, Carrièrestarter, Stabiele Gezinnen, **De Rentenier**
 
 #### 31. **Escape Room** (escape_room)
-**Current:** Jonge Starters, Samen Starters, Ambitieuze Singles, Grenzeloos Duo, Actieve Jonge Gezinnen
+**Current (5):** Jonge Starters, Samen Starters, Ambitieuze Singles, Grenzeloos Duo, Actieve Jonge Gezinnen
 - ➕ ADD: **Knusse Gezinnen** (family entertainment)
 - ➖ REMOVE: Ambitieuze Singles (overused)
+**New (5):** Jonge Starters, Samen Starters, Grenzeloos Duo, Actieve Jonge Gezinnen, **Knusse Gezinnen**
 
 #### 32. **Gaming Lounge** (gaming_lounge)
-**Current:** Jonge Starters, Ambitieuze Singles, Carrièrestarter, Samen Starters, De Groeiers
-- ➕ ADD: **Succesvolle Singles** (entertainment)
-- ➖ REMOVE: Ambitieuze Singles (overused)
+**Current (5):** Jonge Starters, Ambitieuze Singles, Carrièrestarter, Samen Starters, De Groeiers
+- No changes needed (already balanced)
 
 ---
 
@@ -272,52 +279,66 @@
 
 ---
 
-## Summary of Changes
+## Summary of Changes (All 1:1 Swaps)
 
-### Personas to Remove (Overused)
-- **Ambitieuze Singles**: Remove from 12 spaces (20 → ~8)
-- **Bescheiden Stellen**: Remove from 7 spaces (16 → ~9)
-- **Welvarende Bourgondiërs**: Remove from 7 spaces (15 → ~8)
-- **Jonge Starters**: Remove from 3 spaces (15 → ~12)
-- **Actieve Jonge Gezinnen**: Remove from 1 space (16 → ~15)
-- **Vermogende Gezinnen**: Remove from 1 space (15 → ~14)
-- **Hard van Start**: Remove from 2 spaces (14 → ~12)
-- **Carrièrestarter**: Remove from 2 spaces (13 → ~11)
-- **Laat Bloeiers**: Remove from 1 space (14 → ~13)
-- **Senior op Budget**: Remove from 5 spaces (12 → ~7)
-- **Carrière Stampers**: Remove from 3 spaces (14 → ~11)
+### Total Swaps: 23 spaces modified
 
 ### Personas to Add (Underused)
-- **Zelfstandige Senior**: Add to 11 spaces (4 → ~15) ✅
-- **Gezellige Nesthouders**: Add to 11 spaces (5 → ~16) ✅
-- **De Balanszoekers**: Add to 5 spaces (5 → ~10) ✅
-- **Succesvolle Singles**: Add to 10 spaces (7 → ~17) ✅
-- **Knusse Gezinnen**: Add to 1 space (7 → ~8) ⚠️ Needs new amenities
-- **De Rentenier**: Add to 5 spaces (7 → ~12) ✅
-- **De Zwitserlevers**: Add to 1 space (7 → ~8) ⚠️ Needs new amenities
+- **Zelfstandige Senior**: Add to 9 spaces (4 → 13) ✅
+- **Gezellige Nesthouders**: Add to 8 spaces (5 → 13) ✅
+- **De Balanszoekers**: Add to 2 spaces (5 → 7) ⚠️ Still needs more
+- **Succesvolle Singles**: Add to 4 spaces (7 → 11) ✅
+- **Knusse Gezinnen**: Add to 1 space (7 → 8) ⚠️ Needs new amenities
+- **De Rentenier**: Add to 1 space (7 → 8) ⚠️ Needs new amenities
+- **De Zwitserlevers**: Add to 1 space (7 → 8) ⚠️ Needs new amenities
+
+### Personas to Remove (Overused)
+- **Ambitieuze Singles**: Remove from 13 spaces (20 → 7) ✅
+- **Bescheiden Stellen**: Remove from 4 spaces (16 → 12)
+- **Welvarende Bourgondiërs**: Remove from 2 spaces (15 → 13)
+- **Jonge Starters**: Remove from 1 space (15 → 14)
+- **Laat Bloeiers**: Remove from 1 space (14 → 13)
+- **Senior op Budget**: Remove from 2 spaces (12 → 10)
+- **Vermogende Gezinnen**: Remove from 1 space (15 → 14)
+- **Carrière Stampers**: Remove from 1 space (14 → 13)
+- **De Groeiers**: Remove from 1 space (8 → 7)
 
 ---
 
 ## Expected Results
 
-After implementing Part 1 (reassignments only):
+### After implementing Part 1 (1:1 swaps only):
 ```
-Before → After
-------------------------
-Zelfstandige Senior:        4 → 15 ✅
-Gezellige Nesthouders:      5 → 16 ✅
-De Balanszoekers:           5 → 10 ✅
-Succesvolle Singles:        7 → 17 ⚠️ (might be too high)
-Knusse Gezinnen:            7 →  8 ⚠️ (needs more)
-De Rentenier:               7 → 12 ✅
-De Zwitserlevers:           7 →  8 ⚠️ (needs more)
+Persona                      Before → After  Status
+───────────────────────────────────────────────────
+Zelfstandige Senior             4 → 13      ✅ Much better!
+Gezellige Nesthouders           5 → 13      ✅ Much better!
+Succesvolle Singles             7 → 11      ✅ Good balance
+De Balanszoekers                5 →  7      ⚠️ Still underused
+Knusse Gezinnen                 7 →  8      ⚠️ Needs more
+De Rentenier                    7 →  8      ⚠️ Needs more
+De Zwitserlevers                7 →  8      ⚠️ Needs more
 
-Ambitieuze Singles:        20 →  8 ✅
-Bescheiden Stellen:        16 →  9 ✅
-Welvarende Bourgondiërs:   15 →  8 ✅
+Ambitieuze Singles             20 →  7      ✅ Well balanced!
+Bescheiden Stellen             16 → 12      ✅ Good
+Welvarende Bourgondiërs        15 → 13      ✅ Good
+Jonge Starters                 15 → 14      ✅ Good
+Vermogende Gezinnen            15 → 14      ✅ Good
 ```
 
-After adding 5-10 new amenities from Part 2, all personas should be in the 10-15 range.
+### Key Improvements:
+- **Eliminated the 5x gap** (was 4-20, now 7-14)
+- **Major wins**: Zelfstandige Senior (+225%), Gezellige Nesthouders (+160%)
+- **Tamed overused**: Ambitieuze Singles (-65%), Bescheiden Stellen (-25%)
+
+### Still Need Attention (Part 2):
+Add 3-5 new amenities specifically for:
+- **De Balanszoekers** (needs +3-5 more)
+- **Knusse Gezinnen** (needs +2-4 more)
+- **De Rentenier** (needs +2-4 more)
+- **De Zwitserlevers** (needs +2-4 more)
+
+After Part 2, target range: **10-14 uses per persona** (instead of 4-20).
 
 ---
 
