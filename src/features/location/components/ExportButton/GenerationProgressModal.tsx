@@ -19,6 +19,7 @@ export interface GenerationProgressModalProps {
   isOpen: boolean;
   steps: GenerationStep[];
   currentStep?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   partialData?: any;
   locale?: 'nl' | 'en';
 }

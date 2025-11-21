@@ -39,6 +39,7 @@ export const GenerateProgramButton: React.FC<GenerateProgramButtonProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<BuildingProgram | null>(null);
   const [steps, setSteps] = useState<GenerationStep[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [partialData, setPartialData] = useState<any>(null);
 
   const initializeSteps = (): GenerationStep[] => {
