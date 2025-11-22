@@ -365,8 +365,29 @@ Be specific, data-driven, and explain why you make certain choices based on the 
       temperature: 0.7,
     });
 
-    // Return the streaming response
-    return result.toTextStreamResponse();
+    // Create a custom stream that sends JSON-serialized partial objects
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const partialObject of result.partialObjectStream) {
+            const json = JSON.stringify(partialObject);
+            controller.enqueue(encoder.encode(`data: ${json}\n\n`));
+          }
+          controller.close();
+        } catch (error) {
+          controller.error(error);
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
   } catch (error) {
     console.error('Error generating building program:', error);
     return new Response(

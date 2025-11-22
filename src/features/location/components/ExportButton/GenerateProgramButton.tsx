@@ -144,7 +144,7 @@ export const GenerateProgramButton: React.FC<GenerateProgramButtonProps> = ({
         throw new Error('No response body');
       }
 
-      // Read the stream
+      // Read the stream (Server-Sent Events format)
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
@@ -157,18 +157,18 @@ export const GenerateProgramButton: React.FC<GenerateProgramButtonProps> = ({
 
         buffer += decoder.decode(value, { stream: true });
 
-        // Process complete JSON objects from the stream
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+        // Process SSE messages (format: "data: {json}\n\n")
+        const messages = buffer.split('\n\n');
+        buffer = messages.pop() || '';
 
-        for (const line of lines) {
-          if (!line.trim()) continue;
+        for (const message of messages) {
+          if (!message.trim()) continue;
 
           try {
-            // The AI SDK sends data in the format: "0:{partial_json}\n"
-            const jsonMatch = line.match(/^\d+:(.+)$/);
-            if (jsonMatch) {
-              const partial = JSON.parse(jsonMatch[1]);
+            // Parse SSE format: "data: {json}"
+            const dataMatch = message.match(/^data: (.+)$/);
+            if (dataMatch) {
+              const partial = JSON.parse(dataMatch[1]);
               setPartialData(partial);
 
               // Update steps based on what's been generated
@@ -206,10 +206,8 @@ export const GenerateProgramButton: React.FC<GenerateProgramButtonProps> = ({
                 updateStepStatus('finalize', 'in_progress');
               }
 
-              // Check if complete
-              if (partial.location_summary && partial.scenarios && partial.comparative_analysis) {
-                buildingProgram = partial as BuildingProgram;
-              }
+              // Always update to latest partial object
+              buildingProgram = partial as BuildingProgram;
             }
           } catch (e) {
             // Ignore parsing errors for incomplete JSON
@@ -221,9 +219,9 @@ export const GenerateProgramButton: React.FC<GenerateProgramButtonProps> = ({
       // Process any remaining buffer
       if (buffer.trim()) {
         try {
-          const jsonMatch = buffer.match(/^\d+:(.+)$/);
-          if (jsonMatch) {
-            const final = JSON.parse(jsonMatch[1]);
+          const dataMatch = buffer.match(/^data: (.+)$/);
+          if (dataMatch) {
+            const final = JSON.parse(dataMatch[1]);
             buildingProgram = final as BuildingProgram;
           }
         } catch (e) {
