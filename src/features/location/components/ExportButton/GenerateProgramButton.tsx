@@ -165,53 +165,62 @@ export const GenerateProgramButton: React.FC<GenerateProgramButtonProps> = ({
           if (!message.trim()) continue;
 
           try {
-            // Parse SSE format: "data: {json}"
-            const dataMatch = message.match(/^data: (.+)$/);
-            if (dataMatch) {
-              const partial = JSON.parse(dataMatch[1]);
-              setPartialData(partial);
+            // Parse SSE format: "data: {json}" - can be multiline
+            // Extract everything after "data: " prefix
+            const lines = message.split('\n');
+            let jsonStr = '';
 
-              // Update steps based on what's been generated
-              if (partial.location_summary) {
-                updateStepStatus('location_summary', 'completed');
-                updateStepStatus('generalized_pve', 'in_progress');
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                jsonStr += line.slice(6); // Remove "data: " prefix
               }
-
-              if (partial.generalized_pve) {
-                updateStepStatus('generalized_pve', 'completed');
-                updateStepStatus('scenario_1', 'in_progress');
-              }
-
-              if (partial.scenarios && partial.scenarios.length > 0) {
-                updateStepStatus('scenario_1', 'completed');
-                if (partial.scenarios.length > 1) {
-                  updateStepStatus('scenario_2', 'in_progress');
-                }
-              }
-
-              if (partial.scenarios && partial.scenarios.length > 1) {
-                updateStepStatus('scenario_2', 'completed');
-                if (partial.scenarios.length > 2) {
-                  updateStepStatus('scenario_3', 'in_progress');
-                }
-              }
-
-              if (partial.scenarios && partial.scenarios.length > 2) {
-                updateStepStatus('scenario_3', 'completed');
-                updateStepStatus('comparative', 'in_progress');
-              }
-
-              if (partial.comparative_analysis) {
-                updateStepStatus('comparative', 'completed');
-                updateStepStatus('finalize', 'in_progress');
-              }
-
-              // Always update to latest partial object
-              buildingProgram = partial as BuildingProgram;
             }
+
+            if (!jsonStr) continue;
+
+            const partial = JSON.parse(jsonStr);
+            setPartialData(partial);
+
+            // Update steps based on what's been generated
+            if (partial.location_summary) {
+              updateStepStatus('location_summary', 'completed');
+              updateStepStatus('generalized_pve', 'in_progress');
+            }
+
+            if (partial.generalized_pve) {
+              updateStepStatus('generalized_pve', 'completed');
+              updateStepStatus('scenario_1', 'in_progress');
+            }
+
+            if (partial.scenarios && partial.scenarios.length > 0) {
+              updateStepStatus('scenario_1', 'completed');
+              if (partial.scenarios.length > 1) {
+                updateStepStatus('scenario_2', 'in_progress');
+              }
+            }
+
+            if (partial.scenarios && partial.scenarios.length > 1) {
+              updateStepStatus('scenario_2', 'completed');
+              if (partial.scenarios.length > 2) {
+                updateStepStatus('scenario_3', 'in_progress');
+              }
+            }
+
+            if (partial.scenarios && partial.scenarios.length > 2) {
+              updateStepStatus('scenario_3', 'completed');
+              updateStepStatus('comparative', 'in_progress');
+            }
+
+            if (partial.comparative_analysis) {
+              updateStepStatus('comparative', 'completed');
+              updateStepStatus('finalize', 'in_progress');
+            }
+
+            // Always update to latest partial object
+            buildingProgram = partial as BuildingProgram;
           } catch (e) {
-            // Ignore parsing errors for incomplete JSON
-            console.debug('Streaming parse error (expected):', e);
+            // Log parsing errors for debugging
+            console.warn('Streaming parse error:', e, 'Message:', message);
           }
         }
       }
@@ -219,13 +228,21 @@ export const GenerateProgramButton: React.FC<GenerateProgramButtonProps> = ({
       // Process any remaining buffer
       if (buffer.trim()) {
         try {
-          const dataMatch = buffer.match(/^data: (.+)$/);
-          if (dataMatch) {
-            const final = JSON.parse(dataMatch[1]);
+          const lines = buffer.split('\n');
+          let jsonStr = '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              jsonStr += line.slice(6);
+            }
+          }
+
+          if (jsonStr) {
+            const final = JSON.parse(jsonStr);
             buildingProgram = final as BuildingProgram;
           }
         } catch (e) {
-          console.error('Final buffer parse error:', e);
+          console.warn('Final buffer parse error:', e, 'Buffer:', buffer);
         }
       }
 
