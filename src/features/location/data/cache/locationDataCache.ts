@@ -7,6 +7,7 @@
 
 import type { UnifiedLocationData } from '../aggregator/multiLevelAggregator';
 import type { AmenityMultiCategoryResponse } from '../sources/google-places/types';
+import type { BuildingProgram } from '@/app/api/generate-building-program/route';
 
 /**
  * Cache entry structure
@@ -16,6 +17,10 @@ interface CacheEntry {
   data: UnifiedLocationData;
   /** Amenities data */
   amenities: AmenityMultiCategoryResponse | null;
+  /** AI-generated building program rapport (optional) */
+  rapport?: BuildingProgram;
+  /** Timestamp when rapport was generated */
+  rapportGeneratedAt?: number;
   /** Timestamp when cached (milliseconds since epoch) */
   cachedAt: number;
   /** TTL in milliseconds */
@@ -107,7 +112,7 @@ export class LocationDataCache {
    * Get cache entry for an address
    * Returns null if not found or expired
    */
-  get(address: string): { data: UnifiedLocationData; amenities: AmenityMultiCategoryResponse | null } | null {
+  get(address: string): { data: UnifiedLocationData; amenities: AmenityMultiCategoryResponse | null; rapport?: BuildingProgram } | null {
     if (!this.isLocalStorageAvailable()) {
       return null;
     }
@@ -138,6 +143,7 @@ export class LocationDataCache {
       return {
         data: entry.data,
         amenities: entry.amenities,
+        rapport: entry.rapport,
       };
     } catch (error) {
       console.error('Error reading from cache:', error);
@@ -153,7 +159,8 @@ export class LocationDataCache {
     address: string,
     data: UnifiedLocationData,
     amenities: AmenityMultiCategoryResponse | null,
-    ttl?: number
+    ttl?: number,
+    rapport?: BuildingProgram
   ): boolean {
     if (!this.isLocalStorageAvailable()) {
       return false;
@@ -164,6 +171,8 @@ export class LocationDataCache {
       const entry: CacheEntry = {
         data,
         amenities,
+        rapport,
+        rapportGeneratedAt: rapport ? Date.now() : undefined,
         cachedAt: Date.now(),
         ttl: ttl || this.config.defaultTTL,
         address,
@@ -196,6 +205,8 @@ export class LocationDataCache {
           const entry: CacheEntry = {
             data,
             amenities,
+            rapport,
+            rapportGeneratedAt: rapport ? Date.now() : undefined,
             cachedAt: Date.now(),
             ttl: ttl || this.config.defaultTTL,
             address,
@@ -209,6 +220,60 @@ export class LocationDataCache {
 
       return false;
     }
+  }
+
+  /**
+   * Update only the rapport in an existing cache entry
+   * Returns true if successful, false otherwise
+   */
+  setRapport(address: string, rapport: BuildingProgram): boolean {
+    if (!this.isLocalStorageAvailable()) {
+      return false;
+    }
+
+    try {
+      const key = this.getCacheKey(address);
+      const cached = localStorage.getItem(key);
+
+      if (!cached) {
+        console.warn('No cache entry found for address, cannot set rapport');
+        return false;
+      }
+
+      const entry: CacheEntry = JSON.parse(cached);
+      entry.rapport = rapport;
+      entry.rapportGeneratedAt = Date.now();
+
+      const serialized = JSON.stringify(entry);
+
+      // Check size
+      if (serialized.length > this.config.maxSize) {
+        console.warn('Cache entry with rapport too large');
+        return false;
+      }
+
+      localStorage.setItem(key, serialized);
+      return true;
+    } catch (error) {
+      console.error('Error updating rapport in cache:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get only the rapport from cache
+   * Returns null if not found or no rapport exists
+   */
+  getRapport(address: string): BuildingProgram | null {
+    const cached = this.get(address);
+    return cached?.rapport || null;
+  }
+
+  /**
+   * Check if a rapport exists for an address
+   */
+  hasRapport(address: string): boolean {
+    return this.getRapport(address) !== null;
   }
 
   /**

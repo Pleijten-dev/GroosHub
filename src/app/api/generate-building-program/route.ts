@@ -1,13 +1,16 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { generateObject } from 'ai';
+import { streamObject } from 'ai';
 import { z } from 'zod';
-import { NextResponse } from 'next/server';
 import housingTypologies from '@/features/location/data/sources/housing-typologies.json';
 import buildingAmenities from '@/features/location/data/sources/building-amenities.json';
 import communalSpaces from '@/features/location/data/sources/communal-spaces.json';
 import publicSpaces from '@/features/location/data/sources/public-spaces.json';
 import propertyTypeMapping from '@/features/location/data/sources/property-type-mapping.json';
 import type { CompactScenario } from '@/features/location/utils/jsonExportCompact';
+
+// Set maximum duration for Vercel serverless function (in seconds)
+// Pro plan allows up to 300s, Enterprise can go higher
+export const maxDuration = 300;
 
 // Schema for a single unit type in the unit mix
 const UnitMixItemSchema = z.object({
@@ -36,6 +39,7 @@ const CommercialSpaceSchema = z.object({
 // Schema for a single scenario program
 const ScenarioProgramSchema = z.object({
   scenario_name: z.string().describe('Name of the scenario (Scenario 1, Scenario 2, Scenario 3, or Op maat)'),
+  scenario_simple_name: z.string().describe('Short, catchy name based on the target personas (e.g., "Young Professionals Hub", "Family Focused", "Senior Living"). Keep it concise and descriptive, similar to persona names.'),
   target_personas: z.array(z.string()).describe('List of persona names this scenario targets'),
   summary: z.string().describe('High-level summary of this program and its strategic approach'),
 
@@ -72,6 +76,24 @@ const ScenarioProgramSchema = z.object({
     persona_needs_analysis: z.string().describe('How selected amenities serve the target personas'),
   }),
 
+  communal_spaces: z.object({
+    total_m2: z.number().describe('Total communal spaces square meters'),
+    spaces: z.array(AmenityItemSchema).describe('Selected communal spaces from the provided list'),
+    category_breakdown: z.record(z.string(), z.object({
+      total_m2: z.number().describe('Total square meters for this category'),
+      percentage: z.number().describe('Percentage of total communal spaces'),
+    })).describe('Breakdown by category (e.g., sociaal_en_gastvrij, sport_en_fitness)'),
+  }),
+
+  public_spaces: z.object({
+    total_m2: z.number().describe('Total public/commercial spaces square meters'),
+    spaces: z.array(AmenityItemSchema).describe('Selected public spaces from the provided list'),
+    category_breakdown: z.record(z.string(), z.object({
+      total_m2: z.number().describe('Total square meters for this category'),
+      percentage: z.number().describe('Percentage of total public spaces'),
+    })).describe('Breakdown by category (e.g., sociaal_en_gastvrij, zorg_en_welzijn)'),
+  }),
+
   offices: z.object({
     total_m2: z.number().describe('Total office space square meters from PVE'),
     concept: z.string().describe('Office space concept and rationale'),
@@ -87,6 +109,18 @@ const BuildingProgramSchema = z.object({
     total_m2: z.number(),
     breakdown: z.string().describe('Overview of the PVE allocation percentages'),
   }),
+  generalized_pve: z.object({
+    communal_categories: z.record(z.string(), z.object({
+      category_name: z.string().describe('Display name of the category'),
+      total_m2: z.number().describe('Total m2 across all scenarios for this category'),
+      amenities: z.array(z.string()).describe('List of amenity names in this category'),
+    })).describe('Generalized PVE for communal spaces grouped by category'),
+    public_categories: z.record(z.string(), z.object({
+      category_name: z.string().describe('Display name of the category'),
+      total_m2: z.number().describe('Total m2 across all scenarios for this category'),
+      amenities: z.array(z.string()).describe('List of amenity names in this category'),
+    })).describe('Generalized PVE for public spaces grouped by category'),
+  }).describe('High-level PVE organized by categories rather than specific amenities'),
   scenarios: z.array(ScenarioProgramSchema).describe('Detailed building programs for each scenario (3 automatic + 1 custom if provided)'),
   comparative_analysis: z.string().describe('Comparison of the scenarios and recommendations based on local context'),
 });
@@ -100,9 +134,12 @@ export async function POST(request: Request) {
     const { rapportData, locale = 'nl' } = body;
 
     if (!rapportData) {
-      return NextResponse.json(
-        { error: 'Rapport data is required' },
-        { status: 400 }
+      return new Response(
+        JSON.stringify({ error: 'Rapport data is required' }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
       );
     }
 
@@ -195,13 +232,23 @@ ${JSON.stringify(rapportData, null, 2)}
 # OPDRACHT
 Maak voor ELK scenario een gedetailleerd bouwprogramma dat:
 
-1. Een unit mix voorstelt die perfect aansluit bij de doelgroep persona's - Gebruik de MAPPING VAN PERSONA WONINGTYPEN om de gewenste woningtypen van persona's te vertalen naar de beschikbare typology_ids. Analyseer de "desired_property_types" van elke persona in het scenario en match deze met de juiste typologieën uit de mapping.
-2. Rekening houdt met lokale demografische gegevens (leeftijd, gezinssamenstelling, inkomen)
-3. Publieke en commerciële ruimtes selecteert uit de BESCHIKBARE PUBLIEKE EN COMMERCIËLE RUIMTES lijst die passen bij de target_groups. Kies functies die inkomsten kunnen genereren (retail, horeca, gezondheidszorg) of belangrijke publieke functies vervullen, en die de bestaande voorzieningen in de buurt aanvullen (niet concurreren).
-4. Gemeenschappelijke ruimtes selecteert uit de BESCHIKBARE GEMEENSCHAPPELIJKE RUIMTES lijst die passen bij de target_groups van de doelgroep persona's. Kies ruimtes waarvan de target_groups overeenkomen met de persona's in het scenario.
-5. Sociale faciliteiten plant die de lokale gemeenschap versterken
-6. De veiligheids-, gezondheids- en leefbaarheidsindicatoren meeneemt in de overwegingen
-7. BELANGRIJK: Vermijd het voorstellen van voorzieningen die al dichtbij aanwezig zijn. Let op de 'closestDistance' en 'averageDistance' velden in de amenities data. Als een voorziening al binnen 500m aanwezig is (closestDistance < 500), stel deze NIET voor als gebouwvoorziening tenzij er een duidelijke behoefte is aan extra capaciteit.
+1. SCENARIO NAAM: Bedenk een korte, pakkende naam voor elk scenario gebaseerd op de doelgroep persona's (bijv. "Jonge Starters Hub", "Familie Focus", "Senior Comfort"). Houd het kort en to-the-point, vergelijkbaar met persona namen. Voeg dit toe als "scenario_simple_name".
+
+2. WONINGTYPOLOGIEËN: Een unit mix voorstelt die perfect aansluit bij de doelgroep persona's - Gebruik de MAPPING VAN PERSONA WONINGTYPEN om de gewenste woningtypen van persona's te vertalen naar de beschikbare typology_ids. Analyseer de "desired_property_types" van elke persona in het scenario en match deze met de juiste typologieën uit de mapping.
+
+3. LOKALE CONTEXT: Rekening houdt met lokale demografische gegevens (leeftijd, gezinssamenstelling, inkomen)
+
+4. PUBLIEKE RUIMTES: Selecteer publieke en commerciële ruimtes uit de BESCHIKBARE PUBLIEKE EN COMMERCIËLE RUIMTES lijst die passen bij de target_groups. Kies functies die inkomsten kunnen genereren (retail, horeca, gezondheidszorg) of belangrijke publieke functies vervullen, en die de bestaande voorzieningen in de buurt aanvullen (niet concurreren). Groepeer deze per category en bereken totaal m2 en percentage per categorie.
+
+5. GEMEENSCHAPPELIJKE RUIMTES: Selecteer gemeenschappelijke ruimtes uit de BESCHIKBARE GEMEENSCHAPPELIJKE RUIMTES lijst die passen bij de target_groups van de doelgroep persona's. Kies ruimtes waarvan de target_groups overeenkomen met de persona's in het scenario. Groepeer deze per category en bereken totaal m2 en percentage per categorie.
+
+6. SOCIALE FACILITEITEN: Plant sociale faciliteiten die de lokale gemeenschap versterken
+
+7. OVERWEGINGEN: De veiligheids-, gezondheids- en leefbaarheidsindicatoren meeneemt in de overwegingen
+
+8. BELANGRIJK: Vermijd het voorstellen van voorzieningen die al dichtbij aanwezig zijn. Let op de 'closestDistance' en 'averageDistance' velden in de amenities data. Als een voorziening al binnen 500m aanwezig is (closestDistance < 500), stel deze NIET voor als gebouwvoorziening tenzij er een duidelijke behoefte is aan extra capaciteit.
+
+9. GENERALIZED PVE: Creëer ook een generalized_pve op het hoogste niveau die de totale m2 per categorie weergeeft (niet per specifieke voorziening) voor zowel gemeenschappelijke als publieke ruimtes over alle scenarios heen.
 
 Wees specifiek, data-gedreven en leg uit waarom je bepaalde keuzes maakt op basis van de verstrekte locatie gegevens.
 ` : `
@@ -285,19 +332,29 @@ ${JSON.stringify(rapportData, null, 2)}
 # ASSIGNMENT
 Create a detailed building program for EACH scenario that:
 
-1. Proposes a unit mix that perfectly matches the target persona groups - Use the MAPPING OF PERSONA HOUSING TYPES to translate persona desired housing types into available typology_ids. Analyze the "desired_property_types" of each persona in the scenario and match them to the appropriate typologies from the mapping.
-2. Accounts for local demographics (age, household composition, income)
-3. Selects public and commercial spaces from the AVAILABLE PUBLIC AND COMMERCIAL SPACES list that match the target_groups. Choose functions that can generate income (retail, hospitality, healthcare) or fulfill important public functions, and complement (not compete with) existing neighborhood amenities.
-4. Selects communal spaces from the AVAILABLE COMMUNAL SPACES list that match the target_groups of the target personas. Choose spaces whose target_groups align with the personas in the scenario.
-5. Plans social facilities that strengthen the local community
-6. Considers safety, health, and livability indicators in the decisions
-7. IMPORTANT: Avoid recommending amenities that are already nearby. Pay attention to the 'closestDistance' and 'averageDistance' fields in the amenities data. If an amenity is already within 500m (closestDistance < 500), do NOT recommend it as a building amenity unless there is a clear need for additional capacity.
+1. SCENARIO NAME: Create a short, catchy name for each scenario based on the target personas (e.g., "Young Starters Hub", "Family Focus", "Senior Comfort"). Keep it concise and to-the-point, similar to persona names. Add this as "scenario_simple_name".
+
+2. HOUSING TYPOLOGIES: Proposes a unit mix that perfectly matches the target persona groups - Use the MAPPING OF PERSONA HOUSING TYPES to translate persona desired housing types into available typology_ids. Analyze the "desired_property_types" of each persona in the scenario and match them to the appropriate typologies from the mapping.
+
+3. LOCAL CONTEXT: Accounts for local demographics (age, household composition, income)
+
+4. PUBLIC SPACES: Selects public and commercial spaces from the AVAILABLE PUBLIC AND COMMERCIAL SPACES list that match the target_groups. Choose functions that can generate income (retail, hospitality, healthcare) or fulfill important public functions, and complement (not compete with) existing neighborhood amenities. Group these by category and calculate total m2 and percentage per category.
+
+5. COMMUNAL SPACES: Selects communal spaces from the AVAILABLE COMMUNAL SPACES list that match the target_groups of the target personas. Choose spaces whose target_groups align with the personas in the scenario. Group these by category and calculate total m2 and percentage per category.
+
+6. SOCIAL FACILITIES: Plans social facilities that strengthen the local community
+
+7. CONSIDERATIONS: Considers safety, health, and livability indicators in the decisions
+
+8. IMPORTANT: Avoid recommending amenities that are already nearby. Pay attention to the 'closestDistance' and 'averageDistance' fields in the amenities data. If an amenity is already within 500m (closestDistance < 500), do NOT recommend it as a building amenity unless there is a clear need for additional capacity.
+
+9. GENERALIZED PVE: Also create a generalized_pve at the top level showing total m2 per category (not per specific amenity) for both communal and public spaces across all scenarios.
 
 Be specific, data-driven, and explain why you make certain choices based on the provided location data.
 `;
 
-    // Generate the building program using Claude
-    const result = await generateObject({
+    // Generate the building program using Claude with streaming
+    const result = await streamObject({
       model: anthropic('claude-sonnet-4-20250514'),
       schema: BuildingProgramSchema,
       schemaName: 'BuildingProgram',
@@ -308,12 +365,40 @@ Be specific, data-driven, and explain why you make certain choices based on the 
       temperature: 0.7,
     });
 
-    return NextResponse.json(result.object);
+    // Create a custom stream that sends JSON-serialized partial objects
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const partialObject of result.partialObjectStream) {
+            const json = JSON.stringify(partialObject);
+            controller.enqueue(encoder.encode(`data: ${json}\n\n`));
+          }
+          controller.close();
+        } catch (error) {
+          controller.error(error);
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
   } catch (error) {
     console.error('Error generating building program:', error);
-    return NextResponse.json(
-      { error: 'Failed to generate building program', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
+    return new Response(
+      JSON.stringify({
+        error: 'Failed to generate building program',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
     );
   }
 }

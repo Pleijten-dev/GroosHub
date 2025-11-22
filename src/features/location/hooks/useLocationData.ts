@@ -119,6 +119,8 @@ export function useLocationData(): UseLocationDataReturn {
           setData(cached.data);
           setAmenities(cached.amenities);
           setFromCache(true);
+          // Store the search address for later use (e.g., saving rapport)
+          localStorage.setItem('grooshub_current_address', address);
           return;
         }
       }
@@ -300,6 +302,8 @@ export function useLocationData(): UseLocationDataReturn {
         const cached = locationDataCache.set(address, unifiedData, amenitiesResult);
         if (cached) {
           console.log('💾 Stored data in cache for:', address);
+          // Store the search address for later use (e.g., saving rapport)
+          localStorage.setItem('grooshub_current_address', address);
         }
 
         setData(unifiedData);
