@@ -253,24 +253,27 @@ export const GenerateProgramButton: React.FC<GenerateProgramButtonProps> = ({
       updateStepStatus('finalize', 'completed');
       setResult(buildingProgram);
 
-      // Save rapport to cache
-      const locationName =
-        data.location.neighborhood?.statnaam ||
-        data.location.district?.statnaam ||
-        data.location.municipality.statnaam;
+      // Save rapport to cache using the original search address
+      const cachedAddress = localStorage.getItem('grooshub_current_address');
+      if (cachedAddress) {
+        const cacheSuccess = locationDataCache.setRapport(cachedAddress, buildingProgram);
 
-      const cacheSuccess = locationDataCache.setRapport(locationName, buildingProgram);
-
-      if (cacheSuccess) {
-        console.log('Rapport saved to cache successfully');
-        localStorage.setItem('grooshub_current_address', locationName);
+        if (cacheSuccess) {
+          console.log('Rapport saved to cache successfully for:', cachedAddress);
+        } else {
+          console.warn('Failed to save rapport to cache for:', cachedAddress);
+        }
       } else {
-        console.warn('Failed to save rapport to cache');
+        console.warn('No cached address found, cannot save rapport to cache');
       }
 
       // Download the result as JSON
       const date = new Date().toISOString().split('T')[0];
-      const filename = `${locationName.replace(/\s+/g, '-')}-building-program-${date}.json`;
+      const locationDisplayName =
+        data.location.neighborhood?.statnaam ||
+        data.location.district?.statnaam ||
+        data.location.municipality.statnaam;
+      const filename = `${locationDisplayName.replace(/\s+/g, '-')}-building-program-${date}.json`;
 
       const jsonString = JSON.stringify(buildingProgram, null, 2);
       const blob = new Blob([jsonString], { type: 'application/json' });
