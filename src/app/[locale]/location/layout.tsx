@@ -7,18 +7,18 @@
 'use client';
 
 import React from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useParams } from 'next/navigation';
 import { LocationSidebarWrapper } from '@/features/location/components/LocationSidebar/LocationSidebarWrapper';
 import type { Locale } from '@/lib/i18n/config';
 
 export default function LocationLayout({
   children,
-  params,
 }: {
   children: React.ReactNode;
-  params: { locale: Locale };
 }) {
   const pathname = usePathname();
+  const params = useParams();
+  const locale = (params.locale as Locale) || 'nl';
 
   // Check if we're on a rapport sub-page (housing, community, public)
   const isRapportPage = pathname.includes('/location/housing') ||
@@ -35,7 +35,7 @@ export default function LocationLayout({
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar for rapport pages */}
       <aside className="fixed left-0 top-navbar h-[calc(100vh-var(--navbar-height))] w-80 bg-white/80 backdrop-blur-md border-r border-gray-200/50 shadow-lg z-40">
-        <LocationSidebarWrapper locale={params.locale} />
+        <LocationSidebarWrapper locale={locale} />
       </aside>
 
       {/* Main content with left margin for sidebar */}
