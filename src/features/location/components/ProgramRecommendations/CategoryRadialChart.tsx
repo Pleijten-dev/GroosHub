@@ -1,12 +1,12 @@
 /**
  * CategoryRadialChart Component
- * Wrapper around RadialChart for displaying m2 distribution by category
+ * Wrapper around RadialProgressBar for displaying m2 distribution by category
  */
 
 'use client';
 
 import React from 'react';
-import RadialChart from '@/shared/components/common/RadialChart/RadialChart';
+import RadialProgressBar from '@/shared/components/common/RadialProgressBar/RadialProgressBar';
 
 export interface CategoryData {
   name: string;
@@ -41,10 +41,11 @@ export function CategoryRadialChart({
   height = 350,
   locale = 'nl',
 }: CategoryRadialChartProps) {
-  // Transform category data for RadialChart
+  // Transform category data for RadialProgressBar
   const chartData = categories.map((cat, index) => ({
     name: cat.name,
     value: cat.m2,
+    maxValue: totalM2,
     color: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
   }));
 
@@ -74,16 +75,17 @@ export function CategoryRadialChart({
 
   return (
     <div className="flex flex-col items-center">
-      <RadialChart
+      <RadialProgressBar
         data={chartData}
         width={width}
         height={height}
-        isSimple={false}
         showLabels={true}
+        showPercentage={true}
+        strokeWidth={25}
       />
 
       {/* Total m2 label */}
-      <div className="text-center mt-2">
+      <div className="text-center mt-4">
         <p className="text-xs text-gray-600">{t.total}</p>
         <p className="text-lg font-semibold text-gray-900">{totalM2} m²</p>
       </div>
