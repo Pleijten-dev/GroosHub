@@ -1,0 +1,161 @@
+// src/features/location/types/saved-locations.ts
+/**
+ * TypeScript types for persistent location storage
+ */
+
+import type { UnifiedLocationData } from '../data/aggregator/multiLevelAggregator';
+import type { AmenityMultiCategoryResponse } from '../data/sources/google-places/types';
+
+/**
+ * Coordinates structure
+ */
+export interface Coordinates {
+  lat: number;
+  lng: number;
+}
+
+/**
+ * PVE (Programma Van Eisen) configuration
+ */
+export interface PVEConfig {
+  [key: string]: any; // TODO: Define specific PVE structure
+}
+
+/**
+ * Selected persona data
+ */
+export interface SelectedPersona {
+  personaId: string;
+  name: string;
+  score?: number;
+  [key: string]: any;
+}
+
+/**
+ * LLM-generated rapport data
+ */
+export interface LLMRapportData {
+  housing?: any;
+  community?: any;
+  public?: any;
+  generatedAt?: string;
+  [key: string]: any;
+}
+
+/**
+ * Complete location data for saving
+ */
+export interface SaveLocationData {
+  name?: string; // Optional user-given name
+  address: string;
+  coordinates: Coordinates;
+  locationData: UnifiedLocationData;
+  amenitiesData?: AmenityMultiCategoryResponse;
+  selectedPVE?: PVEConfig;
+  selectedPersonas?: SelectedPersona[];
+  llmRapport?: LLMRapportData;
+}
+
+/**
+ * Saved location record from database
+ */
+export interface SavedLocation {
+  id: string;
+  userId: number;
+  name?: string;
+  address: string;
+  coordinates: Coordinates;
+  locationData: UnifiedLocationData;
+  amenitiesData?: AmenityMultiCategoryResponse;
+  selectedPVE?: PVEConfig;
+  selectedPersonas?: SelectedPersona[];
+  llmRapport?: LLMRapportData;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Location share record
+ */
+export interface LocationShare {
+  id: string;
+  savedLocationId: string;
+  sharedByUserId: number;
+  sharedWithUserId: number;
+  canEdit: boolean;
+  sharedAt: Date;
+}
+
+/**
+ * User-accessible location (owned or shared)
+ */
+export interface AccessibleLocation extends SavedLocation {
+  ownerId: number;
+  ownerName: string;
+  ownerEmail: string;
+  isShared: boolean;
+  canEdit: boolean;
+}
+
+/**
+ * API request/response types
+ */
+
+export interface SaveLocationRequest {
+  name?: string;
+  address: string;
+  coordinates: Coordinates;
+  locationData: UnifiedLocationData;
+  amenitiesData?: AmenityMultiCategoryResponse;
+  selectedPVE?: PVEConfig;
+  selectedPersonas?: SelectedPersona[];
+  llmRapport?: LLMRapportData;
+}
+
+export interface SaveLocationResponse {
+  success: boolean;
+  data?: SavedLocation;
+  error?: string;
+}
+
+export interface LoadLocationsResponse {
+  success: boolean;
+  data?: AccessibleLocation[];
+  error?: string;
+}
+
+export interface LoadLocationResponse {
+  success: boolean;
+  data?: AccessibleLocation;
+  error?: string;
+}
+
+export interface DeleteLocationRequest {
+  id: string;
+}
+
+export interface DeleteLocationResponse {
+  success: boolean;
+  error?: string;
+}
+
+export interface ShareLocationRequest {
+  locationId: string;
+  shareWithEmail: string;
+  canEdit?: boolean;
+}
+
+export interface ShareLocationResponse {
+  success: boolean;
+  data?: LocationShare;
+  error?: string;
+}
+
+export interface UnshareLocationRequest {
+  shareId: string;
+}
+
+export interface UnshareLocationResponse {
+  success: boolean;
+  error?: string;
+}
