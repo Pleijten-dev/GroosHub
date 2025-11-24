@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getDbConnection } from '@/lib/db/connection';
+import { calculateProjectLCA } from '@/features/lca/utils/lca-calculator';
 
 /**
  * POST /api/lca/calculate
@@ -72,27 +73,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. TODO: Perform calculation
-    // Once calculator is converted to SQL, import and use:
-    // import { calculateProjectLCA } from '@/features/lca/utils/lca-calculator';
-    // const result = await calculateProjectLCA(projectId);
+    // 4. Perform calculation
+    const result = await calculateProjectLCA(projectId);
 
-    // 5. Placeholder response
+    // 5. Return results
     return NextResponse.json({
       success: true,
-      message: 'Calculation endpoint ready - awaiting calculator SQL conversion',
-      data: {
-        projectId,
-        status: 'pending',
-        note: 'Calculator conversion in progress'
-      }
+      data: result
     });
-
-    // 6. Final implementation will be:
-    // return NextResponse.json({
-    //   success: true,
-    //   data: result
-    // });
 
   } catch (error: unknown) {
     console.error('LCA Calculation Error:', error);
