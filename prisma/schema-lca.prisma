@@ -1,0 +1,312 @@
+// ============================================
+// LCA TOOL - DATABASE SCHEMA
+// ============================================
+// This schema extends the main Prisma schema
+// Include this in your main schema.prisma file
+
+// ============================================
+// MATERIALS & EPD DATA
+// ============================================
+
+model Material {
+  id                    String   @id @default(uuid())
+
+  // Identification
+  oekobaudat_uuid       String?  @unique
+  oekobaudat_version    String?
+  name_de               String
+  name_en               String?
+  name_nl               String?  // Dutch translations
+
+  // Classification
+  category              String   // "insulation", "concrete", "timber", etc.
+  subcategory           String?
+  material_type         String   // "generic", "specific", "custom"
+
+  // Physical properties
+  density               Float?   // kg/m³
+  bulk_density          Float?   // kg/m³ (for loose fill)
+  area_weight           Float?   // kg/m²
+  reference_thickness   Float?   // m
+  thermal_conductivity  Float?   // λ-value W/mK
+
+  // Life cycle modules (per declared unit)
+  declared_unit         String   // "1 kg", "1 m³", "1 m²"
+  conversion_to_kg      Float    // Conversion factor to 1 kg
+
+  // Module A1-A3: Production
+  gwp_a1_a3             Float    // kg CO2-eq
+  odp_a1_a3             Float?   // kg CFC11-eq
+  pocp_a1_a3            Float?   // kg Ethen-eq
+  ap_a1_a3              Float?   // kg SO2-eq
+  ep_a1_a3              Float?   // kg PO4-eq
+  adpe_a1_a3            Float?   // kg Sb-eq
+  adpf_a1_a3            Float?   // MJ
+
+  // Module A4: Transport (if available)
+  gwp_a4                Float?
+  transport_distance    Float?   // Default km
+  transport_mode        String?  // "truck", "train", "ship"
+
+  // Module A5: Construction (if available)
+  gwp_a5                Float?
+
+  // Module C: End of Life
+  gwp_c1                Float?   // Deconstruction
+  gwp_c2                Float?   // Transport
+  gwp_c3                Float?   // Waste processing
+  gwp_c4                Float?   // Disposal
+
+  // Module D: Benefits
+  gwp_d                 Float?
+
+  // Biogenic carbon
+  biogenic_carbon       Float?   // kg CO2 stored per kg material
+  fossil_carbon         Float?   // kg CO2 from fossil content
+
+  // Service life data (from NMD or estimates)
+  reference_service_life Int?    // years
+  rsl_source            String?  // "NMD", "ISO15686", "expert_estimate"
+  rsl_confidence        String?  // "high", "medium", "low"
+
+  // End-of-life scenario
+  eol_scenario          String?  // "recycling", "incineration", "landfill"
+  recyclability         Float?   // 0-1 (fraction that can be recycled)
+
+  // Regional data
+  region                String   @default("NL")
+  dutch_availability    Boolean  @default(true)
+
+  // EPD metadata
+  epd_validity          DateTime?
+  epd_owner             String?
+  epd_url               String?
+  background_database   String?
+
+  // Quality & filtering
+  quality_rating        Int      @default(3) // 1-5, for filtering
+  is_verified           Boolean  @default(false)
+  is_generic            Boolean  @default(true)
+
+  // User content
+  user_id               String?  // NULL = system material
+  is_public             Boolean  @default(false)
+
+  // Timestamps
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  // Relations
+  user                  User?    @relation(fields: [user_id], references: [id])
+  layer_uses            LCALayer[]
+
+  @@index([category, subcategory])
+  @@index([dutch_availability, quality_rating])
+  @@index([user_id])
+}
+
+// ============================================
+// MATERIAL SERVICE LIFE DATABASE
+// ============================================
+
+model ServiceLife {
+  id                    String   @id @default(uuid())
+
+  // Classification
+  category              String   // Match Material.category
+  subcategory           String?
+  material_name         String
+
+  // Lifespan data
+  reference_service_life Int     // years
+  min_lifespan          Int?     // Uncertainty range
+  max_lifespan          Int?
+
+  // Context modifiers
+  environmental_factor  Json?    // {"coastal": 0.8, "inland": 1.0}
+  maintenance_factor    Json?    // {"good": 1.2, "poor": 0.7}
+
+  // Source
+  source                String   // "NMD", "ISO15686", "SBK", "manufacturer"
+  confidence_level      String   // "high", "medium", "low"
+  region                String   @default("NL")
+
+  // Notes
+  notes                 String?
+
+  created_at            DateTime @default(now())
+
+  @@index([category, subcategory])
+}
+
+// ============================================
+// PROJECTS & ELEMENTS
+// ============================================
+
+model LCAProject {
+  id                    String   @id @default(uuid())
+
+  // Basic info
+  name                  String
+  description           String?
+  project_number        String?
+
+  // Building data
+  gross_floor_area      Float    // m² GFA
+  building_type         String   // "vrijstaand", "rijwoning", "appartement"
+  construction_system   String?  // "houtskelet", "metselwerk", "beton"
+  floors                Int      @default(2)
+
+  // LCA parameters
+  study_period          Int      @default(75) // years
+  location              String?  // City/region for transport calculations
+
+  // Energy data (simplified B6)
+  energy_label          String?  // "A++", "A+", "A", "B", etc.
+  heating_system        String?  // "heat_pump", "gas_boiler", "district"
+  annual_gas_use        Float?   // m³/year (optional, for detailed B6)
+  annual_electricity    Float?   // kWh/year
+
+  // Results cache (computed)
+  total_gwp_a1_a3       Float?   // kg CO2-eq
+  total_gwp_a4          Float?
+  total_gwp_a5          Float?
+  total_gwp_b4          Float?
+  total_gwp_c           Float?
+  total_gwp_d           Float?
+  total_gwp_sum         Float?   // A-C (for MPG compliance)
+  total_gwp_per_m2_year Float?   // Normalized
+
+  operational_carbon    Float?   // B6 estimate
+  total_carbon          Float?   // Embodied + operational
+
+  // Compliance
+  mpg_reference_value   Float?   // kg CO2/m²/year (depends on building type)
+  is_compliant          Boolean?
+
+  // User & sharing
+  user_id               String
+  is_template           Boolean  @default(false)
+  is_public             Boolean  @default(false)
+
+  // Timestamps
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  // Relations
+  user                  User     @relation(fields: [user_id], references: [id])
+  elements              LCAElement[]
+
+  @@index([user_id])
+  @@index([is_template])
+}
+
+model LCAElement {
+  id                    String   @id @default(uuid())
+  project_id            String
+
+  // Identification
+  name                  String   // "Gevel noord", "Tussenvloer", etc.
+  sfb_code              String?  // NL Sfb coding: "21.21", "27", etc.
+  category              String   // "exterior_wall", "floor", "roof", etc.
+
+  // Geometry
+  quantity              Float    // Area (m²), length (m), or volume (m³)
+  quantity_unit         String   @default("m2")
+
+  // Context
+  description           String?
+  notes                 String?
+
+  // Calculated impacts (cached)
+  total_gwp_a1_a3       Float?
+  total_gwp_a4          Float?
+  total_gwp_a5          Float?
+  total_gwp_b4          Float?
+  total_gwp_c           Float?
+  total_gwp_d           Float?
+
+  // Relations
+  project               LCAProject  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  layers                LCALayer[]
+
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  @@index([project_id])
+  @@index([category])
+}
+
+model LCALayer {
+  id                    String   @id @default(uuid())
+  element_id            String
+
+  // Layer position (1 = outermost)
+  position              Int
+
+  // Material reference
+  material_id           String
+
+  // Geometry
+  thickness             Float    // meters
+  coverage              Float    @default(1.0) // 0-1 (for studs with cavity: 0.15)
+
+  // Overrides (optional)
+  custom_lifespan       Int?     // Override material default
+  custom_transport_km   Float?
+  custom_eol_scenario   String?
+
+  // Relations
+  element               LCAElement  @relation(fields: [element_id], references: [id], onDelete: Cascade)
+  material              Material @relation(fields: [material_id], references: [id])
+
+  @@index([element_id, position])
+}
+
+// ============================================
+// TEMPLATES
+// ============================================
+
+model LCATemplate {
+  id                    String   @id @default(uuid())
+
+  name                  String   // "Houtskelet RC 6.0"
+  description           String?
+
+  // Applicable to
+  building_type         String?  // NULL = all types
+  construction_system   String
+
+  // Template data (JSON structure)
+  elements_data         Json     // Array of pre-configured elements
+
+  // Metadata
+  source                String   @default("system") // "system", "user"
+  is_public             Boolean  @default(true)
+  user_id               String?
+
+  created_at            DateTime @default(now())
+
+  @@index([construction_system, building_type])
+}
+
+// ============================================
+// REFERENCE DATA
+// ============================================
+
+model ReferenceValue {
+  id                    String   @id @default(uuid())
+
+  // MPG reference values per building type
+  building_type         String   @unique
+  mpg_limit             Float    // kg CO2-eq/m²/year
+
+  // Typical operational carbon by energy label
+  energy_label          String
+  operational_carbon    Float    // kg CO2-eq/m²/year
+
+  source                String
+  valid_from            DateTime
+
+  @@index([building_type])
+}
