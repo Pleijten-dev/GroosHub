@@ -57,6 +57,26 @@ export interface SaveLocationData {
 }
 
 /**
+ * Completion status of saved location workflow
+ */
+export type CompletionStatus =
+  | 'location_only'
+  | 'with_personas'
+  | 'with_pve'
+  | 'with_personas_pve'
+  | 'complete';
+
+/**
+ * Metadata for version tracking and migrations
+ */
+export interface LocationMetadata {
+  migratedFrom?: string;
+  migrationDate?: string;
+  warnings?: string[];
+  customFields?: Record<string, unknown>;
+}
+
+/**
  * Saved location record from database
  */
 export interface SavedLocation {
@@ -70,6 +90,9 @@ export interface SavedLocation {
   selectedPVE?: PVEConfig;
   selectedPersonas?: SelectedPersona[];
   llmRapport?: LLMRapportData;
+  dataVersion: string; // Semantic version (e.g., "1.0.0")
+  completionStatus: CompletionStatus;
+  metadata?: LocationMetadata;
   createdAt: Date;
   updatedAt: Date;
 }

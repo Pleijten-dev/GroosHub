@@ -184,6 +184,19 @@ export const SavedLocationsList: React.FC<SavedLocationsListProps> = ({
                       {locale === 'nl' ? 'Gedeeld' : 'Shared'}
                     </span>
                   )}
+                  {location.completionStatus && location.completionStatus !== 'location_only' && (
+                    <span className={cn(
+                      'px-xs py-0.5 rounded text-[10px] font-medium',
+                      location.completionStatus === 'complete'
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-yellow-100 text-yellow-700'
+                    )}>
+                      {location.completionStatus === 'complete' && (locale === 'nl' ? 'Compleet' : 'Complete')}
+                      {location.completionStatus === 'with_personas' && (locale === 'nl' ? '+Personas' : '+Personas')}
+                      {location.completionStatus === 'with_pve' && '+PVE'}
+                      {location.completionStatus === 'with_personas_pve' && (locale === 'nl' ? '+Personas+PVE' : '+Personas+PVE')}
+                    </span>
+                  )}
                 </div>
               </div>
 
