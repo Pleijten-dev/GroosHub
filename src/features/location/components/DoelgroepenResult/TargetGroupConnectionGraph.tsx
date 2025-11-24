@@ -114,9 +114,9 @@ export const TargetGroupConnectionGraph: React.FC<TargetGroupConnectionGraphProp
               const from = nodePositions[conn.from];
               const to = nodePositions[conn.to];
 
-              // Cap connection count at 13 for thickness calculation
-              const cappedCount = Math.min(conn.count, 13);
-              const maxConnectionsCapped = Math.min(maxConnections, 13);
+              // Cap connection count at 20 for thickness calculation
+              const cappedCount = Math.min(conn.count, 20);
+              const maxConnectionsCapped = Math.min(maxConnections, 20);
 
               // Use exponential scale for thickness - makes weak connections much thinner
               const normalizedStrength = cappedCount / maxConnectionsCapped;
