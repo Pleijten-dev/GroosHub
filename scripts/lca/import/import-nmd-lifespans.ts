@@ -2,12 +2,10 @@
 // NMD SERVICE LIFE DATA IMPORT SCRIPT
 // ============================================
 
-import { PrismaClient } from '@prisma/client';
+import { getDbConnection } from '../../../src/lib/db/connection';
 import * as XLSX from 'xlsx';
 import path from 'path';
 import fs from 'fs';
-
-const prisma = new PrismaClient();
 
 /**
  * Import NMD (Nationale Milieudatabase) service life data
@@ -21,7 +19,7 @@ const prisma = new PrismaClient();
  * based on ISO 15686 and SBK (Stichting Bouwkwaliteit) estimates
  *
  * Usage:
- * npx ts-node scripts/lca/import/import-nmd-lifespans.ts
+ * npx tsx scripts/lca/import/import-nmd-lifespans.ts
  */
 
 async function importNMDLifespans() {
@@ -35,6 +33,8 @@ async function importNMDLifespans() {
     return;
   }
 
+  const sql = getDbConnection();
+
   // Parse NMD Excel file
   const workbook = XLSX.readFile(xlsxPath);
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -44,25 +44,37 @@ async function importNMDLifespans() {
 
   let imported = 0;
 
-  for (const row of data as any[]) {
+  for (const row of data as Record<string, unknown>[]) {
     try {
-      await prisma.serviceLife.create({
-        data: {
-          category: mapNMDCategory(row['Material Category']),
-          subcategory: row['Subcategory'],
-          material_name: row['Material Name'],
-          reference_service_life: row['RSL (years)'],
-          min_lifespan: row['Min RSL'],
-          max_lifespan: row['Max RSL'],
-          source: 'NMD',
-          confidence_level: row['Confidence'] || 'medium',
-          region: 'NL',
-          notes: row['Notes']
-        }
-      });
+      await sql`
+        INSERT INTO lca_service_lives (
+          category,
+          subcategory,
+          material_name,
+          reference_service_life,
+          min_lifespan,
+          max_lifespan,
+          source,
+          confidence_level,
+          region,
+          notes
+        ) VALUES (
+          ${mapNMDCategory(row['Material Category'] as string)},
+          ${row['Subcategory'] as string},
+          ${row['Material Name'] as string},
+          ${row['RSL (years)'] as number},
+          ${row['Min RSL'] as number | null},
+          ${row['Max RSL'] as number | null},
+          ${'NMD'},
+          ${(row['Confidence'] as string) || 'medium'},
+          ${'NL'},
+          ${row['Notes'] as string | null}
+        )
+      `;
       imported++;
-    } catch (error) {
-      console.error(`❌ Error importing ${row['Material Name']}:`, error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`❌ Error importing ${row['Material Name']}:`, errorMessage);
     }
   }
 
@@ -77,6 +89,8 @@ function mapNMDCategory(nmdCategory: string): string {
 // If NMD data not available, seed with defaults
 async function seedDefaultLifespans() {
   console.log('🌱 Seeding default service lifespans...');
+
+  const sql = getDbConnection();
 
   const defaults = [
     // Structure
@@ -127,20 +141,29 @@ async function seedDefaultLifespans() {
 
   for (const item of defaults) {
     try {
-      await prisma.serviceLife.create({
-        data: {
-          category: item.category,
-          subcategory: item.subcategory,
-          material_name: item.material_name,
-          reference_service_life: item.rsl,
-          source: item.source,
-          confidence_level: item.confidence,
-          region: 'NL'
-        }
-      });
+      await sql`
+        INSERT INTO lca_service_lives (
+          category,
+          subcategory,
+          material_name,
+          reference_service_life,
+          source,
+          confidence_level,
+          region
+        ) VALUES (
+          ${item.category},
+          ${item.subcategory},
+          ${item.material_name},
+          ${item.rsl},
+          ${item.source},
+          ${item.confidence},
+          ${'NL'}
+        )
+      `;
       imported++;
-    } catch (error) {
-      console.error(`❌ Error seeding ${item.material_name}:`, error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`❌ Error seeding ${item.material_name}:`, errorMessage);
     }
   }
 
@@ -153,8 +176,8 @@ importNMDLifespans()
     console.log('✨ Import complete');
     process.exit(0);
   })
-  .catch(error => {
-    console.error('💥 Import failed:', error);
+  .catch((error: unknown) => {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('💥 Import failed:', errorMessage);
     process.exit(1);
-  })
-  .finally(() => prisma.$disconnect());
+  });

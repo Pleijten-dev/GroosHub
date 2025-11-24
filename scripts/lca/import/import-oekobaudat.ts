@@ -2,12 +2,10 @@
 // ÖKOBAUDAT DATA IMPORT SCRIPT
 // ============================================
 
-import { PrismaClient } from '@prisma/client';
+import { getDbConnection } from '../../../src/lib/db/connection';
 import { parse } from 'csv-parse/sync';
 import fs from 'fs';
 import path from 'path';
-
-const prisma = new PrismaClient();
 
 /**
  * Import Ökobaudat EPD data from CSV export
@@ -18,7 +16,7 @@ const prisma = new PrismaClient();
  * 3. Ensure CSV has headers matching the expected structure
  *
  * Usage:
- * npx ts-node scripts/lca/import/import-oekobaudat.ts
+ * npx tsx scripts/lca/import/import-oekobaudat.ts
  */
 
 async function importOekobaudat() {
@@ -30,15 +28,20 @@ async function importOekobaudat() {
   if (!fs.existsSync(csvPath)) {
     console.error('❌ CSV file not found at:', csvPath);
     console.log('📝 Please download Ökobaudat data and place it in data/lca/oekobaudat-export.csv');
+    console.log('');
+    console.log('Download from: https://www.oekobaudat.de');
+    console.log('Export as CSV with all indicators');
     process.exit(1);
   }
+
+  const sql = getDbConnection();
 
   const csvContent = fs.readFileSync(csvPath, 'utf-8');
   const records = parse(csvContent, {
     columns: true,
     skip_empty_lines: true,
     delimiter: ';'
-  });
+  }) as Record<string, string>[];
 
   console.log(`📊 Found ${records.length} records in CSV`);
 
@@ -56,53 +59,85 @@ async function importOekobaudat() {
       }
 
       // Parse and transform
-      const material = {
-        oekobaudat_uuid: record.UUID,
-        oekobaudat_version: record.Version,
-        name_de: record['Name (de)'],
-        name_en: record['Name (en)'],
-        name_nl: translateToNL(record['Name (en)']), // TODO: Add translation logic
+      const gwpA1A3 = extractModuleValue(record, 'A1-A3', 'GWP');
 
-        category: mapCategory(record['Kategorie (en)']),
-        subcategory: record['Kategorie (en)'],
+      // Skip materials without basic GWP data
+      if (gwpA1A3 === 0) {
+        skipped++;
+        continue;
+      }
 
-        density: parseFloat(record['Rohdichte (kg/m3)']) || null,
-        bulk_density: parseFloat(record['Schuettdichte (kg/m3)']) || null,
-        reference_thickness: parseFloat(record['Schichtdicke (m)']) || null,
+      await sql`
+        INSERT INTO lca_materials (
+          oekobaudat_uuid,
+          oekobaudat_version,
+          name_de,
+          name_en,
+          name_nl,
+          category,
+          subcategory,
+          material_type,
+          density,
+          bulk_density,
+          reference_thickness,
+          declared_unit,
+          conversion_to_kg,
+          gwp_a1_a3,
+          gwp_a4,
+          gwp_a5,
+          gwp_c1,
+          gwp_c2,
+          gwp_c3,
+          gwp_c4,
+          gwp_d,
+          biogenic_carbon,
+          epd_url,
+          epd_owner,
+          epd_validity,
+          quality_rating,
+          dutch_availability,
+          is_generic
+        ) VALUES (
+          ${record.UUID || null},
+          ${record.Version || null},
+          ${record['Name (de)']},
+          ${record['Name (en)'] || null},
+          ${translateToNL(record['Name (en)'])},
+          ${mapCategory(record['Kategorie (en)'])},
+          ${record['Kategorie (en)'] || null},
+          ${record.Typ === 'generic' ? 'generic' : 'specific'},
+          ${parseFloat(record['Rohdichte (kg/m3)']) || null},
+          ${parseFloat(record['Schuettdichte (kg/m3)']) || null},
+          ${parseFloat(record['Schichtdicke (m)']) || null},
+          ${record['Bezugseinheit'] || '1 kg'},
+          ${parseFloat(record['Umrechungsfaktor auf 1kg']) || 1},
+          ${gwpA1A3},
+          ${extractModuleValue(record, 'A4', 'GWP')},
+          ${extractModuleValue(record, 'A5', 'GWP')},
+          ${extractModuleValue(record, 'C1', 'GWP')},
+          ${extractModuleValue(record, 'C2', 'GWP')},
+          ${extractModuleValue(record, 'C3', 'GWP')},
+          ${extractModuleValue(record, 'C4', 'GWP')},
+          ${extractModuleValue(record, 'D', 'GWP')},
+          ${parseFloat(record['biogener Kohlenstoffgehalt in kg']) || null},
+          ${record.URL || null},
+          ${record['Declaration owner'] || null},
+          ${record['Gueltig bis'] ? new Date(record['Gueltig bis']).toISOString() : null},
+          ${assessQuality(record)},
+          ${true},
+          ${record.Typ === 'generic'}
+        )
+      `;
 
-        declared_unit: record['Bezugseinheit'],
-        conversion_to_kg: parseFloat(record['Umrechungsfaktor auf 1kg']) || 1,
-
-        // Extract module-specific impacts
-        gwp_a1_a3: extractModuleValue(record, 'A1-A3', 'GWP'),
-        gwp_a4: extractModuleValue(record, 'A4', 'GWP'),
-        gwp_a5: extractModuleValue(record, 'A5', 'GWP'),
-        gwp_c1: extractModuleValue(record, 'C1', 'GWP'),
-        gwp_c2: extractModuleValue(record, 'C2', 'GWP'),
-        gwp_c3: extractModuleValue(record, 'C3', 'GWP'),
-        gwp_c4: extractModuleValue(record, 'C4', 'GWP'),
-        gwp_d: extractModuleValue(record, 'D', 'GWP'),
-
-        biogenic_carbon: parseFloat(record['biogener Kohlenstoffgehalt in kg']) || null,
-
-        epd_url: record.URL,
-        epd_owner: record['Declaration owner'],
-        epd_validity: record['Gueltig bis'] ? new Date(record['Gueltig bis']) : null,
-
-        quality_rating: assessQuality(record),
-        dutch_availability: true,
-        is_generic: record.Typ === 'generic',
-      };
-
-      await prisma.material.create({ data: material });
       imported++;
 
       if (imported % 100 === 0) {
         console.log(`✅ Imported ${imported} materials...`);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       errors++;
-      console.error(`❌ Error importing record ${record.UUID}:`, error.message);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`❌ Error importing record ${record.UUID}:`, errorMessage);
     }
   }
 
@@ -112,24 +147,37 @@ async function importOekobaudat() {
   console.log(`❌ Errors: ${errors}`);
 }
 
-function extractModuleValue(record: any, module: string, indicator: string): number {
+function extractModuleValue(record: Record<string, string>, module: string, indicator: string): number {
   // TODO: Implement based on actual Ökobaudat CSV structure
   // The structure varies depending on the export format
-  const moduleName = record.Modul;
-  if (moduleName === module) {
+
+  // Option 1: If columns are like "GWP_A1-A3", "GWP_A4", etc.
+  const columnName = `${indicator}_${module}`;
+  if (record[columnName]) {
+    return parseFloat(record[columnName]) || 0;
+  }
+
+  // Option 2: If there's a "Modul" column that indicates the module
+  if (record.Modul === module && record[indicator]) {
     return parseFloat(record[indicator]) || 0;
   }
+
+  // Option 3: Try direct column match
+  if (record[indicator]) {
+    return parseFloat(record[indicator]) || 0;
+  }
+
   return 0;
 }
 
-function checkDutchRelevance(record: any): boolean {
+function checkDutchRelevance(record: Record<string, string>): boolean {
   // Filter logic for NL market
   const category = record['Kategorie (en)'];
 
   // Exclude categories not used in NL
   const excludedCategories = [
     'Tropical timber', // Not commonly used in NL
-    // Add more exclusions
+    // Add more exclusions as needed
   ];
 
   if (excludedCategories.some(cat => category?.includes(cat))) {
@@ -138,7 +186,7 @@ function checkDutchRelevance(record: any): boolean {
 
   // Include if within European context
   const region = record['Laenderkennung'];
-  if (region && !['DE', 'NL', 'EU', 'EU-27'].includes(region)) {
+  if (region && !['DE', 'NL', 'EU', 'EU-27', ''].includes(region)) {
     return false;
   }
 
@@ -150,24 +198,46 @@ function mapCategory(oekobaudatCategory: string): string {
   const mapping: Record<string, string> = {
     'Mineral insulating materials': 'insulation',
     'Organic insulating materials': 'insulation',
+    'Synthetic insulating materials': 'insulation',
+    'Insulation materials': 'insulation',
     'Concrete': 'concrete',
     'Timber': 'timber',
+    'Wood products': 'timber',
     'Bricks': 'masonry',
+    'Masonry': 'masonry',
     'Glass': 'glass',
     'Metals': 'metal',
-    // TODO: Add complete mapping
+    'Steel': 'metal',
+    'Aluminium': 'metal',
+    'Roofing': 'roofing',
+    'Finishes': 'finishes',
+    'Paints and coatings': 'finishes',
+    // Add more mappings as needed
   };
 
-  return mapping[oekobaudatCategory] || 'other';
+  // Try exact match first
+  if (mapping[oekobaudatCategory]) {
+    return mapping[oekobaudatCategory];
+  }
+
+  // Try partial match
+  for (const [key, value] of Object.entries(mapping)) {
+    if (oekobaudatCategory?.toLowerCase().includes(key.toLowerCase())) {
+      return value;
+    }
+  }
+
+  return 'other';
 }
 
 function translateToNL(englishName: string): string {
   // TODO: Implement translation logic
-  // For now, return English name
+  // For MVP, we can use the English name
+  // Later, add a translation mapping or API
   return englishName;
 }
 
-function assessQuality(record: any): number {
+function assessQuality(record: Record<string, string>): number {
   // Rate EPD quality 1-5
   let score = 3; // Default
 
@@ -184,8 +254,8 @@ importOekobaudat()
     console.log('✨ Import complete');
     process.exit(0);
   })
-  .catch(error => {
-    console.error('💥 Import failed:', error);
+  .catch((error: unknown) => {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('💥 Import failed:', errorMessage);
     process.exit(1);
-  })
-  .finally(() => prisma.$disconnect());
+  });
