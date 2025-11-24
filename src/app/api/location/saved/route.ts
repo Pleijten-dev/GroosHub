@@ -55,6 +55,16 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`💾 [Saved Locations] Saving location for user ${userId}: ${address}`);
+    console.log(`📊 [Saved Locations] PVE data:`, selectedPVE ? 'Present' : 'Missing');
+    console.log(`👥 [Saved Locations] Personas data:`, selectedPersonas ? 'Present' : 'Missing');
+    console.log(`✅ [Saved Locations] Completion status:`, completionStatus);
+
+    if (selectedPVE) {
+      console.log(`📊 [Saved Locations] PVE details:`, JSON.stringify(selectedPVE).substring(0, 100));
+    }
+    if (selectedPersonas) {
+      console.log(`👥 [Saved Locations] Personas details:`, JSON.stringify(selectedPersonas));
+    }
 
     // Get database connection
     const sql = getDbConnection();
