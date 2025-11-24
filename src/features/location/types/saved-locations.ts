@@ -133,6 +133,7 @@ export interface SaveLocationRequest {
   selectedPVE?: PVEConfig;
   selectedPersonas?: SelectedPersona[];
   llmRapport?: LLMRapportData;
+  completionStatus?: CompletionStatus;
 }
 
 export interface SaveLocationResponse {

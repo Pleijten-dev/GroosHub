@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
       selectedPVE,
       selectedPersonas,
       llmRapport,
+      completionStatus,
     } = body;
 
     // Validate required fields
@@ -69,7 +70,8 @@ export async function POST(request: NextRequest) {
         amenities_data,
         selected_pve,
         selected_personas,
-        llm_rapport
+        llm_rapport,
+        completion_status
       ) VALUES (
         ${userId},
         ${name || null},
@@ -79,7 +81,8 @@ export async function POST(request: NextRequest) {
         ${amenitiesData ? JSON.stringify(amenitiesData) : null},
         ${selectedPVE ? JSON.stringify(selectedPVE) : null},
         ${selectedPersonas ? JSON.stringify(selectedPersonas) : null},
-        ${llmRapport ? JSON.stringify(llmRapport) : null}
+        ${llmRapport ? JSON.stringify(llmRapport) : null},
+        ${completionStatus || 'location_only'}
       )
       ON CONFLICT (user_id, address)
       DO UPDATE SET
@@ -90,6 +93,7 @@ export async function POST(request: NextRequest) {
         selected_pve = EXCLUDED.selected_pve,
         selected_personas = EXCLUDED.selected_personas,
         llm_rapport = EXCLUDED.llm_rapport,
+        completion_status = EXCLUDED.completion_status,
         updated_at = NOW()
       RETURNING *
     `;
