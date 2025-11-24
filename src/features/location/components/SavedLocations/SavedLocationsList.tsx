@@ -6,6 +6,7 @@ import { Button } from '@/shared/components/UI/Button/Button';
 import { cn } from '@/shared/utils/cn';
 import type { Locale } from '@/lib/i18n/config';
 import type { AccessibleLocation } from '../../types/saved-locations';
+import { LocationProgress } from './LocationProgress';
 
 interface SavedLocationsListProps {
   locale: Locale;
@@ -184,20 +185,18 @@ export const SavedLocationsList: React.FC<SavedLocationsListProps> = ({
                       {locale === 'nl' ? 'Gedeeld' : 'Shared'}
                     </span>
                   )}
-                  {location.completionStatus && location.completionStatus !== 'location_only' && (
-                    <span className={cn(
-                      'px-xs py-0.5 rounded text-[10px] font-medium',
-                      location.completionStatus === 'complete'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-yellow-100 text-yellow-700'
-                    )}>
-                      {location.completionStatus === 'complete' && (locale === 'nl' ? 'Compleet' : 'Complete')}
-                      {location.completionStatus === 'with_personas' && (locale === 'nl' ? '+Personas' : '+Personas')}
-                      {location.completionStatus === 'with_pve' && '+PVE'}
-                      {location.completionStatus === 'with_personas_pve' && (locale === 'nl' ? '+Personas+PVE' : '+Personas+PVE')}
-                    </span>
-                  )}
                 </div>
+
+                {/* Compact Progress Indicator */}
+                {location.completionStatus && (
+                  <div className="mt-sm">
+                    <LocationProgress
+                      completionStatus={location.completionStatus}
+                      locale={locale}
+                      variant="compact"
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Expand icon */}
@@ -223,6 +222,17 @@ export const SavedLocationsList: React.FC<SavedLocationsListProps> = ({
           {/* Expanded Actions */}
           {expandedId === location.id && (
             <div className="p-sm bg-gray-50 border-t border-gray-200 space-y-sm">
+              {/* Detailed Progress Indicator */}
+              {location.completionStatus && (
+                <div className="bg-white p-sm rounded-md border border-gray-200">
+                  <LocationProgress
+                    completionStatus={location.completionStatus}
+                    locale={locale}
+                    variant="full"
+                  />
+                </div>
+              )}
+
               {/* Owner info (if shared) */}
               {location.isShared && (
                 <div className="text-xs text-text-muted bg-blue-50 p-xs rounded">
