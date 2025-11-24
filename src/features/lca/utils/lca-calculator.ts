@@ -8,11 +8,7 @@ import type {
   ElementResult,
   ElementWithLayers,
   NormalizedResult,
-  TRANSPORT_EMISSION_FACTORS,
-  DEFAULT_TRANSPORT_DISTANCES,
-  DEFAULT_LIFESPANS,
-  A5_FACTORS,
-  OPERATIONAL_CARBON_BY_LABEL
+  ElementBreakdown
 } from '../types';
 
 // ============================================
@@ -50,11 +46,11 @@ export async function calculateProjectLCA(
   let totalC = 0;
   let totalD = 0;
 
-  const elementBreakdown: any[] = [];
+  const elementBreakdown: ElementBreakdown[] = [];
 
   // Calculate each element
   for (const element of project.elements) {
-    const elementResult = await calculateElement(element as any, project.study_period);
+    const elementResult = await calculateElement(element as ElementWithLayers, project.study_period);
 
     totalA1A3 += elementResult.a1_a3;
     totalA4 += elementResult.a4;

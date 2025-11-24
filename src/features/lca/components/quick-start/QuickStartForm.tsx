@@ -12,6 +12,7 @@ import type { QuickStartFormData } from '../../types';
 
 export function QuickStartForm() {
   const router = useRouter();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [formData, setFormData] = useState<QuickStartFormData>({
     name: '',
     gfa: '',
