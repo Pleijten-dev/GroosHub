@@ -28,6 +28,7 @@ import { LocationMap, MapStyle, WMSLayerControl, WMSLayerSelection, WMSFeatureIn
 import { calculateAllAmenityScores, type AmenityScore } from '../../../features/location/data/scoring/amenityScoring';
 import { PVEQuestionnaire } from '../../../features/location/components/PVE';
 import { MapExportButton } from '../../../features/location/components/MapExport';
+import type { AccessibleLocation } from '../../../features/location/types/saved-locations';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -162,7 +163,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   }, [data]);
 
   // Handle loading a saved location
-  const handleLoadSavedLocation = async (location: any) => {
+  const handleLoadSavedLocation = async (location: AccessibleLocation) => {
     try {
       // Store the location data in cache
       const address = location.address;

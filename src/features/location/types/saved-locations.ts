@@ -18,7 +18,7 @@ export interface Coordinates {
  * PVE (Programma Van Eisen) configuration
  */
 export interface PVEConfig {
-  [key: string]: any; // TODO: Define specific PVE structure
+  [key: string]: unknown; // TODO: Define specific PVE structure
 }
 
 /**
@@ -28,18 +28,18 @@ export interface SelectedPersona {
   personaId: string;
   name: string;
   score?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
  * LLM-generated rapport data
  */
 export interface LLMRapportData {
-  housing?: any;
-  community?: any;
-  public?: any;
+  housing?: unknown;
+  community?: unknown;
+  public?: unknown;
   generatedAt?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
