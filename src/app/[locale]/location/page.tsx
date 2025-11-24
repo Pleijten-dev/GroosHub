@@ -28,6 +28,7 @@ import { LocationMap, MapStyle, WMSLayerControl, WMSLayerSelection, WMSFeatureIn
 import { calculateAllAmenityScores, type AmenityScore } from '../../../features/location/data/scoring/amenityScoring';
 import { PVEQuestionnaire } from '../../../features/location/components/PVE';
 import { MapExportButton } from '../../../features/location/components/MapExport';
+import type { AccessibleLocation } from '../../../features/location/types/saved-locations';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -153,6 +154,35 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     setActiveTab('doelgroepen');
   };
 
+  // Get current address from localStorage
+  const [currentAddress, setCurrentAddress] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const address = localStorage.getItem('grooshub_current_address');
+    setCurrentAddress(address);
+  }, [data]);
+
+  // Handle loading a saved location
+  const handleLoadSavedLocation = async (location: AccessibleLocation) => {
+    try {
+      // Store the location data in cache
+      const address = location.address;
+      localStorage.setItem('grooshub_current_address', address);
+
+      // The location.locationData already contains UnifiedLocationData
+      // We can use it directly without making additional API calls
+
+      // For now, trigger a fresh search to ensure all data is loaded
+      // In the future, we could directly set the data from the saved location
+      await fetchData(address);
+
+      // Collapse the sidebar after loading
+      setCollapsed(false);
+    } catch (error) {
+      console.error('Error loading saved location:', error);
+    }
+  };
+
   // Get sidebar sections from useLocationSidebarSections hook
   const sidebarSections = useLocationSidebarSections({
     locale,
@@ -160,6 +190,10 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     onTabChange: handleTabChange,
     onAddressSearch: handleAddressSearch,
     isSearching: isLoading,
+    currentAddress,
+    locationData: data,
+    amenitiesData: amenities,
+    onLoadSavedLocation: handleLoadSavedLocation,
   });
 
   // Calculate main content margin based on sidebar state

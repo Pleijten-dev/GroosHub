@@ -9,6 +9,10 @@ import { Button } from '../../../../shared/components/UI';
 import { cn } from '../../../../shared/utils/cn';
 import { AddressAutocomplete } from '../AddressAutocomplete/AddressAutocomplete';
 import { locationDataCache } from '../../data/cache/locationDataCache';
+import { SaveLocationSection, SavedLocationsList } from '../SavedLocations';
+import type { UnifiedLocationData } from '../../data/aggregator/multiLevelAggregator';
+import type { AmenityMultiCategoryResponse } from '../../data/sources/google-places/types';
+import type { AccessibleLocation } from '../../types/saved-locations';
 
 // Types for location analysis sections
 const MAIN_SECTIONS = [
@@ -43,6 +47,10 @@ interface LocationSidebarContentProps {
   onTabChange: (tab: SectionId) => void;
   onAddressSearch?: (address: string) => void;
   isSearching?: boolean;
+  currentAddress?: string | null;
+  locationData?: UnifiedLocationData | null;
+  amenitiesData?: AmenityMultiCategoryResponse | null;
+  onLoadSavedLocation?: (location: AccessibleLocation) => void;
 }
 
 export type { LocationSidebarContentProps };
@@ -53,12 +61,17 @@ export const useLocationSidebarSections = ({
   onTabChange,
   onAddressSearch,
   isSearching = false,
+  currentAddress = null,
+  locationData = null,
+  amenitiesData = null,
+  onLoadSavedLocation,
 }: LocationSidebarContentProps): SidebarSection[] => {
   const router = useRouter();
   const [searchAddress, setSearchAddress] = useState<string>('');
   const [isOmgevingExpanded, setIsOmgevingExpanded] = useState<boolean>(false);
   const [isRapportExpanded, setIsRapportExpanded] = useState<boolean>(false);
   const [hasRapport, setHasRapport] = useState<boolean>(false);
+  const [savedLocationsRefresh, setSavedLocationsRefresh] = useState<number>(0);
 
   // Check if rapport exists
   React.useEffect(() => {
@@ -135,6 +148,17 @@ export const useLocationSidebarSections = ({
 
   const getSectionText = (section: typeof MAIN_SECTIONS[number] | typeof OMGEVING_SUBSECTIONS[number]): string => {
     return section[locale];
+  };
+
+  // Handle save location callback
+  const handleSaveLocation = (): void => {
+    // Trigger refresh of saved locations list
+    setSavedLocationsRefresh(prev => prev + 1);
+  };
+
+  // Handle load saved location
+  const handleLoadSavedLocation = (location: AccessibleLocation): void => {
+    onLoadSavedLocation?.(location);
   };
 
   // Search section content
@@ -266,12 +290,32 @@ export const useLocationSidebarSections = ({
     </div>
   );
 
+  // Save location section content
+  const saveLocationSection = (
+    <SaveLocationSection
+      locale={locale}
+      address={currentAddress}
+      locationData={locationData}
+      amenitiesData={amenitiesData}
+      onSave={handleSaveLocation}
+    />
+  );
+
+  // Saved locations list section content
+  const savedLocationsListSection = (
+    <SavedLocationsList
+      locale={locale}
+      onLoadLocation={handleLoadSavedLocation}
+      refreshTrigger={savedLocationsRefresh}
+    />
+  );
+
   // Define sidebar sections
   const sections: SidebarSection[] = [
     {
       id: 'search',
       title: locale === 'nl' ? 'Adres Zoeken' : 'Address Search',
-      description: locale === 'nl' 
+      description: locale === 'nl'
         ? 'Voer een adres in om locatiegegevens te analyseren.'
         : 'Enter an address to analyze location data.',
       content: searchSection,
@@ -280,6 +324,22 @@ export const useLocationSidebarSections = ({
       id: 'navigation',
       title: locale === 'nl' ? 'Analyse Categorieën' : 'Analysis Categories',
       content: navigationSection,
+    },
+    {
+      id: 'save-location',
+      title: locale === 'nl' ? 'Locatie Opslaan' : 'Save Location',
+      description: locale === 'nl'
+        ? 'Sla deze locatie op voor later gebruik.'
+        : 'Save this location for later use.',
+      content: saveLocationSection,
+    },
+    {
+      id: 'saved-locations',
+      title: locale === 'nl' ? 'Opgeslagen Locaties' : 'Saved Locations',
+      description: locale === 'nl'
+        ? 'Bekijk en laad uw opgeslagen locaties.'
+        : 'View and load your saved locations.',
+      content: savedLocationsListSection,
     },
   ];
 
