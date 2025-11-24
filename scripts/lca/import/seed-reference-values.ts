@@ -2,14 +2,12 @@
 // SEED REFERENCE VALUES
 // ============================================
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { getDbConnection } from '../../../src/lib/db/connection';
 
 /**
  * Seed MPG reference values and operational carbon estimates
  *
- * This script populates the ReferenceValue table with:
+ * This script populates the lca_reference_values table with:
  * - MPG (Milieuprestatie Gebouwen) limits per building type
  * - Operational carbon estimates by energy label
  *
@@ -18,11 +16,13 @@ const prisma = new PrismaClient();
  * - BENG (Bijna Energie Neutrale Gebouwen) standards
  *
  * Usage:
- * npx ts-node scripts/lca/import/seed-reference-values.ts
+ * npx tsx scripts/lca/import/seed-reference-values.ts
  */
 
 async function seedReferenceValues() {
   console.log('🌱 Seeding reference values...');
+
+  const sql = getDbConnection();
 
   // ============================================
   // MPG REFERENCE VALUES (2024)
@@ -35,7 +35,7 @@ async function seedReferenceValues() {
       energy_label: 'A',
       operational_carbon: 25,
       source: 'MPG Bepalingsmethode 2024',
-      valid_from: new Date('2024-01-01')
+      valid_from: '2024-01-01'
     },
     {
       building_type: 'vrijstaand',
@@ -43,7 +43,7 @@ async function seedReferenceValues() {
       energy_label: 'A',
       operational_carbon: 25,
       source: 'MPG Bepalingsmethode 2024',
-      valid_from: new Date('2024-01-01')
+      valid_from: '2024-01-01'
     },
     {
       building_type: 'rijwoning',
@@ -51,7 +51,7 @@ async function seedReferenceValues() {
       energy_label: 'A',
       operational_carbon: 25,
       source: 'MPG Bepalingsmethode 2024',
-      valid_from: new Date('2024-01-01')
+      valid_from: '2024-01-01'
     },
     {
       building_type: 'appartement',
@@ -59,7 +59,7 @@ async function seedReferenceValues() {
       energy_label: 'A',
       operational_carbon: 25,
       source: 'MPG Bepalingsmethode 2024',
-      valid_from: new Date('2024-01-01')
+      valid_from: '2024-01-01'
     },
     {
       building_type: 'utiliteitsbouw',
@@ -67,7 +67,7 @@ async function seedReferenceValues() {
       energy_label: 'A',
       operational_carbon: 20,
       source: 'MPG Bepalingsmethode 2024',
-      valid_from: new Date('2024-01-01')
+      valid_from: '2024-01-01'
     }
   ];
 
@@ -76,14 +76,35 @@ async function seedReferenceValues() {
 
   for (const limit of mpgLimits) {
     try {
-      await prisma.referenceValue.upsert({
-        where: { building_type: limit.building_type },
-        update: limit,
-        create: limit
-      });
+      // Upsert: Insert or update if building_type already exists
+      await sql`
+        INSERT INTO lca_reference_values (
+          building_type,
+          mpg_limit,
+          energy_label,
+          operational_carbon,
+          source,
+          valid_from
+        ) VALUES (
+          ${limit.building_type},
+          ${limit.mpg_limit},
+          ${limit.energy_label},
+          ${limit.operational_carbon},
+          ${limit.source},
+          ${limit.valid_from}
+        )
+        ON CONFLICT (building_type)
+        DO UPDATE SET
+          mpg_limit = EXCLUDED.mpg_limit,
+          energy_label = EXCLUDED.energy_label,
+          operational_carbon = EXCLUDED.operational_carbon,
+          source = EXCLUDED.source,
+          valid_from = EXCLUDED.valid_from
+      `;
       mpgCount++;
-    } catch (error) {
-      console.error(`❌ Error seeding MPG for ${limit.building_type}:`, error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`❌ Error seeding MPG for ${limit.building_type}:`, errorMessage);
     }
   }
 
@@ -121,8 +142,8 @@ seedReferenceValues()
     console.log('✅ Seeding complete');
     process.exit(0);
   })
-  .catch(error => {
-    console.error('💥 Seeding failed:', error);
+  .catch((error: unknown) => {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('💥 Seeding failed:', errorMessage);
     process.exit(1);
-  })
-  .finally(() => prisma.$disconnect());
+  });
