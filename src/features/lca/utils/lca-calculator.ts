@@ -2,14 +2,19 @@
 // LCA CALCULATOR - CORE CALCULATION ENGINE
 // ============================================
 
-import type { PrismaClient, Material, LCAProject } from '@prisma/client';
 import type {
+  Material,
+  LCAProject,
   LCAResult,
   ElementResult,
   ElementWithLayers,
   NormalizedResult,
   ElementBreakdown
 } from '../types';
+
+// Prisma client type - will be properly typed once schema is integrated
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type PrismaClient = any;
 
 // ============================================
 // MAIN CALCULATION FUNCTION

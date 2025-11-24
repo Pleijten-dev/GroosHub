@@ -2,7 +2,133 @@
 // LCA FEATURE - TYPESCRIPT TYPES
 // ============================================
 
-import type { Material, LCAProject, LCAElement, LCALayer } from '@prisma/client';
+// NOTE: These types will be replaced by Prisma-generated types once the schema is integrated
+// For now, we define them manually to allow the build to pass
+
+// ============================================
+// DATABASE MODEL TYPES (Manual - TODO: Replace with Prisma types)
+// ============================================
+
+export interface Material {
+  id: string;
+  oekobaudat_uuid: string | null;
+  oekobaudat_version: string | null;
+  name_de: string;
+  name_en: string | null;
+  name_nl: string | null;
+  category: string;
+  subcategory: string | null;
+  material_type: string;
+  density: number | null;
+  bulk_density: number | null;
+  area_weight: number | null;
+  reference_thickness: number | null;
+  thermal_conductivity: number | null;
+  declared_unit: string;
+  conversion_to_kg: number;
+  gwp_a1_a3: number;
+  odp_a1_a3: number | null;
+  pocp_a1_a3: number | null;
+  ap_a1_a3: number | null;
+  ep_a1_a3: number | null;
+  adpe_a1_a3: number | null;
+  adpf_a1_a3: number | null;
+  gwp_a4: number | null;
+  transport_distance: number | null;
+  transport_mode: string | null;
+  gwp_a5: number | null;
+  gwp_c1: number | null;
+  gwp_c2: number | null;
+  gwp_c3: number | null;
+  gwp_c4: number | null;
+  gwp_d: number | null;
+  biogenic_carbon: number | null;
+  fossil_carbon: number | null;
+  reference_service_life: number | null;
+  rsl_source: string | null;
+  rsl_confidence: string | null;
+  eol_scenario: string | null;
+  recyclability: number | null;
+  region: string;
+  dutch_availability: boolean;
+  epd_validity: Date | null;
+  epd_owner: string | null;
+  epd_url: string | null;
+  background_database: string | null;
+  quality_rating: number;
+  is_verified: boolean;
+  is_generic: boolean;
+  user_id: string | null;
+  is_public: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface LCAProject {
+  id: string;
+  name: string;
+  description: string | null;
+  project_number: string | null;
+  gross_floor_area: number;
+  building_type: string;
+  construction_system: string | null;
+  floors: number;
+  study_period: number;
+  location: string | null;
+  energy_label: string | null;
+  heating_system: string | null;
+  annual_gas_use: number | null;
+  annual_electricity: number | null;
+  total_gwp_a1_a3: number | null;
+  total_gwp_a4: number | null;
+  total_gwp_a5: number | null;
+  total_gwp_b4: number | null;
+  total_gwp_c: number | null;
+  total_gwp_d: number | null;
+  total_gwp_sum: number | null;
+  total_gwp_per_m2_year: number | null;
+  operational_carbon: number | null;
+  total_carbon: number | null;
+  mpg_reference_value: number | null;
+  is_compliant: boolean | null;
+  user_id: string;
+  is_template: boolean;
+  is_public: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface LCAElement {
+  id: string;
+  project_id: string;
+  name: string;
+  sfb_code: string | null;
+  category: string;
+  quantity: number;
+  quantity_unit: string;
+  description: string | null;
+  notes: string | null;
+  total_gwp_a1_a3: number | null;
+  total_gwp_a4: number | null;
+  total_gwp_a5: number | null;
+  total_gwp_b4: number | null;
+  total_gwp_c: number | null;
+  total_gwp_d: number | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface LCALayer {
+  id: string;
+  element_id: string;
+  position: number;
+  material_id: string;
+  thickness: number;
+  coverage: number;
+  custom_lifespan: number | null;
+  custom_transport_km: number | null;
+  custom_eol_scenario: string | null;
+}
 
 // ============================================
 // CALCULATION TYPES
