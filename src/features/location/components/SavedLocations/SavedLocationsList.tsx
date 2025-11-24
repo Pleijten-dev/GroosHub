@@ -82,6 +82,42 @@ export const SavedLocationsList: React.FC<SavedLocationsListProps> = ({
     onLoadLocation?.(location);
   };
 
+  // Save/update the location
+  const handleSave = async (location: AccessibleLocation, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent expanding the card
+
+    try {
+      // Update the existing saved location with current data
+      const response = await fetch('/api/location/saved', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: location.name,
+          address: location.address,
+          coordinates: location.coordinates,
+          locationData: location.locationData,
+          amenitiesData: location.amenitiesData,
+          selectedPVE: location.selectedPVE,
+          selectedPersonas: location.selectedPersonas,
+          llmRapport: location.llmRapport,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Refresh the list
+        loadLocations();
+      } else {
+        alert(result.error || 'Failed to save location');
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to save location');
+    }
+  };
+
   // Format date
   const formatDate = (date: Date | string) => {
     const d = typeof date === 'string' ? new Date(date) : date;
@@ -249,6 +285,15 @@ export const SavedLocationsList: React.FC<SavedLocationsListProps> = ({
                   className="flex-1 text-xs"
                 >
                   {locale === 'nl' ? 'Laden' : 'Load'}
+                </Button>
+
+                <Button
+                  onClick={(e) => handleSave(location, e)}
+                  variant="secondary"
+                  size="sm"
+                  className="flex-1 text-xs"
+                >
+                  {locale === 'nl' ? 'Opslaan' : 'Save'}
                 </Button>
 
                 {!location.isShared && (

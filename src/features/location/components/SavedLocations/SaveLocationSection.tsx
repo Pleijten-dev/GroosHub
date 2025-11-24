@@ -1,13 +1,12 @@
 // src/features/location/components/SavedLocations/SaveLocationSection.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/shared/components/UI/Button/Button';
 import { cn } from '@/shared/utils/cn';
 import type { Locale } from '@/lib/i18n/config';
 import type { UnifiedLocationData } from '../../data/aggregator/multiLevelAggregator';
 import type { AmenityMultiCategoryResponse } from '../../data/sources/google-places/types';
-import type { AccessibleLocation } from '../../types/saved-locations';
 
 interface SaveLocationSectionProps {
   locale: Locale;
@@ -27,51 +26,6 @@ export const SaveLocationSection: React.FC<SaveLocationSectionProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [locationName, setLocationName] = useState('');
-  const [existingLocation, setExistingLocation] = useState<AccessibleLocation | null>(null);
-  const [isCheckingExisting, setIsCheckingExisting] = useState(false);
-
-  // Check if this address already exists in saved locations
-  useEffect(() => {
-    const checkExistingLocation = async () => {
-      if (!address) {
-        setExistingLocation(null);
-        setLocationName('');
-        return;
-      }
-
-      setIsCheckingExisting(true);
-
-      try {
-        // Fetch all saved locations
-        const response = await fetch('/api/location/saved');
-        const result = await response.json();
-
-        if (result.success && result.data) {
-          // Find location matching current address
-          const existing = result.data.find(
-            (loc: AccessibleLocation) =>
-              loc.address.toLowerCase() === address.toLowerCase()
-          );
-
-          if (existing) {
-            setExistingLocation(existing);
-            // Pre-populate name field with existing name
-            setLocationName(existing.name || '');
-          } else {
-            setExistingLocation(null);
-            setLocationName('');
-          }
-        }
-      } catch (error) {
-        console.error('Error checking for existing location:', error);
-        setExistingLocation(null);
-      } finally {
-        setIsCheckingExisting(false);
-      }
-    };
-
-    checkExistingLocation();
-  }, [address]);
 
   const handleSave = async () => {
     if (!address || !locationData) {
@@ -113,10 +67,7 @@ export const SaveLocationSection: React.FC<SaveLocationSectionProps> = ({
 
       if (result.success) {
         setSaveStatus('success');
-        // Only clear the name input for new saves, not updates
-        if (!existingLocation) {
-          setLocationName('');
-        }
+        setLocationName(''); // Clear the name input
         onSave?.();
 
         // Reset success message after 3 seconds
@@ -175,69 +126,19 @@ export const SaveLocationSection: React.FC<SaveLocationSectionProps> = ({
         </div>
       )}
 
-      {/* Existing location info */}
-      {existingLocation && !isCheckingExisting && (
-        <div className="text-xs bg-blue-50 border border-blue-200 p-sm rounded-md space-y-xs">
-          <div className="flex items-center gap-xs text-blue-700">
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <span className="font-medium">
-              {locale === 'nl'
-                ? 'Bestaande locatie gevonden'
-                : 'Existing location found'}
-            </span>
-          </div>
-          <div className="text-text-muted">
-            {locale === 'nl' ? 'Laatst opgeslagen:' : 'Last saved:'}{' '}
-            {new Date(existingLocation.updatedAt).toLocaleDateString(
-              locale === 'nl' ? 'nl-NL' : 'en-US',
-              { year: 'numeric', month: 'short', day: 'numeric' }
-            )}
-          </div>
-          {existingLocation.completionStatus && (
-            <div className="text-text-muted">
-              {locale === 'nl' ? 'Voortgang:' : 'Progress:'}{' '}
-              <span className="font-medium text-primary">
-                {existingLocation.completionStatus === 'complete'
-                  ? '100%'
-                  : existingLocation.completionStatus === 'with_personas_pve'
-                  ? '75%'
-                  : existingLocation.completionStatus === 'with_personas' ||
-                    existingLocation.completionStatus === 'with_pve'
-                  ? '50%'
-                  : '25%'}
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Save/Update button */}
+      {/* Save button */}
       <Button
         onClick={handleSave}
-        disabled={!hasData || isSaving || isCheckingExisting}
+        disabled={!hasData || isSaving}
         variant="primary"
         className="w-full"
       >
         {isSaving
           ? locale === 'nl'
-            ? existingLocation
-              ? 'Bijwerken...'
-              : 'Opslaan...'
-            : existingLocation
-            ? 'Updating...'
+            ? 'Opslaan...'
             : 'Saving...'
           : locale === 'nl'
-          ? existingLocation
-            ? 'Locatie Bijwerken'
-            : 'Locatie Opslaan'
-          : existingLocation
-          ? 'Update Location'
+          ? 'Locatie Opslaan'
           : 'Save Location'}
       </Button>
 
@@ -251,13 +152,7 @@ export const SaveLocationSection: React.FC<SaveLocationSectionProps> = ({
               clipRule="evenodd"
             />
           </svg>
-          {existingLocation
-            ? locale === 'nl'
-              ? 'Locatie bijgewerkt!'
-              : 'Location updated!'
-            : locale === 'nl'
-            ? 'Locatie opgeslagen!'
-            : 'Location saved!'}
+          {locale === 'nl' ? 'Locatie opgeslagen!' : 'Location saved!'}
         </div>
       )}
 
