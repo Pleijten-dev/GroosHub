@@ -84,7 +84,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   const cubeColors = React.useMemo(() => generateGradientColors(), []);
 
   // Use location data hook
-  const { data, amenities, loading, error, isLoading, hasError, fetchData, clearData } = useLocationData();
+  const { data, amenities, loading, error, isLoading, hasError, fetchData, loadSavedData, clearData } = useLocationData();
 
   // Use sidebar hook for state management
   const { isCollapsed, toggle, setCollapsed } = useSidebar({
@@ -165,21 +165,26 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   // Handle loading a saved location
   const handleLoadSavedLocation = async (location: AccessibleLocation) => {
     try {
-      // Store the location data in cache
+      console.log('🔄 Loading saved location from database:', location.address);
+
+      // Store the current address
       const address = location.address;
       localStorage.setItem('grooshub_current_address', address);
 
-      // The location.locationData already contains UnifiedLocationData
-      // We can use it directly without making additional API calls
+      // Load the saved data directly without making API calls
+      // The location.locationData contains UnifiedLocationData
+      loadSavedData(location.locationData, location.amenitiesData || null);
 
-      // For now, trigger a fresh search to ensure all data is loaded
-      // In the future, we could directly set the data from the saved location
-      await fetchData(address);
+      // Set animation stage to result to show the data immediately
+      setAnimationStage('result');
 
-      // Collapse the sidebar after loading
+      // Expand the sidebar after loading
       setCollapsed(false);
+
+      // Switch to doelgroepen tab
+      setActiveTab('doelgroepen');
     } catch (error) {
-      console.error('Error loading saved location:', error);
+      console.error('❌ Error loading saved location:', error);
     }
   };
 
