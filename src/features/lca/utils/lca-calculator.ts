@@ -22,10 +22,6 @@ import {
   calculateA5,
   calculateB4,
   calculateC,
-  calculateC1,
-  calculateC2,
-  calculateC3,
-  calculateC4,
   calculateD,
   calculateOperationalCarbon
 } from './calculations';

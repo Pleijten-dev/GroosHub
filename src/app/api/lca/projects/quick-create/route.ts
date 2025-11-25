@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     );
 
     let elementsCreated = 0;
-    let layersCreated = 0;
+    const layersCreated = 0;
 
     for (const elementTemplate of elementTemplates) {
       // Create element
