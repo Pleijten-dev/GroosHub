@@ -75,9 +75,9 @@ export async function GET(
     `;
 
     // Load layers with materials for all elements
-    const elementIds = elements.map((e: { id: string }) => e.id);
+    const elementIds = elements.map((e: Record<string, any>) => e.id as string);
 
-    let layers = [];
+    let layers: Record<string, any>[] = [];
     if (elementIds.length > 0) {
       layers = await sql`
         SELECT
@@ -95,37 +95,10 @@ export async function GET(
     }
 
     // Group layers by element
-    const elementsWithLayers = elements.map((element: { id: string }) => {
+    const elementsWithLayers = elements.map((element: Record<string, any>) => {
       const elementLayers = layers
-        .filter((layer: { element_id: string }) => layer.element_id === element.id)
-        .map((layer: {
-          layer_id: string;
-          element_id: string;
-          position: number;
-          material_id: string;
-          thickness: number;
-          coverage: number;
-          layer_custom_lifespan: number | null;
-          layer_custom_transport_km: number | null;
-          layer_custom_eol_scenario: string | null;
-          id: string;
-          oekobaudat_uuid: string | null;
-          name_de: string;
-          name_en: string | null;
-          name_nl: string | null;
-          category: string;
-          density: number | null;
-          declared_unit: string;
-          conversion_to_kg: number;
-          gwp_a1_a3: number;
-          gwp_a4: number | null;
-          gwp_a5: number | null;
-          gwp_c1: number | null;
-          gwp_c2: number | null;
-          gwp_c3: number | null;
-          gwp_c4: number | null;
-          gwp_d: number | null;
-        }) => ({
+        .filter((layer: Record<string, any>) => layer.element_id === element.id)
+        .map((layer: Record<string, any>) => ({
           id: layer.layer_id,
           element_id: layer.element_id,
           position: layer.position,
@@ -243,54 +216,59 @@ export async function PATCH(
     // 3. Parse and validate request body
     const body = await request.json();
 
-    // Build dynamic update query
-    const updates: string[] = [];
-    const values: (string | number | null)[] = [];
-    let paramIndex = 1;
+    // Extract fields from body (only allowed fields)
+    const {
+      name,
+      description,
+      project_number,
+      gross_floor_area,
+      building_type,
+      construction_system,
+      floors,
+      study_period,
+      location,
+      energy_label,
+      heating_system,
+      annual_gas_use,
+      annual_electricity
+    } = body;
 
-    const allowedFields = [
-      'name',
-      'description',
-      'project_number',
-      'gross_floor_area',
-      'building_type',
-      'construction_system',
-      'floors',
-      'study_period',
-      'location',
-      'energy_label',
-      'heating_system',
-      'annual_gas_use',
-      'annual_electricity'
-    ];
+    // Check if at least one field is being updated
+    const hasUpdates = [
+      name, description, project_number, gross_floor_area, building_type,
+      construction_system, floors, study_period, location, energy_label,
+      heating_system, annual_gas_use, annual_electricity
+    ].some(val => val !== undefined);
 
-    for (const field of allowedFields) {
-      if (body[field] !== undefined) {
-        updates.push(`${field} = $${paramIndex}`);
-        values.push(body[field]);
-        paramIndex++;
-      }
-    }
-
-    if (updates.length === 0) {
+    if (!hasUpdates) {
       return NextResponse.json(
         { success: false, error: 'No valid fields to update' },
         { status: 400 }
       );
     }
 
-    // 4. Update project
-    // Note: Using template literal for dynamic fields
-    const updateQuery = `
+    // 4. Update project using Neon's tagged template syntax
+    const result = await sql`
       UPDATE lca_projects
-      SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $${paramIndex}
+      SET
+        name = COALESCE(${name ?? null}, name),
+        description = COALESCE(${description ?? null}, description),
+        project_number = COALESCE(${project_number ?? null}, project_number),
+        gross_floor_area = COALESCE(${gross_floor_area ?? null}, gross_floor_area),
+        building_type = COALESCE(${building_type ?? null}, building_type),
+        construction_system = COALESCE(${construction_system ?? null}, construction_system),
+        floors = COALESCE(${floors ?? null}, floors),
+        study_period = COALESCE(${study_period ?? null}, study_period),
+        location = COALESCE(${location ?? null}, location),
+        energy_label = COALESCE(${energy_label ?? null}, energy_label),
+        heating_system = COALESCE(${heating_system ?? null}, heating_system),
+        annual_gas_use = COALESCE(${annual_gas_use ?? null}, annual_gas_use),
+        annual_electricity = COALESCE(${annual_electricity ?? null}, annual_electricity),
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${id}
       RETURNING *
     `;
 
-    values.push(id);
-
-    const result = await sql.unsafe(updateQuery, values);
     const updatedProject = result[0];
 
     // 5. Return updated project

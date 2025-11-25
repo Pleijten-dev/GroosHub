@@ -62,55 +62,59 @@ export async function GET(request: NextRequest) {
 
     const sql = getDbConnection();
 
-    // 3. Build WHERE conditions
-    const conditions: string[] = [];
-    const values: (string | number | boolean)[] = [];
-    let paramIndex = 1;
+    // 3. Build WHERE conditions using Neon's tagged template syntax
+    const conditions = [];
 
     if (dutchOnly) {
-      conditions.push(`dutch_availability = $${paramIndex}`);
-      values.push(true);
-      paramIndex++;
+      conditions.push(sql`dutch_availability = true`);
     }
 
     if (category) {
-      conditions.push(`category = $${paramIndex}`);
-      values.push(category);
-      paramIndex++;
+      conditions.push(sql`category = ${category}`);
     }
 
     if (minQuality) {
-      conditions.push(`quality_rating >= $${paramIndex}`);
-      values.push(parseInt(minQuality));
-      paramIndex++;
+      const minQualityNum = parseInt(minQuality);
+      conditions.push(sql`quality_rating >= ${minQualityNum}`);
     }
 
     if (search) {
-      conditions.push(`(
-        name_nl ILIKE $${paramIndex} OR
-        name_en ILIKE $${paramIndex} OR
-        name_de ILIKE $${paramIndex}
-      )`);
-      values.push(`%${search}%`);
-      paramIndex++;
+      const searchPattern = `%${search}%`;
+      conditions.push(sql`(name_nl ILIKE ${searchPattern} OR name_en ILIKE ${searchPattern} OR name_de ILIKE ${searchPattern})`);
     }
 
-    const whereClause = conditions.length > 0
-      ? `WHERE ${conditions.join(' AND ')}`
-      : '';
-
     // 4. Count total results
-    const countQuery = `
-      SELECT COUNT(*) as total
-      FROM lca_materials
-      ${whereClause}
-    `;
+    let countResult;
+    if (conditions.length > 0) {
+      // Build WHERE clause by joining conditions
+      const whereConditions = conditions.map((_, i) => `c${i}`).join(' AND ');
+      const countQueryParts = [
+        sql`SELECT COUNT(*) as total FROM lca_materials WHERE`,
+        ...conditions.reduce((acc, cond, i) => {
+          if (i > 0) acc.push(sql` AND `);
+          acc.push(cond);
+          return acc;
+        }, [] as ReturnType<typeof sql>[])
+      ];
 
-    const countResult = await sql.unsafe(countQuery, values);
-    const total = parseInt(countResult[0].total);
+      // For now, use a simpler approach
+      countResult = await sql`
+        SELECT COUNT(*) as total
+        FROM lca_materials
+        WHERE (${conditions.length > 0 ? sql`true` : sql`true`})
+        ${dutchOnly ? sql`AND dutch_availability = true` : sql``}
+        ${category ? sql`AND category = ${category}` : sql``}
+        ${minQuality ? sql`AND quality_rating >= ${parseInt(minQuality)}` : sql``}
+        ${search ? sql`AND (name_nl ILIKE ${`%${search}%`} OR name_en ILIKE ${`%${search}%`} OR name_de ILIKE ${`%${search}%`})` : sql``}
+      `;
+    } else {
+      countResult = await sql`SELECT COUNT(*) as total FROM lca_materials`;
+    }
+
+    const total = parseInt(String(countResult[0].total));
 
     // 5. Fetch materials
-    const materialsQuery = `
+    const materials = await sql`
       SELECT
         id,
         oekobaudat_uuid,
@@ -141,15 +145,15 @@ export async function GET(request: NextRequest) {
         epd_owner,
         region
       FROM lca_materials
-      ${whereClause}
+      WHERE true
+      ${dutchOnly ? sql`AND dutch_availability = true` : sql``}
+      ${category ? sql`AND category = ${category}` : sql``}
+      ${minQuality ? sql`AND quality_rating >= ${parseInt(minQuality)}` : sql``}
+      ${search ? sql`AND (name_nl ILIKE ${`%${search}%`} OR name_en ILIKE ${`%${search}%`} OR name_de ILIKE ${`%${search}%`})` : sql``}
       ORDER BY quality_rating DESC, name_nl ASC
-      LIMIT $${paramIndex}
-      OFFSET $${paramIndex + 1}
+      LIMIT ${limit}
+      OFFSET ${offset}
     `;
-
-    values.push(limit, offset);
-
-    const materials = await sql.unsafe(materialsQuery, values);
 
     // 6. Return results
     return NextResponse.json({
