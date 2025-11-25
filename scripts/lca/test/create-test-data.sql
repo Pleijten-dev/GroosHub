@@ -76,61 +76,48 @@ INSERT INTO lca_elements (
 );
 
 -- Layer 1: Exterior OSB board (12mm)
--- Find OSB material from imported materials
+-- Using: Cement bound particle board (close substitute), GWP: 1694.15 kg CO2-eq/m3, Density: 1200 kg/m3
 INSERT INTO lca_layers (element_id, position, material_id, thickness, coverage)
-SELECT
+VALUES (
   '00000000-0000-0000-0000-000000000010',
   1,
-  id,
+  '13346b9a-2dea-4699-b356-666b25fb0a49',
   0.012,                    -- 12mm thickness
   1.0                       -- 100% coverage
-FROM lca_materials
-WHERE category = 'timber'
-  AND (name_en ILIKE '%OSB%' OR name_de ILIKE '%OSB%')
-  AND dutch_availability = true
-LIMIT 1;
+);
 
 -- Layer 2: Mineral wool insulation (200mm for RC 6.0)
+-- Using: Mineral wool (facade), GWP: 70.39 kg CO2-eq/kg
 INSERT INTO lca_layers (element_id, position, material_id, thickness, coverage)
-SELECT
+VALUES (
   '00000000-0000-0000-0000-000000000010',
   2,
-  id,
+  'e51edde6-a353-4b1b-be94-d63118bca3b2',
   0.200,                    -- 200mm thickness
   1.0                       -- 100% coverage
-FROM lca_materials
-WHERE category = 'insulation'
-  AND (name_en ILIKE '%mineral wool%' OR name_de ILIKE '%Mineralwolle%')
-  AND dutch_availability = true
-LIMIT 1;
+);
 
 -- Layer 3: Timber studs (45x195mm @ 600mm centers = 7.5% coverage)
+-- Using: Cement bound particle board (substitute for timber), GWP: 1694.15 kg CO2-eq/m3, Density: 1200 kg/m3
 INSERT INTO lca_layers (element_id, position, material_id, thickness, coverage)
-SELECT
+VALUES (
   '00000000-0000-0000-0000-000000000010',
   3,
-  id,
+  '13346b9a-2dea-4699-b356-666b25fb0a49',
   0.195,                    -- 195mm depth
   0.075                     -- 7.5% coverage (45mm stud / 600mm spacing)
-FROM lca_materials
-WHERE category = 'timber'
-  AND (name_en ILIKE '%structural timber%' OR name_en ILIKE '%sawn timber%' OR name_de ILIKE '%Konstruktionsholz%')
-  AND dutch_availability = true
-LIMIT 1;
+);
 
 -- Layer 4: Interior gypsum board (12.5mm)
+-- Using: Gypsum interior plaster, GWP: 119.40 kg CO2-eq/m3, Density: 900 kg/m3
 INSERT INTO lca_layers (element_id, position, material_id, thickness, coverage)
-SELECT
+VALUES (
   '00000000-0000-0000-0000-000000000010',
   4,
-  id,
+  '2550d0eb-ae35-49bb-b02f-7ba4c4ac5f5f',
   0.0125,                   -- 12.5mm thickness
   1.0                       -- 100% coverage
-FROM lca_materials
-WHERE category = 'finishes'
-  AND (name_en ILIKE '%gypsum%' OR name_de ILIKE '%Gipsplatte%')
-  AND dutch_availability = true
-LIMIT 1;
+);
 
 -- ============================================
 -- ELEMENT 2: Roof (Dak)
@@ -169,32 +156,26 @@ WHERE category = 'finishes'
 LIMIT 1;
 
 -- Layer 2: Roof insulation (240mm for RC 6.0)
+-- Using: Mineral wool (blowable), GWP: 64.02 kg CO2-eq/kg
 INSERT INTO lca_layers (element_id, position, material_id, thickness, coverage)
-SELECT
+VALUES (
   '00000000-0000-0000-0000-000000000011',
   2,
-  id,
+  'fa081fea-9df6-4a4b-ba16-850895973ac1',
   0.240,                    -- 240mm
   1.0
-FROM lca_materials
-WHERE category = 'insulation'
-  AND (name_en ILIKE '%mineral wool%' OR name_de ILIKE '%Mineralwolle%')
-  AND dutch_availability = true
-LIMIT 1;
+);
 
 -- Layer 3: Timber rafters
+-- Using: Cement bound particle board (substitute for timber), GWP: 1694.15 kg CO2-eq/m3, Density: 1200 kg/m3
 INSERT INTO lca_layers (element_id, position, material_id, thickness, coverage)
-SELECT
+VALUES (
   '00000000-0000-0000-0000-000000000011',
   3,
-  id,
+  '13346b9a-2dea-4699-b356-666b25fb0a49',
   0.240,                    -- 240mm depth
   0.08                      -- 8% coverage (50mm rafter / 600mm spacing)
-FROM lca_materials
-WHERE category = 'timber'
-  AND (name_en ILIKE '%structural timber%' OR name_en ILIKE '%sawn timber%')
-  AND dutch_availability = true
-LIMIT 1;
+);
 
 -- ============================================
 -- ELEMENT 3: Ground Floor (Begane grond vloer)
