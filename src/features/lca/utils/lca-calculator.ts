@@ -15,6 +15,21 @@ import type {
   LCALayer
 } from '../types';
 
+// Import all phase calculations
+import {
+  calculateA1A3,
+  calculateA4,
+  calculateA5,
+  calculateB4,
+  calculateC,
+  calculateC1,
+  calculateC2,
+  calculateC3,
+  calculateC4,
+  calculateD,
+  calculateOperationalCarbon
+} from './calculations';
+
 // ============================================
 // DATA TRANSFORMATION HELPER
 // ============================================
@@ -542,245 +557,9 @@ async function calculateElement(
 }
 
 // ============================================
-// MODULE CALCULATIONS
+// NOTE: Phase calculations moved to ./calculations/
+// Import individual phase functions from there for easier maintenance
 // ============================================
-
-export function calculateA1A3(mass: number, material: Material): number {
-  const gwpValue = Number(material.gwp_a1_a3) || 0;
-
-  // Check if GWP is per volume (m³) or per mass (kg)
-  const declaredUnit = material.declared_unit || '1 kg';
-  const isVolumetric = declaredUnit.toLowerCase().includes('m3') ||
-                       declaredUnit.toLowerCase().includes('m³') ||
-                       declaredUnit.toLowerCase().includes('m2') ||
-                       declaredUnit.toLowerCase().includes('m²');
-
-  if (isVolumetric && material.density && Number(material.density) > 0) {
-    // GWP is per m³, convert to per kg
-    const density = Number(material.density);
-    const gwpPerKg = gwpValue / density;
-    return mass * gwpPerKg;
-  }
-
-  // GWP is per kg (or no density available), use directly
-  const conversionFactor = Number(material.conversion_to_kg) || 1;
-
-  // If conversion_to_kg represents "kg per declared unit", divide
-  // If it represents a multiplier, use as is
-  // Default behavior: if conversion is 1, use mass directly
-  if (conversionFactor === 1) {
-    return mass * gwpValue;
-  }
-
-  // For other conversion factors, divide to get quantity in declared units
-  const quantityInDeclaredUnit = mass / conversionFactor;
-  return quantityInDeclaredUnit * gwpValue;
-}
-
-export function calculateA4(
-  mass: number,
-  material: Material,
-  customDistance?: number | null
-): number {
-  // Use custom distance, material default, or category default
-  const distance = customDistance ||
-                   material.transport_distance ||
-                   getDefaultTransportDistance(material.category);
-
-  const transportMode = (material.transport_mode as keyof typeof TRANSPORT_EMISSION_FACTORS) || 'truck';
-  const emissionFactor = TRANSPORT_EMISSION_FACTORS[transportMode] || 0.062;
-
-  // Formula: (mass in tonnes) × distance × emission factor
-  return (mass / 1000) * distance * emissionFactor;
-}
-
-const TRANSPORT_EMISSION_FACTORS: Record<string, number> = {
-  truck: 0.062,      // kg CO2-eq per tonne-km
-  train: 0.022,
-  ship: 0.008,
-  combined: 0.050
-};
-
-function getDefaultTransportDistance(category: string): number {
-  const defaults: Record<string, number> = {
-    concrete: 50,      // Local
-    masonry: 50,
-    timber: 200,       // National
-    metal: 500,        // European
-    insulation: 500,
-    glass: 500,
-    finishes: 200
-  };
-  return defaults[category] || 300;
-}
-
-export function calculateA5(a1a3Impact: number, elementCategory: string): number {
-  // A5 as percentage of A1-A3
-  const factors: Record<string, number> = {
-    exterior_wall: 0.05,
-    interior_wall: 0.03,
-    floor: 0.04,
-    roof: 0.06,
-    foundation: 0.08,
-    windows: 0.02,
-    doors: 0.02,
-    mep: 0.10,
-    finishes: 0.03
-  };
-
-  const factor = factors[elementCategory] || 0.05;
-  return a1a3Impact * factor;
-}
-
-export function calculateB4(
-  mass: number,
-  material: Material,
-  customLifespan: number | null,
-  studyPeriod: number
-): number {
-  // Get lifespan
-  const lifespan = customLifespan ||
-                   material.reference_service_life ||
-                   estimateLifespan(material.category);
-
-  // Calculate replacements (exclude initial installation)
-  const replacements = Math.max(0, Math.floor(studyPeriod / lifespan) - 1);
-
-  if (replacements === 0) return 0;
-
-  // Replacement impact = production impact per replacement
-  // Use the same unit handling as A1-A3
-  const singleImpact = calculateA1A3(mass, material);
-
-  return singleImpact * replacements;
-}
-
-function estimateLifespan(category: string): number {
-  // Fallback if no material-specific data
-  const defaults: Record<string, number> = {
-    concrete: 100,
-    timber: 75,
-    masonry: 100,
-    metal: 75,
-    insulation: 50,
-    glass: 30,
-    finishes: 25
-  };
-  return defaults[category] || 50;
-}
-
-export function calculateC(mass: number, material: Material): number {
-  const DEBUG = process.env.LCA_DEBUG === 'true';
-
-  // Sum of C1-C4 modules - FORCE number conversion!
-  const c1 = Number(material.gwp_c1) || 0;
-  const c2 = Number(material.gwp_c2) || 0;
-  const c3 = Number(material.gwp_c3) || 0;
-  const c4 = Number(material.gwp_c4) || 0;
-  const totalC = c1 + c2 + c3 + c4;
-
-  if (DEBUG) {
-    console.log(`    [calculateC] Input: mass=${mass}`);
-    console.log(`    [calculateC] C values: c1=${c1}, c2=${c2}, c3=${c3}, c4=${c4}`);
-    console.log(`    [calculateC] totalC = ${totalC} (type: ${typeof totalC})`);
-    console.log(`    [calculateC] isNaN(totalC) = ${isNaN(totalC)}`);
-  }
-
-  // Handle volumetric vs mass-based units (same as A1-A3)
-  const declaredUnit = material.declared_unit || '1 kg';
-  const isVolumetric = declaredUnit.toLowerCase().includes('m3') ||
-                       declaredUnit.toLowerCase().includes('m³') ||
-                       declaredUnit.toLowerCase().includes('m2') ||
-                       declaredUnit.toLowerCase().includes('m²');
-
-  if (DEBUG) {
-    console.log(`    [calculateC] declaredUnit="${declaredUnit}", isVolumetric=${isVolumetric}`);
-    console.log(`    [calculateC] density=${material.density} (type: ${typeof material.density})`);
-  }
-
-  if (isVolumetric && material.density && Number(material.density) > 0) {
-    const density = Number(material.density);
-    const totalCPerKg = totalC / density;
-    const result = mass * totalCPerKg;
-    if (DEBUG) {
-      console.log(`    [calculateC] Volumetric path: totalCPerKg=${totalCPerKg}, result=${result}`);
-      console.log(`    [calculateC] Calculation: ${mass} * (${totalC} / ${density}) = ${result}`);
-    }
-    return result;
-  }
-
-  const conversionFactor = Number(material.conversion_to_kg) || 1;
-  if (conversionFactor === 1) {
-    const result = mass * totalC;
-    if (DEBUG) console.log(`    [calculateC] Mass-based path (factor=1): result=${result}`);
-    return result;
-  }
-
-  const quantityInDeclaredUnit = mass / conversionFactor;
-  const result = quantityInDeclaredUnit * totalC;
-  if (DEBUG) console.log(`    [calculateC] Mass-based path (factor=${conversionFactor}): result=${result}`);
-  return result;
-}
-
-export function calculateD(mass: number, material: Material): number {
-  // Module D benefits (negative = benefit) - FORCE number conversion!
-  const d = Number(material.gwp_d) || 0;
-
-  // Handle volumetric vs mass-based units (same as A1-A3)
-  const declaredUnit = material.declared_unit || '1 kg';
-  const isVolumetric = declaredUnit.toLowerCase().includes('m3') ||
-                       declaredUnit.toLowerCase().includes('m³') ||
-                       declaredUnit.toLowerCase().includes('m2') ||
-                       declaredUnit.toLowerCase().includes('m²');
-
-  if (isVolumetric && material.density && Number(material.density) > 0) {
-    const density = Number(material.density);
-    const dPerKg = d / density;
-    return mass * dPerKg;
-  }
-
-  const conversionFactor = Number(material.conversion_to_kg) || 1;
-  if (conversionFactor === 1) {
-    return mass * d;
-  }
-
-  const quantityInDeclaredUnit = mass / conversionFactor;
-  return quantityInDeclaredUnit * d;
-}
-
-// ============================================
-// B6: OPERATIONAL ENERGY (SIMPLIFIED)
-// ============================================
-
-export function calculateOperationalCarbon(
-  project: LCAProject
-): number {
-  // Lookup based on energy label
-  if (project.energy_label) {
-    const estimates: Record<string, number> = {
-      'A++++': 5,
-      'A+++': 8,
-      'A++': 12,
-      'A+': 18,
-      'A': 25,
-      'B': 35,
-      'C': 45,
-      'D': 55
-    };
-    return estimates[project.energy_label] || 30;
-  }
-
-  // Or calculate from actual usage if provided
-  if (project.annual_gas_use && project.annual_electricity) {
-    const gasEmissions = project.annual_gas_use * 1.884; // kg CO2/m³
-    const elecEmissions = project.annual_electricity * 0.475; // kg CO2/kWh
-    const annualTotal = gasEmissions + elecEmissions;
-    return annualTotal / project.gross_floor_area; // Per m²
-  }
-
-  // Default estimate
-  return 25; // kg CO2/m²/year
-}
 
 // ============================================
 // NORMALIZATION
