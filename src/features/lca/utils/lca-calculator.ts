@@ -513,9 +513,34 @@ async function calculateElement(
 // ============================================
 
 export function calculateA1A3(mass: number, material: Material): number {
-  // Convert to declared unit if needed
-  const massInDeclaredUnit = mass * material.conversion_to_kg;
-  return massInDeclaredUnit * (material.gwp_a1_a3 || 0);
+  const gwpValue = material.gwp_a1_a3 || 0;
+
+  // Check if GWP is per volume (m³) or per mass (kg)
+  const declaredUnit = material.declared_unit || '1 kg';
+  const isVolumetric = declaredUnit.toLowerCase().includes('m3') ||
+                       declaredUnit.toLowerCase().includes('m³') ||
+                       declaredUnit.toLowerCase().includes('m2') ||
+                       declaredUnit.toLowerCase().includes('m²');
+
+  if (isVolumetric && material.density && material.density > 0) {
+    // GWP is per m³, convert to per kg
+    const gwpPerKg = gwpValue / material.density;
+    return mass * gwpPerKg;
+  }
+
+  // GWP is per kg (or no density available), use directly
+  const conversionFactor = material.conversion_to_kg || 1;
+
+  // If conversion_to_kg represents "kg per declared unit", divide
+  // If it represents a multiplier, use as is
+  // Default behavior: if conversion is 1, use mass directly
+  if (conversionFactor === 1) {
+    return mass * gwpValue;
+  }
+
+  // For other conversion factors, divide to get quantity in declared units
+  const quantityInDeclaredUnit = mass / conversionFactor;
+  return quantityInDeclaredUnit * gwpValue;
 }
 
 export function calculateA4(

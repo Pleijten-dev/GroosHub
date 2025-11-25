@@ -97,12 +97,30 @@ async function recreateTestData() {
 
   console.log('✓ Elements and layers created\n');
 
-  // Step 4: Verify creation
+  // Step 4: Verify creation and show material details
   const layerCount = await sql`
     SELECT COUNT(*) as count FROM lca_layers
     WHERE element_id IN (SELECT id FROM lca_elements WHERE project_id = ${TEST_PROJECT_ID})
   `;
   console.log(`✓ Created ${layerCount[0].count} layers\n`);
+
+  // Show material details
+  const materialDetails = await sql`
+    SELECT DISTINCT
+      m.id, m.name_en, m.declared_unit, m.conversion_to_kg,
+      m.gwp_a1_a3, m.density
+    FROM lca_layers l
+    JOIN lca_materials m ON m.id = l.material_id
+    WHERE l.element_id IN (SELECT id FROM lca_elements WHERE project_id = ${TEST_PROJECT_ID})
+  `;
+
+  console.log('Materials Used:');
+  console.log('---------------');
+  materialDetails.forEach((m: any) => {
+    console.log(`${m.name_en}:`);
+    console.log(`  Unit: ${m.declared_unit}, Conv: ${m.conversion_to_kg}, GWP: ${m.gwp_a1_a3}, Density: ${m.density}`);
+  });
+  console.log('');
 
   // Step 5: Run calculator test
   console.log('='.repeat(60));
