@@ -89,7 +89,7 @@ async function importOekobaudat() {
   console.log('🔄 Starting Ökobaudat import (FIXED VERSION)...\n');
 
   const sql = getDbConnection();
-  const csvPath = resolve(process.cwd(), 'data/oekobaudat_2023_II_a1-a3.csv');
+  const csvPath = resolve(process.cwd(), 'data/lca/oekobaudat-export.csv');
 
   if (!existsSync(csvPath)) {
     throw new Error(`CSV file not found: ${csvPath}`);
