@@ -338,8 +338,15 @@ export async function calculateProjectLCA(
   const elementBreakdown: ElementBreakdown[] = [];
 
   // Calculate each element
+  const DEBUG = process.env.LCA_DEBUG === 'true';
   for (const element of project.elements) {
     const elementResult = await calculateElement(element as ElementWithLayers, project.study_period);
+
+    if (DEBUG) {
+      console.log(`\n=== Element: ${element.name} ===`);
+      console.log(`  Result - A1-A3: ${elementResult.a1_a3}, A4: ${elementResult.a4}, A5: ${elementResult.a5}`);
+      console.log(`  Result - B4: ${elementResult.b4}, C: ${elementResult.c}, D: ${elementResult.d}`);
+    }
 
     totalA1A3 += elementResult.a1_a3;
     totalA4 += elementResult.a4;
@@ -348,12 +355,22 @@ export async function calculateProjectLCA(
     totalC += elementResult.c;
     totalD += elementResult.d;
 
+    if (DEBUG) {
+      console.log(`  Totals after - A1-A3: ${totalA1A3}, C: ${totalC}, D: ${totalD}`);
+    }
+
     elementBreakdown.push({
       element_id: element.id,
       element_name: element.name,
       total_impact: elementResult.total,
       percentage: 0 // Calculate after total known
     });
+  }
+
+  if (DEBUG) {
+    console.log(`\n=== Final Totals ===`);
+    console.log(`  totalC: ${totalC}`);
+    console.log(`  totalC * 0.3: ${totalC * 0.3}`);
   }
 
   const totalAToC = totalA1A3 + totalA4 + totalA5 + totalB4 + totalC;
@@ -467,17 +484,27 @@ async function calculateElement(
     const density = layer.material.density || layer.material.bulk_density || 0;
     const mass = volume * density; // kg
 
+    // DEBUG: Log layer calculation
+    const DEBUG = process.env.LCA_DEBUG === 'true';
+    if (DEBUG) {
+      console.log(`\nLayer: ${layer.material.name_en || layer.material.name_de}`);
+      console.log(`  Volume: ${volume.toFixed(4)} m³, Density: ${density}, Mass: ${mass.toFixed(2)} kg`);
+    }
+
     // Step 2: Module A1-A3 (Production)
     const a1a3 = calculateA1A3(mass, layer.material);
     elementA1A3 += a1a3;
+    if (DEBUG) console.log(`  A1-A3: ${a1a3.toFixed(2)}, Total: ${elementA1A3.toFixed(2)}`);
 
     // Step 3: Module A4 (Transport)
     const a4 = calculateA4(mass, layer.material, layer.custom_transport_km);
     elementA4 += a4;
+    if (DEBUG) console.log(`  A4: ${a4.toFixed(2)}, Total: ${elementA4.toFixed(2)}`);
 
     // Step 4: Module A5 (Construction)
     const a5 = calculateA5(a1a3, element.category);
     elementA5 += a5;
+    if (DEBUG) console.log(`  A5: ${a5.toFixed(2)}, Total: ${elementA5.toFixed(2)}`);
 
     // Step 5: Module B4 (Replacement)
     const b4 = calculateB4(
@@ -487,14 +514,20 @@ async function calculateElement(
       studyPeriod
     );
     elementB4 += b4;
+    if (DEBUG) console.log(`  B4: ${b4.toFixed(2)}, Total: ${elementB4.toFixed(2)}`);
 
     // Step 6: Module C (End of Life)
     const c = calculateC(mass, layer.material);
     elementC += c;
+    if (DEBUG) {
+      console.log(`  C: ${c}, elementC before: ${elementC - c}, elementC after: ${elementC}`);
+      console.log(`  Material C values: C1=${layer.material.gwp_c1}, C2=${layer.material.gwp_c2}, C3=${layer.material.gwp_c3}, C4=${layer.material.gwp_c4}`);
+    }
 
     // Step 7: Module D (Benefits)
     const d = calculateD(mass, layer.material);
     elementD += d;
+    if (DEBUG) console.log(`  D: ${d.toFixed(2)}, Total: ${elementD.toFixed(2)}`);
   }
 
   return {

@@ -124,9 +124,12 @@ async function recreateTestData() {
 
   // Step 5: Run calculator test
   console.log('='.repeat(60));
-  console.log('🧪 Running LCA Calculator Test');
+  console.log('🧪 Running LCA Calculator Test (DEBUG MODE)');
   console.log('='.repeat(60));
   console.log('');
+
+  // Enable debug mode
+  process.env.LCA_DEBUG = 'true';
 
   const startTime = Date.now();
   const result = await calculateProjectLCA(TEST_PROJECT_ID);
