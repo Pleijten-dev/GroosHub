@@ -6,12 +6,30 @@
 // Usage:
 //   npx tsx scripts/lca/test/test-calculator.ts
 
-// Load environment variables from .env.local
-import { config } from 'dotenv';
+// Load environment variables from .env.local manually
+import { readFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 
-// Load .env.local file
-config({ path: resolve(process.cwd(), '.env.local') });
+// Load .env.local file if it exists
+const envPath = resolve(process.cwd(), '.env.local');
+if (existsSync(envPath)) {
+  const envContent = readFileSync(envPath, 'utf-8');
+  envContent.split('\n').forEach(line => {
+    // Skip comments and empty lines
+    if (line.startsWith('#') || !line.trim()) return;
+
+    const [key, ...valueParts] = line.split('=');
+    if (key && valueParts.length > 0) {
+      const value = valueParts.join('=').trim();
+      // Remove quotes if present
+      const cleanValue = value.replace(/^["']|["']$/g, '');
+      process.env[key.trim()] = cleanValue;
+    }
+  });
+  console.log('✓ Loaded environment variables from .env.local\n');
+} else {
+  console.warn('⚠️  Warning: .env.local file not found\n');
+}
 
 import { calculateProjectLCA } from '../../../src/features/lca/utils/lca-calculator';
 
