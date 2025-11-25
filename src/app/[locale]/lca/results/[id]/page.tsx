@@ -54,7 +54,10 @@ export default async function LCAResultsPage({
     LIMIT 1
   `;
 
-  const reference = referenceResult.length > 0 ? referenceResult[0] : null;
+  const reference = referenceResult.length > 0 ? {
+    mpg_limit: Number(referenceResult[0].mpg_limit),
+    operational_carbon: Number(referenceResult[0].operational_carbon)
+  } : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 p-base">
@@ -87,7 +90,7 @@ export default async function LCAResultsPage({
                   <span className="text-gray-500">
                     {locale === 'nl' ? 'Bouwsysteem:' : 'Construction:'}
                   </span>{' '}
-                  <span className="font-medium">{project.construction_system}</span>
+                  <span className="font-medium">{project.construction_system || '-'}</span>
                 </div>
                 <div>
                   <span className="text-gray-500">GFA:</span>{' '}

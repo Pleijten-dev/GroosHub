@@ -5,27 +5,7 @@
 'use client';
 
 import { useState } from 'react';
-
-interface Project {
-  id: string;
-  name: string;
-  building_type: string;
-  construction_system: string;
-  gross_floor_area: number;
-  study_period: number;
-  total_gwp_per_m2_year: number | null;
-  mpg_reference_value: number | null;
-  is_compliant: boolean | null;
-  total_gwp_a1_a3: number | null;
-  total_gwp_a4: number | null;
-  total_gwp_a5: number | null;
-  total_gwp_b4: number | null;
-  total_gwp_c: number | null;
-  total_gwp_d: number | null;
-  total_gwp_sum: number | null;
-  operational_carbon: number | null;
-  energy_label: string | null;
-}
+import type { LCAProject } from '../../types';
 
 interface Reference {
   mpg_limit: number;
@@ -33,7 +13,7 @@ interface Reference {
 }
 
 interface ResultsDashboardProps {
-  project: Project;
+  project: LCAProject;
   reference: Reference | null;
   locale: 'nl' | 'en';
 }
@@ -203,7 +183,7 @@ export function ResultsDashboard({
             </div>
             <div>
               <dt className="text-sm text-gray-500">{t.constructionSystem}</dt>
-              <dd className="font-medium text-gray-900 capitalize">{project.construction_system}</dd>
+              <dd className="font-medium text-gray-900 capitalize">{project.construction_system || '-'}</dd>
             </div>
             <div>
               <dt className="text-sm text-gray-500">{t.grossFloorArea}</dt>
