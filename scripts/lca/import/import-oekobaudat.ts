@@ -60,7 +60,11 @@ async function importOekobaudat() {
   const records = parse(csvContent, {
     columns: true,
     skip_empty_lines: true,
-    delimiter: ','  // Changed from ';' to ',' for comma-separated CSV
+    delimiter: ';',           // Semicolon-separated
+    relax_quotes: true,       // Allow quotes inside fields
+    relax_column_count: true, // Allow inconsistent column counts
+    escape: '"',              // Escape character for quotes
+    quote: '"'                // Quote character
   }) as Record<string, string>[];
 
   console.log(`📊 Found ${records.length} records in CSV`);
