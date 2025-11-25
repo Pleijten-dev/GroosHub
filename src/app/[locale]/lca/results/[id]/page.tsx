@@ -42,7 +42,7 @@ export default async function LCAResultsPage({
   const project = projectResult[0] as LCAProject;
 
   // Check ownership or public access
-  if (project.user_id !== session.user.id && !project.is_public) {
+  if (String(project.user_id) !== String(session.user.id) && !project.is_public) {
     return notFound();
   }
 
