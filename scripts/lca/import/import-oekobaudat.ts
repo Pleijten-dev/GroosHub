@@ -242,12 +242,24 @@ function checkDutchRelevance(record: Record<string, string>): boolean {
     return false;
   }
 
-  // Include if within European context
+  // Include if within European context or global datasets
   const region = record['Laenderkennung'];
-  if (region && !['DE', 'NL', 'EU', 'EU-27', ''].includes(region)) {
+
+  // Exclude only clearly non-European/non-global regions
+  const excludedRegions = [
+    'US', 'USA',  // United States
+    'CN', 'CHN',  // China
+    'JP', 'JPN',  // Japan
+    'BR', 'BRA',  // Brazil
+    'IN', 'IND',  // India
+    'AU', 'AUS',  // Australia
+  ];
+
+  if (region && excludedRegions.includes(region)) {
     return false;
   }
 
+  // Accept DE, NL, EU, RER (Rest of Europe), GLO (Global), and empty
   return true;
 }
 
