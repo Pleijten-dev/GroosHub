@@ -71,7 +71,15 @@ async function importOekobaudat() {
 
   // Debug: Show sample of module values
   const moduleSample = records.slice(0, 20).map(r => r.Modul).filter(Boolean);
-  console.log(`📋 Sample module values: ${[...new Set(moduleSample)].join(', ')}\n`);
+  console.log(`📋 Sample module values: ${[...new Set(moduleSample)].join(', ')}`);
+
+  // Debug: Show sample A1-A3 rows with GWP values
+  const a1a3Rows = records.filter(r => r.Modul === 'A1-A3').slice(0, 5);
+  console.log(`\n📊 Sample A1-A3 rows with GWP values:`);
+  a1a3Rows.forEach(r => {
+    console.log(`  - ${r['Name (en)'] || r['Name (de)']}: GWP=${r.GWP}, Category=${r['Kategorie (en)']}, Country=${r.Laenderkennung}`);
+  });
+  console.log('');
 
   let imported = 0;
   let skipped = 0;
@@ -99,9 +107,13 @@ async function importOekobaudat() {
       const gwpA1A3 = extractModuleValue(record, 'A1-A3', 'GWP');
 
       // Skip materials without basic GWP data
-      if (gwpA1A3 === 0) {
+      if (gwpA1A3 === 0 || isNaN(gwpA1A3)) {
         skipped++;
         skippedNoGwp++;
+        // Debug: Show first few skipped materials
+        if (skippedNoGwp <= 3) {
+          console.log(`⚠️  Skipped (no GWP): ${record['Name (en)'] || record['Name (de)']} - GWP value: "${record.GWP}"`);
+        }
         continue;
       }
 
