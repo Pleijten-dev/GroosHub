@@ -114,13 +114,17 @@ The test creates:
 
 ### Error: "Database URL not configured"
 
-**Cause**: Missing environment variable
+**Cause**: Missing environment variable or `.env.local` file not found
 
 **Solution**:
-Add to `.env.local`:
+1. Ensure `.env.local` exists in the project root (not in scripts directory)
+2. Add database URLs without quotes:
 ```bash
-POSTGRES_URL=your_postgres_url_here
+POSTGRES_URL=postgres://user:password@host.neon.tech/dbname
+POSTGRES_URL_NON_POOLING=postgres://user:password@host.neon.tech/dbname
 ```
+3. Make sure the `.env.local` file is in `/home/user/GroosHub/.env.local`
+4. Values should NOT have quotes around them
 
 ### Warning: "A1-A3 phase seems low"
 

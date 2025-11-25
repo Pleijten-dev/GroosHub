@@ -6,6 +6,13 @@
 // Usage:
 //   npx tsx scripts/lca/test/test-calculator.ts
 
+// Load environment variables from .env.local
+import { config } from 'dotenv';
+import { resolve } from 'path';
+
+// Load .env.local file
+config({ path: resolve(process.cwd(), '.env.local') });
+
 import { calculateProjectLCA } from '../../../src/features/lca/utils/lca-calculator';
 
 const TEST_PROJECT_ID = '00000000-0000-0000-0000-000000000001';
