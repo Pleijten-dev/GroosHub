@@ -69,16 +69,29 @@ async function importOekobaudat() {
 
   console.log(`📊 Found ${records.length} records in CSV`);
 
+  // Debug: Show sample of module values
+  const moduleSample = records.slice(0, 20).map(r => r.Modul).filter(Boolean);
+  console.log(`📋 Sample module values: ${[...new Set(moduleSample)].join(', ')}\n`);
+
   let imported = 0;
   let skipped = 0;
   let errors = 0;
+  let skippedNoGwp = 0;
+  let skippedNotDutch = 0;
 
   for (const record of records) {
     try {
+      // Only process A1-A3 module rows (each material has multiple rows)
+      if (record.Modul !== 'A1-A3') {
+        skipped++;
+        continue;
+      }
+
       // Filter: Only Dutch-relevant materials
       const isDutchRelevant = checkDutchRelevance(record);
       if (!isDutchRelevant) {
         skipped++;
+        skippedNotDutch++;
         continue;
       }
 
@@ -88,6 +101,7 @@ async function importOekobaudat() {
       // Skip materials without basic GWP data
       if (gwpA1A3 === 0) {
         skipped++;
+        skippedNoGwp++;
         continue;
       }
 
@@ -168,27 +182,27 @@ async function importOekobaudat() {
   console.log('\n📊 Import Summary:');
   console.log(`✅ Imported: ${imported}`);
   console.log(`⏭️  Skipped: ${skipped}`);
+  console.log(`   - Not A1-A3 module: ${skipped - skippedNotDutch - skippedNoGwp}`);
+  console.log(`   - Not Dutch-relevant: ${skippedNotDutch}`);
+  console.log(`   - No GWP data: ${skippedNoGwp}`);
   console.log(`❌ Errors: ${errors}`);
 }
 
 function extractModuleValue(record: Record<string, string>, module: string, indicator: string): number {
-  // TODO: Implement based on actual Ökobaudat CSV structure
-  // The structure varies depending on the export format
+  // The CSV has a "Modul" column that indicates which lifecycle phase this row represents
+  // Each material (UUID) appears multiple times - once for each module
 
-  // Option 1: If columns are like "GWP_A1-A3", "GWP_A4", etc.
-  const columnName = `${indicator}_${module}`;
-  if (record[columnName]) {
-    return parseFloat(record[columnName]) || 0;
-  }
-
-  // Option 2: If there's a "Modul" column that indicates the module
+  // Check if this row is for the requested module
   if (record.Modul === module && record[indicator]) {
-    return parseFloat(record[indicator]) || 0;
+    const value = parseFloat(record[indicator]);
+    return isNaN(value) ? 0 : value;
   }
 
-  // Option 3: Try direct column match
-  if (record[indicator]) {
-    return parseFloat(record[indicator]) || 0;
+  // For A2 module, there are specific columns like "GWPtotal (A2)"
+  const a2ColumnName = `${indicator}total (A2)`;
+  if (module === 'A2' && record[a2ColumnName]) {
+    const value = parseFloat(record[a2ColumnName]);
+    return isNaN(value) ? 0 : value;
   }
 
   return 0;
