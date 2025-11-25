@@ -68,7 +68,7 @@ export default async function LCAQuickStartPage({
 
         {/* Quick Start Form */}
         <Suspense fallback={<FormSkeleton />}>
-          <QuickStartForm locale={locale} />
+          <QuickStartForm locale={locale as 'nl' | 'en'} />
         </Suspense>
 
         {/* Additional Info */}
