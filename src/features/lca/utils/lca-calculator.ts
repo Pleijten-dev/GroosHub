@@ -546,7 +546,7 @@ async function calculateElement(
 // ============================================
 
 export function calculateA1A3(mass: number, material: Material): number {
-  const gwpValue = material.gwp_a1_a3 || 0;
+  const gwpValue = Number(material.gwp_a1_a3) || 0;
 
   // Check if GWP is per volume (m³) or per mass (kg)
   const declaredUnit = material.declared_unit || '1 kg';
@@ -555,14 +555,15 @@ export function calculateA1A3(mass: number, material: Material): number {
                        declaredUnit.toLowerCase().includes('m2') ||
                        declaredUnit.toLowerCase().includes('m²');
 
-  if (isVolumetric && material.density && material.density > 0) {
+  if (isVolumetric && material.density && Number(material.density) > 0) {
     // GWP is per m³, convert to per kg
-    const gwpPerKg = gwpValue / material.density;
+    const density = Number(material.density);
+    const gwpPerKg = gwpValue / density;
     return mass * gwpPerKg;
   }
 
   // GWP is per kg (or no density available), use directly
-  const conversionFactor = material.conversion_to_kg || 1;
+  const conversionFactor = Number(material.conversion_to_kg) || 1;
 
   // If conversion_to_kg represents "kg per declared unit", divide
   // If it represents a multiplier, use as is
@@ -671,11 +672,11 @@ function estimateLifespan(category: string): number {
 export function calculateC(mass: number, material: Material): number {
   const DEBUG = process.env.LCA_DEBUG === 'true';
 
-  // Sum of C1-C4 modules
-  const c1 = material.gwp_c1 || 0;
-  const c2 = material.gwp_c2 || 0;
-  const c3 = material.gwp_c3 || 0;
-  const c4 = material.gwp_c4 || 0;
+  // Sum of C1-C4 modules - FORCE number conversion!
+  const c1 = Number(material.gwp_c1) || 0;
+  const c2 = Number(material.gwp_c2) || 0;
+  const c3 = Number(material.gwp_c3) || 0;
+  const c4 = Number(material.gwp_c4) || 0;
   const totalC = c1 + c2 + c3 + c4;
 
   if (DEBUG) {
@@ -697,17 +698,18 @@ export function calculateC(mass: number, material: Material): number {
     console.log(`    [calculateC] density=${material.density} (type: ${typeof material.density})`);
   }
 
-  if (isVolumetric && material.density && material.density > 0) {
-    const totalCPerKg = totalC / material.density;
+  if (isVolumetric && material.density && Number(material.density) > 0) {
+    const density = Number(material.density);
+    const totalCPerKg = totalC / density;
     const result = mass * totalCPerKg;
     if (DEBUG) {
       console.log(`    [calculateC] Volumetric path: totalCPerKg=${totalCPerKg}, result=${result}`);
-      console.log(`    [calculateC] Calculation: ${mass} * (${totalC} / ${material.density}) = ${result}`);
+      console.log(`    [calculateC] Calculation: ${mass} * (${totalC} / ${density}) = ${result}`);
     }
     return result;
   }
 
-  const conversionFactor = material.conversion_to_kg || 1;
+  const conversionFactor = Number(material.conversion_to_kg) || 1;
   if (conversionFactor === 1) {
     const result = mass * totalC;
     if (DEBUG) console.log(`    [calculateC] Mass-based path (factor=1): result=${result}`);
@@ -721,8 +723,8 @@ export function calculateC(mass: number, material: Material): number {
 }
 
 export function calculateD(mass: number, material: Material): number {
-  // Module D benefits (negative = benefit)
-  const d = material.gwp_d || 0;
+  // Module D benefits (negative = benefit) - FORCE number conversion!
+  const d = Number(material.gwp_d) || 0;
 
   // Handle volumetric vs mass-based units (same as A1-A3)
   const declaredUnit = material.declared_unit || '1 kg';
@@ -731,12 +733,13 @@ export function calculateD(mass: number, material: Material): number {
                        declaredUnit.toLowerCase().includes('m2') ||
                        declaredUnit.toLowerCase().includes('m²');
 
-  if (isVolumetric && material.density && material.density > 0) {
-    const dPerKg = d / material.density;
+  if (isVolumetric && material.density && Number(material.density) > 0) {
+    const density = Number(material.density);
+    const dPerKg = d / density;
     return mass * dPerKg;
   }
 
-  const conversionFactor = material.conversion_to_kg || 1;
+  const conversionFactor = Number(material.conversion_to_kg) || 1;
   if (conversionFactor === 1) {
     return mass * d;
   }
