@@ -156,11 +156,11 @@ async function importOekobaudat() {
           ${mapCategory(record['Kategorie (en)'])},
           ${record['Kategorie (en)'] || null},
           ${record.Typ === 'generic' ? 'generic' : 'specific'},
-          ${parseFloat(record['Rohdichte (kg/m3)']) || null},
-          ${parseFloat(record['Schuettdichte (kg/m3)']) || null},
-          ${parseFloat(record['Schichtdicke (m)']) || null},
+          ${parseGermanFloat(record['Rohdichte (kg/m3)']) || null},
+          ${parseGermanFloat(record['Schuettdichte (kg/m3)']) || null},
+          ${parseGermanFloat(record['Schichtdicke (m)']) || null},
           ${record['Bezugseinheit'] || '1 kg'},
-          ${parseFloat(record['Umrechungsfaktor auf 1kg']) || 1},
+          ${parseGermanFloat(record['Umrechungsfaktor auf 1kg']) || 1},
           ${gwpA1A3},
           ${extractModuleValue(record, 'A4', 'GWP')},
           ${extractModuleValue(record, 'A5', 'GWP')},
@@ -169,7 +169,7 @@ async function importOekobaudat() {
           ${extractModuleValue(record, 'C3', 'GWP')},
           ${extractModuleValue(record, 'C4', 'GWP')},
           ${extractModuleValue(record, 'D', 'GWP')},
-          ${parseFloat(record['biogener Kohlenstoffgehalt in kg']) || null},
+          ${parseGermanFloat(record['biogener Kohlenstoffgehalt in kg']) || null},
           ${record.URL || null},
           ${record['Declaration owner'] || null},
           ${record['Gueltig bis'] ? new Date(record['Gueltig bis']).toISOString() : null},
@@ -200,21 +200,29 @@ async function importOekobaudat() {
   console.log(`❌ Errors: ${errors}`);
 }
 
+function parseGermanFloat(value: string): number {
+  if (!value || value.trim() === '') return 0;
+
+  // Replace German decimal comma with period
+  const normalized = value.replace(',', '.');
+  const parsed = parseFloat(normalized);
+
+  return isNaN(parsed) ? 0 : parsed;
+}
+
 function extractModuleValue(record: Record<string, string>, module: string, indicator: string): number {
   // The CSV has a "Modul" column that indicates which lifecycle phase this row represents
   // Each material (UUID) appears multiple times - once for each module
 
   // Check if this row is for the requested module
   if (record.Modul === module && record[indicator]) {
-    const value = parseFloat(record[indicator]);
-    return isNaN(value) ? 0 : value;
+    return parseGermanFloat(record[indicator]);
   }
 
   // For A2 module, there are specific columns like "GWPtotal (A2)"
   const a2ColumnName = `${indicator}total (A2)`;
   if (module === 'A2' && record[a2ColumnName]) {
-    const value = parseFloat(record[a2ColumnName]);
-    return isNaN(value) ? 0 : value;
+    return parseGermanFloat(record[a2ColumnName]);
   }
 
   return 0;
