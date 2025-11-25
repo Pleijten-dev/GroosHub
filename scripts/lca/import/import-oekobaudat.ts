@@ -2,6 +2,26 @@
 // ÖKOBAUDAT DATA IMPORT SCRIPT
 // ============================================
 
+// Load environment variables from .env.local manually
+import { readFileSync, existsSync } from 'fs';
+import { resolve } from 'path';
+
+// Load .env.local file if it exists
+const envPath = resolve(process.cwd(), '.env.local');
+if (existsSync(envPath)) {
+  const envContent = readFileSync(envPath, 'utf-8');
+  envContent.split('\n').forEach(line => {
+    if (line.startsWith('#') || !line.trim()) return;
+    const [key, ...valueParts] = line.split('=');
+    if (key && valueParts.length > 0) {
+      const value = valueParts.join('=').trim();
+      const cleanValue = value.replace(/^["']|["']$/g, '');
+      process.env[key.trim()] = cleanValue;
+    }
+  });
+  console.log('✓ Loaded environment variables from .env.local\n');
+}
+
 import { getDbConnection } from '../../../src/lib/db/connection';
 import { parse } from 'csv-parse/sync';
 import fs from 'fs';
@@ -40,7 +60,7 @@ async function importOekobaudat() {
   const records = parse(csvContent, {
     columns: true,
     skip_empty_lines: true,
-    delimiter: ';'
+    delimiter: ','  // Changed from ';' to ',' for comma-separated CSV
   }) as Record<string, string>[];
 
   console.log(`📊 Found ${records.length} records in CSV`);
