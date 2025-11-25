@@ -669,12 +669,21 @@ function estimateLifespan(category: string): number {
 }
 
 export function calculateC(mass: number, material: Material): number {
+  const DEBUG = process.env.LCA_DEBUG === 'true';
+
   // Sum of C1-C4 modules
   const c1 = material.gwp_c1 || 0;
   const c2 = material.gwp_c2 || 0;
   const c3 = material.gwp_c3 || 0;
   const c4 = material.gwp_c4 || 0;
   const totalC = c1 + c2 + c3 + c4;
+
+  if (DEBUG) {
+    console.log(`    [calculateC] Input: mass=${mass}`);
+    console.log(`    [calculateC] C values: c1=${c1}, c2=${c2}, c3=${c3}, c4=${c4}`);
+    console.log(`    [calculateC] totalC = ${totalC} (type: ${typeof totalC})`);
+    console.log(`    [calculateC] isNaN(totalC) = ${isNaN(totalC)}`);
+  }
 
   // Handle volumetric vs mass-based units (same as A1-A3)
   const declaredUnit = material.declared_unit || '1 kg';
@@ -683,18 +692,32 @@ export function calculateC(mass: number, material: Material): number {
                        declaredUnit.toLowerCase().includes('m2') ||
                        declaredUnit.toLowerCase().includes('m²');
 
+  if (DEBUG) {
+    console.log(`    [calculateC] declaredUnit="${declaredUnit}", isVolumetric=${isVolumetric}`);
+    console.log(`    [calculateC] density=${material.density} (type: ${typeof material.density})`);
+  }
+
   if (isVolumetric && material.density && material.density > 0) {
     const totalCPerKg = totalC / material.density;
-    return mass * totalCPerKg;
+    const result = mass * totalCPerKg;
+    if (DEBUG) {
+      console.log(`    [calculateC] Volumetric path: totalCPerKg=${totalCPerKg}, result=${result}`);
+      console.log(`    [calculateC] Calculation: ${mass} * (${totalC} / ${material.density}) = ${result}`);
+    }
+    return result;
   }
 
   const conversionFactor = material.conversion_to_kg || 1;
   if (conversionFactor === 1) {
-    return mass * totalC;
+    const result = mass * totalC;
+    if (DEBUG) console.log(`    [calculateC] Mass-based path (factor=1): result=${result}`);
+    return result;
   }
 
   const quantityInDeclaredUnit = mass / conversionFactor;
-  return quantityInDeclaredUnit * totalC;
+  const result = quantityInDeclaredUnit * totalC;
+  if (DEBUG) console.log(`    [calculateC] Mass-based path (factor=${conversionFactor}): result=${result}`);
+  return result;
 }
 
 export function calculateD(mass: number, material: Material): number {
