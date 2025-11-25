@@ -69,15 +69,15 @@ async function recreateTestData() {
     )
   `;
 
-  // Wall layers with real material IDs
+  // Wall layers with real material IDs from Ökobaudat import
   await sql`INSERT INTO lca_layers (element_id, position, material_id, thickness, coverage)
-    VALUES (${wallElementId}, 1, ${'13346b9a-2dea-4699-b356-666b25fb0a49'}, 0.012, 1.0)`;  // Particle board (OSB substitute)
+    VALUES (${wallElementId}, 1, ${'8696ea06-1db8-4707-813c-7968688ac75d'}, 0.012, 1.0)`;  // SWISS KRONO OSB
   await sql`INSERT INTO lca_layers (element_id, position, material_id, thickness, coverage)
-    VALUES (${wallElementId}, 2, ${'e51edde6-a353-4b1b-be94-d63118bca3b2'}, 0.200, 1.0)`;  // Mineral wool facade
+    VALUES (${wallElementId}, 2, ${'3582fc1d-7991-4cb1-8322-26dcb213884b'}, 0.200, 1.0)`;  // Mineral wool insulation
   await sql`INSERT INTO lca_layers (element_id, position, material_id, thickness, coverage)
-    VALUES (${wallElementId}, 3, ${'13346b9a-2dea-4699-b356-666b25fb0a49'}, 0.195, 0.075)`;  // Timber studs
+    VALUES (${wallElementId}, 3, ${'8696ea06-1db8-4707-813c-7968688ac75d'}, 0.195, 0.075)`;  // OSB timber studs
   await sql`INSERT INTO lca_layers (element_id, position, material_id, thickness, coverage)
-    VALUES (${wallElementId}, 4, ${'2550d0eb-ae35-49bb-b02f-7ba4c4ac5f5f'}, 0.0125, 1.0)`;  // Gypsum plaster
+    VALUES (${wallElementId}, 4, ${'2272805c-d4b0-4c97-baea-5eb952f5be69'}, 0.0125, 1.0)`;  // Gypsum interior finish
 
   // Element 2: Roof
   const roofElementId = '00000000-0000-0000-0000-000000000011';
@@ -91,9 +91,11 @@ async function recreateTestData() {
 
   // Roof layers
   await sql`INSERT INTO lca_layers (element_id, position, material_id, thickness, coverage)
-    VALUES (${roofElementId}, 2, ${'fa081fea-9df6-4a4b-ba16-850895973ac1'}, 0.240, 1.0)`;  // Mineral wool blowable
+    VALUES (${roofElementId}, 1, ${'8696ea06-1db8-4707-813c-7968688ac75d'}, 0.022, 1.0)`;  // OSB roof sheathing
   await sql`INSERT INTO lca_layers (element_id, position, material_id, thickness, coverage)
-    VALUES (${roofElementId}, 3, ${'13346b9a-2dea-4699-b356-666b25fb0a49'}, 0.240, 0.08)`;  // Timber rafters
+    VALUES (${roofElementId}, 2, ${'3582fc1d-7991-4cb1-8322-26dcb213884b'}, 0.240, 1.0)`;  // Mineral wool insulation
+  await sql`INSERT INTO lca_layers (element_id, position, material_id, thickness, coverage)
+    VALUES (${roofElementId}, 3, ${'8696ea06-1db8-4707-813c-7968688ac75d'}, 0.240, 0.08)`;  // OSB timber rafters
 
   console.log('✓ Elements and layers created\n');
 
