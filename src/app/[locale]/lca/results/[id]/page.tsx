@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { getDbConnection } from '@/lib/db/connection';
 import ResultsDashboard from '@/features/lca/components/results/ResultsDashboard';
+import type { LCAProject } from '@/features/lca/types';
 
 export const metadata = {
   title: 'LCA Results | GroosHub',
@@ -38,7 +39,7 @@ export default async function LCAResultsPage({
     return notFound();
   }
 
-  const project = projectResult[0];
+  const project = projectResult[0] as LCAProject;
 
   // Check ownership or public access
   if (project.user_id !== session.user.id && !project.is_public) {
@@ -102,7 +103,7 @@ export default async function LCAResultsPage({
           <ResultsDashboard
             project={project}
             reference={reference}
-            locale={locale}
+            locale={locale as 'nl' | 'en'}
           />
         </Suspense>
       </div>
