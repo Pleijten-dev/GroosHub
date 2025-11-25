@@ -26,7 +26,17 @@ if (existsSync(envPath)) {
       process.env[key.trim()] = cleanValue;
     }
   });
-  console.log('✓ Loaded environment variables from .env.local\n');
+  console.log('✓ Loaded environment variables from .env.local');
+
+  // Debug: Check if database URL is loaded
+  const hasPostgresUrl = !!process.env.POSTGRES_URL || !!process.env.POSTGRES_URL_NON_POOLING;
+  if (hasPostgresUrl) {
+    console.log('✓ Database URL is set\n');
+  } else {
+    console.error('❌ No database URL found in environment!');
+    console.error('   Check POSTGRES_URL or POSTGRES_URL_NON_POOLING in .env.local\n');
+    process.exit(1);
+  }
 } else {
   console.warn('⚠️  Warning: .env.local file not found\n');
 }
