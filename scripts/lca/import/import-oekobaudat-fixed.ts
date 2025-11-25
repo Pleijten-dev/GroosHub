@@ -19,7 +19,7 @@ if (existsSync(envPath)) {
   console.log('✓ Loaded environment variables from .env.local\n');
 }
 
-import { getDbConnection } from '../../src/lib/db/connection';
+import { getDbConnection } from '../../../src/lib/db/connection';
 
 // Helper functions
 function parseGermanFloat(value: string): number {
