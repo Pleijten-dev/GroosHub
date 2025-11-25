@@ -615,7 +615,8 @@ export function calculateB4(
   if (replacements === 0) return 0;
 
   // Replacement impact = production impact per replacement
-  const singleImpact = mass * material.conversion_to_kg * (material.gwp_a1_a3 || 0);
+  // Use the same unit handling as A1-A3
+  const singleImpact = calculateA1A3(mass, material);
 
   return singleImpact * replacements;
 }
@@ -640,16 +641,52 @@ export function calculateC(mass: number, material: Material): number {
   const c2 = material.gwp_c2 || 0;
   const c3 = material.gwp_c3 || 0;
   const c4 = material.gwp_c4 || 0;
+  const totalC = c1 + c2 + c3 + c4;
 
-  const massInDeclaredUnit = mass * material.conversion_to_kg;
-  return massInDeclaredUnit * (c1 + c2 + c3 + c4);
+  // Handle volumetric vs mass-based units (same as A1-A3)
+  const declaredUnit = material.declared_unit || '1 kg';
+  const isVolumetric = declaredUnit.toLowerCase().includes('m3') ||
+                       declaredUnit.toLowerCase().includes('m³') ||
+                       declaredUnit.toLowerCase().includes('m2') ||
+                       declaredUnit.toLowerCase().includes('m²');
+
+  if (isVolumetric && material.density && material.density > 0) {
+    const totalCPerKg = totalC / material.density;
+    return mass * totalCPerKg;
+  }
+
+  const conversionFactor = material.conversion_to_kg || 1;
+  if (conversionFactor === 1) {
+    return mass * totalC;
+  }
+
+  const quantityInDeclaredUnit = mass / conversionFactor;
+  return quantityInDeclaredUnit * totalC;
 }
 
 export function calculateD(mass: number, material: Material): number {
   // Module D benefits (negative = benefit)
   const d = material.gwp_d || 0;
-  const massInDeclaredUnit = mass * material.conversion_to_kg;
-  return massInDeclaredUnit * d;
+
+  // Handle volumetric vs mass-based units (same as A1-A3)
+  const declaredUnit = material.declared_unit || '1 kg';
+  const isVolumetric = declaredUnit.toLowerCase().includes('m3') ||
+                       declaredUnit.toLowerCase().includes('m³') ||
+                       declaredUnit.toLowerCase().includes('m2') ||
+                       declaredUnit.toLowerCase().includes('m²');
+
+  if (isVolumetric && material.density && material.density > 0) {
+    const dPerKg = d / material.density;
+    return mass * dPerKg;
+  }
+
+  const conversionFactor = material.conversion_to_kg || 1;
+  if (conversionFactor === 1) {
+    return mass * d;
+  }
+
+  const quantityInDeclaredUnit = mass / conversionFactor;
+  return quantityInDeclaredUnit * d;
 }
 
 // ============================================
