@@ -14,6 +14,11 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     href: '/location',
   },
   {
+    id: 'lca-calculator',
+    labelKey: 'nav.lcaCalculator',
+    href: '/lca',
+  },
+  {
     id: 'project-analysis',
     labelKey: 'nav.projectAnalysis',
     href: '/project-analysis',
