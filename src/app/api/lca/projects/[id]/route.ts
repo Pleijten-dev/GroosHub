@@ -75,8 +75,10 @@ export async function GET(
     `;
 
     // Load layers with materials for all elements
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const elementIds = elements.map((e: Record<string, any>) => e.id as string);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let layers: Record<string, any>[] = [];
     if (elementIds.length > 0) {
       layers = await sql`
@@ -95,9 +97,12 @@ export async function GET(
     }
 
     // Group layers by element
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const elementsWithLayers = elements.map((element: Record<string, any>) => {
       const elementLayers = layers
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .filter((layer: Record<string, any>) => layer.element_id === element.id)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .map((layer: Record<string, any>) => ({
           id: layer.layer_id,
           element_id: layer.element_id,

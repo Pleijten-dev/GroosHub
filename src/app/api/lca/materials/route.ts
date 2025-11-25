@@ -86,18 +86,6 @@ export async function GET(request: NextRequest) {
     // 4. Count total results
     let countResult;
     if (conditions.length > 0) {
-      // Build WHERE clause by joining conditions
-      const whereConditions = conditions.map((_, i) => `c${i}`).join(' AND ');
-      const countQueryParts = [
-        sql`SELECT COUNT(*) as total FROM lca_materials WHERE`,
-        ...conditions.reduce((acc, cond, i) => {
-          if (i > 0) acc.push(sql` AND `);
-          acc.push(cond);
-          return acc;
-        }, [] as ReturnType<typeof sql>[])
-      ];
-
-      // For now, use a simpler approach
       countResult = await sql`
         SELECT COUNT(*) as total
         FROM lca_materials
@@ -198,7 +186,7 @@ export async function GET(request: NextRequest) {
  *   ]
  * }
  */
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     // This POST endpoint is used for getting categories (avoiding route naming conflict)
     const session = await auth();
