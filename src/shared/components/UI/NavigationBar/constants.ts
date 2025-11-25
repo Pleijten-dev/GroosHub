@@ -17,6 +17,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     id: 'lca-calculator',
     labelKey: 'nav.lcaCalculator',
     href: '/lca',
+    disabled: true,
   },
   {
     id: 'project-analysis',

@@ -54,7 +54,6 @@ export function ResultsDashboard({
       {!hasResults && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-lg">
           <div className="flex items-start gap-base">
-            <span className="text-2xl">⚠️</span>
             <div>
               <h3 className="font-semibold text-yellow-900 mb-sm">{t.notCalculated}</h3>
               <p className="text-sm text-yellow-800 mb-base">{t.notCalculatedDesc}</p>
@@ -86,12 +85,10 @@ export function ResultsDashboard({
           <div className="text-right">
             {isCompliant ? (
               <div className="flex items-center gap-sm bg-white/20 backdrop-blur rounded-full px-lg py-sm">
-                <span className="text-2xl">✓</span>
                 <span className="font-semibold">{t.compliant}</span>
               </div>
             ) : (
               <div className="flex items-center gap-sm bg-white/20 backdrop-blur rounded-full px-lg py-sm">
-                <span className="text-2xl">⚠</span>
                 <span className="font-semibold">{t.notCompliant}</span>
               </div>
             )}

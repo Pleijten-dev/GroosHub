@@ -38,7 +38,6 @@ export default async function LCAPage({
           {/* Quick Start Option */}
           <div className="bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary/20 rounded-lg p-2xl hover:shadow-xl transition-all">
             <div className="flex items-start justify-between mb-lg">
-              <div className="text-5xl">⚡</div>
               <div className="bg-primary/20 text-primary text-xs font-semibold px-sm py-xs rounded-full">
                 {t.recommended}
               </div>
@@ -52,23 +51,11 @@ export default async function LCAPage({
               {t.quickStartDescription}
             </p>
 
-            <ul className="space-y-sm mb-xl">
-              <li className="flex items-start gap-sm">
-                <span className="text-green-600 font-bold">✓</span>
-                <span className="text-sm text-gray-700">{t.quickFeature1}</span>
-              </li>
-              <li className="flex items-start gap-sm">
-                <span className="text-green-600 font-bold">✓</span>
-                <span className="text-sm text-gray-700">{t.quickFeature2}</span>
-              </li>
-              <li className="flex items-start gap-sm">
-                <span className="text-green-600 font-bold">✓</span>
-                <span className="text-sm text-gray-700">{t.quickFeature3}</span>
-              </li>
-              <li className="flex items-start gap-sm">
-                <span className="text-green-600 font-bold">✓</span>
-                <span className="text-sm text-gray-700">{t.quickFeature4}</span>
-              </li>
+            <ul className="space-y-sm mb-xl list-disc list-inside">
+              <li className="text-sm text-gray-700">{t.quickFeature1}</li>
+              <li className="text-sm text-gray-700">{t.quickFeature2}</li>
+              <li className="text-sm text-gray-700">{t.quickFeature3}</li>
+              <li className="text-sm text-gray-700">{t.quickFeature4}</li>
             </ul>
 
             <Link
@@ -82,7 +69,6 @@ export default async function LCAPage({
           {/* Advanced Option */}
           <div className="bg-white border-2 border-gray-200 rounded-lg p-2xl hover:shadow-lg transition-all">
             <div className="flex items-start justify-between mb-lg">
-              <div className="text-5xl">🔬</div>
               <div className="bg-gray-200 text-gray-700 text-xs font-semibold px-sm py-xs rounded-full">
                 {t.comingSoon}
               </div>
@@ -96,23 +82,11 @@ export default async function LCAPage({
               {t.advancedDescription}
             </p>
 
-            <ul className="space-y-sm mb-xl">
-              <li className="flex items-start gap-sm">
-                <span className="text-blue-600 font-bold">•</span>
-                <span className="text-sm text-gray-700">{t.advancedFeature1}</span>
-              </li>
-              <li className="flex items-start gap-sm">
-                <span className="text-blue-600 font-bold">•</span>
-                <span className="text-sm text-gray-700">{t.advancedFeature2}</span>
-              </li>
-              <li className="flex items-start gap-sm">
-                <span className="text-blue-600 font-bold">•</span>
-                <span className="text-sm text-gray-700">{t.advancedFeature3}</span>
-              </li>
-              <li className="flex items-start gap-sm">
-                <span className="text-blue-600 font-bold">•</span>
-                <span className="text-sm text-gray-700">{t.advancedFeature4}</span>
-              </li>
+            <ul className="space-y-sm mb-xl list-disc list-inside">
+              <li className="text-sm text-gray-700">{t.advancedFeature1}</li>
+              <li className="text-sm text-gray-700">{t.advancedFeature2}</li>
+              <li className="text-sm text-gray-700">{t.advancedFeature3}</li>
+              <li className="text-sm text-gray-700">{t.advancedFeature4}</li>
             </ul>
 
             <button
@@ -132,22 +106,18 @@ export default async function LCAPage({
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-base">
             <FeatureCard
-              icon="🎯"
               title={t.feature1Title}
               description={t.feature1Desc}
             />
             <FeatureCard
-              icon="📊"
               title={t.feature2Title}
               description={t.feature2Desc}
             />
             <FeatureCard
-              icon="🏗️"
               title={t.feature3Title}
               description={t.feature3Desc}
             />
             <FeatureCard
-              icon="🌱"
               title={t.feature4Title}
               description={t.feature4Desc}
             />
@@ -202,17 +172,14 @@ export default async function LCAPage({
  * Feature Card Component
  */
 function FeatureCard({
-  icon,
   title,
   description
 }: {
-  icon: string;
   title: string;
   description: string;
 }) {
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-lg hover:shadow-md transition-shadow">
-      <div className="text-4xl mb-base">{icon}</div>
       <h3 className="text-lg font-semibold text-gray-900 mb-sm">{title}</h3>
       <p className="text-sm text-gray-600">{description}</p>
     </div>
@@ -251,7 +218,7 @@ function getTranslations(locale: 'nl' | 'en') {
     feature3Desc: 'Berekent alle fases A1-D volgens EN 15978 standaard',
     feature4Title: 'Optimalisatie',
     feature4Desc: 'Vergelijk materialen en ontwerpen om de milieu-impact te minimaliseren',
-    mpgInfoTitle: '📋 Over de MPG-methode',
+    mpgInfoTitle: 'Over de MPG-methode',
     mpgInfoText: 'De Milieuprestatie Gebouwen (MPG) is de Nederlandse rekenmethode voor het bepalen van de milieu-impact van gebouwen over hun gehele levensduur. Vanaf 2025 is een MPG-berekening verplicht voor alle nieuwbouwprojecten.',
     mpg2025: 'MPG 2025 limiet actief',
     mpg2030: 'Strengere limiet vanaf 2030',
@@ -287,7 +254,7 @@ function getTranslations(locale: 'nl' | 'en') {
     feature3Desc: 'Calculates all phases A1-D according to EN 15978 standard',
     feature4Title: 'Optimization',
     feature4Desc: 'Compare materials and designs to minimize environmental impact',
-    mpgInfoTitle: '📋 About MPG Methodology',
+    mpgInfoTitle: 'About MPG Methodology',
     mpgInfoText: 'The Environmental Performance of Buildings (MPG) is the Dutch calculation method for determining the environmental impact of buildings over their entire lifecycle. From 2025, an MPG calculation is mandatory for all new construction projects.',
     mpg2025: 'MPG 2025 limit active',
     mpg2030: 'Stricter limit from 2030',
