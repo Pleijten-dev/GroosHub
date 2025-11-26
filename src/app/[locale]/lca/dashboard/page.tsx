@@ -16,6 +16,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/shared/components/UI/Sidebar/Sidebar';
 import { useSidebar } from '@/shared/hooks/useSidebar';
+import { useProjects } from '@/features/lca/hooks';
 import { LCAProjectsSection } from '@/features/lca/components/sidebar';
 import { LCATabNavigation } from '@/features/lca/components/navigation';
 import { NewProjectModal } from '@/features/lca/components/modals';
@@ -34,9 +35,12 @@ export default function LCADashboardPage({
   const locale = params.locale as 'nl' | 'en';
   const { isCollapsed, toggle } = useSidebar();
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
-  const [activeProjectId, setActiveProjectId] = useState<string | undefined>('1');
+  const [activeProjectId, setActiveProjectId] = useState<string | undefined>();
 
-  // Demo data for showcase (5 projects to demonstrate recent projects section)
+  // Fetch real projects from API
+  const { projects, isLoading, error } = useProjects();
+
+  // Keep demo data as fallback for demo purposes
   const demoProjects = [
     {
       id: '1',
@@ -239,14 +243,33 @@ export default function LCADashboardPage({
     nonCompliant: 'Non-compliant',
   };
 
+  // Use real projects from API, fallback to demo if empty (for testing UI)
+  const displayProjects = projects.length > 0 ? projects : demoProjects;
+
   // Sidebar sections - LCA Projects content
   const sidebarSections = [
     {
       id: 'lca-projects',
       title: '',
-      content: (
+      content: isLoading ? (
+        <div className="flex items-center justify-center p-8">
+          <div className="text-center">
+            <div className="mb-2 text-2xl">⏳</div>
+            <p className="text-sm text-gray-600">
+              {locale === 'nl' ? 'Projecten laden...' : 'Loading projects...'}
+            </p>
+          </div>
+        </div>
+      ) : error ? (
+        <div className="rounded-lg border-2 border-red-200 bg-red-50 p-4">
+          <p className="text-sm font-medium text-red-700">
+            {locale === 'nl' ? 'Fout bij laden' : 'Error loading projects'}
+          </p>
+          <p className="mt-1 text-xs text-red-600">{error}</p>
+        </div>
+      ) : (
         <LCAProjectsSection
-          projects={demoProjects}
+          projects={displayProjects}
           activeProjectId={activeProjectId}
           onNewProject={() => setShowNewProjectModal(true)}
           onSelectProject={(id) => setActiveProjectId(id)}
