@@ -52,8 +52,8 @@ const TRANSLATIONS = {
   nl: {
     title: 'LCA PROJECTEN',
     newProject: 'Nieuw',
-    activeProjects: 'Active Projects:',
-    recentProjects: 'Recent Projects:',
+    recentProjects: 'Recente Projecten',
+    allProjects: 'Alle Projecten',
     show: 'Toon',
     hide: 'Verberg',
     templates: 'Templates',
@@ -65,8 +65,8 @@ const TRANSLATIONS = {
   en: {
     title: 'LCA PROJECTS',
     newProject: 'New',
-    activeProjects: 'Active Projects:',
-    recentProjects: 'Recent Projects:',
+    recentProjects: 'Recent Projects',
+    allProjects: 'All Projects',
     show: 'Show',
     hide: 'Hide',
     templates: 'Templates',
@@ -122,13 +122,18 @@ export function LCAProjectsSection({
   locale = 'nl',
 }: LCAProjectsSectionProps) {
   const t = TRANSLATIONS[locale];
-  const [showAllRecent, setShowAllRecent] = useState(false);
+  const [showAllProjects, setShowAllProjects] = useState(false);
+  const [expandedProjectId, setExpandedProjectId] = useState<string | null>(null);
 
   const sortedProjects = sortByDate(projects);
-  const activeProjects = sortedProjects.slice(0, MAX_VISIBLE_PROJECTS);
-  const recentProjects = sortedProjects.slice(MAX_VISIBLE_PROJECTS);
+  const recentProjects = sortedProjects.slice(0, MAX_VISIBLE_PROJECTS);
+  const hasMoreProjects = sortedProjects.length > MAX_VISIBLE_PROJECTS;
 
-  const hasRecentProjects = recentProjects.length > 0;
+  // Handle project click - expand the clicked project
+  const handleProjectClick = (projectId: string) => {
+    setExpandedProjectId(projectId === expandedProjectId ? null : projectId);
+    onSelectProject?.(projectId);
+  };
 
   // ============================================
   // RENDER - EMPTY STATE
@@ -160,7 +165,6 @@ export function LCAProjectsSection({
 
         {/* Empty State */}
         <div className="rounded-lg border-2 border-dashed border-gray-200 p-6 text-center">
-          <div className="mb-2 text-2xl">📊</div>
           <p className="mb-1 text-sm font-medium text-gray-700">{t.noProjects}</p>
           <p className="text-xs text-gray-500">{t.createFirst}</p>
         </div>
@@ -172,17 +176,15 @@ export function LCAProjectsSection({
         <div className="space-y-1">
           <Link
             href={`/${locale}/lca/templates`}
-            className="flex items-center gap-2 rounded-base px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+            className="rounded-base px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors block"
           >
-            <span>📋</span>
-            <span>{t.templates} (8)</span>
+            {t.templates} (8)
           </Link>
           <Link
             href={`/${locale}/lca/materials`}
-            className="flex items-center gap-2 rounded-base px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+            className="rounded-base px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors block"
           >
-            <span>🔍</span>
-            <span>{t.materials}</span>
+            {t.materials}
           </Link>
         </div>
       </div>
@@ -216,11 +218,12 @@ export function LCAProjectsSection({
         </button>
       </div>
 
-      {/* Active Projects */}
+      {/* Recent Projects (Top 3, Non-collapsible) */}
       <div className="space-y-2">
-        {activeProjects.map((project, index) => {
+        <h4 className="text-xs font-medium text-gray-600 px-2">{t.recentProjects}</h4>
+        {recentProjects.map((project) => {
           const isActive = project.id === activeProjectId;
-          const isExpanded = isActive && index === 0; // Only first active is expanded
+          const isExpanded = project.id === expandedProjectId;
 
           return (
             <LCAProjectCard
@@ -228,7 +231,7 @@ export function LCAProjectsSection({
               project={project}
               isActive={isActive}
               isExpanded={isExpanded}
-              onClick={onSelectProject}
+              onClick={handleProjectClick}
               onOpen={onOpenProject}
               onDuplicate={onDuplicateProject}
               onDelete={onDeleteProject}
@@ -238,8 +241,8 @@ export function LCAProjectsSection({
         })}
       </div>
 
-      {/* Recent Projects (Collapsible) */}
-      {hasRecentProjects && (
+      {/* All Projects (Collapsible) */}
+      {hasMoreProjects && (
         <>
           <div className="border-t border-gray-200" />
 
@@ -247,18 +250,18 @@ export function LCAProjectsSection({
             {/* Toggle Button */}
             <button
               type="button"
-              onClick={() => setShowAllRecent(!showAllRecent)}
+              onClick={() => setShowAllProjects(!showAllProjects)}
               className="flex w-full items-center justify-between rounded-base px-2 py-1 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
             >
-              <span className="font-medium">{t.recentProjects}</span>
+              <span className="font-medium">{t.allProjects}</span>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-500">
-                  {showAllRecent ? t.hide : t.show} ({recentProjects.length})
+                  {showAllProjects ? t.hide : t.show} ({sortedProjects.length})
                 </span>
                 <svg
                   className={cn(
                     'h-4 w-4 transition-transform',
-                    showAllRecent ? 'rotate-180' : 'rotate-0'
+                    showAllProjects ? 'rotate-180' : 'rotate-0'
                   )}
                   fill="none"
                   viewBox="0 0 24 24"
@@ -270,22 +273,27 @@ export function LCAProjectsSection({
               </div>
             </button>
 
-            {/* Recent Projects List */}
-            {showAllRecent && (
+            {/* All Projects List */}
+            {showAllProjects && (
               <div className="space-y-1">
-                {recentProjects.map((project) => (
-                  <LCAProjectCard
-                    key={project.id}
-                    project={project}
-                    isActive={project.id === activeProjectId}
-                    isExpanded={false}
-                    onClick={onSelectProject}
-                    onOpen={onOpenProject}
-                    onDuplicate={onDuplicateProject}
-                    onDelete={onDeleteProject}
-                    locale={locale}
-                  />
-                ))}
+                {sortedProjects.map((project) => {
+                  const isActive = project.id === activeProjectId;
+                  const isExpanded = project.id === expandedProjectId;
+
+                  return (
+                    <LCAProjectCard
+                      key={project.id}
+                      project={project}
+                      isActive={isActive}
+                      isExpanded={isExpanded}
+                      onClick={handleProjectClick}
+                      onOpen={onOpenProject}
+                      onDuplicate={onDuplicateProject}
+                      onDelete={onDeleteProject}
+                      locale={locale}
+                    />
+                  );
+                })}
               </div>
             )}
           </div>
@@ -299,17 +307,15 @@ export function LCAProjectsSection({
       <div className="space-y-1">
         <Link
           href={`/${locale}/lca/templates`}
-          className="flex items-center gap-2 rounded-base px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+          className="rounded-base px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors block"
         >
-          <span>📋</span>
-          <span>{t.templates} (8)</span>
+          {t.templates} (8)
         </Link>
         <Link
           href={`/${locale}/lca/materials`}
-          className="flex items-center gap-2 rounded-base px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+          className="rounded-base px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors block"
         >
-          <span>🔍</span>
-          <span>{t.materials}</span>
+          {t.materials}
         </Link>
       </div>
     </div>
