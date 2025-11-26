@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     );
 
     let elementsCreated = 0;
-    const layersCreated = 0;
+    let layersCreated = 0;
 
     for (const elementTemplate of elementTemplates) {
       // Create element
@@ -135,33 +135,48 @@ export async function POST(request: NextRequest) {
       const element = elementResult[0];
       elementsCreated++;
 
-      // Create layers for this element
-      // TODO: Query lca_materials for appropriate materials
-      // For now, create placeholder structure
-      console.log(`Element created: ${element.name} - Layers to be added based on material database`);
+      // Get layer templates for this element
+      const layerTemplates = getLayerTemplates(
+        elementTemplate.category,
+        construction_system,
+        insulation_level
+      );
 
-      // Example: Create layers (requires materials to be imported first)
-      // const layers = elementTemplate.layers;
-      // for (const layerTemplate of layers) {
-      //   const materialResult = await sql`
-      //     SELECT id FROM lca_materials
-      //     WHERE category = ${layerTemplate.material_category}
-      //       AND name_nl LIKE ${layerTemplate.material_search}
-      //     LIMIT 1
-      //   `;
-      //
-      //   if (materialResult.length > 0) {
-      //     await sql`
-      //       INSERT INTO lca_layers (
-      //         element_id, position, material_id, thickness, coverage
-      //       ) VALUES (
-      //         ${element.id}, ${layerTemplate.position},
-      //         ${materialResult[0].id}, ${layerTemplate.thickness}, ${layerTemplate.coverage}
-      //       )
-      //     `;
-      //     layersCreated++;
-      //   }
-      // }
+      // Create layers with materials
+      for (const layerTemplate of layerTemplates) {
+        // Find appropriate material
+        const materialResult = await sql`
+          SELECT id FROM lca_materials
+          WHERE category = ${layerTemplate.material_category}
+            AND (
+              name_nl ILIKE ${layerTemplate.material_search}
+              OR name_en ILIKE ${layerTemplate.material_search}
+              OR name_de ILIKE ${layerTemplate.material_search}
+            )
+            AND dutch_availability = true
+          ORDER BY quality_rating DESC
+          LIMIT 1
+        `;
+
+        if (materialResult.length > 0) {
+          await sql`
+            INSERT INTO lca_layers (
+              element_id,
+              position,
+              material_id,
+              thickness,
+              coverage
+            ) VALUES (
+              ${element.id},
+              ${layerTemplate.position},
+              ${materialResult[0].id},
+              ${layerTemplate.thickness},
+              ${layerTemplate.coverage}
+            )
+          `;
+          layersCreated++;
+        }
+      }
     }
 
     // 6. Return created project
@@ -171,8 +186,7 @@ export async function POST(request: NextRequest) {
         data: {
           project,
           elements_created: elementsCreated,
-          layers_created: layersCreated,
-          note: 'Template structure created. Material layers require imported EPD data.'
+          layers_created: layersCreated
         }
       },
       { status: 201 }
@@ -283,4 +297,123 @@ function getElementTemplates(
   });
 
   return templates;
+}
+
+/**
+ * Get layer templates for building elements
+ *
+ * Returns material layers based on:
+ * - Element category (exterior_wall, roof, floor, etc.)
+ * - Construction system (houtskelet, metselwerk, beton, clt)
+ * - Insulation level (RC 3.5 - passief)
+ */
+function getLayerTemplates(
+  category: string,
+  constructionSystem: string,
+  insulationLevel: string
+): Array<{
+  position: number;
+  material_category: string;
+  material_search: string;
+  thickness: number;
+  coverage: number;
+}> {
+  // Calculate insulation thickness based on RC value
+  const insulationThickness = getInsulationThickness(insulationLevel);
+
+  const templates: Record<string, Array<{
+    position: number;
+    material_category: string;
+    material_search: string;
+    thickness: number;
+    coverage: number;
+  }>> = {
+    // Exterior Wall Templates
+    exterior_wall_houtskelet: [
+      { position: 1, material_category: 'timber', material_search: '%OSB%', thickness: 0.012, coverage: 1.0 },
+      { position: 2, material_category: 'insulation', material_search: '%mineraalwol%', thickness: insulationThickness, coverage: 1.0 },
+      { position: 3, material_category: 'timber', material_search: '%OSB%', thickness: 0.012, coverage: 0.075 },
+      { position: 4, material_category: 'finishes', material_search: '%gips%', thickness: 0.0125, coverage: 1.0 }
+    ],
+    exterior_wall_metselwerk: [
+      { position: 1, material_category: 'masonry', material_search: '%baksteen%', thickness: 0.10, coverage: 1.0 },
+      { position: 2, material_category: 'insulation', material_search: '%EPS%', thickness: insulationThickness, coverage: 1.0 },
+      { position: 3, material_category: 'masonry', material_search: '%kalkzandsteen%', thickness: 0.10, coverage: 1.0 },
+      { position: 4, material_category: 'finishes', material_search: '%gips%', thickness: 0.010, coverage: 1.0 }
+    ],
+    exterior_wall_beton: [
+      { position: 1, material_category: 'concrete', material_search: '%beton%', thickness: 0.15, coverage: 1.0 },
+      { position: 2, material_category: 'insulation', material_search: '%EPS%', thickness: insulationThickness, coverage: 1.0 },
+      { position: 3, material_category: 'finishes', material_search: '%gips%', thickness: 0.010, coverage: 1.0 }
+    ],
+    exterior_wall_clt: [
+      { position: 1, material_category: 'timber', material_search: '%CLT%', thickness: 0.10, coverage: 1.0 },
+      { position: 2, material_category: 'insulation', material_search: '%houtvezel%', thickness: insulationThickness, coverage: 1.0 },
+      { position: 3, material_category: 'finishes', material_search: '%gips%', thickness: 0.0125, coverage: 1.0 }
+    ],
+
+    // Roof Templates
+    roof_houtskelet: [
+      { position: 1, material_category: 'roofing', material_search: '%dakpan%', thickness: 0.015, coverage: 1.0 },
+      { position: 2, material_category: 'timber', material_search: '%OSB%', thickness: 0.018, coverage: 1.0 },
+      { position: 3, material_category: 'insulation', material_search: '%mineraalwol%', thickness: insulationThickness, coverage: 1.0 },
+      { position: 4, material_category: 'timber', material_search: '%OSB%', thickness: 0.018, coverage: 0.08 }
+    ],
+    roof_default: [
+      { position: 1, material_category: 'roofing', material_search: '%dakpan%', thickness: 0.015, coverage: 1.0 },
+      { position: 2, material_category: 'timber', material_search: '%hout%', thickness: 0.022, coverage: 1.0 },
+      { position: 3, material_category: 'insulation', material_search: '%mineraalwol%', thickness: insulationThickness, coverage: 1.0 }
+    ],
+
+    // Floor Templates
+    floor_ground: [
+      { position: 1, material_category: 'concrete', material_search: '%beton%', thickness: 0.15, coverage: 1.0 },
+      { position: 2, material_category: 'insulation', material_search: '%EPS%', thickness: insulationThickness * 0.7, coverage: 1.0 }
+    ],
+    floor_intermediate: [
+      { position: 1, material_category: 'timber', material_search: '%OSB%', thickness: 0.022, coverage: 1.0 },
+      { position: 2, material_category: 'timber', material_search: '%hout%', thickness: 0.20, coverage: 0.10 },
+      { position: 3, material_category: 'insulation', material_search: '%mineraalwol%', thickness: 0.20, coverage: 0.90 }
+    ],
+
+    // Windows Template
+    windows: [
+      { position: 1, material_category: 'glass', material_search: '%glas%', thickness: 0.040, coverage: 0.85 },
+      { position: 2, material_category: 'timber', material_search: '%hout%', thickness: 0.080, coverage: 0.15 }
+    ],
+
+    // Foundation Template
+    foundation: [
+      { position: 1, material_category: 'concrete', material_search: '%beton%', thickness: 0.30, coverage: 1.0 }
+    ]
+  };
+
+  // Determine template key
+  let templateKey = category;
+
+  if (category === 'exterior_wall') {
+    templateKey = `exterior_wall_${constructionSystem}`;
+  } else if (category === 'roof') {
+    templateKey = constructionSystem === 'houtskelet' ? 'roof_houtskelet' : 'roof_default';
+  } else if (category === 'floor') {
+    // Ground floor vs intermediate floor - simplified
+    templateKey = 'floor_ground';
+  }
+
+  return templates[templateKey] || [];
+}
+
+/**
+ * Calculate insulation thickness based on RC value
+ */
+function getInsulationThickness(insulationLevel: string): number {
+  const thicknessMap: Record<string, number> = {
+    'RC 3.5': 0.140,  // 14 cm
+    'RC 5.0': 0.200,  // 20 cm
+    'RC 6.0': 0.240,  // 24 cm
+    'RC 8.0': 0.320,  // 32 cm
+    'passief': 0.400   // 40 cm
+  };
+
+  return thicknessMap[insulationLevel] || 0.200;
 }

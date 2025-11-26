@@ -66,12 +66,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (projectCheck[0].user_id !== session.user.id) {
+    // Convert both to numbers to ensure type consistency
+    const projectUserId = Number(projectCheck[0].user_id);
+    const sessionUserId = Number(session.user.id);
+
+    console.log('🔍 LCA Calculate: Project user_id:', projectUserId, 'Session user_id:', sessionUserId);
+
+    if (projectUserId !== sessionUserId) {
+      console.log('❌ LCA Calculate: User mismatch - Forbidden');
       return NextResponse.json(
         { success: false, error: 'Forbidden' },
         { status: 403 }
       );
     }
+
+    console.log('✅ LCA Calculate: User authorized');
 
     // 4. Perform calculation
     const result = await calculateProjectLCA(projectId);

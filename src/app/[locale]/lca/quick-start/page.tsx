@@ -38,7 +38,6 @@ export default async function LCAQuickStartPage({
         {/* Info Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-base mb-2xl">
           <InfoCard
-            icon="⚡"
             title={locale === 'nl' ? 'Snel resultaat' : 'Quick results'}
             description={
               locale === 'nl'
@@ -47,7 +46,6 @@ export default async function LCAQuickStartPage({
             }
           />
           <InfoCard
-            icon="🏗️"
             title={locale === 'nl' ? 'Standaard templates' : 'Standard templates'}
             description={
               locale === 'nl'
@@ -56,7 +54,6 @@ export default async function LCAQuickStartPage({
             }
           />
           <InfoCard
-            icon="📊"
             title={locale === 'nl' ? 'MPG-toets' : 'MPG assessment'}
             description={
               locale === 'nl'
@@ -74,7 +71,7 @@ export default async function LCAQuickStartPage({
         {/* Additional Info */}
         <div className="mt-2xl p-lg bg-blue-50 rounded-lg border border-blue-200">
           <h3 className="text-lg font-semibold text-blue-900 mb-base">
-            {locale === 'nl' ? '💡 Let op' : '💡 Please note'}
+            {locale === 'nl' ? 'Let op' : 'Please note'}
           </h3>
           <ul className="space-y-sm text-blue-800">
             <li>
@@ -103,17 +100,14 @@ export default async function LCAQuickStartPage({
  * Info Card Component
  */
 function InfoCard({
-  icon,
   title,
   description
 }: {
-  icon: string;
   title: string;
   description: string;
 }) {
   return (
     <div className="bg-white p-lg rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-      <div className="text-4xl mb-base">{icon}</div>
       <h3 className="text-lg font-semibold text-gray-900 mb-sm">{title}</h3>
       <p className="text-sm text-gray-600">{description}</p>
     </div>
