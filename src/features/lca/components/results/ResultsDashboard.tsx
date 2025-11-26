@@ -23,12 +23,44 @@ export function ResultsDashboard({
   reference,
   locale
 }: ResultsDashboardProps) {
-  const [showCalculation, setShowCalculation] = useState(false);
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [calculationError, setCalculationError] = useState<string | null>(null);
 
   const t = getTranslations(locale);
 
   // Check if project has been calculated
   const hasResults = project.total_gwp_per_m2_year !== null;
+
+  // Handle calculation
+  const handleCalculate = async () => {
+    setIsCalculating(true);
+    setCalculationError(null);
+
+    try {
+      const response = await fetch('/api/lca/calculate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ projectId: project.id })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Calculation failed');
+      }
+
+      // Reload the page to show updated results
+      window.location.reload();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setCalculationError(errorMessage);
+      console.error('Calculation error:', error);
+    } finally {
+      setIsCalculating(false);
+    }
+  };
 
   // Use project values or defaults
   const mpgValue = project.total_gwp_per_m2_year || 0;
@@ -54,14 +86,22 @@ export function ResultsDashboard({
       {!hasResults && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-lg">
           <div className="flex items-start gap-base">
-            <div>
+            <div className="flex-1">
               <h3 className="font-semibold text-yellow-900 mb-sm">{t.notCalculated}</h3>
               <p className="text-sm text-yellow-800 mb-base">{t.notCalculatedDesc}</p>
+
+              {calculationError && (
+                <div className="mb-base p-sm bg-red-100 border border-red-300 rounded-base">
+                  <p className="text-sm text-red-800">{calculationError}</p>
+                </div>
+              )}
+
               <button
-                onClick={() => setShowCalculation(true)}
-                className="px-base py-sm bg-yellow-600 text-white rounded-base hover:bg-yellow-700 transition-colors text-sm font-medium"
+                onClick={handleCalculate}
+                disabled={isCalculating}
+                className="px-base py-sm bg-yellow-600 text-white rounded-base hover:bg-yellow-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {t.triggerCalculation}
+                {isCalculating ? (locale === 'nl' ? 'Berekenen...' : 'Calculating...') : t.triggerCalculation}
               </button>
             </div>
           </div>
@@ -224,27 +264,6 @@ export function ResultsDashboard({
         </div>
       </div>
 
-      {/* Calculation Trigger Modal (Placeholder) */}
-      {showCalculation && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-2xl max-w-md mx-base">
-            <h3 className="text-xl font-semibold mb-base">
-              {locale === 'nl' ? 'Berekening starten' : 'Start Calculation'}
-            </h3>
-            <p className="text-gray-600 mb-xl">
-              {locale === 'nl'
-                ? 'De calculator wordt momenteel nog ontwikkeld. Deze functie komt binnenkort beschikbaar.'
-                : 'The calculator is currently under development. This feature will be available soon.'}
-            </p>
-            <button
-              onClick={() => setShowCalculation(false)}
-              className="w-full px-lg py-sm bg-primary text-white rounded-base hover:bg-primary/90"
-            >
-              {locale === 'nl' ? 'Sluiten' : 'Close'}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
