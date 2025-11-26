@@ -177,7 +177,7 @@
         "desired_property_types": [
           "Middensegment 2-kamer appartement"
         ],
-        "imageUrl": "/personas/Ambitieuze_Singles.png"
+        "imageUrl": "/personas/Ambitieuze_singles.png"
       },
       {
         "id": "zelfbewuste-solisten",
@@ -354,7 +354,7 @@
           "Luxe 3-kamer appartement",
           "Luxe 3-kamer grondgebonden woning"
         ],
-        "imageUrl": "/personas/Succesvolle_Singles.png"
+        "imageUrl": "/personas/Succesvolle_singles.png"
       },
       {
         "id": "de-rentenier",
@@ -409,7 +409,7 @@
           "Luxe 2-kamer appartement",
           "Luxe 2-kamer grondgebonden woning"
         ],
-        "imageUrl": "/personas/Carrière_Stampers.png"
+        "imageUrl": "/personas/Carriere_Stampers.png"
       },
       {
         "id": "welvarende-bourgondiers",
@@ -428,7 +428,7 @@
           "Luxe 2-kamer appartement",
           "Luxe 2-kamer grondgebonden woning"
         ],
-        "imageUrl": "/personas/Welvarende_Bourgondiërs.png"
+        "imageUrl": "/personas/Welvarende_Bourgondiers.png"
       },
       {
         "id": "hard-van-start",
