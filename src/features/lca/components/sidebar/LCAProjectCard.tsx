@@ -112,9 +112,6 @@ export function LCAProjectCard({
   locale = 'nl',
 }: LCAProjectCardProps) {
   const t = TRANSLATIONS[locale];
-  const [isHovered, setIsHovered] = React.useState(false);
-
-  const showActions = isHovered || isActive;
   const timeAgo = formatTimeAgo(project.updated_at, locale);
 
   // ============================================
@@ -130,8 +127,6 @@ export function LCAProjectCard({
             ? 'border-primary bg-primary/5'
             : 'border-gray-200 bg-white hover:border-gray-300'
         )}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
       >
         {/* Project Name */}
         <h3 className="mb-3 text-base font-semibold text-gray-900 line-clamp-2">
@@ -206,8 +201,6 @@ export function LCAProjectCard({
     <button
       type="button"
       onClick={() => onClick?.(project.id)}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       className={cn(
         'w-full rounded-base p-3 text-left transition-all',
         isActive
@@ -224,33 +217,6 @@ export function LCAProjectCard({
       {project.total_gwp_per_m2_year !== null && (
         <div className="mb-1 text-xs text-gray-600">
           {Number(project.total_gwp_per_m2_year).toFixed(2)} kg CO₂
-        </div>
-      )}
-
-      {/* Actions (shown on hover) */}
-      {showActions && (
-        <div className="mt-2 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpen?.(project.id);
-            }}
-            className="flex-1 rounded-sm bg-primary px-2 py-1 text-xs text-white hover:bg-primary/90"
-          >
-            {t.open}
-          </button>
-          <div onClick={(e) => e.stopPropagation()}>
-            <ProjectContextMenu
-              projectId={project.id}
-              projectName={project.name}
-              onOpen={onOpen}
-              onDuplicate={onDuplicate}
-              onDelete={onDelete}
-              locale={locale}
-              className="h-6 w-6"
-            />
-          </div>
         </div>
       )}
     </button>

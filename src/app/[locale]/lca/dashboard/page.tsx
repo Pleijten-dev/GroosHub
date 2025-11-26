@@ -254,7 +254,6 @@ export default function LCADashboardPage({
       content: isLoading ? (
         <div className="flex items-center justify-center p-8">
           <div className="text-center">
-            <div className="mb-2 text-2xl">⏳</div>
             <p className="text-sm text-gray-600">
               {locale === 'nl' ? 'Projecten laden...' : 'Loading projects...'}
             </p>

@@ -52,7 +52,6 @@ interface MenuAction {
     nl: string;
     en: string;
   };
-  icon: string;
   variant: 'default' | 'danger';
   action: (projectId: string) => void;
 }
@@ -113,7 +112,6 @@ export function ProjectContextMenu({
     {
       id: 'open',
       label: { nl: 'Openen', en: 'Open' },
-      icon: '📂',
       variant: 'default',
       action: (id: string) => {
         onOpen?.(id);
@@ -123,7 +121,6 @@ export function ProjectContextMenu({
     {
       id: 'duplicate',
       label: { nl: 'Dupliceren', en: 'Duplicate' },
-      icon: '📋',
       variant: 'default',
       action: (id: string) => {
         onDuplicate?.(id);
@@ -133,7 +130,6 @@ export function ProjectContextMenu({
     {
       id: 'rename',
       label: { nl: 'Hernoemen', en: 'Rename' },
-      icon: '✏️',
       variant: 'default',
       action: (id: string) => {
         onRename?.(id);
@@ -143,7 +139,6 @@ export function ProjectContextMenu({
     {
       id: 'export',
       label: { nl: 'Exporteren', en: 'Export' },
-      icon: '💾',
       variant: 'default',
       action: (id: string) => {
         onExport?.(id);
@@ -153,7 +148,6 @@ export function ProjectContextMenu({
     {
       id: 'archive',
       label: { nl: 'Archiveren', en: 'Archive' },
-      icon: '📦',
       variant: 'default',
       action: (id: string) => {
         onArchive?.(id);
@@ -163,7 +157,6 @@ export function ProjectContextMenu({
     {
       id: 'delete',
       label: { nl: 'Verwijderen', en: 'Delete' },
-      icon: '🗑️',
       variant: 'danger',
       action: (id: string) => {
         // Confirmation is handled by the parent
@@ -265,7 +258,7 @@ export function ProjectContextMenu({
               type="button"
               onClick={() => action.action(projectId)}
               className={cn(
-                'flex w-full items-center gap-3 px-4 py-2',
+                'flex w-full items-center px-4 py-2',
                 'text-left text-sm',
                 'transition-colors',
                 action.variant === 'danger'
@@ -275,9 +268,6 @@ export function ProjectContextMenu({
               )}
               role="menuitem"
             >
-              <span className="text-base" aria-hidden="true">
-                {action.icon}
-              </span>
               <span>{action.label[locale]}</span>
             </button>
           ))}
