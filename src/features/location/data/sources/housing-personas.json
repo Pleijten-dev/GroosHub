@@ -15,7 +15,8 @@
         ],
         "desired_property_types": [
           "Goedkoop 2-kamer appartement"
-        ]
+        ],
+        "imageUrl": "/personas/Jonge_Starters.png"
       },
       {
         "id": "de-doorzetter",
@@ -31,7 +32,8 @@
         ],
         "desired_property_types": [
           "Goedkoop 2-kamer appartement"
-        ]
+        ],
+        "imageUrl": "/personas/De_Doorzetter.png"
       },
       {
         "id": "senior-op-budget",
@@ -49,7 +51,8 @@
         "desired_property_types": [
           "Goedkoop 2-kamer appartement",
           "Goedkope 2-kamer grondgebonden woning"
-        ]
+        ],
+        "imageUrl": "/personas/Senior_op_Budget.png"
       },
       {
         "id": "de-groeiers",
@@ -65,7 +68,8 @@
         ],
         "desired_property_types": [
           "Goedkope 3-kamer grondgebonden woning"
-        ]
+        ],
+        "imageUrl": "/personas/De_Groeiers.png"
       },
       {
         "id": "bescheiden-stellen",
@@ -83,7 +87,8 @@
         "desired_property_types": [
           "Goedkoop 2-kamer appartement",
           "Goedkope 3-kamer grondgebonden woning"
-        ]
+        ],
+        "imageUrl": "/personas/Bescheiden_Stellen.png"
       },
       {
         "id": "de-levensgenieters",
@@ -101,7 +106,8 @@
         "desired_property_types": [
           "Goedkoop 3-kamer appartement",
           "Goedkope 2-kamer grondgebonden woning"
-        ]
+        ],
+        "imageUrl": "/personas/De_Levensgenieters.png"
       },
       {
         "id": "de-groeigezinnen",
