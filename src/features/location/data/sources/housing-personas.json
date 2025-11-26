@@ -503,7 +503,8 @@
         ],
         "desired_property_types": [
           "Affordable 2-room apartment"
-        ]
+        ],
+        "imageUrl": "/personas/Jonge_Starters.png"
       },
       {
         "id": "de-doorzetter",
@@ -519,7 +520,8 @@
         ],
         "desired_property_types": [
           "Affordable 2-room apartment"
-        ]
+        ],
+        "imageUrl": "/personas/De_Doorzetter.png"
       },
       {
         "id": "senior-op-budget",
@@ -537,7 +539,8 @@
         "desired_property_types": [
           "Affordable 2-room apartment",
           "Affordable 2-room ground-level dwelling"
-        ]
+        ],
+        "imageUrl": "/personas/Senior_op_Budget.png"
       },
       {
         "id": "de-groeiers",
@@ -553,7 +556,8 @@
         ],
         "desired_property_types": [
           "Affordable 3-room ground-level dwelling"
-        ]
+        ],
+        "imageUrl": "/personas/De_Groeiers.png"
       },
       {
         "id": "bescheiden-stellen",
@@ -571,7 +575,8 @@
         "desired_property_types": [
           "Affordable 2-room apartment",
           "Affordable 3-room ground-level dwelling"
-        ]
+        ],
+        "imageUrl": "/personas/Bescheiden_Stellen.png"
       },
       {
         "id": "de-levensgenieters",
@@ -589,7 +594,8 @@
         "desired_property_types": [
           "Affordable 3-room apartment",
           "Affordable 2-room ground-level dwelling"
-        ]
+        ],
+        "imageUrl": "/personas/De_Levensgenieters.png"
       },
       {
         "id": "de-groeigezinnen",
@@ -605,7 +611,8 @@
         ],
         "desired_property_types": [
           "Affordable 3-room ground-level dwelling"
-        ]
+        ],
+        "imageUrl": "/personas/De_Groeigezinnen.png"
       },
       {
         "id": "knusse-gezinnen",
@@ -622,7 +629,8 @@
         ],
         "desired_property_types": [
           "Affordable 3-room ground-level dwelling"
-        ]
+        ],
+        "imageUrl": "/personas/Knusse_Gezinnen.png"
       },
       {
         "id": "senioren-met-thuiswonende-kinderen",
@@ -639,7 +647,8 @@
         ],
         "desired_property_types": [
           "Affordable 3-room ground-level dwelling"
-        ]
+        ],
+        "imageUrl": "/personas/Senioren_met_Thuiswonende_Kinderen.png"
       },
       {
         "id": "ambitieuze-singles",
@@ -655,7 +664,8 @@
         ],
         "desired_property_types": [
           "Mid-range 2-room apartment"
-        ]
+        ],
+        "imageUrl": "/personas/Ambitieuze_singles.png"
       },
       {
         "id": "zelfbewuste-solisten",
@@ -671,7 +681,8 @@
         ],
         "desired_property_types": [
           "Mid-range 2-room apartment"
-        ]
+        ],
+        "imageUrl": "/personas/Zelfbewuste_Solisten.png"
       },
       {
         "id": "zelfstandige-senior",
@@ -687,7 +698,8 @@
         ],
         "desired_property_types": [
           "Mid-range 2-room ground-level dwelling"
-        ]
+        ],
+        "imageUrl": "/personas/Zelfstandige_Senior.png"
       },
       {
         "id": "samen-starters",
@@ -703,7 +715,8 @@
         ],
         "desired_property_types": [
           "Mid-range 3-room ground-level dwelling"
-        ]
+        ],
+        "imageUrl": "/personas/Samen_Starters.png"
       },
       {
         "id": "de-balanszoekers",
@@ -721,7 +734,8 @@
         "desired_property_types": [
           "Mid-range 2-room apartment",
           "Mid-range 2-room ground-level dwelling"
-        ]
+        ],
+        "imageUrl": "/personas/De_Balanszoekers.png"
       },
       {
         "id": "de-zwitserlevers",
@@ -738,7 +752,8 @@
         "desired_property_types": [
           "Mid-range 2-room apartment",
           "Mid-range 2-room ground-level dwelling"
-        ]
+        ],
+        "imageUrl": "/personas/De_Zwitserlevers.png"
       },
       {
         "id": "actieve-jonge-gezinnen",
@@ -755,7 +770,8 @@
         ],
         "desired_property_types": [
           "Mid-range 3-room ground-level dwelling"
-        ]
+        ],
+        "imageUrl": "/personas/Actieve_Jonge_Gezinnen.png"
       },
       {
         "id": "stabiele-gezinnen",
@@ -771,7 +787,8 @@
         ],
         "desired_property_types": [
           "Mid-range 3-room ground-level dwelling"
-        ]
+        ],
+        "imageUrl": "/personas/Stabiele_Gezinnen.png"
       },
       {
         "id": "gezellige-nesthouders",
@@ -787,7 +804,8 @@
         ],
         "desired_property_types": [
           "Mid-range 2-room apartment"
-        ]
+        ],
+        "imageUrl": "/personas/Gezellige_Nesthouders.png"
       },
       {
         "id": "carrierestarter",
@@ -804,7 +822,8 @@
         "desired_property_types": [
           "Luxury 3-room apartment",
           "Luxury 3-room ground-level dwelling"
-        ]
+        ],
+        "imageUrl": "/personas/Carrierestarter.png"
       },
       {
         "id": "succesvolle-singles",
@@ -822,7 +841,8 @@
         "desired_property_types": [
           "Luxury 3-room apartment",
           "Luxury 3-room ground-level dwelling"
-        ]
+        ],
+        "imageUrl": "/personas/Succesvolle_singles.png"
       },
       {
         "id": "de-rentenier",
@@ -840,7 +860,8 @@
         "desired_property_types": [
           "Luxury 2-room apartment",
           "Luxury 2-room ground-level dwelling"
-        ]
+        ],
+        "imageUrl": "/personas/De_Rentenier.png"
       },
       {
         "id": "grenzeloos-duo",
@@ -856,7 +877,8 @@
         ],
         "desired_property_types": [
           "Luxury 3-room ground-level dwelling"
-        ]
+        ],
+        "imageUrl": "/personas/Grenzeloos_Duo.png"
       },
       {
         "id": "carriere-stampers",
@@ -874,7 +896,8 @@
         "desired_property_types": [
           "Luxury 2-room apartment",
           "Luxury 2-room ground-level dwelling"
-        ]
+        ],
+        "imageUrl": "/personas/Carriere_Stampers.png"
       },
       {
         "id": "welvarende-bourgondiers",
@@ -892,7 +915,8 @@
         "desired_property_types": [
           "Luxury 2-room apartment",
           "Luxury 2-room ground-level dwelling"
-        ]
+        ],
+        "imageUrl": "/personas/Welvarende_Bourgondiers.png"
       },
       {
         "id": "hard-van-start",
@@ -909,7 +933,8 @@
         ],
         "desired_property_types": [
           "Luxury 3-room ground-level dwelling"
-        ]
+        ],
+        "imageUrl": "/personas/Hard_van_Start.png"
       },
       {
         "id": "vermogende-gezinnen",
@@ -927,7 +952,8 @@
         "desired_property_types": [
           "Luxury 2-room apartment",
           "Luxury 2-room ground-level dwelling"
-        ]
+        ],
+        "imageUrl": "/personas/Vermogende_Gezinnen.png"
       },
       {
         "id": "laat-bloeiers",
@@ -944,7 +970,8 @@
         "desired_property_types": [
           "Luxury 2-room apartment",
           "Luxury 2-room ground-level dwelling"
-        ]
+        ],
+        "imageUrl": "/personas/Laat_Bloeiers.png"
       }
     ]
   }
