@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
       selectedPVE,
       selectedPersonas,
       llmRapport,
+      completionStatus,
     } = body;
 
     // Validate required fields
@@ -54,6 +55,16 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`💾 [Saved Locations] Saving location for user ${userId}: ${address}`);
+    console.log(`📊 [Saved Locations] PVE data:`, selectedPVE ? 'Present' : 'Missing');
+    console.log(`👥 [Saved Locations] Personas data:`, selectedPersonas ? 'Present' : 'Missing');
+    console.log(`✅ [Saved Locations] Completion status:`, completionStatus);
+
+    if (selectedPVE) {
+      console.log(`📊 [Saved Locations] PVE details:`, JSON.stringify(selectedPVE).substring(0, 100));
+    }
+    if (selectedPersonas) {
+      console.log(`👥 [Saved Locations] Personas details:`, JSON.stringify(selectedPersonas));
+    }
 
     // Get database connection
     const sql = getDbConnection();
@@ -66,27 +77,33 @@ export async function POST(request: NextRequest) {
         address,
         coordinates,
         location_data,
+        amenities_data,
         selected_pve,
         selected_personas,
-        llm_rapport
+        llm_rapport,
+        completion_status
       ) VALUES (
         ${userId},
         ${name || null},
         ${address},
         ${JSON.stringify(coordinates)},
         ${JSON.stringify(locationData)},
+        ${amenitiesData ? JSON.stringify(amenitiesData) : null},
         ${selectedPVE ? JSON.stringify(selectedPVE) : null},
         ${selectedPersonas ? JSON.stringify(selectedPersonas) : null},
-        ${llmRapport ? JSON.stringify(llmRapport) : null}
+        ${llmRapport ? JSON.stringify(llmRapport) : null},
+        ${completionStatus || 'location_only'}
       )
       ON CONFLICT (user_id, address)
       DO UPDATE SET
         name = EXCLUDED.name,
         coordinates = EXCLUDED.coordinates,
         location_data = EXCLUDED.location_data,
+        amenities_data = EXCLUDED.amenities_data,
         selected_pve = EXCLUDED.selected_pve,
         selected_personas = EXCLUDED.selected_personas,
         llm_rapport = EXCLUDED.llm_rapport,
+        completion_status = EXCLUDED.completion_status,
         updated_at = NOW()
       RETURNING *
     `;
@@ -111,7 +128,7 @@ export async function POST(request: NextRequest) {
         address: savedLocation.address,
         coordinates: savedLocation.coordinates,
         locationData: savedLocation.location_data,
-        amenitiesData: amenitiesData,
+        amenitiesData: savedLocation.amenities_data || null,
         selectedPVE: savedLocation.selected_pve,
         selectedPersonas: savedLocation.selected_personas,
         llmRapport: savedLocation.llm_rapport,
@@ -166,6 +183,7 @@ export async function GET(request: NextRequest) {
         sl.address,
         sl.coordinates,
         sl.location_data as "locationData",
+        sl.amenities_data as "amenitiesData",
         sl.selected_pve as "selectedPVE",
         sl.selected_personas as "selectedPersonas",
         sl.llm_rapport as "llmRapport",
@@ -192,6 +210,7 @@ export async function GET(request: NextRequest) {
         sl.address,
         sl.coordinates,
         sl.location_data as "locationData",
+        sl.amenities_data as "amenitiesData",
         sl.selected_pve as "selectedPVE",
         sl.selected_personas as "selectedPersonas",
         sl.llm_rapport as "llmRapport",

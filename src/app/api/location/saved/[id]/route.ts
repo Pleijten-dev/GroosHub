@@ -49,6 +49,7 @@ export async function GET(
         sl.address,
         sl.coordinates,
         sl.location_data as "locationData",
+        sl.amenities_data as "amenitiesData",
         sl.selected_pve as "selectedPVE",
         sl.selected_personas as "selectedPersonas",
         sl.llm_rapport as "llmRapport",

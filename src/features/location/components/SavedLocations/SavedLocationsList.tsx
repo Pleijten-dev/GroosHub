@@ -7,6 +7,8 @@ import { cn } from '@/shared/utils/cn';
 import type { Locale } from '@/lib/i18n/config';
 import type { AccessibleLocation } from '../../types/saved-locations';
 import { LocationProgress } from './LocationProgress';
+import { pveConfigCache } from '../../data/cache/pveConfigCache';
+import type { CompletionStatus } from '../../types/saved-locations';
 
 interface SavedLocationsListProps {
   locale: Locale;
@@ -82,12 +84,40 @@ export const SavedLocationsList: React.FC<SavedLocationsListProps> = ({
     onLoadLocation?.(location);
   };
 
-  // Save/update the location
+  // Save/update the location with current PVE and persona selections
   const handleSave = async (location: AccessibleLocation, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent expanding the card
 
     try {
-      // Update the existing saved location with current data
+      // Retrieve current PVE data from cache
+      const pveData = pveConfigCache.getFinalPVE();
+      console.log('📊 [SavedLocationsList] Retrieved PVE data:', pveData ? 'Present' : 'Missing');
+
+      // Retrieve current persona selection from localStorage
+      let personasData = null;
+      try {
+        const storedPersonas = localStorage.getItem('grooshub_doelgroepen_scenario_selection');
+        if (storedPersonas) {
+          personasData = JSON.parse(storedPersonas);
+          console.log('👥 [SavedLocationsList] Retrieved persona selection:', personasData);
+        }
+      } catch (error) {
+        console.error('Failed to retrieve persona selection:', error);
+      }
+
+      // Calculate completion status
+      let completionStatus: CompletionStatus = 'location_only';
+      if (pveData && personasData) {
+        completionStatus = 'with_personas_pve';
+      } else if (pveData) {
+        completionStatus = 'with_pve';
+      } else if (personasData) {
+        completionStatus = 'with_personas';
+      }
+
+      console.log('✅ [SavedLocationsList] Completion status:', completionStatus);
+
+      // Update the existing saved location with current PVE/persona data
       const response = await fetch('/api/location/saved', {
         method: 'POST',
         headers: {
@@ -99,21 +129,27 @@ export const SavedLocationsList: React.FC<SavedLocationsListProps> = ({
           coordinates: location.coordinates,
           locationData: location.locationData,
           amenitiesData: location.amenitiesData,
-          selectedPVE: location.selectedPVE,
-          selectedPersonas: location.selectedPersonas,
+          selectedPVE: pveData || location.selectedPVE, // Use current PVE if available, otherwise keep old
+          selectedPersonas: personasData ? {
+            scenario: personasData.scenario,
+            customIds: personasData.customIds || []
+          } : location.selectedPersonas, // Use current personas if available, otherwise keep old
           llmRapport: location.llmRapport,
+          completionStatus,
         }),
       });
 
       const result = await response.json();
 
       if (result.success) {
+        console.log('✅ [SavedLocationsList] Location updated successfully');
         // Refresh the list
         loadLocations();
       } else {
         alert(result.error || 'Failed to save location');
       }
     } catch (err) {
+      console.error('❌ [SavedLocationsList] Error saving location:', err);
       alert(err instanceof Error ? err.message : 'Failed to save location');
     }
   };

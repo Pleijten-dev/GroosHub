@@ -7,6 +7,8 @@ import { cn } from '@/shared/utils/cn';
 import type { Locale } from '@/lib/i18n/config';
 import type { UnifiedLocationData } from '../../data/aggregator/multiLevelAggregator';
 import type { AmenityMultiCategoryResponse } from '../../data/sources/google-places/types';
+import { pveConfigCache } from '../../data/cache/pveConfigCache';
+import type { CompletionStatus } from '../../types/saved-locations';
 
 interface SaveLocationSectionProps {
   locale: Locale;
@@ -42,6 +44,34 @@ export const SaveLocationSection: React.FC<SaveLocationSectionProps> = ({
         lng: locationData.location.coordinates.wgs84.longitude,
       };
 
+      // Retrieve PVE data from cache
+      const pveData = pveConfigCache.getFinalPVE();
+      console.log('📊 [Save] Retrieved PVE data:', pveData);
+
+      // Retrieve persona selection from localStorage
+      let personasData = null;
+      try {
+        const storedPersonas = localStorage.getItem('grooshub_doelgroepen_scenario_selection');
+        if (storedPersonas) {
+          personasData = JSON.parse(storedPersonas);
+          console.log('👥 [Save] Retrieved persona selection:', personasData);
+        }
+      } catch (error) {
+        console.error('Failed to retrieve persona selection:', error);
+      }
+
+      // Calculate completion status
+      let completionStatus: CompletionStatus = 'location_only';
+      if (pveData && personasData) {
+        completionStatus = 'with_personas_pve';
+      } else if (pveData) {
+        completionStatus = 'with_pve';
+      } else if (personasData) {
+        completionStatus = 'with_personas';
+      }
+
+      console.log('✅ [Save] Completion status:', completionStatus);
+
       // Prepare save data
       const saveData = {
         name: locationName.trim() || undefined,
@@ -49,9 +79,13 @@ export const SaveLocationSection: React.FC<SaveLocationSectionProps> = ({
         coordinates,
         locationData,
         amenitiesData: amenitiesData || undefined,
-        selectedPVE: undefined, // TODO: Get from PVE state
-        selectedPersonas: undefined, // TODO: Get from personas state
-        llmRapport: undefined, // TODO: Get from rapport cache
+        selectedPVE: pveData || undefined,
+        selectedPersonas: personasData ? {
+          scenario: personasData.scenario,
+          customIds: personasData.customIds || []
+        } : undefined,
+        llmRapport: undefined, // TODO: Get from rapport cache if needed
+        completionStatus,
       };
 
       // Call save API
