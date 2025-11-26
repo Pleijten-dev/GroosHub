@@ -123,7 +123,8 @@
         ],
         "desired_property_types": [
           "Goedkope 3-kamer grondgebonden woning"
-        ]
+        ],
+        "imageUrl": "/personas/De_Groeigezinnen.png"
       },
       {
         "id": "knusse-gezinnen",
@@ -140,7 +141,8 @@
         ],
         "desired_property_types": [
           "Goedkope 3-kamer grondgebonden woning"
-        ]
+        ],
+        "imageUrl": "/personas/Knusse_Gezinnen.png"
       },
       {
         "id": "senioren-met-thuiswonende-kinderen",
@@ -157,7 +159,8 @@
         ],
         "desired_property_types": [
           "Goedkope 3-kamer grondgebonden woning"
-        ]
+        ],
+        "imageUrl": "/personas/Senioren_met_Thuiswonende_Kinderen.png"
       },
       {
         "id": "ambitieuze-singles",
@@ -173,7 +176,8 @@
         ],
         "desired_property_types": [
           "Middensegment 2-kamer appartement"
-        ]
+        ],
+        "imageUrl": "/personas/Ambitieuze_Singles.png"
       },
       {
         "id": "zelfbewuste-solisten",
@@ -189,7 +193,8 @@
         ],
         "desired_property_types": [
           "Middensegment 2-kamer appartement"
-        ]
+        ],
+        "imageUrl": "/personas/Zelfbewuste_Solisten.png"
       },
       {
         "id": "zelfstandige-senior",
@@ -205,7 +210,8 @@
         ],
         "desired_property_types": [
           "Middensegment 2-kamer grondgebonden woning"
-        ]
+        ],
+        "imageUrl": "/personas/Zelfstandige_Senior.png"
       },
       {
         "id": "samen-starters",
@@ -221,7 +227,8 @@
         ],
         "desired_property_types": [
           "Middensegment 3-kamer grondgebonden woning"
-        ]
+        ],
+        "imageUrl": "/personas/Samen_Starters.png"
       },
       {
         "id": "de-balanszoekers",
@@ -239,7 +246,8 @@
         "desired_property_types": [
           "Middensegment 2-kamer appartement",
           "Middensegment 2-kamer grondgebonden woning"
-        ]
+        ],
+        "imageUrl": "/personas/De_Balanszoekers.png"
       },
       {
         "id": "de-zwitserlevers",
@@ -256,7 +264,8 @@
         "desired_property_types": [
           "Middensegment 2-kamer appartement",
           "Middensegment 2-kamer grondgebonden woning"
-        ]
+        ],
+        "imageUrl": "/personas/De_Zwitserlevers.png"
       },
       {
         "id": "actieve-jonge-gezinnen",
@@ -273,7 +282,8 @@
         ],
         "desired_property_types": [
           "Middensegment 3-kamer grondgebonden woning"
-        ]
+        ],
+        "imageUrl": "/personas/Actieve_Jonge_Gezinnen.png"
       },
       {
         "id": "stabiele-gezinnen",
@@ -289,7 +299,8 @@
         ],
         "desired_property_types": [
           "Middensegment 3-kamer grondgebonden woning"
-        ]
+        ],
+        "imageUrl": "/personas/Stabiele_Gezinnen.png"
       },
       {
         "id": "gezellige-nesthouders",
@@ -305,7 +316,8 @@
         ],
         "desired_property_types": [
           "Middensegment 2-kamer appartement"
-        ]
+        ],
+        "imageUrl": "/personas/Gezellige_Nesthouders.png"
       },
       {
         "id": "carrierestarter",
@@ -322,7 +334,8 @@
         "desired_property_types": [
           "Luxe 3-kamer appartement",
           "Luxe 3-kamer grondgebonden woning"
-        ]
+        ],
+        "imageUrl": "/personas/Carrierestarter.png"
       },
       {
         "id": "succesvolle-singles",
@@ -340,7 +353,8 @@
         "desired_property_types": [
           "Luxe 3-kamer appartement",
           "Luxe 3-kamer grondgebonden woning"
-        ]
+        ],
+        "imageUrl": "/personas/Succesvolle_Singles.png"
       },
       {
         "id": "de-rentenier",
@@ -358,7 +372,8 @@
         "desired_property_types": [
           "Luxe 2-kamer appartement",
           "Luxe 2-kamer grondgebonden woning"
-        ]
+        ],
+        "imageUrl": "/personas/De_Rentenier.png"
       },
       {
         "id": "grenzeloos-duo",
@@ -374,7 +389,8 @@
         ],
         "desired_property_types": [
           "Luxe 3-kamer grondgebonden woning"
-        ]
+        ],
+        "imageUrl": "/personas/Grenzeloos_Duo.png"
       },
       {
         "id": "carriere-stampers",
@@ -392,7 +408,8 @@
         "desired_property_types": [
           "Luxe 2-kamer appartement",
           "Luxe 2-kamer grondgebonden woning"
-        ]
+        ],
+        "imageUrl": "/personas/Carrière_Stampers.png"
       },
       {
         "id": "welvarende-bourgondiers",
@@ -410,7 +427,8 @@
         "desired_property_types": [
           "Luxe 2-kamer appartement",
           "Luxe 2-kamer grondgebonden woning"
-        ]
+        ],
+        "imageUrl": "/personas/Welvarende_Bourgondiërs.png"
       },
       {
         "id": "hard-van-start",
@@ -427,7 +445,8 @@
         ],
         "desired_property_types": [
           "Luxe 3-kamer grondgebonden woning"
-        ]
+        ],
+        "imageUrl": "/personas/Hard_van_Start.png"
       },
       {
         "id": "vermogende-gezinnen",
@@ -445,7 +464,8 @@
         "desired_property_types": [
           "Luxe 2-kamer appartement",
           "Luxe 2-kamer grondgebonden woning"
-        ]
+        ],
+        "imageUrl": "/personas/Vermogende_Gezinnen.png"
       },
       {
         "id": "laat-bloeiers",
@@ -462,7 +482,8 @@
         "desired_property_types": [
           "Luxe 2-kamer appartement",
           "Luxe 2-kamer grondgebonden woning"
-        ]
+        ],
+        "imageUrl": "/personas/Laat_Bloeiers.png"
       }
     ]
   },
