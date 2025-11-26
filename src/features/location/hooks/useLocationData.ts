@@ -53,7 +53,7 @@ export interface UseLocationDataReturn {
   hasError: boolean;
   fromCache: boolean;
   fetchData: (address: string, skipCache?: boolean) => Promise<void>;
-  loadSavedData: (locationData: UnifiedLocationData, amenitiesData?: AmenityMultiCategoryResponse | null) => void;
+  loadSavedData: (locationData: UnifiedLocationData, amenitiesData?: AmenityMultiCategoryResponse | null, address?: string) => void;
   clearData: () => void;
   clearCache: () => void;
 }
@@ -332,7 +332,7 @@ export function useLocationData(): UseLocationDataReturn {
   /**
    * Load saved data directly without making API calls
    */
-  const loadSavedData = useCallback((locationData: UnifiedLocationData, amenitiesData?: AmenityMultiCategoryResponse | null) => {
+  const loadSavedData = useCallback((locationData: UnifiedLocationData, amenitiesData?: AmenityMultiCategoryResponse | null, address?: string) => {
     console.log('📂 Loading saved location data from database');
     setData(locationData);
     setAmenities(amenitiesData || null);
@@ -355,6 +355,14 @@ export function useLocationData(): UseLocationDataReturn {
       amenities: false,
       residential: false,
     });
+
+    // Store in cache to prevent unnecessary API calls if data is refetched
+    if (address) {
+      const cached = locationDataCache.set(address, locationData, amenitiesData || null);
+      if (cached) {
+        console.log('💾 Stored loaded data in cache for:', address);
+      }
+    }
   }, []);
 
   /**

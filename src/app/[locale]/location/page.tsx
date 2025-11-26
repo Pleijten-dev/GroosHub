@@ -173,7 +173,8 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
       // Load the saved data directly without making API calls
       // The location.locationData contains UnifiedLocationData
-      loadSavedData(location.locationData, location.amenitiesData || null);
+      // Pass the address so it gets stored in cache to prevent unnecessary refetches
+      loadSavedData(location.locationData, location.amenitiesData || null, address);
 
       // Set animation stage to result to show the data immediately
       setAnimationStage('result');
