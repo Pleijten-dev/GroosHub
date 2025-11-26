@@ -1,20 +1,23 @@
 /**
  * LCA Dashboard Page
  *
- * Main dashboard for the LCA section showing project overview,
- * navigation, and quick actions.
+ * Main dashboard for the LCA section using the shared Sidebar component
+ * with LCA Projects Section.
  *
- * Features Phase 3.1 components:
- * - LCA Sidebar with project list
- * - LCA Tab Navigation
- * - New Project Modal integration
+ * Demonstrates reusable sidebar architecture with:
+ * - Shared Sidebar component (app-wide)
+ * - LCA Projects Section (feature-specific content)
+ * - Consistent collapse/expand behavior
  */
 
 'use client';
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { LCASidebar, LCATabNavigation } from '@/features/lca/components/navigation';
+import { Sidebar } from '@/shared/components/UI/Sidebar/Sidebar';
+import { useSidebar } from '@/shared/hooks/useSidebar';
+import { LCAProjectsSection } from '@/features/lca/components/sidebar';
+import { LCATabNavigation } from '@/features/lca/components/navigation';
 import { NewProjectModal } from '@/features/lca/components/modals';
 import { MPGScoreBadge, ElementCategoryIcon } from '@/features/lca/components/ui';
 import { PhaseBreakdownMini } from '@/features/lca/components/charts';
@@ -29,9 +32,11 @@ export default function LCADashboardPage({
 }) {
   const router = useRouter();
   const locale = params.locale as 'nl' | 'en';
+  const { isCollapsed, toggle } = useSidebar();
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
+  const [activeProjectId, setActiveProjectId] = useState<string | undefined>('1');
 
-  // Demo data for showcase
+  // Demo data for showcase (5 projects to demonstrate recent projects section)
   const demoProjects = [
     {
       id: '1',
@@ -132,6 +137,72 @@ export default function LCADashboardPage({
       operational_carbon: null,
       total_carbon: null,
     },
+    {
+      id: '4',
+      name: 'CLT Woongebouw Rotterdam',
+      building_type: 'appartement',
+      gross_floor_area: 1200,
+      total_gwp_per_m2_year: 0.29,
+      mpg_reference_value: 0.45,
+      is_compliant: true,
+      user_id: 'demo',
+      construction_system: 'clv',
+      floors: 5,
+      study_period: 75,
+      is_template: false,
+      is_public: false,
+      created_at: new Date('2024-11-12'),
+      updated_at: new Date('2024-11-20'),
+      description: null,
+      project_number: null,
+      location: null,
+      energy_label: null,
+      heating_system: null,
+      annual_gas_use: null,
+      annual_electricity: null,
+      total_gwp_a1_a3: null,
+      total_gwp_a4: null,
+      total_gwp_a5: null,
+      total_gwp_b4: null,
+      total_gwp_c: null,
+      total_gwp_d: null,
+      total_gwp_sum: null,
+      operational_carbon: null,
+      total_carbon: null,
+    },
+    {
+      id: '5',
+      name: 'Passief Huis Eindhoven',
+      building_type: 'twee_onder_een_kap',
+      gross_floor_area: 140,
+      total_gwp_per_m2_year: 0.38,
+      mpg_reference_value: 0.55,
+      is_compliant: true,
+      user_id: 'demo',
+      construction_system: 'houtskelet',
+      floors: 2,
+      study_period: 75,
+      is_template: false,
+      is_public: false,
+      created_at: new Date('2024-11-10'),
+      updated_at: new Date('2024-11-18'),
+      description: null,
+      project_number: null,
+      location: null,
+      energy_label: null,
+      heating_system: null,
+      annual_gas_use: null,
+      annual_electricity: null,
+      total_gwp_a1_a3: null,
+      total_gwp_a4: null,
+      total_gwp_a5: null,
+      total_gwp_b4: null,
+      total_gwp_c: null,
+      total_gwp_d: null,
+      total_gwp_sum: null,
+      operational_carbon: null,
+      total_carbon: null,
+    },
   ];
 
   // Demo phase data for chart
@@ -168,20 +239,46 @@ export default function LCADashboardPage({
     nonCompliant: 'Non-compliant',
   };
 
+  // Sidebar sections - LCA Projects content
+  const sidebarSections = [
+    {
+      id: 'lca-projects',
+      title: '',
+      content: (
+        <LCAProjectsSection
+          projects={demoProjects}
+          activeProjectId={activeProjectId}
+          onNewProject={() => setShowNewProjectModal(true)}
+          onSelectProject={(id) => setActiveProjectId(id)}
+          onOpenProject={(id) => router.push(`/${locale}/lca/projects/${id}`)}
+          onDuplicateProject={(id) => console.log('Duplicate:', id)}
+          onDeleteProject={(id) => console.log('Delete:', id)}
+          locale={locale}
+        />
+      ),
+    },
+  ];
+
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <LCASidebar
-        projects={demoProjects}
-        onNewProject={() => setShowNewProjectModal(true)}
-        onOpenProject={(id) => router.push(`/${locale}/lca/projects/${id}`)}
-        onDuplicateProject={(id) => console.log('Duplicate:', id)}
-        onDeleteProject={(id) => console.log('Delete:', id)}
-        locale={locale}
+      {/* Shared Sidebar with LCA Section */}
+      <Sidebar
+        isCollapsed={isCollapsed}
+        onToggle={toggle}
+        sections={sidebarSections}
+        expandedWidth="280px"
+        collapsedWidth="60px"
+        position="left"
+        withNavbar={true}
       />
 
       {/* Main Content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div
+        className="flex flex-1 flex-col overflow-hidden transition-all duration-300"
+        style={{
+          marginLeft: isCollapsed ? '60px' : '280px',
+        }}
+      >
         {/* Tab Navigation */}
         <LCATabNavigation locale={locale} />
 
