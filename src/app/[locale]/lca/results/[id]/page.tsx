@@ -39,7 +39,30 @@ export default async function LCAResultsPage({
     return notFound();
   }
 
-  const project = projectResult[0] as LCAProject;
+  const rawProject = projectResult[0];
+
+  // Convert numeric fields from database strings to JavaScript numbers
+  const project: LCAProject = {
+    ...rawProject,
+    gross_floor_area: Number(rawProject.gross_floor_area),
+    study_period: Number(rawProject.study_period),
+    floors: Number(rawProject.floors),
+    annual_gas_use: rawProject.annual_gas_use ? Number(rawProject.annual_gas_use) : null,
+    annual_electricity: rawProject.annual_electricity ? Number(rawProject.annual_electricity) : null,
+    total_gwp_a1_a3: rawProject.total_gwp_a1_a3 ? Number(rawProject.total_gwp_a1_a3) : null,
+    total_gwp_a4: rawProject.total_gwp_a4 ? Number(rawProject.total_gwp_a4) : null,
+    total_gwp_a5: rawProject.total_gwp_a5 ? Number(rawProject.total_gwp_a5) : null,
+    total_gwp_b4: rawProject.total_gwp_b4 ? Number(rawProject.total_gwp_b4) : null,
+    total_gwp_c: rawProject.total_gwp_c ? Number(rawProject.total_gwp_c) : null,
+    total_gwp_d: rawProject.total_gwp_d ? Number(rawProject.total_gwp_d) : null,
+    total_gwp_sum: rawProject.total_gwp_sum ? Number(rawProject.total_gwp_sum) : null,
+    total_gwp_per_m2_year: rawProject.total_gwp_per_m2_year ? Number(rawProject.total_gwp_per_m2_year) : null,
+    operational_carbon: rawProject.operational_carbon ? Number(rawProject.operational_carbon) : null,
+    total_carbon: rawProject.total_carbon ? Number(rawProject.total_carbon) : null,
+    mpg_reference_value: rawProject.mpg_reference_value ? Number(rawProject.mpg_reference_value) : null,
+    is_compliant: rawProject.is_compliant,
+    user_id: String(rawProject.user_id),
+  } as LCAProject;
 
   // Check ownership or public access
   if (String(project.user_id) !== String(session.user.id) && !project.is_public) {
