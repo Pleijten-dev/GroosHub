@@ -70,9 +70,15 @@ export interface LCAProject {
   description: string | null;
   project_number: string | null;
   gross_floor_area: number;
-  building_type: string;
+  building_type: string | null;  // Made optional as it's no longer required in quick start
   construction_system: string | null;
   floors: number;
+  dwelling_count: number | null;  // NEW: Number of dwellings
+  facade_cladding: string | null;  // NEW: Facade cladding type
+  foundation: string | null;  // NEW: Foundation type
+  roof: string | null;  // NEW: Roof type
+  window_frames: string | null;  // NEW: Window frame material
+  window_to_wall_ratio: number | null;  // NEW: Percentage of windows
   study_period: number;
   location: string | null;
   energy_label: string | null;
@@ -203,11 +209,34 @@ export type BuildingType =
 
 export type ConstructionSystem =
   | 'houtskelet'
-  | 'clv'
+  | 'clt'
   | 'metselwerk'
   | 'beton'
   | 'staal'
   | 'custom';
+
+export type FacadeCladding =
+  | 'hout'
+  | 'vezelcement'
+  | 'metselwerk'
+  | 'metaal'
+  | 'stucwerk';
+
+export type Foundation =
+  | 'kruipruimte'
+  | 'betonplaat'
+  | 'souterrain';
+
+export type RoofType =
+  | 'plat_bitumen'
+  | 'hellend_dakpannen'
+  | 'hellend_metaal'
+  | 'groendak';
+
+export type WindowFrames =
+  | 'pvc'
+  | 'hout'
+  | 'aluminium';
 
 export type EnergyLabel =
   | 'A++++'

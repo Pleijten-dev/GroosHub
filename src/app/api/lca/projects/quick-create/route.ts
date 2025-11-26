@@ -11,14 +11,19 @@ import { getDbConnection } from '@/lib/db/connection';
  * {
  *   "name": "string",
  *   "gross_floor_area": number,
- *   "building_type": "vrijstaand" | "rijwoning" | "appartement" | "tussenwoning" | "hoekwoning",
- *   "construction_system": "houtskelet" | "metselwerk" | "beton" | "clt",
- *   "insulation_level": "RC 3.5" | "RC 5.0" | "RC 6.0" | "RC 8.0" | "passief",
  *   "floors": number,
- *   "location": "string" (optional)
+ *   "dwelling_count": number,
+ *   "location": "string" (optional),
+ *   "construction_system": "houtskelet" | "clt" | "metselwerk" | "beton",
+ *   "facade_cladding": "hout" | "vezelcement" | "metselwerk" | "metaal" | "stucwerk",
+ *   "foundation": "kruipruimte" | "betonplaat" | "souterrain",
+ *   "roof": "plat_bitumen" | "hellend_dakpannen" | "hellend_metaal" | "groendak",
+ *   "window_frames": "pvc" | "hout" | "aluminium",
+ *   "window_to_wall_ratio": number (0-100),
+ *   "study_period": number (default: 75)
  * }
  *
- * Creates project with typical elements based on construction system and insulation level
+ * Creates project with typical elements based on construction parameters
  *
  * Response:
  * {
@@ -46,20 +51,27 @@ export async function POST(request: NextRequest) {
     const {
       name,
       gross_floor_area,
-      building_type,
-      construction_system,
-      insulation_level,
       floors,
-      location
+      dwelling_count,
+      location,
+      construction_system,
+      facade_cladding,
+      foundation,
+      roof,
+      window_frames,
+      window_to_wall_ratio,
+      study_period = 75
     } = body;
 
     // 3. Validate required fields
-    if (!name || !gross_floor_area || !building_type || !construction_system || !insulation_level || !floors) {
+    if (!name || !gross_floor_area || !floors || !dwelling_count || !construction_system ||
+        !facade_cladding || !foundation || !roof || !window_frames || window_to_wall_ratio === undefined) {
       return NextResponse.json(
         {
           success: false,
           error: 'Missing required fields',
-          required: ['name', 'gross_floor_area', 'building_type', 'construction_system', 'insulation_level', 'floors']
+          required: ['name', 'gross_floor_area', 'floors', 'dwelling_count', 'construction_system',
+                     'facade_cladding', 'foundation', 'roof', 'window_frames', 'window_to_wall_ratio']
         },
         { status: 400 }
       );
@@ -72,9 +84,14 @@ export async function POST(request: NextRequest) {
       INSERT INTO lca_projects (
         name,
         gross_floor_area,
-        building_type,
-        construction_system,
         floors,
+        dwelling_count,
+        construction_system,
+        facade_cladding,
+        foundation,
+        roof,
+        window_frames,
+        window_to_wall_ratio,
         study_period,
         location,
         user_id,
@@ -83,10 +100,15 @@ export async function POST(request: NextRequest) {
       ) VALUES (
         ${name},
         ${gross_floor_area},
-        ${building_type},
-        ${construction_system},
         ${floors},
-        75,
+        ${dwelling_count},
+        ${construction_system},
+        ${facade_cladding},
+        ${foundation},
+        ${roof},
+        ${window_frames},
+        ${window_to_wall_ratio},
+        ${study_period},
         ${location || null},
         ${session.user.id},
         false,
@@ -103,7 +125,11 @@ export async function POST(request: NextRequest) {
 
     const elementTemplates = getElementTemplates(
       construction_system,
-      insulation_level,
+      facade_cladding,
+      foundation,
+      roof,
+      window_frames,
+      window_to_wall_ratio,
       gross_floor_area,
       floors
     );
@@ -139,7 +165,10 @@ export async function POST(request: NextRequest) {
       const layerTemplates = getLayerTemplates(
         elementTemplate.category,
         construction_system,
-        insulation_level
+        facade_cladding,
+        foundation,
+        roof,
+        window_frames
       );
 
       // Create layers with materials
@@ -208,16 +237,24 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Get element templates based on construction system and insulation level
+ * Get element templates based on construction parameters
  *
  * Returns typical building elements with quantities based on:
- * - Construction system (houtskelet, metselwerk, beton, clt)
- * - Insulation level (RC 3.5, RC 5.0, RC 6.0, RC 8.0, passief)
+ * - Construction system (houtskelet, clt, metselwerk, beton)
+ * - Facade cladding type
+ * - Foundation type
+ * - Roof type
+ * - Window frames type
+ * - Window to wall ratio
  * - Building dimensions (GFA, floors)
  */
 function getElementTemplates(
   constructionSystem: string,
-  insulationLevel: string,
+  facadeCladding: string,
+  foundation: string,
+  roof: string,
+  windowFrames: string,
+  windowToWallRatio: number,
   gfa: number,
   floors: number
 ): Array<{
@@ -243,27 +280,58 @@ function getElementTemplates(
   const floorArea1 = footprint; // Ground floor
   const floorAreaN = (floors > 1) ? footprint * (floors - 1) : 0; // Upper floors
 
+  // Get facade cladding description
+  const facadeDescription = {
+    'hout': 'Houtgevelbekleding',
+    'vezelcement': 'Vezelcement platen',
+    'metselwerk': 'Metselwerk (baksteen)',
+    'metaal': 'Metalen gevelpanelen',
+    'stucwerk': 'Stucwerk'
+  }[facadeCladding] || facadeCladding;
+
+  // Get roof description
+  const roofDescription = {
+    'plat_bitumen': 'Plat dak (bitumen/EPDM)',
+    'hellend_dakpannen': 'Hellend dak (dakpannen)',
+    'hellend_metaal': 'Hellend dak (metaal)',
+    'groendak': 'Groendak'
+  }[roof] || roof;
+
+  // Get foundation description
+  const foundationDescription = {
+    'kruipruimte': 'Kruipruimte',
+    'betonplaat': 'Betonplaat op isolatie',
+    'souterrain': 'Souterrain/kelder'
+  }[foundation] || foundation;
+
+  // Get window frames description
+  const windowFramesDescription = {
+    'pvc': 'Kunststof (PVC)',
+    'hout': 'Hout',
+    'aluminium': 'Aluminium'
+  }[windowFrames] || windowFrames;
+
   const templates = [
     {
       name: 'Gevel (buitenmuur)',
       category: 'exterior_wall',
       quantity: Math.round(exteriorWallArea),
       unit: 'm2',
-      description: `${constructionSystem} constructie, ${insulationLevel}`
+      description: `${constructionSystem} constructie, ${facadeDescription}`
     },
     {
       name: 'Dak',
       category: 'roof',
       quantity: Math.round(roofArea),
       unit: 'm2',
-      description: `${constructionSystem} dak, ${insulationLevel}`
+      description: roofDescription
     },
     {
       name: 'Begane grond vloer',
       category: 'floor',
       quantity: Math.round(floorArea1),
       unit: 'm2',
-      description: `Vloer op grond, ${insulationLevel}`
+      description: foundationDescription
     }
   ];
 
@@ -278,13 +346,14 @@ function getElementTemplates(
     });
   }
 
-  // Add windows (typical 20% of wall area)
+  // Add windows based on actual window-to-wall ratio
+  const windowArea = exteriorWallArea * (windowToWallRatio / 100);
   templates.push({
     name: 'Kozijnen en beglazing',
     category: 'windows',
-    quantity: Math.round(exteriorWallArea * 0.2),
+    quantity: Math.round(windowArea),
     unit: 'm2',
-    description: 'Triple glas, HR++'
+    description: `${windowFramesDescription}, Triple glas HR++`
   });
 
   // Add foundation (simplified)
@@ -293,7 +362,7 @@ function getElementTemplates(
     category: 'foundation',
     quantity: Math.round(perimeter),
     unit: 'm',
-    description: 'Strook- of paalfundering'
+    description: foundationDescription
   });
 
   return templates;
@@ -304,13 +373,19 @@ function getElementTemplates(
  *
  * Returns material layers based on:
  * - Element category (exterior_wall, roof, floor, etc.)
- * - Construction system (houtskelet, metselwerk, beton, clt)
- * - Insulation level (RC 3.5 - passief)
+ * - Construction system (houtskelet, clt, metselwerk, beton)
+ * - Facade cladding type
+ * - Foundation type
+ * - Roof type
+ * - Window frames type
  */
 function getLayerTemplates(
   category: string,
   constructionSystem: string,
-  insulationLevel: string
+  facadeCladding: string,
+  foundation: string,
+  roof: string,
+  windowFrames: string
 ): Array<{
   position: number;
   material_category: string;
@@ -318,8 +393,9 @@ function getLayerTemplates(
   thickness: number;
   coverage: number;
 }> {
-  // Calculate insulation thickness based on RC value
-  const insulationThickness = getInsulationThickness(insulationLevel);
+  // Use standard insulation thickness (RC 5.0 equivalent - 20 cm)
+  // This can be made more sophisticated based on construction choices
+  const insulationThickness = 0.200;  // 20 cm - good standard for modern Dutch construction
 
   const templates: Record<string, Array<{
     position: number;
@@ -388,32 +464,101 @@ function getLayerTemplates(
     ]
   };
 
-  // Determine template key
+  // Determine template key and apply facade cladding choice
   let templateKey = category;
+  let layerTemplate = [];
 
   if (category === 'exterior_wall') {
-    templateKey = `exterior_wall_${constructionSystem}`;
-  } else if (category === 'roof') {
-    templateKey = constructionSystem === 'houtskelet' ? 'roof_houtskelet' : 'roof_default';
-  } else if (category === 'floor') {
-    // Ground floor vs intermediate floor - simplified
-    templateKey = 'floor_ground';
+    // Base structure from construction system
+    const baseTemplate = templates[`exterior_wall_${constructionSystem}`] || templates['exterior_wall_houtskelet'];
+    layerTemplate = [...baseTemplate];
+
+    // Modify outer layer based on facade cladding choice
+    if (facadeCladding === 'hout') {
+      layerTemplate[0] = { position: 1, material_category: 'timber', material_search: '%hout%', thickness: 0.018, coverage: 1.0 };
+    } else if (facadeCladding === 'vezelcement') {
+      layerTemplate[0] = { position: 1, material_category: 'finishes', material_search: '%vezelcement%', thickness: 0.010, coverage: 1.0 };
+    } else if (facadeCladding === 'metselwerk') {
+      layerTemplate[0] = { position: 1, material_category: 'masonry', material_search: '%baksteen%', thickness: 0.10, coverage: 1.0 };
+    } else if (facadeCladding === 'metaal') {
+      layerTemplate[0] = { position: 1, material_category: 'metal', material_search: '%aluminium%', thickness: 0.005, coverage: 1.0 };
+    } else if (facadeCladding === 'stucwerk') {
+      layerTemplate[0] = { position: 1, material_category: 'finishes', material_search: '%stuc%', thickness: 0.015, coverage: 1.0 };
+    }
+    return layerTemplate;
+  }
+
+  if (category === 'roof') {
+    // Select roof template based on roof type
+    if (roof === 'plat_bitumen') {
+      return [
+        { position: 1, material_category: 'roofing', material_search: '%bitumen%', thickness: 0.005, coverage: 1.0 },
+        { position: 2, material_category: 'timber', material_search: '%OSB%', thickness: 0.018, coverage: 1.0 },
+        { position: 3, material_category: 'insulation', material_search: '%EPS%', thickness: insulationThickness, coverage: 1.0 }
+      ];
+    } else if (roof === 'hellend_dakpannen') {
+      return [
+        { position: 1, material_category: 'roofing', material_search: '%dakpan%', thickness: 0.015, coverage: 1.0 },
+        { position: 2, material_category: 'timber', material_search: '%OSB%', thickness: 0.018, coverage: 1.0 },
+        { position: 3, material_category: 'insulation', material_search: '%mineraalwol%', thickness: insulationThickness, coverage: 1.0 }
+      ];
+    } else if (roof === 'hellend_metaal') {
+      return [
+        { position: 1, material_category: 'metal', material_search: '%staal%', thickness: 0.007, coverage: 1.0 },
+        { position: 2, material_category: 'timber', material_search: '%OSB%', thickness: 0.018, coverage: 1.0 },
+        { position: 3, material_category: 'insulation', material_search: '%mineraalwol%', thickness: insulationThickness, coverage: 1.0 }
+      ];
+    } else if (roof === 'groendak') {
+      return [
+        { position: 1, material_category: 'other', material_search: '%groen%', thickness: 0.150, coverage: 1.0 },
+        { position: 2, material_category: 'roofing', material_search: '%EPDM%', thickness: 0.005, coverage: 1.0 },
+        { position: 3, material_category: 'timber', material_search: '%OSB%', thickness: 0.018, coverage: 1.0 },
+        { position: 4, material_category: 'insulation', material_search: '%EPS%', thickness: insulationThickness, coverage: 1.0 }
+      ];
+    }
+    return templates['roof_default'];
+  }
+
+  if (category === 'floor') {
+    // Use foundation type to determine floor construction
+    if (foundation === 'kruipruimte') {
+      return [
+        { position: 1, material_category: 'timber', material_search: '%OSB%', thickness: 0.022, coverage: 1.0 },
+        { position: 2, material_category: 'insulation', material_search: '%mineraalwol%', thickness: insulationThickness * 0.7, coverage: 1.0 }
+      ];
+    } else if (foundation === 'betonplaat') {
+      return [
+        { position: 1, material_category: 'concrete', material_search: '%beton%', thickness: 0.15, coverage: 1.0 },
+        { position: 2, material_category: 'insulation', material_search: '%EPS%', thickness: insulationThickness * 0.7, coverage: 1.0 }
+      ];
+    } else if (foundation === 'souterrain') {
+      return [
+        { position: 1, material_category: 'concrete', material_search: '%beton%', thickness: 0.20, coverage: 1.0 },
+        { position: 2, material_category: 'insulation', material_search: '%EPS%', thickness: insulationThickness * 0.5, coverage: 1.0 }
+      ];
+    }
+    return templates['floor_ground'];
+  }
+
+  if (category === 'windows') {
+    // Window frames based on selection
+    let frameMaterial = 'timber';
+    let frameSearch = '%hout%';
+
+    if (windowFrames === 'pvc') {
+      frameMaterial = 'other';
+      frameSearch = '%PVC%';
+    } else if (windowFrames === 'aluminium') {
+      frameMaterial = 'metal';
+      frameSearch = '%aluminium%';
+    }
+
+    return [
+      { position: 1, material_category: 'glass', material_search: '%glas%', thickness: 0.040, coverage: 0.85 },
+      { position: 2, material_category: frameMaterial, material_search: frameSearch, thickness: 0.080, coverage: 0.15 }
+    ];
   }
 
   return templates[templateKey] || [];
 }
 
-/**
- * Calculate insulation thickness based on RC value
- */
-function getInsulationThickness(insulationLevel: string): number {
-  const thicknessMap: Record<string, number> = {
-    'RC 3.5': 0.140,  // 14 cm
-    'RC 5.0': 0.200,  // 20 cm
-    'RC 6.0': 0.240,  // 24 cm
-    'RC 8.0': 0.320,  // 32 cm
-    'passief': 0.400   // 40 cm
-  };
-
-  return thicknessMap[insulationLevel] || 0.200;
-}
