@@ -33,13 +33,17 @@ export default function MaterialSelector({
       selectCategory: 'Selecteer categorie...',
       selectMaterial: 'Selecteer materiaal...',
       loading: 'Laden...',
-      noMaterials: 'Geen materialen gevonden'
+      noMaterials: 'Geen materialen gevonden',
+      airCavity: 'Luchtspouw / Luchtlaag',
+      airCavityNote: 'Geen materiaal nodig'
     },
     en: {
       selectCategory: 'Select category...',
       selectMaterial: 'Select material...',
       loading: 'Loading...',
-      noMaterials: 'No materials found'
+      noMaterials: 'No materials found',
+      airCavity: 'Air Cavity / Air Gap',
+      airCavityNote: 'No material needed'
     }
   };
 
@@ -93,8 +97,12 @@ export default function MaterialSelector({
 
   const handleCategoryChange = (category: string) => {
     setSelectedCat(category);
-    // Reset material selection when category changes
-    if (category !== selectedCategory) {
+    // If air cavity selected, immediately set special ID
+    if (category === 'AIR_CAVITY') {
+      const name = locale === 'nl' ? 'Luchtspouw' : 'Air Cavity';
+      onSelect('AIR_CAVITY', category, name);
+    } else if (category !== selectedCategory) {
+      // Reset material selection when category changes
       onSelect('', category, '');
     }
   };
@@ -121,6 +129,8 @@ export default function MaterialSelector({
           className="w-full px-sm py-xs border border-gray-300 rounded-sm text-sm focus:ring-2 focus:ring-primary focus:border-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
         >
           <option value="">{translations.selectCategory}</option>
+          <option value="AIR_CAVITY">🌬️ {translations.airCavity}</option>
+          <option disabled>────────────────</option>
           {categories.map(cat => (
             <option key={cat} value={cat}>{cat}</option>
           ))}
@@ -132,21 +142,27 @@ export default function MaterialSelector({
         <label className="block text-xs font-medium text-gray-700 mb-xs">
           {translations.selectMaterial}
         </label>
-        <select
-          value={selectedMaterialId}
-          onChange={(e) => handleMaterialChange(e.target.value)}
-          disabled={!selectedCat || isLoadingMaterials}
-          className="w-full px-sm py-xs border border-gray-300 rounded-sm text-sm focus:ring-2 focus:ring-primary focus:border-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
-        >
-          <option value="">
-            {isLoadingMaterials ? translations.loading : translations.selectMaterial}
-          </option>
-          {materials.map(mat => (
-            <option key={mat.id} value={mat.id}>
-              {locale === 'nl' ? mat.name_nl : mat.name_en}
+        {selectedCat === 'AIR_CAVITY' ? (
+          <div className="w-full px-sm py-xs border border-gray-200 rounded-sm text-sm bg-gray-50 text-gray-500 italic">
+            {translations.airCavityNote}
+          </div>
+        ) : (
+          <select
+            value={selectedMaterialId}
+            onChange={(e) => handleMaterialChange(e.target.value)}
+            disabled={!selectedCat || isLoadingMaterials}
+            className="w-full px-sm py-xs border border-gray-300 rounded-sm text-sm focus:ring-2 focus:ring-primary focus:border-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
+          >
+            <option value="">
+              {isLoadingMaterials ? translations.loading : translations.selectMaterial}
             </option>
-          ))}
-        </select>
+            {materials.map(mat => (
+              <option key={mat.id} value={mat.id}>
+                {locale === 'nl' ? mat.name_nl : mat.name_en}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
     </div>
   );

@@ -197,7 +197,7 @@ export default function PackageEditorClient({ locale, packageId }: PackageEditor
     try {
       const layersPayload: CreatePackageLayerInput[] = layers.map((layer, index) => ({
         position: index + 1,
-        material_id: layer.material_id,
+        material_id: layer.material_id === 'AIR_CAVITY' ? null : layer.material_id,
         thickness: layer.thickness,
         coverage: layer.coverage,
         layer_function: layer.layer_function || undefined,
@@ -377,7 +377,7 @@ export default function PackageEditorClient({ locale, packageId }: PackageEditor
           <div className="lg:sticky lg:top-4 lg:self-start">
             <div className="mb-sm">
               <h3 className="text-lg font-semibold text-gray-900">
-                {locale === 'nl' ? 'Doorsnede (1:5)' : 'Cross-section (1:5)'}
+                {locale === 'nl' ? 'Doorsnede' : 'Cross-section'}
               </h3>
               <p className="text-xs text-gray-600 mt-xs">
                 {locale === 'nl'

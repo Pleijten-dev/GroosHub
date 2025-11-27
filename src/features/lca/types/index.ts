@@ -569,7 +569,7 @@ export interface CreatePackageInput {
 
 export interface CreatePackageLayerInput {
   position: number;
-  material_id: string;
+  material_id: string | null;  // null for air cavities
   thickness: number;  // meters
   coverage?: number;  // default: 1.0
   layer_function?: string;

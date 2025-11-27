@@ -54,8 +54,8 @@ CREATE TABLE lca_package_layers (
   -- Layer position (1 = outermost, increasing inward)
   position INTEGER NOT NULL,
 
-  -- Material reference
-  material_id UUID NOT NULL REFERENCES lca_materials(id),
+  -- Material reference (NULL for air cavities)
+  material_id UUID REFERENCES lca_materials(id),
 
   -- Geometry
   thickness DECIMAL(10,6) NOT NULL,  -- meters

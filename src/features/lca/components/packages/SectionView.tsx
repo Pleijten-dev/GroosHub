@@ -20,7 +20,6 @@ interface SectionViewProps {
 /**
  * SectionView - Renders an architectural cross-section of a building assembly
  * Uses Dutch architectural hatching conventions (NEN standards)
- * Scale approximately 1:5 for typical details
  */
 export default function SectionView({
   layers,
@@ -48,14 +47,12 @@ export default function SectionView({
       thickness: 'Dikte',
       totalThickness: 'Totale dikte',
       coverage: 'Dekking',
-      scale: 'Schaal ca. 1:5',
       noLayers: 'Geen lagen toegevoegd'
     },
     en: {
       thickness: 'Thickness',
       totalThickness: 'Total thickness',
       coverage: 'Coverage',
-      scale: 'Scale approx. 1:5',
       noLayers: 'No layers added'
     }
   };
@@ -73,6 +70,9 @@ export default function SectionView({
   // Map material categories to hatch pattern IDs
   const getCategoryHatch = (category?: string): string => {
     if (!category) return 'none';
+
+    // Handle air cavity
+    if (category === 'AIR_CAVITY') return 'air';
 
     const cat = category.toLowerCase();
 
@@ -131,8 +131,7 @@ export default function SectionView({
   return (
     <div className="space-y-base">
       {/* Header */}
-      <div className="flex items-center justify-between text-xs text-gray-500">
-        <span>{t.scale}</span>
+      <div className="flex items-center justify-end text-xs text-gray-500">
         <span>{t.totalThickness}: {formatThickness(totalThickness)}</span>
       </div>
 
@@ -147,66 +146,66 @@ export default function SectionView({
         <defs>
           {/* Concrete - diagonal lines 45° */}
           <pattern id="concrete" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
-            <line x1="0" y1="8" x2="8" y2="0" stroke="#666" strokeWidth="0.5" />
+            <line x1="0" y1="8" x2="8" y2="0" stroke="#000" strokeWidth="0.5" />
           </pattern>
 
           {/* Brick - cross-hatching */}
           <pattern id="brick" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
-            <line x1="0" y1="10" x2="10" y2="0" stroke="#8B4513" strokeWidth="0.5" />
-            <line x1="0" y1="0" x2="10" y2="10" stroke="#8B4513" strokeWidth="0.5" />
+            <line x1="0" y1="10" x2="10" y2="0" stroke="#000" strokeWidth="0.5" />
+            <line x1="0" y1="0" x2="10" y2="10" stroke="#000" strokeWidth="0.5" />
           </pattern>
 
           {/* Timber - vertical grain with cross lines */}
           <pattern id="timber" x="0" y="0" width="12" height="20" patternUnits="userSpaceOnUse">
-            <line x1="3" y1="0" x2="3" y2="20" stroke="#8B6914" strokeWidth="0.5" />
-            <line x1="9" y1="0" x2="9" y2="20" stroke="#8B6914" strokeWidth="0.5" />
-            <line x1="0" y1="7" x2="12" y2="7" stroke="#8B6914" strokeWidth="0.3" />
-            <line x1="0" y1="14" x2="12" y2="14" stroke="#8B6914" strokeWidth="0.3" />
+            <line x1="3" y1="0" x2="3" y2="20" stroke="#000" strokeWidth="0.5" />
+            <line x1="9" y1="0" x2="9" y2="20" stroke="#000" strokeWidth="0.5" />
+            <line x1="0" y1="7" x2="12" y2="7" stroke="#000" strokeWidth="0.3" />
+            <line x1="0" y1="14" x2="12" y2="14" stroke="#000" strokeWidth="0.3" />
           </pattern>
 
           {/* Insulation - wavy/zigzag pattern */}
           <pattern id="insulation" x="0" y="0" width="20" height="10" patternUnits="userSpaceOnUse">
-            <path d="M0,5 L5,2 L10,5 L15,2 L20,5" stroke="#FF69B4" strokeWidth="0.8" fill="none" />
-            <path d="M0,8 L5,5 L10,8 L15,5 L20,8" stroke="#FF69B4" strokeWidth="0.8" fill="none" />
+            <path d="M0,5 L5,2 L10,5 L15,2 L20,5" stroke="#000" strokeWidth="0.6" fill="none" />
+            <path d="M0,8 L5,5 L10,8 L15,5 L20,8" stroke="#000" strokeWidth="0.6" fill="none" />
           </pattern>
 
           {/* Steel - diagonal lines 135° (opposite to concrete) */}
           <pattern id="steel" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
-            <line x1="0" y1="0" x2="8" y2="8" stroke="#4A4A4A" strokeWidth="0.6" />
+            <line x1="0" y1="0" x2="8" y2="8" stroke="#000" strokeWidth="0.6" />
           </pattern>
 
           {/* Glass - very light diagonal */}
           <pattern id="glass" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-            <line x1="0" y1="20" x2="20" y2="0" stroke="#87CEEB" strokeWidth="0.3" opacity="0.3" />
+            <line x1="0" y1="20" x2="20" y2="0" stroke="#888" strokeWidth="0.3" opacity="0.3" />
           </pattern>
 
           {/* Plaster - light stippling */}
           <pattern id="plaster" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
-            <circle cx="2" cy="3" r="0.4" fill="#888" opacity="0.3" />
-            <circle cx="7" cy="7" r="0.4" fill="#888" opacity="0.3" />
+            <circle cx="2" cy="3" r="0.4" fill="#666" opacity="0.3" />
+            <circle cx="7" cy="7" r="0.4" fill="#666" opacity="0.3" />
           </pattern>
 
           {/* Membrane - horizontal lines */}
           <pattern id="membrane" x="0" y="0" width="10" height="4" patternUnits="userSpaceOnUse">
-            <line x1="0" y1="2" x2="10" y2="2" stroke="#333" strokeWidth="0.8" />
+            <line x1="0" y1="2" x2="10" y2="2" stroke="#000" strokeWidth="0.8" />
           </pattern>
 
           {/* Stone - irregular pattern */}
           <pattern id="stone" x="0" y="0" width="15" height="15" patternUnits="userSpaceOnUse">
-            <circle cx="3" cy="4" r="0.8" fill="#696969" />
-            <circle cx="9" cy="8" r="0.6" fill="#696969" />
-            <circle cx="12" cy="3" r="0.7" fill="#696969" />
-            <circle cx="5" cy="11" r="0.5" fill="#696969" />
+            <circle cx="3" cy="4" r="0.8" fill="#444" />
+            <circle cx="9" cy="8" r="0.6" fill="#444" />
+            <circle cx="12" cy="3" r="0.7" fill="#444" />
+            <circle cx="5" cy="11" r="0.5" fill="#444" />
           </pattern>
 
-          {/* Air gap - very light dotted */}
+          {/* Air gap - empty/white */}
           <pattern id="air" x="0" y="0" width="15" height="15" patternUnits="userSpaceOnUse">
-            <circle cx="7" cy="7" r="0.5" fill="#ADD8E6" opacity="0.2" />
+            <rect x="0" y="0" width="15" height="15" fill="white" />
           </pattern>
 
           {/* Default - light diagonal */}
           <pattern id="default" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
-            <line x1="0" y1="10" x2="10" y2="0" stroke="#999" strokeWidth="0.4" opacity="0.5" />
+            <line x1="0" y1="10" x2="10" y2="0" stroke="#666" strokeWidth="0.4" opacity="0.5" />
           </pattern>
         </defs>
 
@@ -227,7 +226,7 @@ export default function SectionView({
                 y={y + 20}
                 width={width - 100}
                 height={layerHeight}
-                fill={hatchPattern === 'air' ? '#f0f9ff' : fillUrl}
+                fill={hatchPattern === 'air' ? 'white' : fillUrl}
                 stroke="#333"
                 strokeWidth="1"
               />
@@ -327,17 +326,6 @@ export default function SectionView({
           stroke="#000"
           strokeWidth="2"
         />
-
-        {/* Scale indicator */}
-        <text
-          x={width / 2}
-          y={currentY + 35}
-          fontSize="10"
-          fill="#666"
-          textAnchor="middle"
-        >
-          {t.scale}
-        </text>
       </svg>
 
       {/* Legend */}
