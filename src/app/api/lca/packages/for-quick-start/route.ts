@@ -46,43 +46,39 @@ export async function GET(request: NextRequest) {
     const packagesByCategory: Record<string, unknown[]> = {};
 
     for (const category of categories) {
-      let query;
-      let queryParams: (string | null)[];
+      let result;
 
       if (constructionSystem) {
         // Filter by construction system if provided
-        query = `
+        result = await sql`
           SELECT
             p.*,
             COUNT(pl.id) as layer_count
           FROM lca_packages p
           LEFT JOIN lca_package_layers pl ON pl.package_id = p.id
-          WHERE p.category = $1
+          WHERE p.category = ${category}
             AND p.is_public = true
-            AND (p.construction_system = $2 OR p.construction_system IS NULL)
+            AND (p.construction_system = ${constructionSystem} OR p.construction_system IS NULL)
           GROUP BY p.id
           ORDER BY p.usage_count DESC, p.name ASC
           LIMIT 20
         `;
-        queryParams = [category, constructionSystem];
       } else {
         // No construction system filter - get all public packages
-        query = `
+        result = await sql`
           SELECT
             p.*,
             COUNT(pl.id) as layer_count
           FROM lca_packages p
           LEFT JOIN lca_package_layers pl ON pl.package_id = p.id
-          WHERE p.category = $1
+          WHERE p.category = ${category}
             AND p.is_public = true
           GROUP BY p.id
           ORDER BY p.usage_count DESC, p.name ASC
           LIMIT 20
         `;
-        queryParams = [category];
       }
 
-      const result = await sql.unsafe(query, queryParams);
       packagesByCategory[category] = result;
     }
 

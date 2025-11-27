@@ -169,6 +169,7 @@ function transformToNestedStructure(rows: ProjectRow[]): ProjectWithElements {
         quantity_unit: row.element_quantity_unit!,
         description: null,
         notes: null,
+        package_id: null,
         total_gwp_a1_a3: null,
         total_gwp_a4: null,
         total_gwp_a5: null,

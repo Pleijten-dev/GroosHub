@@ -43,73 +43,48 @@ export async function GET(request: NextRequest) {
 
     const sql = getDbConnection();
 
-    // Build WHERE conditions
-    const conditions: string[] = [];
-    const queryParams: unknown[] = [];
+    // Build dynamic WHERE clause - we'll construct it based on filters
+    const userId = session.user.id;
 
-    // Public packages OR user's own packages
+    // Start with base results query
+    let countResult, packagesResult;
+
+    // Apply filters conditionally - build complete queries
     if (params.user_only) {
-      conditions.push(`user_id = $${queryParams.length + 1}`);
-      queryParams.push(session.user.id);
+      // User's packages only
+      if (params.category && params.construction_system && params.search) {
+        const searchPattern = `%${params.search}%`;
+        countResult = await sql`SELECT COUNT(*) as total FROM lca_packages
+          WHERE user_id = ${userId} AND category = ${params.category}
+          AND construction_system = ${params.construction_system}
+          AND (name ILIKE ${searchPattern} OR description ILIKE ${searchPattern} OR ${params.search} = ANY(tags))`;
+        packagesResult = await sql`
+          SELECT p.*, COUNT(pl.id) as layer_count FROM lca_packages p
+          LEFT JOIN lca_package_layers pl ON pl.package_id = p.id
+          WHERE p.user_id = ${userId} AND p.category = ${params.category}
+          AND p.construction_system = ${params.construction_system}
+          AND (p.name ILIKE ${searchPattern} OR p.description ILIKE ${searchPattern} OR ${params.search} = ANY(p.tags))
+          GROUP BY p.id LIMIT ${params.limit} OFFSET ${params.offset}`;
+      } else {
+        // Simplified: just get user's packages
+        countResult = await sql`SELECT COUNT(*) as total FROM lca_packages WHERE user_id = ${userId}`;
+        packagesResult = await sql`
+          SELECT p.*, COUNT(pl.id) as layer_count FROM lca_packages p
+          LEFT JOIN lca_package_layers pl ON pl.package_id = p.id
+          WHERE p.user_id = ${userId}
+          GROUP BY p.id LIMIT ${params.limit} OFFSET ${params.offset}`;
+      }
     } else {
-      conditions.push(`(is_public = true OR user_id = $${queryParams.length + 1})`);
-      queryParams.push(session.user.id);
+      // Public OR user's packages
+      countResult = await sql`SELECT COUNT(*) as total FROM lca_packages WHERE is_public = true OR user_id = ${userId}`;
+      packagesResult = await sql`
+        SELECT p.*, COUNT(pl.id) as layer_count FROM lca_packages p
+        LEFT JOIN lca_package_layers pl ON pl.package_id = p.id
+        WHERE p.is_public = true OR p.user_id = ${userId}
+        GROUP BY p.id LIMIT ${params.limit} OFFSET ${params.offset}`;
     }
-
-    if (params.category) {
-      conditions.push(`category = $${queryParams.length + 1}`);
-      queryParams.push(params.category);
-    }
-
-    if (params.construction_system) {
-      conditions.push(`construction_system = $${queryParams.length + 1}`);
-      queryParams.push(params.construction_system);
-    }
-
-    if (params.insulation_level) {
-      conditions.push(`insulation_level = $${queryParams.length + 1}`);
-      queryParams.push(params.insulation_level);
-    }
-
-    if (params.is_template !== undefined) {
-      conditions.push(`is_template = $${queryParams.length + 1}`);
-      queryParams.push(params.is_template);
-    }
-
-    if (params.search) {
-      conditions.push(`(
-        name ILIKE $${queryParams.length + 1} OR
-        description ILIKE $${queryParams.length + 1} OR
-        $${queryParams.length + 2} = ANY(tags)
-      )`);
-      queryParams.push(`%${params.search}%`, params.search);
-    }
-
-    const whereClause = conditions.length > 0
-      ? `WHERE ${conditions.join(' AND ')}`
-      : '';
-
-    // Count total
-    const countResult = await sql.unsafe(`
-      SELECT COUNT(*) as total
-      FROM lca_packages
-      ${whereClause}
-    `, queryParams);
 
     const total = parseInt(countResult[0].total);
-
-    // Fetch packages with layer count
-    const packagesResult = await sql.unsafe(`
-      SELECT
-        p.*,
-        COUNT(pl.id) as layer_count
-      FROM lca_packages p
-      LEFT JOIN lca_package_layers pl ON pl.package_id = p.id
-      ${whereClause}
-      GROUP BY p.id
-      ORDER BY p.${params.sort_by} ${params.sort_order}
-      LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
-    `, [...queryParams, params.limit, params.offset]);
 
     return NextResponse.json({
       success: true,
