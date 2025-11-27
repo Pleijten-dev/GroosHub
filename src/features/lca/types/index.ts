@@ -107,6 +107,7 @@ export interface LCAProject {
 export interface LCAElement {
   id: string;
   project_id: string;
+  package_id: string | null;  // Reference to package this element was created from
   name: string;
   sfb_code: string | null;
   category: string;
@@ -504,3 +505,124 @@ export const OPERATIONAL_CARBON_BY_LABEL: Record<EnergyLabel, number> = {
   'C': 45,
   'D': 55
 };
+
+// ============================================
+// PACKAGE TYPES
+// ============================================
+
+export interface LCAPackage {
+  id: string;
+  name: string;
+  description: string | null;
+  category: ElementCategory;
+  subcategory: string | null;
+  construction_system: ConstructionSystem | null;
+  insulation_level: InsulationLevel | null;
+  total_thickness: number | null;  // meters
+  total_rc_value: number | null;  // m²K/W
+  total_weight: number | null;  // kg/m²
+  is_template: boolean;
+  is_public: boolean;
+  user_id: string | null;
+  usage_count: number;
+  tags: string[] | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface LCAPackageLayer {
+  id: string;
+  package_id: string;
+  position: number;
+  material_id: string;
+  thickness: number;  // meters
+  coverage: number;  // 0-1
+  layer_function: string | null;
+  notes: string | null;
+}
+
+// Extended types with relations
+export interface PackageLayerWithMaterial extends LCAPackageLayer {
+  material: Material;
+}
+
+export interface PackageWithLayers extends LCAPackage {
+  layers: PackageLayerWithMaterial[];
+  layer_count?: number;
+}
+
+// ============================================
+// PACKAGE API TYPES
+// ============================================
+
+export interface CreatePackageInput {
+  name: string;
+  description?: string;
+  category: ElementCategory;
+  subcategory?: string;
+  construction_system?: ConstructionSystem;
+  insulation_level?: InsulationLevel;
+  is_public?: boolean;
+  tags?: string[];
+  layers: CreatePackageLayerInput[];
+}
+
+export interface CreatePackageLayerInput {
+  position: number;
+  material_id: string;
+  thickness: number;  // meters
+  coverage?: number;  // default: 1.0
+  layer_function?: string;
+  notes?: string;
+}
+
+export interface UpdatePackageInput extends Partial<CreatePackageInput> {
+  id: string;
+}
+
+export interface PackageSearchParams {
+  category?: ElementCategory;
+  construction_system?: ConstructionSystem;
+  insulation_level?: InsulationLevel;
+  is_public?: boolean;
+  is_template?: boolean;
+  user_only?: boolean;
+  search?: string;  // Search in name, description, tags
+  tags?: string[];
+  limit?: number;
+  offset?: number;
+  sort_by?: 'name' | 'usage_count' | 'created_at' | 'updated_at';
+  sort_order?: 'asc' | 'desc';
+}
+
+export interface ApplyPackageToProjectInput {
+  package_id: string;
+  project_id: string;
+  quantity: number;
+  quantity_unit?: string;
+  element_name?: string;  // Override default name
+}
+
+// ============================================
+// PACKAGE STATISTICS
+// ============================================
+
+export interface PackageStats {
+  total_packages: number;
+  by_category: Record<ElementCategory, number>;
+  by_construction_system: Record<ConstructionSystem, number>;
+  most_used: LCAPackage[];
+  recently_added: LCAPackage[];
+}
+
+// ============================================
+// QUICK START WITH PACKAGES
+// ============================================
+
+export interface QuickStartPackageSelections {
+  exterior_wall?: string;  // package_id
+  roof?: string;
+  floor?: string;
+  windows?: string;
+  foundation?: string;
+}
