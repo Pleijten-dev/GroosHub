@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
 
     // 2. Parse query parameters
     const searchParams = request.nextUrl.searchParams;
+    const categoriesOnly = searchParams.get('categories_only') === 'true';
     const search = searchParams.get('search');
     const category = searchParams.get('category');
     const minQuality = searchParams.get('min_quality');
@@ -61,6 +62,23 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
 
     const sql = getDbConnection();
+
+    // If categories_only, return just the list of categories
+    if (categoriesOnly) {
+      const categories = await sql`
+        SELECT DISTINCT category
+        FROM lca_materials
+        WHERE dutch_availability = true
+        ORDER BY category
+      `;
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          categories: categories.map(c => c.category)
+        }
+      });
+    }
 
     // 3. Build WHERE conditions using Neon's tagged template syntax
     const conditions = [];
@@ -146,11 +164,13 @@ export async function GET(request: NextRequest) {
     // 6. Return results
     return NextResponse.json({
       success: true,
-      data: materials,
-      pagination: {
-        limit,
-        offset,
-        total
+      data: {
+        materials,
+        pagination: {
+          limit,
+          offset,
+          total
+        }
       }
     });
 
