@@ -2,7 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import type { CreatePackageInput, PackageWithLayers } from '@/features/lca/types';
+import type {
+  CreatePackageInput,
+  CreatePackageLayerInput,
+  ElementCategory,
+  ConstructionSystem,
+  InsulationLevel
+} from '@/features/lca/types';
 import LayerEditorList from './LayerEditorList';
 
 interface PackageEditorClientProps {
@@ -22,19 +28,42 @@ interface LayerData {
   notes?: string;
 }
 
+interface ApiLayerResponse {
+  position: number;
+  material_id: string;
+  thickness: number;
+  coverage?: number;
+  layer_function?: string;
+  notes?: string;
+  material?: {
+    name_nl?: string;
+    name_en?: string;
+    category?: string;
+  };
+}
+
 export default function PackageEditorClient({ locale, packageId }: PackageEditorClientProps) {
   const router = useRouter();
   const isNew = packageId === 'new';
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    description: string;
+    category: ElementCategory;
+    subcategory: string;
+    construction_system: string;
+    insulation_level: string;
+    is_public: boolean;
+    tags: string[];
+  }>({
     name: '',
     description: '',
-    category: 'exterior_wall' as const,
+    category: 'exterior_wall',
     subcategory: '',
     construction_system: '',
     insulation_level: '',
     is_public: false,
-    tags: [] as string[]
+    tags: []
   });
 
   const [layers, setLayers] = useState<LayerData[]>([]);
@@ -131,7 +160,7 @@ export default function PackageEditorClient({ locale, packageId }: PackageEditor
         });
 
         if (pkg.layers && pkg.layers.length > 0) {
-          setLayers(pkg.layers.map((layer: any, index: number) => ({
+          setLayers(pkg.layers.map((layer: ApiLayerResponse, index: number) => ({
             id: `layer-${index}`,
             position: layer.position,
             material_id: layer.material_id,
@@ -165,13 +194,13 @@ export default function PackageEditorClient({ locale, packageId }: PackageEditor
     setError(null);
 
     try {
-      const layersPayload = layers.map((layer, index) => ({
+      const layersPayload: CreatePackageLayerInput[] = layers.map((layer, index) => ({
         position: index + 1,
         material_id: layer.material_id,
         thickness: layer.thickness,
         coverage: layer.coverage,
-        layer_function: layer.layer_function || null,
-        notes: layer.notes || null
+        layer_function: layer.layer_function || undefined,
+        notes: layer.notes || undefined
       }));
 
       const payload: CreatePackageInput = {
@@ -179,8 +208,8 @@ export default function PackageEditorClient({ locale, packageId }: PackageEditor
         description: formData.description || undefined,
         category: formData.category,
         subcategory: formData.subcategory || undefined,
-        construction_system: formData.construction_system || undefined,
-        insulation_level: formData.insulation_level || undefined,
+        construction_system: (formData.construction_system || undefined) as ConstructionSystem | undefined,
+        insulation_level: (formData.insulation_level || undefined) as InsulationLevel | undefined,
         is_public: formData.is_public,
         tags: formData.tags.length > 0 ? formData.tags : undefined,
         layers: layersPayload
@@ -276,7 +305,7 @@ export default function PackageEditorClient({ locale, packageId }: PackageEditor
           </label>
           <select
             value={formData.category}
-            onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
+            onChange={(e) => setFormData({ ...formData, category: e.target.value as ElementCategory })}
             className="w-full px-md py-sm border border-gray-300 rounded-base focus:ring-2 focus:ring-primary focus:border-primary"
           >
             {Object.entries(translations.categories).map(([key, label]) => (

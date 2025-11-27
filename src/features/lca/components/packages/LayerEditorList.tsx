@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import MaterialSelector from './MaterialSelector';
 
 interface LayerData {
