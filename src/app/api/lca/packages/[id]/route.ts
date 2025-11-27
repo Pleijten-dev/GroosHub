@@ -113,11 +113,19 @@ export async function PATCH(
 
     // Update package metadata
     if (Object.keys(updates).length > 0) {
-      await sql`
+      // Build SET clause dynamically
+      const setClause = Object.keys(updates)
+        .map((key, index) => `${key} = $${index + 1}`)
+        .join(', ');
+
+      const values = Object.values(updates);
+      values.push(id); // Add id for WHERE clause
+
+      await sql.unsafe(`
         UPDATE lca_packages
-        SET ${sql(updates)}
-        WHERE id = ${id}
-      `;
+        SET ${setClause}
+        WHERE id = $${values.length}
+      `, values);
     }
 
     // Update layers if provided
