@@ -10,6 +10,7 @@ import type {
   InsulationLevel
 } from '@/features/lca/types';
 import LayerEditorList from './LayerEditorList';
+import SectionView from './SectionView';
 
 interface PackageEditorClientProps {
   locale: 'nl' | 'en';
@@ -355,18 +356,43 @@ export default function PackageEditorClient({ locale, packageId }: PackageEditor
         </div>
       </div>
 
-      {/* Layer Editor */}
+      {/* Layer Editor with Visual Section */}
       <div className="bg-white rounded-base shadow-md p-lg">
         <div className="mb-base">
           <h2 className="text-xl font-semibold text-gray-900">{translations.layers} *</h2>
           <p className="text-sm text-gray-600 mt-xs">{translations.layersDescription}</p>
         </div>
 
-        <LayerEditorList
-          layers={layers}
-          setLayers={setLayers}
-          locale={locale}
-        />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-lg">
+          {/* Left: Layer Editor */}
+          <div>
+            <LayerEditorList
+              layers={layers}
+              setLayers={setLayers}
+              locale={locale}
+            />
+          </div>
+
+          {/* Right: Visual Section */}
+          <div className="lg:sticky lg:top-4 lg:self-start">
+            <div className="mb-sm">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {locale === 'nl' ? 'Doorsnede (1:5)' : 'Cross-section (1:5)'}
+              </h3>
+              <p className="text-xs text-gray-600 mt-xs">
+                {locale === 'nl'
+                  ? 'Architectonische tekening met Nederlandse arceringen'
+                  : 'Architectural drawing with Dutch hatching patterns'}
+              </p>
+            </div>
+            <SectionView
+              layers={layers}
+              locale={locale}
+              width={500}
+              maxHeight={700}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Save Button */}
