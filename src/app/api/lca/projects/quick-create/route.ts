@@ -465,7 +465,7 @@ function getLayerTemplates(
   };
 
   // Determine template key and apply facade cladding choice
-  let templateKey = category;
+  const templateKey = category;
   let layerTemplate = [];
 
   if (category === 'exterior_wall') {
