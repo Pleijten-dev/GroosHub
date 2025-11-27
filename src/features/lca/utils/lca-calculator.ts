@@ -41,6 +41,12 @@ interface ProjectRow {
   building_type: string;
   construction_system: string;
   floors: number;
+  dwelling_count: number | null;
+  facade_cladding: string | null;
+  foundation: string | null;
+  roof: string | null;
+  window_frames: string | null;
+  window_to_wall_ratio: number | null;
   location: string | null;
   energy_label: string | null;
   heating_system: string | null;
@@ -114,6 +120,12 @@ function transformToNestedStructure(rows: ProjectRow[]): ProjectWithElements {
     building_type: firstRow.building_type,
     construction_system: firstRow.construction_system,
     floors: firstRow.floors,
+    dwelling_count: firstRow.dwelling_count,
+    facade_cladding: firstRow.facade_cladding,
+    foundation: firstRow.foundation,
+    roof: firstRow.roof,
+    window_frames: firstRow.window_frames,
+    window_to_wall_ratio: firstRow.window_to_wall_ratio,
     study_period: firstRow.study_period,
     location: firstRow.location,
     energy_label: firstRow.energy_label,
