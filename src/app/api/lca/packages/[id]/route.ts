@@ -99,33 +99,30 @@ export async function PATCH(
       );
     }
 
-    // Build update fields dynamically
-    const updates: Record<string, string | string[] | boolean | null> = {};
-
-    if (body.name !== undefined) updates.name = body.name;
-    if (body.description !== undefined) updates.description = body.description;
-    if (body.category !== undefined) updates.category = body.category;
-    if (body.subcategory !== undefined) updates.subcategory = body.subcategory;
-    if (body.construction_system !== undefined) updates.construction_system = body.construction_system;
-    if (body.insulation_level !== undefined) updates.insulation_level = body.insulation_level;
-    if (body.is_public !== undefined) updates.is_public = body.is_public;
-    if (body.tags !== undefined) updates.tags = body.tags;
-
-    // Update package metadata
-    if (Object.keys(updates).length > 0) {
-      // Build SET clause dynamically
-      const setClause = Object.keys(updates)
-        .map((key, index) => `${key} = $${index + 1}`)
-        .join(', ');
-
-      const values = Object.values(updates);
-      values.push(id); // Add id for WHERE clause
-
-      await sql.unsafe(`
-        UPDATE lca_packages
-        SET ${setClause}
-        WHERE id = $${values.length}
-      `, values);
+    // Update package metadata field by field
+    if (body.name !== undefined) {
+      await sql`UPDATE lca_packages SET name = ${body.name} WHERE id = ${id}`;
+    }
+    if (body.description !== undefined) {
+      await sql`UPDATE lca_packages SET description = ${body.description} WHERE id = ${id}`;
+    }
+    if (body.category !== undefined) {
+      await sql`UPDATE lca_packages SET category = ${body.category} WHERE id = ${id}`;
+    }
+    if (body.subcategory !== undefined) {
+      await sql`UPDATE lca_packages SET subcategory = ${body.subcategory} WHERE id = ${id}`;
+    }
+    if (body.construction_system !== undefined) {
+      await sql`UPDATE lca_packages SET construction_system = ${body.construction_system} WHERE id = ${id}`;
+    }
+    if (body.insulation_level !== undefined) {
+      await sql`UPDATE lca_packages SET insulation_level = ${body.insulation_level} WHERE id = ${id}`;
+    }
+    if (body.is_public !== undefined) {
+      await sql`UPDATE lca_packages SET is_public = ${body.is_public} WHERE id = ${id}`;
+    }
+    if (body.tags !== undefined) {
+      await sql`UPDATE lca_packages SET tags = ${body.tags} WHERE id = ${id}`;
     }
 
     // Update layers if provided
