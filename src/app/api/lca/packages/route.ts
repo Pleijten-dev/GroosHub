@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getDbConnection } from '@/lib/db/connection';
-import type { PackageSearchParams } from '@/features/lca/types';
+import type { PackageSearchParams, CreatePackageLayerInput } from '@/features/lca/types';
 
 /**
  * GET /api/lca/packages - List packages with filtering
@@ -28,24 +28,24 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const params: PackageSearchParams = {
-      category: searchParams.get('category') as any,
-      construction_system: searchParams.get('construction_system') as any,
-      insulation_level: searchParams.get('insulation_level') as any,
+      category: (searchParams.get('category') || undefined) as PackageSearchParams['category'],
+      construction_system: (searchParams.get('construction_system') || undefined) as PackageSearchParams['construction_system'],
+      insulation_level: (searchParams.get('insulation_level') || undefined) as PackageSearchParams['insulation_level'],
       is_public: searchParams.get('is_public') === 'true',
       is_template: searchParams.get('is_template') === 'true',
       user_only: searchParams.get('user_only') === 'true',
       search: searchParams.get('search') || undefined,
       limit: parseInt(searchParams.get('limit') || '50'),
       offset: parseInt(searchParams.get('offset') || '0'),
-      sort_by: (searchParams.get('sort_by') as any) || 'name',
-      sort_order: (searchParams.get('sort_order') as any) || 'asc'
+      sort_by: (searchParams.get('sort_by') || 'name') as PackageSearchParams['sort_by'],
+      sort_order: (searchParams.get('sort_order') || 'asc') as PackageSearchParams['sort_order']
     };
 
     const sql = getDbConnection();
 
     // Build WHERE conditions
     const conditions: string[] = [];
-    const queryParams: any[] = [];
+    const queryParams: unknown[] = [];
 
     // Public packages OR user's own packages
     if (params.user_only) {
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
 
     // Calculate total thickness
     const totalThickness = body.layers.reduce(
-      (sum: number, layer: any) => sum + (layer.thickness || 0),
+      (sum: number, layer: CreatePackageLayerInput) => sum + (layer.thickness || 0),
       0
     );
 

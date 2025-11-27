@@ -43,11 +43,11 @@ export async function GET(request: NextRequest) {
       'foundation'
     ];
 
-    const packagesByCategory: Record<string, any[]> = {};
+    const packagesByCategory: Record<string, unknown[]> = {};
 
     for (const category of categories) {
       let query;
-      let queryParams: any[];
+      let queryParams: (string | null)[];
 
       if (constructionSystem) {
         // Filter by construction system if provided

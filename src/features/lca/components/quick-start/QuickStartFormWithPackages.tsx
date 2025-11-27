@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { PackageWithLayers } from '@/features/lca/types';
 
@@ -58,12 +58,7 @@ export function QuickStartFormWithPackages({ locale }: QuickStartFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch packages when construction system changes
-  useEffect(() => {
-    fetchPackages();
-  }, [formData.constructionSystem]);
-
-  const fetchPackages = async () => {
+  const fetchPackages = useCallback(async () => {
     setIsLoadingPackages(true);
     try {
       const response = await fetch(
@@ -90,7 +85,12 @@ export function QuickStartFormWithPackages({ locale }: QuickStartFormProps) {
     } finally {
       setIsLoadingPackages(false);
     }
-  };
+  }, [formData.constructionSystem, locale]);
+
+  // Fetch packages when construction system changes
+  useEffect(() => {
+    fetchPackages();
+  }, [fetchPackages]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

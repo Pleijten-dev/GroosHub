@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getDbConnection } from '@/lib/db/connection';
+import type { CreatePackageLayerInput } from '@/features/lca/types';
 
 /**
  * GET /api/lca/packages/[id] - Get package details with layers
@@ -99,7 +100,7 @@ export async function PATCH(
     }
 
     // Build update fields dynamically
-    const updates: Record<string, any> = {};
+    const updates: Record<string, string | string[] | boolean | null> = {};
 
     if (body.name !== undefined) updates.name = body.name;
     if (body.description !== undefined) updates.description = body.description;
@@ -126,7 +127,7 @@ export async function PATCH(
 
       // Calculate new total thickness
       const totalThickness = body.layers.reduce(
-        (sum: number, layer: any) => sum + (layer.thickness || 0),
+        (sum: number, layer: CreatePackageLayerInput) => sum + (layer.thickness || 0),
         0
       );
 
