@@ -172,7 +172,7 @@ export default function MaterialSelector({
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          📁 {translations.browseMode}
+          {translations.browseMode}
         </button>
         <button
           type="button"
@@ -187,7 +187,7 @@ export default function MaterialSelector({
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          🔍 {translations.searchMode}
+          {translations.searchMode}
         </button>
       </div>
 
@@ -251,7 +251,7 @@ export default function MaterialSelector({
               className="w-full px-sm py-xs border border-gray-300 rounded-sm text-sm focus:ring-2 focus:ring-primary focus:border-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
             >
               <option value="">{translations.selectCategory}</option>
-              <option value="AIR_CAVITY">🌬️ {translations.airCavity}</option>
+              <option value="AIR_CAVITY">{translations.airCavity}</option>
               <option disabled>────────────────</option>
               {categories.map(cat => (
                 <option key={cat} value={cat}>{cat}</option>
