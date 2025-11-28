@@ -8,6 +8,7 @@ import type { Locale } from '@/lib/i18n/config';
 import type { UnifiedLocationData } from '../../data/aggregator/multiLevelAggregator';
 import type { AmenityMultiCategoryResponse } from '../../data/sources/google-places/types';
 import { pveConfigCache } from '../../data/cache/pveConfigCache';
+import { llmRapportCache } from '../../data/cache/llmRapportCache';
 import type { CompletionStatus } from '../../types/saved-locations';
 
 interface SaveLocationSectionProps {
@@ -46,7 +47,6 @@ export const SaveLocationSection: React.FC<SaveLocationSectionProps> = ({
 
       // Retrieve PVE data from cache
       const pveData = pveConfigCache.getFinalPVE();
-      console.log('📊 [Save] Retrieved PVE data:', pveData);
 
       // Retrieve persona selection from localStorage
       let personasData = null;
@@ -54,23 +54,25 @@ export const SaveLocationSection: React.FC<SaveLocationSectionProps> = ({
         const storedPersonas = localStorage.getItem('grooshub_doelgroepen_scenario_selection');
         if (storedPersonas) {
           personasData = JSON.parse(storedPersonas);
-          console.log('👥 [Save] Retrieved persona selection:', personasData);
         }
       } catch (error) {
-        console.error('Failed to retrieve persona selection:', error);
+        // Silent fail
       }
+
+      // Retrieve LLM rapport from cache
+      const llmRapport = llmRapportCache.getCurrentRapport();
 
       // Calculate completion status
       let completionStatus: CompletionStatus = 'location_only';
-      if (pveData && personasData) {
+      if (llmRapport) {
+        completionStatus = 'complete';
+      } else if (pveData && personasData) {
         completionStatus = 'with_personas_pve';
       } else if (pveData) {
         completionStatus = 'with_pve';
       } else if (personasData) {
         completionStatus = 'with_personas';
       }
-
-      console.log('✅ [Save] Completion status:', completionStatus);
 
       // Prepare save data
       const saveData = {
@@ -84,7 +86,7 @@ export const SaveLocationSection: React.FC<SaveLocationSectionProps> = ({
           scenario: personasData.scenario,
           customIds: personasData.customIds || []
         } : undefined,
-        llmRapport: undefined, // TODO: Get from rapport cache if needed
+        llmRapport: llmRapport || undefined,
         completionStatus,
       };
 
@@ -110,11 +112,9 @@ export const SaveLocationSection: React.FC<SaveLocationSectionProps> = ({
         }, 3000);
       } else {
         setSaveStatus('error');
-        console.error('Failed to save location:', result.error);
       }
     } catch (error) {
       setSaveStatus('error');
-      console.error('Error saving location:', error);
     } finally {
       setIsSaving(false);
     }

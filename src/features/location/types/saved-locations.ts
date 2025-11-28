@@ -15,10 +15,33 @@ export interface Coordinates {
 }
 
 /**
+ * PVE (Programma Van Eisen) - Space Allocations
+ */
+export interface PVEAllocations {
+  apartments: number;
+  commercial: number;
+  hospitality: number;
+  social: number;
+  communal: number;
+  offices: number;
+}
+
+/**
+ * PVE Preset Types
+ */
+export type PVEPresetId = 'mixed-residential' | 'urban-retail' | 'community' | 'custom';
+
+/**
  * PVE (Programma Van Eisen) configuration
  */
 export interface PVEConfig {
-  [key: string]: unknown; // TODO: Define specific PVE structure
+  presetId: PVEPresetId;
+  totalM2: number;
+  percentages: PVEAllocations;
+  disabledCategories: string[];
+  lockedCategories: string[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 /**
