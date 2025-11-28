@@ -213,6 +213,21 @@ export async function deleteChat(chatId: string): Promise<void> {
 // ============================================
 
 /**
+ * Database message row type
+ */
+interface DbMessageRow {
+  id: string;
+  chat_id: string;
+  role: string;
+  content_json: unknown;
+  model_id: string | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  metadata: unknown;
+  created_at: Date;
+}
+
+/**
  * Load chat messages
  * Converts database format back to UIMessage[] format
  */
@@ -228,10 +243,10 @@ export async function loadChatMessages(chatId: string): Promise<UIMessage[]> {
   `;
 
   // Convert database format to UIMessage format
-  return messages.map((msg: any) => {
+  return (messages as unknown as DbMessageRow[]).map((msg) => {
     const uiMessage: UIMessage = {
       id: msg.id,
-      role: msg.role,
+      role: msg.role as 'user' | 'assistant' | 'system',
       parts: []
     };
 
@@ -240,9 +255,14 @@ export async function loadChatMessages(chatId: string): Promise<UIMessage[]> {
       if (Array.isArray(msg.content_json)) {
         // Already in parts array format
         uiMessage.parts = msg.content_json;
-      } else if (typeof msg.content_json === 'object' && msg.content_json.type === 'text') {
+      } else if (
+        typeof msg.content_json === 'object' &&
+        msg.content_json !== null &&
+        'type' in msg.content_json &&
+        (msg.content_json as Record<string, unknown>).type === 'text'
+      ) {
         // Old format: {type: 'text', text: '...'}
-        uiMessage.parts = [msg.content_json];
+        uiMessage.parts = [msg.content_json as { type: 'text'; text: string }];
       } else {
         // Fallback: treat as text
         uiMessage.parts = [{
@@ -314,8 +334,6 @@ export async function saveChatMessages(
     modelId?: string;
   }
 ): Promise<void> {
-  const db = getDbConnection();
-
   if (messages.length === 0) return;
 
   // Use transaction for batch insert
@@ -379,15 +397,20 @@ export async function trackLLMUsage(params: {
 // ============================================
 
 /**
- * Get chat statistics
+ * Chat statistics type
  */
-export async function getChatStatistics(chatId: string): Promise<{
+export interface ChatStatistics {
   messageCount: number;
   userMessageCount: number;
   assistantMessageCount: number;
   totalInputTokens: number;
   totalOutputTokens: number;
-}> {
+}
+
+/**
+ * Get chat statistics
+ */
+export async function getChatStatistics(chatId: string): Promise<ChatStatistics> {
   const db = getDbConnection();
 
   const result = await db`
@@ -426,7 +449,7 @@ export async function getChatStatistics(chatId: string): Promise<{
 export async function exportChatToJSON(chatId: string): Promise<{
   chat: Chat;
   messages: UIMessage[];
-  statistics: any;
+  statistics: ChatStatistics;
 }> {
   const chat = await getChat(chatId);
   if (!chat) {
