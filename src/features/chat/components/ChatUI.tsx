@@ -30,21 +30,61 @@ export interface ChatUIProps {
 export function ChatUI({ locale, chatId }: ChatUIProps) {
   const [selectedModel, setSelectedModel] = useState<ModelId>(DEFAULT_MODEL);
   const [input, setInput] = useState('');
+  const [initialMessages, setInitialMessages] = useState<any[]>([]);
+  const [isLoadingChat, setIsLoadingChat] = useState(!!chatId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Load existing messages when chatId is provided
+  useEffect(() => {
+    async function loadExistingChat() {
+      if (!chatId) {
+        setInitialMessages([]);
+        setIsLoadingChat(false);
+        return;
+      }
+
+      try {
+        console.log(`[ChatUI] Loading chat ${chatId}...`);
+        const response = await fetch(`/api/chats/${chatId}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to load chat');
+        }
+
+        console.log(`[ChatUI] Loaded ${data.messages?.length || 0} messages`);
+        setInitialMessages(data.messages || []);
+      } catch (error) {
+        console.error('[ChatUI] Error loading chat:', error);
+        setInitialMessages([]);
+      } finally {
+        setIsLoadingChat(false);
+      }
+    }
+
+    loadExistingChat();
+  }, [chatId]);
+
   // Use the Vercel AI SDK v5 useChat hook
-  // Note: chatId and modelId are passed via API route (already integrated in Week 2)
   const {
     messages,
     sendMessage,
     status,
     stop,
+    setMessages,
   } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/chat',
     }),
-    // TODO Week 3: Load initial messages when chatId is provided
   });
+
+  // Set initial messages after loading from API
+  useEffect(() => {
+    if (initialMessages.length > 0 && messages.length === 0) {
+      console.log(`[ChatUI] Setting ${initialMessages.length} initial messages`);
+      setMessages(initialMessages);
+    }
+  }, [initialMessages, setMessages]);
 
   // Compute loading state from status
   const isLoading = status === 'submitted' || status === 'streaming';
@@ -79,8 +119,14 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
-    // Send message with text (AI SDK will convert to proper format)
-    sendMessage({ text: input });
+    // Send message with text, chatId, and modelId via metadata
+    sendMessage({
+      text: input,
+      metadata: {
+        chatId,
+        modelId: selectedModel,
+      },
+    });
     setInput('');
   };
 
@@ -166,7 +212,11 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-base py-lg">
-          {messages.length === 0 ? (
+          {isLoadingChat ? (
+            <div className="flex items-center justify-center h-full text-gray-500">
+              <p>{locale === 'nl' ? 'Gesprek laden...' : 'Loading chat...'}</p>
+            </div>
+          ) : messages.length === 0 ? (
             <div className="flex items-center justify-center h-full text-gray-500 text-center">
               <p>{t.emptyState}</p>
             </div>
