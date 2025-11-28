@@ -291,7 +291,9 @@ export async function saveChatMessage(
 ): Promise<void> {
   const db = getDbConnection();
 
-  const messageId = message.id || randomUUID();
+  // Always generate a new UUID for database storage
+  // Client-side message IDs may be in nanoid format which is incompatible with PostgreSQL UUID type
+  const messageId = randomUUID();
 
   await db`
     INSERT INTO chats_messages (
