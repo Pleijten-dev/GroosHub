@@ -243,8 +243,8 @@ export async function loadChatMessages(chatId: string): Promise<UIMessage[]> {
   `;
 
   console.log(`[ChatStore] 🔍 Loaded ${messages.length} messages from database for chat ${chatId}`);
-  console.log(`[ChatStore] 📋 Message IDs:`, messages.map((m: any) => m.id));
-  console.log(`[ChatStore] 👥 Message roles:`, messages.map((m: any) => m.role));
+  console.log(`[ChatStore] 📋 Message IDs:`, (messages as unknown as DbMessageRow[]).map(m => m.id));
+  console.log(`[ChatStore] 👥 Message roles:`, (messages as unknown as DbMessageRow[]).map(m => m.role));
 
   // Convert database format to UIMessage format
   const result = (messages as unknown as DbMessageRow[]).map((msg) => {
