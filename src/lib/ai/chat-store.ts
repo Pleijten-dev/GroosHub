@@ -310,6 +310,13 @@ export async function saveChatMessage(
     .map((part) => ('text' in part ? part.text : ''))
     .join('\n');
 
+  const textPreview = contentText.substring(0, 50).replace(/\n/g, ' ');
+  console.log(`[ChatStore] 💾 Saving message to chat ${chatId}:`);
+  console.log(`[ChatStore]    - Role: ${message.role}`);
+  console.log(`[ChatStore]    - Client ID: ${message.id}`);
+  console.log(`[ChatStore]    - DB ID (new): ${messageId}`);
+  console.log(`[ChatStore]    - Text preview: "${textPreview}..."`);
+
   await db`
     INSERT INTO chats_messages (
       id, chat_id, role, content, content_json, model_id, input_tokens, output_tokens, metadata, created_at
@@ -334,6 +341,8 @@ export async function saveChatMessage(
       output_tokens = EXCLUDED.output_tokens,
       metadata = EXCLUDED.metadata
   `;
+
+  console.log(`[ChatStore] ✅ Message saved successfully with DB ID: ${messageId}`);
 
   // Update chat's updated_at timestamp
   await db`
