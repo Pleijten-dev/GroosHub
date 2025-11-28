@@ -13,7 +13,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useChat } from '@ai-sdk/react';
+import { useChat, type UIMessage } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { cn } from '@/shared/utils/cn';
 import {
@@ -30,7 +30,7 @@ export interface ChatUIProps {
 export function ChatUI({ locale, chatId }: ChatUIProps) {
   const [selectedModel, setSelectedModel] = useState<ModelId>(DEFAULT_MODEL);
   const [input, setInput] = useState('');
-  const [initialMessages, setInitialMessages] = useState<any[]>([]);
+  const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
   const [isLoadingChat, setIsLoadingChat] = useState(!!chatId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
