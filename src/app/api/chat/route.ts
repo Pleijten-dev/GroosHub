@@ -18,7 +18,7 @@ import {
   updateChatModel,
   trackLLMUsage
 } from '@/lib/ai/chat-store';
-import { nanoid } from 'nanoid';
+import { randomUUID } from 'crypto';
 
 // Request schema validation
 const chatRequestSchema = z.object({
@@ -183,7 +183,7 @@ export async function POST(request: NextRequest) {
 
         // Save assistant message to database
         const assistantMessage: UIMessage = {
-          id: nanoid(),
+          id: randomUUID(),
           role: 'assistant',
           parts: [{ type: 'text', text }]
         };

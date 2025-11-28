@@ -7,7 +7,7 @@
 
 import { getDbConnection } from '@/lib/db/connection';
 import type { UIMessage } from 'ai';
-import { nanoid } from 'nanoid';
+import { randomUUID } from 'crypto';
 
 // ============================================
 // Types
@@ -61,7 +61,7 @@ export interface ListChatsFilters {
 export async function createChat(params: CreateChatParams): Promise<string> {
   const db = getDbConnection();
 
-  const chatId = nanoid();
+  const chatId = randomUUID();
   const title = params.title || 'New Chat';
 
   await db`
@@ -291,7 +291,7 @@ export async function saveChatMessage(
 ): Promise<void> {
   const db = getDbConnection();
 
-  const messageId = message.id || nanoid();
+  const messageId = message.id || randomUUID();
 
   await db`
     INSERT INTO chats_messages (
