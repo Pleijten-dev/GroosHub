@@ -125,16 +125,20 @@ export async function POST(request: NextRequest) {
     let chatId = requestChatId;
     let existingMessages: UIMessage[] = [];
 
+    console.log(`[Chat API] 🔍 Received ${clientMessages.length} messages from client`);
+    console.log(`[Chat API] 📝 Client message roles:`, (clientMessages as UIMessage[]).map(m => m.role).join(', '));
+
     if (chatId) {
       // Load existing messages from database
       try {
         existingMessages = await loadChatMessages(chatId);
-        console.log(`[Chat API] Loaded ${existingMessages.length} existing messages from chat ${chatId}`);
+        console.log(`[Chat API] 💾 Loaded ${existingMessages.length} existing messages from DB for chat ${chatId}`);
+        console.log(`[Chat API] 💾 DB message roles:`, existingMessages.map(m => m.role).join(', '));
 
         // Update chat model if different
         await updateChatModel(chatId, modelId);
       } catch (error) {
-        console.error(`[Chat API] Error loading chat ${chatId}:`, error);
+        console.error(`[Chat API] ❌ Error loading chat ${chatId}:`, error);
         // Continue without existing messages if there's an error
       }
     } else {
@@ -150,21 +154,38 @@ export async function POST(request: NextRequest) {
         metadata: { temperature }
       });
 
-      console.log(`[Chat API] Created new chat ${chatId} for user ${userId}`);
+      console.log(`[Chat API] ✅ Created new chat ${chatId} for user ${userId}`);
     }
 
     // Combine existing messages with new client messages
     // Since client uses nanoid IDs and we use UUIDs in DB, we can't match by ID
     // Instead, determine new messages by comparing message counts
     const existingCount = existingMessages.length;
+    const clientCount = clientMessages.length;
+
+    console.log(`[Chat API] 🔢 Message count - Existing: ${existingCount}, Client: ${clientCount}, New: ${clientCount - existingCount}`);
+
     const allMessages = [...existingMessages, ...clientMessages.slice(existingCount)];
 
     // Save only the NEW user messages (beyond what we already have in DB)
     const newMessages = (clientMessages as UIMessage[]).slice(existingCount);
-    for (const message of newMessages) {
+    console.log(`[Chat API] 💬 Processing ${newMessages.length} new messages`);
+
+    for (let i = 0; i < newMessages.length; i++) {
+      const message = newMessages[i];
+      console.log(`[Chat API] 📨 Message ${i + 1}/${newMessages.length}: role=${message.role}, id=${message.id}`);
+
       if (message.role === 'user') {
-        console.log(`[Chat API] Saving new user message to chat ${chatId}`);
-        await saveChatMessage(chatId, message, { modelId });
+        const text = message.parts.find(p => p.type === 'text' && 'text' in p)?.text || '';
+        console.log(`[Chat API] 💾 Saving user message: "${text.substring(0, 50)}..."`);
+        try {
+          await saveChatMessage(chatId, message, { modelId });
+          console.log(`[Chat API] ✅ User message saved successfully`);
+        } catch (error) {
+          console.error(`[Chat API] ❌ Failed to save user message:`, error);
+        }
+      } else {
+        console.log(`[Chat API] ⏭️  Skipping ${message.role} message (not from user)`);
       }
     }
 
@@ -182,7 +203,8 @@ export async function POST(request: NextRequest) {
         try {
           const responseTime = Date.now() - startTime;
 
-          console.log(`[Chat API] Completed. Chat: ${chatId}, Tokens: ${usage.totalTokens}, Length: ${text.length}, Time: ${responseTime}ms`);
+          console.log(`[Chat API] 🎯 onFinish callback triggered`);
+          console.log(`[Chat API] 📊 Response - Chat: ${chatId}, Tokens: ${usage.totalTokens}, Length: ${text.length}, Time: ${responseTime}ms`);
 
           // Save assistant message to database
           const assistantMessage: UIMessage = {
@@ -195,16 +217,22 @@ export async function POST(request: NextRequest) {
           const inputTokens = usage.inputTokens || 0;
           const outputTokens = usage.outputTokens || 0;
 
-          console.log(`[Chat API] Saving assistant message to chat ${chatId}`);
+          console.log(`[Chat API] 💾 Saving assistant message to chat ${chatId}`);
+          console.log(`[Chat API] 💾 Assistant text preview: "${text.substring(0, 50)}..."`);
+          console.log(`[Chat API] 💾 Tokens - Input: ${inputTokens}, Output: ${outputTokens}`);
+
           await saveChatMessage(chatId!, assistantMessage, {
             modelId,
             inputTokens,
             outputTokens
           });
 
+          console.log(`[Chat API] ✅ Assistant message saved successfully!`);
+
           // Track usage for analytics
           const costs = calculateCost(modelId, inputTokens, outputTokens);
 
+          console.log(`[Chat API] 📈 Tracking LLM usage...`);
           await trackLLMUsage({
             userId,
             chatId,
@@ -219,9 +247,9 @@ export async function POST(request: NextRequest) {
             metadata: { temperature }
           });
 
-          console.log(`[Chat API] Successfully saved assistant message and usage stats`);
+          console.log(`[Chat API] ✅ Usage stats saved successfully!`);
         } catch (error) {
-          console.error(`[Chat API] Error in onFinish callback:`, error);
+          console.error(`[Chat API] ❌ Error in onFinish callback:`, error);
           // Don't throw - allow stream to complete even if save fails
         }
       },
