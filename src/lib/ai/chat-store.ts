@@ -295,13 +295,20 @@ export async function saveChatMessage(
   // Client-side message IDs may be in nanoid format which is incompatible with PostgreSQL UUID type
   const messageId = randomUUID();
 
+  // Extract text content for legacy 'content' column (still NOT NULL in database)
+  const contentText = message.parts
+    .filter((part) => part.type === 'text')
+    .map((part) => ('text' in part ? part.text : ''))
+    .join('\n');
+
   await db`
     INSERT INTO chats_messages (
-      id, chat_id, role, content_json, model_id, input_tokens, output_tokens, metadata, created_at
+      id, chat_id, role, content, content_json, model_id, input_tokens, output_tokens, metadata, created_at
     ) VALUES (
       ${messageId},
       ${chatId},
       ${message.role},
+      ${contentText},
       ${JSON.stringify(message.parts)},
       ${options?.modelId || null},
       ${options?.inputTokens || 0},
@@ -311,6 +318,7 @@ export async function saveChatMessage(
     )
     ON CONFLICT (id) DO UPDATE
     SET
+      content = EXCLUDED.content,
       content_json = EXCLUDED.content_json,
       model_id = EXCLUDED.model_id,
       input_tokens = EXCLUDED.input_tokens,
