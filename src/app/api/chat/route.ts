@@ -154,14 +154,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Combine existing messages with new client messages
-    // Remove duplicates by ID
-    const messageIds = new Set(existingMessages.map(m => m.id));
-    const newClientMessages = (clientMessages as UIMessage[]).filter(m => !messageIds.has(m.id));
-    const allMessages = [...existingMessages, ...newClientMessages];
+    // Since client uses nanoid IDs and we use UUIDs in DB, we can't match by ID
+    // Instead, determine new messages by comparing message counts
+    const existingCount = existingMessages.length;
+    const allMessages = [...existingMessages, ...clientMessages.slice(existingCount)];
 
-    // Save new client messages to database
-    for (const message of newClientMessages) {
+    // Save only the NEW user messages (beyond what we already have in DB)
+    const newMessages = (clientMessages as UIMessage[]).slice(existingCount);
+    for (const message of newMessages) {
       if (message.role === 'user') {
+        console.log(`[Chat API] Saving new user message to chat ${chatId}`);
         await saveChatMessage(chatId, message, { modelId });
       }
     }
@@ -177,43 +179,51 @@ export async function POST(request: NextRequest) {
       messages: convertToModelMessages(truncatedMessages),
       temperature,
       async onFinish({ text, usage }) {
-        const responseTime = Date.now() - startTime;
+        try {
+          const responseTime = Date.now() - startTime;
 
-        console.log(`[Chat API] Completed. Chat: ${chatId}, Tokens: ${usage.totalTokens}, Length: ${text.length}, Time: ${responseTime}ms`);
+          console.log(`[Chat API] Completed. Chat: ${chatId}, Tokens: ${usage.totalTokens}, Length: ${text.length}, Time: ${responseTime}ms`);
 
-        // Save assistant message to database
-        const assistantMessage: UIMessage = {
-          id: randomUUID(),
-          role: 'assistant',
-          parts: [{ type: 'text', text }]
-        };
+          // Save assistant message to database
+          const assistantMessage: UIMessage = {
+            id: randomUUID(),
+            role: 'assistant',
+            parts: [{ type: 'text', text }]
+          };
 
-        // Get token counts with defaults
-        const inputTokens = usage.inputTokens || 0;
-        const outputTokens = usage.outputTokens || 0;
+          // Get token counts with defaults
+          const inputTokens = usage.inputTokens || 0;
+          const outputTokens = usage.outputTokens || 0;
 
-        await saveChatMessage(chatId!, assistantMessage, {
-          modelId,
-          inputTokens,
-          outputTokens
-        });
+          console.log(`[Chat API] Saving assistant message to chat ${chatId}`);
+          await saveChatMessage(chatId!, assistantMessage, {
+            modelId,
+            inputTokens,
+            outputTokens
+          });
 
-        // Track usage for analytics
-        const costs = calculateCost(modelId, inputTokens, outputTokens);
+          // Track usage for analytics
+          const costs = calculateCost(modelId, inputTokens, outputTokens);
 
-        await trackLLMUsage({
-          userId,
-          chatId,
-          model: modelId,
-          provider: getProviderFromModel(modelId),
-          inputTokens,
-          outputTokens,
-          costInput: costs.costInput,
-          costOutput: costs.costOutput,
-          requestType: 'chat',
-          responseTimeMs: responseTime,
-          metadata: { temperature }
-        });
+          await trackLLMUsage({
+            userId,
+            chatId,
+            model: modelId,
+            provider: getProviderFromModel(modelId),
+            inputTokens,
+            outputTokens,
+            costInput: costs.costInput,
+            costOutput: costs.costOutput,
+            requestType: 'chat',
+            responseTimeMs: responseTime,
+            metadata: { temperature }
+          });
+
+          console.log(`[Chat API] Successfully saved assistant message and usage stats`);
+        } catch (error) {
+          console.error(`[Chat API] Error in onFinish callback:`, error);
+          // Don't throw - allow stream to complete even if save fails
+        }
       },
     });
 
