@@ -8,6 +8,7 @@
 import type { UnifiedLocationData } from '../aggregator/multiLevelAggregator';
 import type { AmenityMultiCategoryResponse } from '../sources/google-places/types';
 import type { BuildingProgram } from '@/app/api/generate-building-program/route';
+import { logger } from '@/shared/utils/logger';
 
 /**
  * Cache entry structure
@@ -146,7 +147,7 @@ export class LocationDataCache {
         rapport: entry.rapport,
       };
     } catch (error) {
-      console.error('Error reading from cache:', error);
+      logger.error('Failed to read from location cache', error);
       return null;
     }
   }
@@ -182,7 +183,7 @@ export class LocationDataCache {
 
       // Check size
       if (serialized.length > this.config.maxSize) {
-        console.warn('Cache entry too large, not caching');
+        logger.warn('Cache entry too large, not caching', { size: serialized.length });
         return false;
       }
 
@@ -195,7 +196,7 @@ export class LocationDataCache {
       localStorage.setItem(key, serialized);
       return true;
     } catch (error) {
-      console.error('Error writing to cache:', error);
+      logger.error('Failed to write to location cache', error);
 
       // If quota exceeded, try to cleanup and retry
       if (error instanceof Error && error.name === 'QuotaExceededError') {
@@ -236,7 +237,7 @@ export class LocationDataCache {
       const cached = localStorage.getItem(key);
 
       if (!cached) {
-        console.warn('No cache entry found for address, cannot set rapport');
+        logger.warn('No cache entry found for address, cannot set rapport');
         return false;
       }
 
@@ -248,14 +249,14 @@ export class LocationDataCache {
 
       // Check size
       if (serialized.length > this.config.maxSize) {
-        console.warn('Cache entry with rapport too large');
+        logger.warn('Cache entry with rapport too large', { size: serialized.length });
         return false;
       }
 
       localStorage.setItem(key, serialized);
       return true;
     } catch (error) {
-      console.error('Error updating rapport in cache:', error);
+      logger.error('Failed to update rapport in cache', error);
       return false;
     }
   }
@@ -288,7 +289,7 @@ export class LocationDataCache {
       const key = this.getCacheKey(address);
       localStorage.removeItem(key);
     } catch (error) {
-      console.error('Error removing from cache:', error);
+      logger.error('Failed to remove from cache', error);
     }
   }
 
@@ -308,7 +309,7 @@ export class LocationDataCache {
         localStorage.removeItem(key);
       });
     } catch (error) {
-      console.error('Error clearing cache:', error);
+      logger.error('Failed to clear cache', error);
     }
   }
 
@@ -345,7 +346,7 @@ export class LocationDataCache {
 
       return removed;
     } catch (error) {
-      console.error('Error cleaning up cache:', error);
+      logger.error('Failed to cleanup cache', error);
       return 0;
     }
   }
@@ -385,7 +386,7 @@ export class LocationDataCache {
         localStorage.removeItem(key);
       });
     } catch (error) {
-      console.error('Error cleaning up oldest entries:', error);
+      logger.error('Failed to cleanup oldest entries', error);
     }
   }
 
@@ -440,7 +441,7 @@ export class LocationDataCache {
         cachedAddresses,
       };
     } catch (error) {
-      console.error('Error getting cache stats:', error);
+      logger.error('Failed to get cache stats', error);
       return {
         totalEntries: 0,
         validEntries: 0,
