@@ -19,7 +19,6 @@ const chatRequestSchema = z.object({
     })
   ),
   modelId: z.string().optional(),
-  maxTokens: z.number().optional(),
   temperature: z.number().min(0).max(2).optional(),
 });
 
@@ -55,11 +54,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = chatRequestSchema.parse(body);
 
-    const { messages, modelId = 'claude-sonnet-4.5', maxTokens, temperature = 0.7 } = validatedData;
+    const { messages, modelId = 'claude-sonnet-4.5', temperature = 0.7 } = validatedData;
 
     // Validate model ID
     const model = getModel(modelId as ModelId);
-    const capabilities = getModelCapabilities(modelId as ModelId);
 
     // Truncate messages to fit context window (messages are already in correct format)
     const truncatedMessages = truncateMessages(messages as CoreMessage[]);
@@ -71,7 +69,6 @@ export async function POST(request: NextRequest) {
     const result = streamText({
       model,
       messages: truncatedMessages,
-      maxTokens: maxTokens || capabilities.maxTokens,
       temperature,
       async onFinish({ text, usage }) {
         // Log completion (can be used for analytics/tracking)
