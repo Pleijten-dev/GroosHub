@@ -1,0 +1,265 @@
+/**
+ * Chat UI Component
+ * Main chat interface with streaming support
+ *
+ * Week 1 Implementation:
+ * - useChat hook for streaming
+ * - Model selector
+ * - Message list
+ * - Input field
+ * - Loading states
+ * - Keyboard shortcuts
+ */
+
+'use client';
+
+import { useChat } from 'ai/react';
+import { useState, useEffect, useRef } from 'react';
+import { cn } from '@/shared/utils/cn';
+import {
+  getAllModelIds,
+  getModelCapabilities,
+  DEFAULT_MODEL,
+  type ModelId
+} from '@/lib/ai/models';
+
+export interface ChatUIProps {
+  locale: 'nl' | 'en';
+}
+
+export function ChatUI({ locale }: ChatUIProps) {
+  const [selectedModel, setSelectedModel] = useState<ModelId>(DEFAULT_MODEL);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const {
+    messages,
+    input,
+    handleInputChange,
+    handleSubmit,
+    isLoading,
+    error,
+    stop,
+  } = useChat({
+    api: '/api/chat',
+    body: {
+      modelId: selectedModel,
+    },
+  });
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl + Enter: Send message
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault();
+        const form = document.getElementById('chat-form') as HTMLFormElement;
+        form?.requestSubmit();
+      }
+
+      // Escape: Stop streaming
+      if (e.key === 'Escape' && isLoading) {
+        stop();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isLoading, stop]);
+
+  const availableModels = getAllModelIds();
+
+  const translations = {
+    nl: {
+      title: 'AI Assistent',
+      modelLabel: 'Model',
+      inputPlaceholder: 'Typ je bericht...',
+      sendButton: 'Versturen',
+      stopButton: 'Stop',
+      emptyState: 'Start een gesprek door een bericht te typen',
+      errorPrefix: 'Fout:',
+      you: 'Jij',
+      assistant: 'Assistent',
+      shortcuts: 'Ctrl+Enter om te versturen, Esc om te stoppen',
+    },
+    en: {
+      title: 'AI Assistant',
+      modelLabel: 'Model',
+      inputPlaceholder: 'Type your message...',
+      sendButton: 'Send',
+      stopButton: 'Stop',
+      emptyState: 'Start a conversation by typing a message',
+      errorPrefix: 'Error:',
+      you: 'You',
+      assistant: 'Assistant',
+      shortcuts: 'Ctrl+Enter to send, Esc to stop',
+    },
+  };
+
+  const t = translations[locale];
+
+  return (
+    <div className="flex flex-col h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 px-base py-sm shadow-sm">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <h1 className="text-2xl font-semibold text-gray-900">{t.title}</h1>
+
+          {/* Model Selector */}
+          <div className="flex items-center gap-sm">
+            <label htmlFor="model-select" className="text-sm font-medium text-gray-700">
+              {t.modelLabel}:
+            </label>
+            <select
+              id="model-select"
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value as ModelId)}
+              disabled={isLoading}
+              className={cn(
+                'px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm',
+                'focus:outline-none focus:ring-2 focus:ring-blue-500',
+                'disabled:bg-gray-100 disabled:cursor-not-allowed'
+              )}
+            >
+              {availableModels.map((modelId) => {
+                const capabilities = getModelCapabilities(modelId);
+                return (
+                  <option key={modelId} value={modelId}>
+                    {modelId} ({capabilities.providers[0]})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-4xl mx-auto px-base py-lg">
+          {messages.length === 0 ? (
+            <div className="flex items-center justify-center h-full text-gray-500 text-center">
+              <p>{t.emptyState}</p>
+            </div>
+          ) : (
+            <div className="space-y-base">
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={cn(
+                    'flex',
+                    message.role === 'user' ? 'justify-end' : 'justify-start'
+                  )}
+                >
+                  <div
+                    className={cn(
+                      'max-w-[80%] rounded-lg px-base py-sm shadow-sm',
+                      message.role === 'user'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-white text-gray-900 border border-gray-200'
+                    )}
+                  >
+                    <div className="text-xs font-medium mb-1 opacity-70">
+                      {message.role === 'user' ? t.you : t.assistant}
+                    </div>
+                    <div className="text-sm whitespace-pre-wrap break-words">
+                      {message.content}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Loading indicator */}
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="max-w-[80%] bg-white border border-gray-200 rounded-lg px-base py-sm shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      </div>
+                      <span className="text-xs text-gray-500">{t.assistant}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border-t border-red-200 px-base py-sm">
+          <div className="max-w-4xl mx-auto">
+            <p className="text-sm text-red-800">
+              <strong>{t.errorPrefix}</strong> {error.message}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Input Area */}
+      <div className="bg-white border-t border-gray-200 px-base py-sm shadow-lg">
+        <div className="max-w-4xl mx-auto">
+          <form id="chat-form" onSubmit={handleSubmit} className="flex gap-sm">
+            <input
+              type="text"
+              value={input}
+              onChange={handleInputChange}
+              placeholder={t.inputPlaceholder}
+              disabled={isLoading}
+              className={cn(
+                'flex-1 px-base py-sm bg-white border border-gray-300 rounded-lg',
+                'text-sm focus:outline-none focus:ring-2 focus:ring-blue-500',
+                'disabled:bg-gray-100 disabled:cursor-not-allowed'
+              )}
+            />
+
+            {isLoading ? (
+              <button
+                type="button"
+                onClick={stop}
+                className={cn(
+                  'px-base py-sm bg-red-600 text-white rounded-lg',
+                  'text-sm font-medium hover:bg-red-700',
+                  'focus:outline-none focus:ring-2 focus:ring-red-500',
+                  'transition-colors'
+                )}
+              >
+                {t.stopButton}
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={!input.trim()}
+                className={cn(
+                  'px-base py-sm bg-blue-600 text-white rounded-lg',
+                  'text-sm font-medium hover:bg-blue-700',
+                  'focus:outline-none focus:ring-2 focus:ring-blue-500',
+                  'disabled:bg-gray-300 disabled:cursor-not-allowed',
+                  'transition-colors'
+                )}
+              >
+                {t.sendButton}
+              </button>
+            )}
+          </form>
+
+          <p className="text-xs text-gray-500 mt-sm text-center">
+            {t.shortcuts}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default ChatUI;

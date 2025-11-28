@@ -1,37 +1,19 @@
-// AI Assistant page with locale support
-import { auth } from '@/lib/auth';
-import { redirect } from 'next/navigation';
-import { AIAssistantClient } from './AIAssistantClient';
+/**
+ * AI Assistant Page
+ * Server component wrapper for the chat UI
+ */
 
-export default async function AIAssistantPage({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}) {
-  const { locale } = await params;
-  const session = await auth();
+import { ChatUI } from '@/features/chat/components/ChatUI';
 
-  // Redirect to login if not authenticated
-  if (!session) {
-    redirect(`/${locale}/login?callbackUrl=/${locale}/ai-assistant`);
-  }
-
-  return <AIAssistantClient locale={locale} userId={session.user.id.toString()} />;
+export interface AIAssistantPageProps {
+  params: Promise<{
+    locale: string;
+  }>;
 }
 
-// Metadata
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}) {
+export default async function AIAssistantPage({ params }: AIAssistantPageProps) {
+  // Next.js 15: params must be awaited
   const { locale } = await params;
 
-  return {
-    title: locale === 'nl' ? 'AI Assistent - GroosHub' : 'AI Assistant - GroosHub',
-    description:
-      locale === 'nl'
-        ? 'Chat met onze AI assistent over locatiedata, demografie en vastgoed'
-        : 'Chat with our AI assistant about location data, demographics, and real estate',
-  };
+  return <ChatUI locale={locale as 'nl' | 'en'} />;
 }
