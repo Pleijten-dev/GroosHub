@@ -5,19 +5,14 @@
  * Week 1: Basic streaming chat with multi-model support
  */
 
-import { streamText, type CoreMessage } from 'ai';
+import { streamText, convertToModelMessages, type UIMessage } from 'ai';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getModel, type ModelId } from '@/lib/ai/models';
 
 // Request schema validation
 const chatRequestSchema = z.object({
-  messages: z.array(
-    z.object({
-      role: z.enum(['user', 'assistant', 'system']),
-      content: z.string(),
-    })
-  ),
+  messages: z.any(), // UIMessage[] - complex type, validated by AI SDK
   modelId: z.string().optional(),
   temperature: z.number().min(0).max(2).optional(),
 });
@@ -32,7 +27,7 @@ const CONTEXT_CONFIG = {
  * Truncate message history to fit context window
  * Preserves system messages and keeps recent messages
  */
-function truncateMessages(messages: CoreMessage[]): CoreMessage[] {
+function truncateMessages(messages: UIMessage[]): UIMessage[] {
   // Separate system messages from conversation messages
   const systemMessages = messages.filter(m => m.role === 'system');
   const conversationMessages = messages.filter(m => m.role !== 'system');
@@ -59,8 +54,8 @@ export async function POST(request: NextRequest) {
     // Validate model ID
     const model = getModel(modelId as ModelId);
 
-    // Truncate messages to fit context window (messages are already in correct format)
-    const truncatedMessages = truncateMessages(messages as CoreMessage[]);
+    // Truncate messages to fit context window
+    const truncatedMessages = truncateMessages(messages as UIMessage[]);
 
     // Log context info (for debugging)
     console.log(`[Chat API] Model: ${modelId}, Messages: ${truncatedMessages.length}/${messages.length}`);
@@ -68,7 +63,7 @@ export async function POST(request: NextRequest) {
     // Stream the response
     const result = streamText({
       model,
-      messages: truncatedMessages,
+      messages: convertToModelMessages(truncatedMessages),
       temperature,
       async onFinish({ text, usage }) {
         // Log completion (can be used for analytics/tracking)
@@ -76,8 +71,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Return streaming response
-    return result.toTextStreamResponse();
+    // Return streaming response in UIMessage format
+    return result.toUIMessageStreamResponse();
 
   } catch (error) {
     console.error('[Chat API] Error:', error);

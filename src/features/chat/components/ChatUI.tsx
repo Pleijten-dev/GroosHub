@@ -3,17 +3,18 @@
  * Main chat interface with streaming support
  *
  * Week 1 Implementation:
- * - Manual streaming with fetch API
+ * - Vercel AI SDK v5 with useChat hook
+ * - DefaultChatTransport for streaming
+ * - UIMessage parts structure
  * - Model selector
- * - Message list
- * - Input field
- * - Loading states
  * - Keyboard shortcuts
  */
 
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 import { cn } from '@/shared/utils/cn';
 import {
   getAllModelIds,
@@ -25,20 +26,27 @@ export interface ChatUIProps {
   locale: 'nl' | 'en';
 }
 
-interface Message {
-  id: string;
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-}
-
 export function ChatUI({ locale }: ChatUIProps) {
   const [selectedModel, setSelectedModel] = useState<ModelId>(DEFAULT_MODEL);
-  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Use the Vercel AI SDK v5 useChat hook
+  const {
+    messages,
+    sendMessage,
+    status,
+    stop,
+  } = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+    }),
+    // TODO: Add model selection support in Week 2
+    // For now, the API uses the default model
+  });
+
+  // Compute loading state from status
+  const isLoading = status === 'submitted' || status === 'streaming';
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -51,117 +59,28 @@ export function ChatUI({ locale }: ChatUIProps) {
       // Cmd/Ctrl + Enter: Send message
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
         e.preventDefault();
-        const form = document.getElementById('chat-form') as HTMLFormElement;
-        form?.requestSubmit();
+        if (input.trim() && !isLoading) {
+          handleSubmit(e as unknown as React.FormEvent);
+        }
       }
 
       // Escape: Stop streaming
       if (e.key === 'Escape' && isLoading) {
-        stopStreaming();
+        stop();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isLoading]);
+  }, [input, isLoading, stop]);
 
-  const stopStreaming = () => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-      setIsLoading(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!input.trim() || isLoading) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: input.trim(),
-    };
-
-    setMessages(prev => [...prev, userMessage]);
+    // Send message with text (AI SDK will convert to proper format)
+    sendMessage({ text: input });
     setInput('');
-    setIsLoading(true);
-    setError(null);
-
-    const assistantMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: 'assistant',
-      content: '',
-    };
-
-    setMessages(prev => [...prev, assistantMessage]);
-
-    try {
-      abortControllerRef.current = new AbortController();
-
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [...messages, userMessage].map(m => ({
-            role: m.role,
-            content: m.content,
-          })),
-          modelId: selectedModel,
-        }),
-        signal: abortControllerRef.current.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      if (!response.body) {
-        throw new Error('No response body');
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-
-      let accumulatedText = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        accumulatedText += chunk;
-
-        // Update the assistant message with accumulated text
-        setMessages(prev => {
-          const updated = [...prev];
-          const lastMessage = updated[updated.length - 1];
-          if (lastMessage.role === 'assistant') {
-            lastMessage.content = accumulatedText;
-          }
-          return updated;
-        });
-      }
-
-      setIsLoading(false);
-      abortControllerRef.current = null;
-
-    } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') {
-        // User cancelled
-        setError(null);
-      } else {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-        setError(errorMessage);
-
-        // Remove the incomplete assistant message on error
-        setMessages(prev => prev.filter(m => m.id !== assistantMessage.id));
-      }
-      setIsLoading(false);
-      abortControllerRef.current = null;
-    }
   };
 
   const availableModels = getAllModelIds();
@@ -194,6 +113,21 @@ export function ChatUI({ locale }: ChatUIProps) {
   };
 
   const t = translations[locale];
+
+  // Render message content from parts array (AI SDK v5)
+  const renderMessageContent = (message: typeof messages[0]) => {
+    return message.parts.map((part, index) => {
+      if (part.type === 'text') {
+        return (
+          <span key={`${message.id}-text-${index}`} className="whitespace-pre-wrap break-words">
+            {part.text}
+          </span>
+        );
+      }
+      // Handle other part types if needed in future (images, files, etc.)
+      return null;
+    });
+  };
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
@@ -256,8 +190,8 @@ export function ChatUI({ locale }: ChatUIProps) {
                     <div className="text-xs font-medium mb-1 opacity-70">
                       {message.role === 'user' ? t.you : t.assistant}
                     </div>
-                    <div className="text-sm whitespace-pre-wrap break-words">
-                      {message.content}
+                    <div className="text-sm">
+                      {renderMessageContent(message)}
                     </div>
                   </div>
                 </div>
@@ -286,11 +220,11 @@ export function ChatUI({ locale }: ChatUIProps) {
       </div>
 
       {/* Error Display */}
-      {error && (
+      {status === 'error' && (
         <div className="bg-red-50 border-t border-red-200 px-base py-sm">
           <div className="max-w-4xl mx-auto">
             <p className="text-sm text-red-800">
-              <strong>{t.errorPrefix}</strong> {error}
+              <strong>{t.errorPrefix}</strong> An error occurred. Please try again.
             </p>
           </div>
         </div>
@@ -316,7 +250,7 @@ export function ChatUI({ locale }: ChatUIProps) {
             {isLoading ? (
               <button
                 type="button"
-                onClick={stopStreaming}
+                onClick={stop}
                 className={cn(
                   'px-base py-sm bg-red-600 text-white rounded-lg',
                   'text-sm font-medium hover:bg-red-700',
