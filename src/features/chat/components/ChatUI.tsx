@@ -24,14 +24,16 @@ import {
 
 export interface ChatUIProps {
   locale: 'nl' | 'en';
+  chatId?: string; // Optional: for loading existing chats
 }
 
-export function ChatUI({ locale }: ChatUIProps) {
+export function ChatUI({ locale, chatId }: ChatUIProps) {
   const [selectedModel, setSelectedModel] = useState<ModelId>(DEFAULT_MODEL);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Use the Vercel AI SDK v5 useChat hook
+  // Note: chatId and modelId are passed via API route (already integrated in Week 2)
   const {
     messages,
     sendMessage,
@@ -41,8 +43,7 @@ export function ChatUI({ locale }: ChatUIProps) {
     transport: new DefaultChatTransport({
       api: '/api/chat',
     }),
-    // TODO: Add model selection support in Week 2
-    // For now, the API uses the default model
+    // TODO Week 3: Load initial messages when chatId is provided
   });
 
   // Compute loading state from status

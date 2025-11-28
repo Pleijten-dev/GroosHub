@@ -1,9 +1,10 @@
 /**
  * AI Assistant Page
- * Server component wrapper for the chat UI
+ * Shows list of user's chat conversations
+ * Week 2: Multi-Chat UI
  */
 
-import { ChatUI } from '@/features/chat/components/ChatUI';
+import { ChatList } from '@/features/chat/components/ChatList';
 
 export interface AIAssistantPageProps {
   params: Promise<{
@@ -15,5 +16,5 @@ export default async function AIAssistantPage({ params }: AIAssistantPageProps) 
   // Next.js 15: params must be awaited
   const { locale } = await params;
 
-  return <ChatUI locale={locale as 'nl' | 'en'} />;
+  return <ChatList locale={locale as 'nl' | 'en'} />;
 }
