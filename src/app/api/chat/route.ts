@@ -109,14 +109,25 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate request body
     const body = await request.json();
+
+    // Extract experimental_data if present (AI SDK v5 sends this from sendMessage options)
+    const experimentalData = body.experimental_data || {};
     const validatedData = chatRequestSchema.parse(body);
+
+    // Read chatId and modelId from headers (for AI SDK v5 compatibility) or fallback to body
+    const headerChatId = request.headers.get('X-Chat-Id');
+    const headerModelId = request.headers.get('X-Model-Id');
 
     const {
       messages: clientMessages,
-      chatId: requestChatId,
-      modelId = 'claude-sonnet-4.5',
+      chatId: bodyChatId,
+      modelId: bodyModelId,
       temperature = 0.7
     } = validatedData;
+
+    // Priority: experimental_data > headers > body (experimental_data is from sendMessage options)
+    const requestChatId = experimentalData.chatId || headerChatId || bodyChatId;
+    const modelId = experimentalData.modelId || headerModelId || bodyModelId || 'claude-sonnet-4.5';
 
     // Validate model ID
     const model = getModel(modelId as ModelId);

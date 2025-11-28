@@ -79,17 +79,7 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
     status,
     stop,
     setMessages,
-  } = useChat({
-    api: '/api/chat',
-    body: {
-      get chatId() {
-        return currentChatIdRef.current;
-      },
-      get modelId() {
-        return selectedModel;
-      },
-    },
-  });
+  } = useChat();
 
   // Set initial messages after loading from API
   useEffect(() => {
@@ -140,9 +130,13 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
       currentChatIdRef.current = newChatId;
     }
 
-    // Send message (chatId and modelId are already in the body via useChat config)
+    // Send message with chatId and modelId as experimental data
     sendMessage({
       text: input,
+      experimental_data: {
+        chatId: currentChatIdRef.current,
+        modelId: selectedModel,
+      },
     });
     setInput('');
   };
