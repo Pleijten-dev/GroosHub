@@ -44,8 +44,10 @@ export async function GET(
       );
     }
 
-    // Verify ownership
-    if (chat.user_id !== session.user.id) {
+    // Verify ownership (convert to numbers for comparison)
+    const sessionUserId = typeof session.user.id === 'string' ? parseInt(session.user.id) : session.user.id;
+    if (chat.user_id !== sessionUserId) {
+      console.log(`[Chats API] Ownership check failed: chat.user_id=${chat.user_id}, session.user.id=${sessionUserId}`);
       return NextResponse.json(
         { error: 'Forbidden' },
         { status: 403 }
@@ -102,7 +104,9 @@ export async function PATCH(
       );
     }
 
-    if (chat.user_id !== session.user.id) {
+    // Verify ownership (convert to numbers for comparison)
+    const sessionUserId = typeof session.user.id === 'string' ? parseInt(session.user.id) : session.user.id;
+    if (chat.user_id !== sessionUserId) {
       return NextResponse.json(
         { error: 'Forbidden' },
         { status: 403 }
@@ -171,7 +175,9 @@ export async function DELETE(
       );
     }
 
-    if (chat.user_id !== session.user.id) {
+    // Verify ownership (convert to numbers for comparison)
+    const sessionUserId = typeof session.user.id === 'string' ? parseInt(session.user.id) : session.user.id;
+    if (chat.user_id !== sessionUserId) {
       return NextResponse.json(
         { error: 'Forbidden' },
         { status: 403 }
