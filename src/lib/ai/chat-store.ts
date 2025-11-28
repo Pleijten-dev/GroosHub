@@ -1,0 +1,444 @@
+/**
+ * Chat Persistence Layer
+ * Handles database operations for chats and messages
+ *
+ * Week 2: Persistence & Multiple Chats
+ */
+
+import { getDbConnection } from '@/lib/db/connection';
+import type { UIMessage } from 'ai';
+import { nanoid } from 'nanoid';
+
+// ============================================
+// Types
+// ============================================
+
+export interface Chat {
+  id: string;
+  user_id: number;
+  title: string;
+  project_id?: string | null;
+  model_id?: string | null;
+  metadata?: Record<string, unknown>;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface ChatMessage {
+  id: string;
+  chat_id: string;
+  role: 'user' | 'assistant' | 'system' | 'tool';
+  content_json: unknown; // UIMessage format (complex structure)
+  model_id?: string | null;
+  input_tokens?: number;
+  output_tokens?: number;
+  metadata?: Record<string, unknown>;
+  created_at: Date;
+}
+
+export interface CreateChatParams {
+  userId: number;
+  title?: string;
+  projectId?: string;
+  modelId?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ListChatsFilters {
+  projectId?: string;
+  modelId?: string;
+  limit?: number;
+  offset?: number;
+}
+
+// ============================================
+// Chat Operations
+// ============================================
+
+/**
+ * Create a new chat
+ */
+export async function createChat(params: CreateChatParams): Promise<string> {
+  const db = getDbConnection();
+
+  const chatId = nanoid();
+  const title = params.title || 'New Chat';
+
+  await db`
+    INSERT INTO chats (
+      id, user_id, title, project_id, model_id, metadata, created_at, updated_at
+    ) VALUES (
+      ${chatId},
+      ${params.userId},
+      ${title},
+      ${params.projectId || null},
+      ${params.modelId || null},
+      ${JSON.stringify(params.metadata || {})},
+      NOW(),
+      NOW()
+    )
+  `;
+
+  console.log(`[ChatStore] Created chat ${chatId} for user ${params.userId}`);
+
+  return chatId;
+}
+
+/**
+ * List all chats for a user
+ */
+export async function listUserChats(
+  userId: number,
+  filters?: ListChatsFilters
+): Promise<Chat[]> {
+  const db = getDbConnection();
+
+  const limit = filters?.limit || 50;
+  const offset = filters?.offset || 0;
+
+  let query = db`
+    SELECT
+      id, user_id, title, project_id, model_id, metadata, created_at, updated_at
+    FROM chats
+    WHERE user_id = ${userId}
+  `;
+
+  // Add filters
+  if (filters?.projectId) {
+    query = db`${query} AND project_id = ${filters.projectId}`;
+  }
+
+  if (filters?.modelId) {
+    query = db`${query} AND model_id = ${filters.modelId}`;
+  }
+
+  query = db`
+    ${query}
+    ORDER BY updated_at DESC
+    LIMIT ${limit}
+    OFFSET ${offset}
+  `;
+
+  const chats = await query;
+
+  return chats as Chat[];
+}
+
+/**
+ * Get a single chat by ID
+ */
+export async function getChat(chatId: string): Promise<Chat | null> {
+  const db = getDbConnection();
+
+  const result = await db`
+    SELECT
+      id, user_id, title, project_id, model_id, metadata, created_at, updated_at
+    FROM chats
+    WHERE id = ${chatId}
+    LIMIT 1
+  `;
+
+  if (result.length === 0) {
+    return null;
+  }
+
+  return result[0] as Chat;
+}
+
+/**
+ * Update chat title
+ */
+export async function updateChatTitle(chatId: string, title: string): Promise<void> {
+  const db = getDbConnection();
+
+  await db`
+    UPDATE chats
+    SET title = ${title}, updated_at = NOW()
+    WHERE id = ${chatId}
+  `;
+
+  console.log(`[ChatStore] Updated chat ${chatId} title to "${title}"`);
+}
+
+/**
+ * Update chat metadata
+ */
+export async function updateChatMetadata(
+  chatId: string,
+  metadata: Record<string, unknown>
+): Promise<void> {
+  const db = getDbConnection();
+
+  await db`
+    UPDATE chats
+    SET metadata = ${JSON.stringify(metadata)}, updated_at = NOW()
+    WHERE id = ${chatId}
+  `;
+
+  console.log(`[ChatStore] Updated chat ${chatId} metadata`);
+}
+
+/**
+ * Update chat model
+ */
+export async function updateChatModel(chatId: string, modelId: string): Promise<void> {
+  const db = getDbConnection();
+
+  await db`
+    UPDATE chats
+    SET model_id = ${modelId}, updated_at = NOW()
+    WHERE id = ${chatId}
+  `;
+
+  console.log(`[ChatStore] Updated chat ${chatId} model to ${modelId}`);
+}
+
+/**
+ * Delete a chat (soft delete - you could add a deleted_at column if needed)
+ */
+export async function deleteChat(chatId: string): Promise<void> {
+  const db = getDbConnection();
+
+  // This will cascade delete all messages due to ON DELETE CASCADE
+  await db`
+    DELETE FROM chats
+    WHERE id = ${chatId}
+  `;
+
+  console.log(`[ChatStore] Deleted chat ${chatId}`);
+}
+
+// ============================================
+// Message Operations
+// ============================================
+
+/**
+ * Load chat messages
+ * Converts database format back to UIMessage[] format
+ */
+export async function loadChatMessages(chatId: string): Promise<UIMessage[]> {
+  const db = getDbConnection();
+
+  const messages = await db`
+    SELECT
+      id, chat_id, role, content_json, model_id, input_tokens, output_tokens, metadata, created_at
+    FROM chats_messages
+    WHERE chat_id = ${chatId}
+    ORDER BY created_at ASC
+  `;
+
+  // Convert database format to UIMessage format
+  return messages.map((msg: any) => {
+    const uiMessage: UIMessage = {
+      id: msg.id,
+      role: msg.role,
+      parts: []
+    };
+
+    // Parse content_json to get parts
+    if (msg.content_json) {
+      if (Array.isArray(msg.content_json)) {
+        // Already in parts array format
+        uiMessage.parts = msg.content_json;
+      } else if (typeof msg.content_json === 'object' && msg.content_json.type === 'text') {
+        // Old format: {type: 'text', text: '...'}
+        uiMessage.parts = [msg.content_json];
+      } else {
+        // Fallback: treat as text
+        uiMessage.parts = [{
+          type: 'text',
+          text: typeof msg.content_json === 'string' ? msg.content_json : JSON.stringify(msg.content_json)
+        }];
+      }
+    }
+
+    return uiMessage;
+  });
+}
+
+/**
+ * Save a single message
+ */
+export async function saveChatMessage(
+  chatId: string,
+  message: UIMessage,
+  options?: {
+    modelId?: string;
+    inputTokens?: number;
+    outputTokens?: number;
+    metadata?: Record<string, unknown>;
+  }
+): Promise<void> {
+  const db = getDbConnection();
+
+  const messageId = message.id || nanoid();
+
+  await db`
+    INSERT INTO chats_messages (
+      id, chat_id, role, content_json, model_id, input_tokens, output_tokens, metadata, created_at
+    ) VALUES (
+      ${messageId},
+      ${chatId},
+      ${message.role},
+      ${JSON.stringify(message.parts)},
+      ${options?.modelId || null},
+      ${options?.inputTokens || 0},
+      ${options?.outputTokens || 0},
+      ${JSON.stringify(options?.metadata || {})},
+      NOW()
+    )
+    ON CONFLICT (id) DO UPDATE
+    SET
+      content_json = EXCLUDED.content_json,
+      model_id = EXCLUDED.model_id,
+      input_tokens = EXCLUDED.input_tokens,
+      output_tokens = EXCLUDED.output_tokens,
+      metadata = EXCLUDED.metadata
+  `;
+
+  // Update chat's updated_at timestamp
+  await db`
+    UPDATE chats
+    SET updated_at = NOW()
+    WHERE id = ${chatId}
+  `;
+}
+
+/**
+ * Save multiple messages (batch operation)
+ */
+export async function saveChatMessages(
+  chatId: string,
+  messages: UIMessage[],
+  options?: {
+    modelId?: string;
+  }
+): Promise<void> {
+  const db = getDbConnection();
+
+  if (messages.length === 0) return;
+
+  // Use transaction for batch insert
+  for (const message of messages) {
+    await saveChatMessage(chatId, message, options);
+  }
+
+  console.log(`[ChatStore] Saved ${messages.length} messages to chat ${chatId}`);
+}
+
+// ============================================
+// Usage Tracking
+// ============================================
+
+/**
+ * Track LLM usage for analytics and billing
+ */
+export async function trackLLMUsage(params: {
+  userId: number;
+  chatId?: string;
+  messageId?: string;
+  model: string;
+  provider: string;
+  inputTokens: number;
+  outputTokens: number;
+  costInput: number;
+  costOutput: number;
+  requestType: 'chat' | 'embedding' | 'image_generation' | 'tool_call';
+  responseTimeMs?: number;
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  const db = getDbConnection();
+
+  await db`
+    INSERT INTO llm_usage (
+      user_id, chat_id, message_id, model, provider,
+      input_tokens, output_tokens,
+      cost_input, cost_output,
+      request_type, response_time_ms, metadata,
+      created_at
+    ) VALUES (
+      ${params.userId},
+      ${params.chatId || null},
+      ${params.messageId || null},
+      ${params.model},
+      ${params.provider},
+      ${params.inputTokens},
+      ${params.outputTokens},
+      ${params.costInput},
+      ${params.costOutput},
+      ${params.requestType},
+      ${params.responseTimeMs || null},
+      ${JSON.stringify(params.metadata || {})},
+      NOW()
+    )
+  `;
+}
+
+// ============================================
+// Utility Functions
+// ============================================
+
+/**
+ * Get chat statistics
+ */
+export async function getChatStatistics(chatId: string): Promise<{
+  messageCount: number;
+  userMessageCount: number;
+  assistantMessageCount: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+}> {
+  const db = getDbConnection();
+
+  const result = await db`
+    SELECT
+      COUNT(*) as message_count,
+      COUNT(*) FILTER (WHERE role = 'user') as user_message_count,
+      COUNT(*) FILTER (WHERE role = 'assistant') as assistant_message_count,
+      COALESCE(SUM(input_tokens), 0) as total_input_tokens,
+      COALESCE(SUM(output_tokens), 0) as total_output_tokens
+    FROM chats_messages
+    WHERE chat_id = ${chatId}
+  `;
+
+  if (result.length === 0) {
+    return {
+      messageCount: 0,
+      userMessageCount: 0,
+      assistantMessageCount: 0,
+      totalInputTokens: 0,
+      totalOutputTokens: 0
+    };
+  }
+
+  return {
+    messageCount: Number(result[0].message_count),
+    userMessageCount: Number(result[0].user_message_count),
+    assistantMessageCount: Number(result[0].assistant_message_count),
+    totalInputTokens: Number(result[0].total_input_tokens),
+    totalOutputTokens: Number(result[0].total_output_tokens)
+  };
+}
+
+/**
+ * Export chat to JSON
+ */
+export async function exportChatToJSON(chatId: string): Promise<{
+  chat: Chat;
+  messages: UIMessage[];
+  statistics: any;
+}> {
+  const chat = await getChat(chatId);
+  if (!chat) {
+    throw new Error(`Chat ${chatId} not found`);
+  }
+
+  const messages = await loadChatMessages(chatId);
+  const statistics = await getChatStatistics(chatId);
+
+  return {
+    chat,
+    messages,
+    statistics
+  };
+}
