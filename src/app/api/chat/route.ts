@@ -110,8 +110,14 @@ export async function POST(request: NextRequest) {
     // Parse and validate request body
     const body = await request.json();
 
-    // Extract experimental_data if present (AI SDK v5 sends this from sendMessage options)
-    const experimentalData = body.experimental_data || {};
+    // Extract metadata from sendMessage options (AI SDK v5)
+    // Metadata can be in body.metadata or in the last message's metadata
+    const rootMetadata = body.metadata || {};
+    const lastMessage = Array.isArray(body.messages) && body.messages.length > 0
+      ? body.messages[body.messages.length - 1]
+      : {};
+    const messageMetadata = lastMessage.metadata || {};
+
     const validatedData = chatRequestSchema.parse(body);
 
     // Read chatId and modelId from headers (for AI SDK v5 compatibility) or fallback to body
@@ -125,9 +131,9 @@ export async function POST(request: NextRequest) {
       temperature = 0.7
     } = validatedData;
 
-    // Priority: experimental_data > headers > body (experimental_data is from sendMessage options)
-    const requestChatId = experimentalData.chatId || headerChatId || bodyChatId;
-    const modelId = experimentalData.modelId || headerModelId || bodyModelId || 'claude-sonnet-4.5';
+    // Priority: message metadata > root metadata > headers > body
+    const requestChatId = messageMetadata.chatId || rootMetadata.chatId || headerChatId || bodyChatId;
+    const modelId = messageMetadata.modelId || rootMetadata.modelId || headerModelId || bodyModelId || 'claude-sonnet-4.5';
 
     // Validate model ID
     const model = getModel(modelId as ModelId);

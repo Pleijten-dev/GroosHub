@@ -130,10 +130,10 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
       currentChatIdRef.current = newChatId;
     }
 
-    // Send message with chatId and modelId as experimental data
+    // Send message with chatId and modelId in metadata
     sendMessage({
       text: input,
-      experimental_data: {
+      metadata: {
         chatId: currentChatIdRef.current,
         modelId: selectedModel,
       },
