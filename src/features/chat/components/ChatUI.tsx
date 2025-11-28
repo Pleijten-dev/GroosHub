@@ -14,7 +14,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useChat, type UIMessage } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
 import { cn } from '@/shared/utils/cn';
 import {
   getAllModelIds,
@@ -32,7 +31,15 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
   const [input, setInput] = useState('');
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
   const [isLoadingChat, setIsLoadingChat] = useState(!!chatId);
+  const [currentChatId, setCurrentChatId] = useState<string | undefined>(chatId);
+  const currentChatIdRef = useRef<string | undefined>(chatId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Sync currentChatId with chatId prop
+  useEffect(() => {
+    setCurrentChatId(chatId);
+    currentChatIdRef.current = chatId;
+  }, [chatId]);
 
   // Load existing messages when chatId is provided
   useEffect(() => {
@@ -73,9 +80,15 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
     stop,
     setMessages,
   } = useChat({
-    transport: new DefaultChatTransport({
-      api: '/api/chat',
-    }),
+    api: '/api/chat',
+    body: {
+      get chatId() {
+        return currentChatIdRef.current;
+      },
+      get modelId() {
+        return selectedModel;
+      },
+    },
   });
 
   // Set initial messages after loading from API
@@ -119,13 +132,17 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
-    // Send message with text, chatId, and modelId via metadata
+    // Generate a new chatId if we don't have one (client-side UUID)
+    if (!currentChatIdRef.current) {
+      const newChatId = crypto.randomUUID();
+      console.log(`[ChatUI] Generated new chatId: ${newChatId}`);
+      setCurrentChatId(newChatId);
+      currentChatIdRef.current = newChatId;
+    }
+
+    // Send message (chatId and modelId are already in the body via useChat config)
     sendMessage({
       text: input,
-      metadata: {
-        chatId,
-        modelId: selectedModel,
-      },
     });
     setInput('');
   };
