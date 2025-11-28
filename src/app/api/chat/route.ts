@@ -13,6 +13,7 @@ import { getModel, type ModelId, MODEL_CAPABILITIES } from '@/lib/ai/models';
 import { auth } from '@/lib/auth';
 import {
   createChat,
+  getChat,
   loadChatMessages,
   saveChatMessage,
   updateChatModel,
@@ -146,20 +147,40 @@ export async function POST(request: NextRequest) {
     console.log(`[Chat API] 📝 Client message roles:`, (clientMessages as UIMessage[]).map(m => m.role).join(', '));
 
     if (chatId) {
-      // Load existing messages from database
-      try {
-        existingMessages = await loadChatMessages(chatId);
-        console.log(`[Chat API] 💾 Loaded ${existingMessages.length} existing messages from DB for chat ${chatId}`);
-        console.log(`[Chat API] 💾 DB message roles:`, existingMessages.map(m => m.role).join(', '));
+      // Check if chat exists in database
+      const existingChat = await getChat(chatId);
 
-        // Update chat model if different
-        await updateChatModel(chatId, modelId);
-      } catch (error) {
-        console.error(`[Chat API] ❌ Error loading chat ${chatId}:`, error);
-        // Continue without existing messages if there's an error
+      if (existingChat) {
+        // Chat exists - load existing messages
+        try {
+          existingMessages = await loadChatMessages(chatId);
+          console.log(`[Chat API] 💾 Loaded ${existingMessages.length} existing messages from DB for chat ${chatId}`);
+          console.log(`[Chat API] 💾 DB message roles:`, existingMessages.map(m => m.role).join(', '));
+
+          // Update chat model if different
+          await updateChatModel(chatId, modelId);
+        } catch (error) {
+          console.error(`[Chat API] ❌ Error loading chat ${chatId}:`, error);
+          // Continue without existing messages if there's an error
+        }
+      } else {
+        // Chat doesn't exist - create it with the provided chatId
+        const firstUserMessage = (clientMessages as UIMessage[]).find(m => m.role === 'user');
+        const firstText = firstUserMessage?.parts.find(p => p.type === 'text')?.text || 'New Chat';
+        const title = firstText.substring(0, 100); // Limit title length
+
+        chatId = await createChat({
+          userId,
+          title,
+          modelId,
+          metadata: { temperature },
+          chatId // Use the client-provided chatId
+        });
+
+        console.log(`[Chat API] ✅ Created new chat ${chatId} for user ${userId}`);
       }
     } else {
-      // Create new chat
+      // No chatId provided - create new chat with auto-generated ID
       const firstUserMessage = (clientMessages as UIMessage[]).find(m => m.role === 'user');
       const firstText = firstUserMessage?.parts.find(p => p.type === 'text')?.text || 'New Chat';
       const title = firstText.substring(0, 100); // Limit title length

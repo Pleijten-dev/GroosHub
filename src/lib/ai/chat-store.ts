@@ -42,6 +42,7 @@ export interface CreateChatParams {
   projectId?: string;
   modelId?: string;
   metadata?: Record<string, unknown>;
+  chatId?: string; // Optional: use client-provided chatId instead of generating
 }
 
 export interface ListChatsFilters {
@@ -61,7 +62,8 @@ export interface ListChatsFilters {
 export async function createChat(params: CreateChatParams): Promise<string> {
   const db = getDbConnection();
 
-  const chatId = randomUUID();
+  // Use provided chatId or generate a new one
+  const chatId = params.chatId || randomUUID();
   const title = params.title || 'New Chat';
 
   await db`
