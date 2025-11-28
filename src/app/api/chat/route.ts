@@ -5,7 +5,7 @@
  * Week 1: Basic streaming chat with multi-model support
  */
 
-import { streamText, convertToCoreMessages, type CoreMessage } from 'ai';
+import { streamText, type CoreMessage } from 'ai';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getModel, getModelCapabilities, type ModelId } from '@/lib/ai/models';
@@ -61,11 +61,8 @@ export async function POST(request: NextRequest) {
     const model = getModel(modelId as ModelId);
     const capabilities = getModelCapabilities(modelId as ModelId);
 
-    // Convert messages to core format
-    const coreMessages = convertToCoreMessages(messages);
-
-    // Truncate messages to fit context window
-    const truncatedMessages = truncateMessages(coreMessages);
+    // Truncate messages to fit context window (messages are already in correct format)
+    const truncatedMessages = truncateMessages(messages as CoreMessage[]);
 
     // Log context info (for debugging)
     console.log(`[Chat API] Model: ${modelId}, Messages: ${truncatedMessages.length}/${messages.length}`);
