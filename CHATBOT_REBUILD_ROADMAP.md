@@ -9,6 +9,10 @@
 
 ---
 
+Always use vercelAISDKv5.md as the complete documentation to the vercel AI SDK, this documentation is leading
+
+---
+
 ## 📋 Table of Contents
 
 1. [Project Overview](#project-overview)
