@@ -242,8 +242,12 @@ export async function loadChatMessages(chatId: string): Promise<UIMessage[]> {
     ORDER BY created_at ASC
   `;
 
+  console.log(`[ChatStore] 🔍 Loaded ${messages.length} messages from database for chat ${chatId}`);
+  console.log(`[ChatStore] 📋 Message IDs:`, messages.map((m: any) => m.id));
+  console.log(`[ChatStore] 👥 Message roles:`, messages.map((m: any) => m.role));
+
   // Convert database format to UIMessage format
-  return (messages as unknown as DbMessageRow[]).map((msg) => {
+  const result = (messages as unknown as DbMessageRow[]).map((msg) => {
     const uiMessage: UIMessage = {
       id: msg.id,
       role: msg.role as 'user' | 'assistant' | 'system',
@@ -274,6 +278,11 @@ export async function loadChatMessages(chatId: string): Promise<UIMessage[]> {
 
     return uiMessage;
   });
+
+  console.log(`[ChatStore] ✅ Converted to ${result.length} UIMessages`);
+  console.log(`[ChatStore] 📤 Returning message IDs:`, result.map(m => m.id));
+
+  return result;
 }
 
 /**
