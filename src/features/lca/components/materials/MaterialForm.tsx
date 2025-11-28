@@ -263,7 +263,7 @@ export default function MaterialForm({ locale, onSuccess }: MaterialFormProps) {
     }
   };
 
-  const updateField = (field: keyof MaterialFormData, value: any) => {
+  const updateField = (field: keyof MaterialFormData, value: unknown) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     // Clear error for this field
     if (errors[field]) {
