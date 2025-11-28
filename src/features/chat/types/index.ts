@@ -4,12 +4,11 @@
  */
 
 import type { ModelId } from '@/lib/ai/models';
-import type { Message as AIMessage } from 'ai';
 
 /**
- * Extended message type with UI-specific properties
+ * Chat message
  */
-export interface ChatMessage extends AIMessage {
+export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
@@ -22,7 +21,6 @@ export interface ChatMessage extends AIMessage {
 export interface ChatConfig {
   modelId: ModelId;
   temperature: number;
-  maxTokens?: number;
 }
 
 /**

@@ -3,7 +3,7 @@
  * Main chat interface with streaming support
  *
  * Week 1 Implementation:
- * - useChat hook for streaming
+ * - Manual streaming with fetch API
  * - Model selector
  * - Message list
  * - Input field
@@ -13,12 +13,10 @@
 
 'use client';
 
-import { useChat } from '@ai-sdk/react';
 import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/shared/utils/cn';
 import {
   getAllModelIds,
-  getModelCapabilities,
   DEFAULT_MODEL,
   type ModelId
 } from '@/lib/ai/models';
@@ -27,24 +25,20 @@ export interface ChatUIProps {
   locale: 'nl' | 'en';
 }
 
+interface Message {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
 export function ChatUI({ locale }: ChatUIProps) {
   const [selectedModel, setSelectedModel] = useState<ModelId>(DEFAULT_MODEL);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const {
-    messages,
-    input,
-    handleInputChange,
-    handleSubmit,
-    isLoading,
-    error,
-    stop,
-  } = useChat({
-    api: '/api/chat',
-    body: {
-      modelId: selectedModel,
-    },
-  });
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -63,13 +57,112 @@ export function ChatUI({ locale }: ChatUIProps) {
 
       // Escape: Stop streaming
       if (e.key === 'Escape' && isLoading) {
-        stop();
+        stopStreaming();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isLoading, stop]);
+  }, [isLoading]);
+
+  const stopStreaming = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: input.trim(),
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
+    setError(null);
+
+    const assistantMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      role: 'assistant',
+      content: '',
+    };
+
+    setMessages(prev => [...prev, assistantMessage]);
+
+    try {
+      abortControllerRef.current = new AbortController();
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [...messages, userMessage].map(m => ({
+            role: m.role,
+            content: m.content,
+          })),
+          modelId: selectedModel,
+        }),
+        signal: abortControllerRef.current.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      if (!response.body) {
+        throw new Error('No response body');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      let accumulatedText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        accumulatedText += chunk;
+
+        // Update the assistant message with accumulated text
+        setMessages(prev => {
+          const updated = [...prev];
+          const lastMessage = updated[updated.length - 1];
+          if (lastMessage.role === 'assistant') {
+            lastMessage.content = accumulatedText;
+          }
+          return updated;
+        });
+      }
+
+      setIsLoading(false);
+      abortControllerRef.current = null;
+
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        // User cancelled
+        setError(null);
+      } else {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+        setError(errorMessage);
+
+        // Remove the incomplete assistant message on error
+        setMessages(prev => prev.filter(m => m.id !== assistantMessage.id));
+      }
+      setIsLoading(false);
+      abortControllerRef.current = null;
+    }
+  };
 
   const availableModels = getAllModelIds();
 
@@ -125,14 +218,11 @@ export function ChatUI({ locale }: ChatUIProps) {
                 'disabled:bg-gray-100 disabled:cursor-not-allowed'
               )}
             >
-              {availableModels.map((modelId) => {
-                const capabilities = getModelCapabilities(modelId);
-                return (
-                  <option key={modelId} value={modelId}>
-                    {modelId} ({capabilities.providers[0]})
-                  </option>
-                );
-              })}
+              {availableModels.map((modelId) => (
+                <option key={modelId} value={modelId}>
+                  {modelId}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -200,7 +290,7 @@ export function ChatUI({ locale }: ChatUIProps) {
         <div className="bg-red-50 border-t border-red-200 px-base py-sm">
           <div className="max-w-4xl mx-auto">
             <p className="text-sm text-red-800">
-              <strong>{t.errorPrefix}</strong> {error.message}
+              <strong>{t.errorPrefix}</strong> {error}
             </p>
           </div>
         </div>
@@ -213,7 +303,7 @@ export function ChatUI({ locale }: ChatUIProps) {
             <input
               type="text"
               value={input}
-              onChange={handleInputChange}
+              onChange={(e) => setInput(e.target.value)}
               placeholder={t.inputPlaceholder}
               disabled={isLoading}
               className={cn(
@@ -226,7 +316,7 @@ export function ChatUI({ locale }: ChatUIProps) {
             {isLoading ? (
               <button
                 type="button"
-                onClick={stop}
+                onClick={stopStreaming}
                 className={cn(
                   'px-base py-sm bg-red-600 text-white rounded-lg',
                   'text-sm font-medium hover:bg-red-700',

@@ -8,7 +8,7 @@
 import { streamText, type CoreMessage } from 'ai';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { getModel, getModelCapabilities, type ModelId } from '@/lib/ai/models';
+import { getModel, type ModelId } from '@/lib/ai/models';
 
 // Request schema validation
 const chatRequestSchema = z.object({
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Return streaming response
-    return result.toDataStreamResponse();
+    return result.toTextStreamResponse();
 
   } catch (error) {
     console.error('[Chat API] Error:', error);
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
       return new Response(
         JSON.stringify({
           error: 'Invalid request',
-          details: error.errors,
+          details: error.issues,
         }),
         {
           status: 400,
