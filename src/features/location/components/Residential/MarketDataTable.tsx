@@ -59,8 +59,8 @@ export const MarketDataTable: React.FC<MarketDataTableProps> = ({
       <div className="bg-gradient-to-r from-purple-50 to-pink-50 px-6 py-4 border-b border-gray-200">
         <h3 className="text-lg font-semibold text-gray-900">
           {locale === 'nl'
-            ? '📊 Marktdata Overzicht'
-            : '📊 Market Data Overview'}
+            ? 'Marktdata Overzicht'
+            : 'Market Data Overview'}
         </h3>
         <p className="text-sm text-gray-600 mt-1">
           {locale === 'nl'
