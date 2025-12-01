@@ -221,7 +221,10 @@ export class GooglePlacesClient {
   /**
    * Make HTTP request to Google Places API
    */
-  private async makeRequest(url: string, body: any): Promise<any> {
+  private async makeRequest(
+    url: string,
+    body: GoogleNearbySearchRequestBody | GoogleTextSearchRequestBody
+  ): Promise<GoogleNearbySearchResponse | GoogleTextSearchResponse> {
     const startTime = Date.now();
 
     try {
@@ -250,12 +253,12 @@ export class GooglePlacesClient {
 
       const data = await response.json();
 
-      console.log(`⏱️  [Google Places] Request completed in ${responseTime}ms`);
+      logger.info(`Google Places request completed`, { durationMs: responseTime });
 
       return data;
     } catch (error) {
       const responseTime = Date.now() - startTime;
-      console.error(`❌ [Google Places] Request failed after ${responseTime}ms`);
+      logger.error(`Google Places request failed`, error instanceof Error ? error : undefined, { durationMs: responseTime });
       throw error;
     }
   }
