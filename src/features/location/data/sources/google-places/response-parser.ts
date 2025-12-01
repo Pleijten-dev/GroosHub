@@ -37,7 +37,7 @@ export class ResponseParser {
     // Parse price level
     let priceLevel: PRICE_LEVELS | undefined;
     if (rawPlace.priceLevel !== undefined && rawPlace.priceLevel !== null) {
-      priceLevel = rawPlace.priceLevel as PRICE_LEVELS;
+      priceLevel = rawPlace.priceLevel as unknown as PRICE_LEVELS;
     }
 
     const place: PlaceResult = {
