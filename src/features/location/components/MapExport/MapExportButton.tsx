@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Locale } from '../../../../lib/i18n/config';
 import { Button } from '../../../../shared/components/UI';
+import { AlertDialog } from '@/shared/components/UI/Modal/AlertDialog';
 import { WMS_CATEGORIES, WMSLayerConfig } from '../Maps/wmsLayers';
 import { downloadWMSTile, exportMapsAsZip, generateMapBookletPDF, MapCapture } from '../../utils/mapExport';
 
@@ -23,6 +24,10 @@ export const MapExportButton: React.FC<MapExportButtonProps> = ({
   const [exportProgress, setExportProgress] = useState(0);
   const [exportTotal, setExportTotal] = useState(0);
   const [currentLayerTitle, setCurrentLayerTitle] = useState<string>('');
+  const [errorDialog, setErrorDialog] = useState<{ isOpen: boolean; message: string }>({
+    isOpen: false,
+    message: '',
+  });
 
   // Get all available WMS layers
   const allLayers = React.useMemo(() => {
@@ -80,12 +85,18 @@ export const MapExportButton: React.FC<MapExportButtonProps> = ({
       if (captures.length > 0) {
         await exportMapsAsZip(captures, `kaarten-export-${new Date().toISOString().split('T')[0]}.zip`);
       } else {
-        alert(locale === 'nl' ? 'Geen kaarten konden worden gedownload.' : 'No maps could be downloaded.');
+        setErrorDialog({
+          isOpen: true,
+          message: locale === 'nl' ? 'Geen kaarten konden worden gedownload.' : 'No maps could be downloaded.',
+        });
       }
 
     } catch (error) {
       console.error('Export failed:', error);
-      alert(locale === 'nl' ? 'Export mislukt. Probeer opnieuw.' : 'Export failed. Please try again.');
+      setErrorDialog({
+        isOpen: true,
+        message: locale === 'nl' ? 'Export mislukt. Probeer opnieuw.' : 'Export failed. Please try again.',
+      });
     } finally {
       setIsExporting(false);
       setExportProgress(0);
@@ -178,12 +189,18 @@ export const MapExportButton: React.FC<MapExportButtonProps> = ({
           aerialPhotos: aerialPhotos, // Keep array aligned - null values are handled in PDF generation
         });
       } else {
-        alert(locale === 'nl' ? 'Geen kaarten konden worden gedownload.' : 'No maps could be downloaded.');
+        setErrorDialog({
+          isOpen: true,
+          message: locale === 'nl' ? 'Geen kaarten konden worden gedownload.' : 'No maps could be downloaded.',
+        });
       }
 
     } catch (error) {
       console.error('PDF generation failed:', error);
-      alert(locale === 'nl' ? 'PDF generatie mislukt. Probeer opnieuw.' : 'PDF generation failed. Please try again.');
+      setErrorDialog({
+        isOpen: true,
+        message: locale === 'nl' ? 'PDF generatie mislukt. Probeer opnieuw.' : 'PDF generation failed. Please try again.',
+      });
     } finally {
       setIsExporting(false);
       setExportProgress(0);
@@ -267,6 +284,16 @@ export const MapExportButton: React.FC<MapExportButtonProps> = ({
           )}
         </div>
       )}
+
+      {/* Error Alert Dialog */}
+      <AlertDialog
+        isOpen={errorDialog.isOpen}
+        onClose={() => setErrorDialog({ isOpen: false, message: '' })}
+        title={locale === 'nl' ? 'Fout' : 'Error'}
+        message={errorDialog.message}
+        closeText={locale === 'nl' ? 'Sluiten' : 'Close'}
+        variant="error"
+      />
     </div>
   );
 };

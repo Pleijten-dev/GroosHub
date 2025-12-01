@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { locationDataCache, type CacheStats } from '../../data/cache/locationDataCache';
+import { ConfirmDialog } from '@/shared/components/UI/Modal/ConfirmDialog';
+import { AlertDialog } from '@/shared/components/UI/Modal/AlertDialog';
 
 export interface CacheManagerProps {
   locale: 'nl' | 'en';
@@ -20,6 +22,11 @@ export const CacheManager: React.FC<CacheManagerProps> = ({
 }) => {
   const [stats, setStats] = useState<CacheStats | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [clearDialog, setClearDialog] = useState(false);
+  const [successDialog, setSuccessDialog] = useState<{ isOpen: boolean; message: string }>({
+    isOpen: false,
+    message: '',
+  });
 
   useEffect(() => {
     updateStats();
@@ -31,26 +38,27 @@ export const CacheManager: React.FC<CacheManagerProps> = ({
   };
 
   const handleClearCache = () => {
-    if (confirm(locale === 'nl'
-      ? 'Weet je zeker dat je de cache wilt wissen?'
-      : 'Are you sure you want to clear the cache?'
-    )) {
-      locationDataCache.clearAll();
-      updateStats();
-      if (onClearCache) {
-        onClearCache();
-      }
+    setClearDialog(true);
+  };
+
+  const confirmClearCache = () => {
+    locationDataCache.clearAll();
+    updateStats();
+    setClearDialog(false);
+    if (onClearCache) {
+      onClearCache();
     }
   };
 
   const handleCleanupExpired = () => {
     const removed = locationDataCache.cleanupExpired();
     updateStats();
-    alert(
-      locale === 'nl'
+    setSuccessDialog({
+      isOpen: true,
+      message: locale === 'nl'
         ? `${removed} verlopen items verwijderd`
-        : `${removed} expired items removed`
-    );
+        : `${removed} expired items removed`,
+    });
   };
 
   const handleRefresh = () => {
@@ -177,6 +185,30 @@ export const CacheManager: React.FC<CacheManagerProps> = ({
           ? 'Cache vervalt automatisch na 24 uur. Data wordt lokaal opgeslagen in je browser.'
           : 'Cache expires automatically after 24 hours. Data is stored locally in your browser.'}
       </div>
+
+      {/* Clear Cache Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={clearDialog}
+        onClose={() => setClearDialog(false)}
+        onConfirm={confirmClearCache}
+        title={locale === 'nl' ? 'Cache wissen' : 'Clear Cache'}
+        message={locale === 'nl'
+          ? 'Weet je zeker dat je de cache wilt wissen? Je moet de locatiegegevens opnieuw laden.'
+          : 'Are you sure you want to clear the cache? You will need to reload location data.'}
+        confirmText={locale === 'nl' ? 'Wissen' : 'Clear'}
+        cancelText={locale === 'nl' ? 'Annuleren' : 'Cancel'}
+        variant="warning"
+      />
+
+      {/* Success Alert Dialog */}
+      <AlertDialog
+        isOpen={successDialog.isOpen}
+        onClose={() => setSuccessDialog({ isOpen: false, message: '' })}
+        title={locale === 'nl' ? 'Succes' : 'Success'}
+        message={successDialog.message}
+        closeText={locale === 'nl' ? 'Sluiten' : 'Close'}
+        variant="success"
+      />
     </div>
   );
 };
