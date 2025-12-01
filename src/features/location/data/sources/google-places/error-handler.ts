@@ -1,9 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Error Handler for Google Places API
  * Provides consistent error handling and retry logic
- * Note: Uses `any` for error handling since we deal with unknown error shapes
  */
+
+import { logger } from '@/shared/utils/logger';
 
 export interface RetryConfig {
   maxRetries: number;
@@ -19,18 +19,34 @@ export const DEFAULT_RETRY_CONFIG: RetryConfig = {
   backoffMultiplier: 2
 };
 
+interface ApiError {
+  code?: string;
+  status?: number;
+  response?: {
+    status?: number;
+    data?: {
+      error?: {
+        message?: string;
+      };
+      message?: string;
+    };
+  };
+  message?: string;
+}
+
 export class ErrorHandler {
   /**
    * Check if an error is retryable
    */
-  isRetryableError(error: any): boolean {
+  isRetryableError(error: unknown): boolean {
+    const err = error as ApiError;
     // Network errors
-    if (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND') {
+    if (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.code === 'ENOTFOUND') {
       return true;
     }
 
     // HTTP status codes that are retryable
-    const status = error.response?.status || error.status;
+    const status = err.response?.status || err.status;
     if (status) {
       // Retry on server errors (5xx) and rate limit (429)
       if (status >= 500 || status === 429) {
@@ -48,7 +64,7 @@ export class ErrorHandler {
     fn: () => Promise<T>,
     config: RetryConfig = DEFAULT_RETRY_CONFIG
   ): Promise<T> {
-    let lastError: any;
+    let lastError: unknown;
     let delay = config.initialDelayMs;
 
     for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
@@ -64,13 +80,11 @@ export class ErrorHandler {
 
         // Don't retry if error is not retryable
         if (!this.isRetryableError(error)) {
-          console.warn('⚠️  [Error Handler] Non-retryable error:', this.getErrorMessage(error));
+          logger.warn('Non-retryable error', { message: this.getErrorMessage(error) });
           throw error;
         }
 
-        console.warn(
-          `⚠️  [Error Handler] Attempt ${attempt + 1}/${config.maxRetries + 1} failed, retrying in ${delay}ms...`
-        );
+        logger.warn(`Retry attempt ${attempt + 1}/${config.maxRetries + 1}`, { delayMs: delay });
 
         // Wait before retrying
         await this.sleep(delay);
@@ -81,9 +95,7 @@ export class ErrorHandler {
     }
 
     // All retries exhausted
-    console.error(
-      `❌ [Error Handler] All ${config.maxRetries + 1} attempts failed`
-    );
+    logger.error('All retry attempts failed', undefined, { maxRetries: config.maxRetries + 1 });
     throw lastError;
   }
 
@@ -97,21 +109,23 @@ export class ErrorHandler {
   /**
    * Extract error message from various error formats
    */
-  getErrorMessage(error: any): string {
+  getErrorMessage(error: unknown): string {
     if (typeof error === 'string') {
       return error;
     }
 
-    if (error.response?.data?.error?.message) {
-      return error.response.data.error.message;
+    const err = error as ApiError;
+
+    if (err.response?.data?.error?.message) {
+      return err.response.data.error.message;
     }
 
-    if (error.response?.data?.message) {
-      return error.response.data.message;
+    if (err.response?.data?.message) {
+      return err.response.data.message;
     }
 
-    if (error.message) {
-      return error.message;
+    if (err.message) {
+      return err.message;
     }
 
     return 'An unknown error occurred';
@@ -120,14 +134,15 @@ export class ErrorHandler {
   /**
    * Get HTTP status code from error
    */
-  getStatusCode(error: any): number {
-    return error.response?.status || error.status || 500;
+  getStatusCode(error: unknown): number {
+    const err = error as ApiError;
+    return err.response?.status || err.status || 500;
   }
 
   /**
    * Check if error is a quota exceeded error
    */
-  isQuotaExceededError(error: any): boolean {
+  isQuotaExceededError(error: unknown): boolean {
     const message = this.getErrorMessage(error).toLowerCase();
     const status = this.getStatusCode(error);
 
@@ -142,7 +157,7 @@ export class ErrorHandler {
   /**
    * Check if error is an authentication error
    */
-  isAuthError(error: any): boolean {
+  isAuthError(error: unknown): boolean {
     const status = this.getStatusCode(error);
     const message = this.getErrorMessage(error).toLowerCase();
 
@@ -158,8 +173,8 @@ export class ErrorHandler {
   /**
    * Log error with context
    */
-  logError(context: string, error: any): void {
-    console.error(`❌ [${context}] Error:`, {
+  logError(context: string, error: unknown): void {
+    logger.error(`${context}`, error instanceof Error ? error : undefined, {
       message: this.getErrorMessage(error),
       status: this.getStatusCode(error),
       retryable: this.isRetryableError(error),
@@ -171,7 +186,7 @@ export class ErrorHandler {
   /**
    * Create a standardized error response
    */
-  createErrorResponse(error: any, context?: string): {
+  createErrorResponse(error: unknown, context?: string): {
     error: string;
     message: string;
     statusCode: number;

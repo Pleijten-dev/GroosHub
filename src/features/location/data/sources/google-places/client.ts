@@ -1,20 +1,23 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type {
   PlaceResult,
   LatLng,
   NearbySearchRequest,
   TextSearchRequest,
-  AmenityCategory
+  AmenityCategory,
+  GoogleNearbySearchResponse,
+  GoogleTextSearchResponse,
+  GoogleNearbySearchRequestBody,
+  GoogleTextSearchRequestBody
 } from './types';
 import { PRICE_LEVELS } from './types';
 import { responseParser } from './response-parser';
 import { errorHandler } from './error-handler';
 import { DEFAULT_SEARCH_CONFIG } from './amenity-search-config';
+import { logger } from '@/shared/utils/logger';
 
 /**
  * Google Places API Client
  * Handles communication with Google Places API (New)
- * Note: Uses `any` for API responses since we handle varying external formats
  */
 export class GooglePlacesClient {
   private readonly apiKey: string;
@@ -24,7 +27,7 @@ export class GooglePlacesClient {
     this.apiKey = apiKey || process.env.GOOGLE_PLACES_API_KEY || '';
 
     if (!this.apiKey) {
-      console.warn('⚠️  [Google Places Client] API key not configured');
+      logger.warn('Google Places API key not configured');
     }
   }
 
@@ -37,7 +40,10 @@ export class GooglePlacesClient {
     category: AmenityCategory
   ): Promise<PlaceResult[]> {
     try {
-      console.log(`🔍 [Google Places] Nearby search: ${category.displayName}`);
+      logger.dataFetch(`amenities (${category.displayName})`, 'api', {
+        strategy: 'nearby',
+        radius: category.defaultRadius
+      });
 
       const request: NearbySearchRequest = {
         location,
@@ -51,7 +57,7 @@ export class GooglePlacesClient {
       const response = await this.makeNearbySearchRequest(request);
       const places = responseParser.parsePlaces(response.places || [], location);
 
-      console.log(`✅ [Google Places] Found ${places.length} places for ${category.displayName}`);
+      logger.success(`Found ${places.length} places for ${category.displayName}`);
 
       return responseParser.sortAndLimit(places, DEFAULT_SEARCH_CONFIG.maxResults);
     } catch (error) {
@@ -72,7 +78,10 @@ export class GooglePlacesClient {
     priceLevels?: PRICE_LEVELS[]
   ): Promise<PlaceResult[]> {
     try {
-      console.log(`🔍 [Google Places] Text search: ${category.displayName}`);
+      logger.dataFetch(`amenities (${category.displayName})`, 'api', {
+        strategy: 'text',
+        radius: category.defaultRadius
+      });
 
       const query = textQuery || category.textQuery || category.keywords.join(' ');
 
@@ -112,10 +121,9 @@ export class GooglePlacesClient {
           // Exclude budget and expensive restaurants
           return !budgetLevels.includes(place.priceLevel) && !upscaleLevels.includes(place.priceLevel);
         });
-        console.log(`🔍 [Google Places] Post-filtered mid-range to exclude budget (1,2) and expensive (4,5)`);
       }
 
-      console.log(`✅ [Google Places] Found ${places.length} places for ${category.displayName}`);
+      logger.success(`Found ${places.length} places for ${category.displayName}`);
 
       return responseParser.sortAndLimit(places, DEFAULT_SEARCH_CONFIG.maxResults);
     } catch (error) {
@@ -127,10 +135,10 @@ export class GooglePlacesClient {
   /**
    * Make Nearby Search API request
    */
-  private async makeNearbySearchRequest(request: NearbySearchRequest): Promise<any> {
+  private async makeNearbySearchRequest(request: NearbySearchRequest): Promise<GoogleNearbySearchResponse> {
     const url = `${this.baseUrl}:searchNearby`;
 
-    const body: any = {
+    const body: GoogleNearbySearchRequestBody = {
       locationRestriction: {
         circle: {
           center: {
@@ -161,10 +169,10 @@ export class GooglePlacesClient {
   /**
    * Make Text Search API request
    */
-  private async makeTextSearchRequest(request: TextSearchRequest): Promise<any> {
+  private async makeTextSearchRequest(request: TextSearchRequest): Promise<GoogleTextSearchResponse> {
     const url = `${this.baseUrl}:searchText`;
 
-    const body: any = {
+    const body: GoogleTextSearchRequestBody = {
       textQuery: request.textQuery,
       maxResultCount: request.maxResultCount || 20
     };

@@ -7,6 +7,15 @@ import type {
   AmenityCategory
 } from './types';
 import { DUTCH_AMENITY_CATEGORIES } from './amenity-search-config';
+import { logger } from '@/shared/utils/logger';
+
+interface QuotaStatus {
+  textSearch: {
+    remaining: number;
+    limit: number;
+    percentUsed: number;
+  };
+}
 
 /**
  * Search Orchestrator
@@ -25,7 +34,7 @@ export class SearchOrchestrator {
     location: LatLng,
     onProgress?: (completed: number, total: number, category: string) => void
   ): Promise<AmenityMultiCategoryResponse> {
-    console.log(`🚀 [Search Orchestrator] Starting search for ${DUTCH_AMENITY_CATEGORIES.length} categories`);
+    logger.info(`Starting amenity search`, { totalCategories: DUTCH_AMENITY_CATEGORIES.length });
 
     const startTime = Date.now();
 
@@ -38,9 +47,10 @@ export class SearchOrchestrator {
     );
 
     if (quotaStatus && quotaStatus.textSearch.remaining < textSearchCategories.length) {
-      console.warn(
-        `⚠️  [Search Orchestrator] Insufficient quota: need ${textSearchCategories.length}, have ${quotaStatus.textSearch.remaining}`
-      );
+      logger.warn('Insufficient quota for text searches', {
+        needed: textSearchCategories.length,
+        available: quotaStatus.textSearch.remaining
+      });
 
       return {
         location,
@@ -83,9 +93,10 @@ export class SearchOrchestrator {
           failedCount++;
         }
 
-        console.log(
-          `✅ [${i + 1}/${DUTCH_AMENITY_CATEGORIES.length}] ${category.displayName}: ${result.places.length} places`
-        );
+        logger.success(`Found places for ${category.displayName}`, {
+          progress: `${i + 1}/${DUTCH_AMENITY_CATEGORIES.length}`,
+          placesFound: result.places.length
+        });
 
         // Small delay between requests to avoid overwhelming the API
         if (i < DUTCH_AMENITY_CATEGORIES.length - 1) {
@@ -94,7 +105,7 @@ export class SearchOrchestrator {
 
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        console.error(`❌ [Search Orchestrator] Failed for ${category.displayName}:`, errorMessage);
+        logger.error(`Search failed for ${category.displayName}`, error instanceof Error ? error : undefined);
         failedCount++;
 
         // Continue with other categories even if one fails
@@ -121,9 +132,11 @@ export class SearchOrchestrator {
     }
 
     const totalTime = Date.now() - startTime;
-    console.log(
-      `🏁 [Search Orchestrator] Completed in ${totalTime}ms - ${successCount} successful, ${failedCount} failed`
-    );
+    logger.success(`Amenity search completed`, {
+      durationMs: totalTime,
+      successful: successCount,
+      failed: failedCount
+    });
 
     // Get final quota status
     const finalQuotaStatus = await this.checkQuota();
@@ -241,8 +254,7 @@ export class SearchOrchestrator {
   /**
    * Check current quota status
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private async checkQuota(): Promise<any> {
+  private async checkQuota(): Promise<QuotaStatus | null> {
     try {
       const response = await fetch(this.usageStatsEndpoint);
 
@@ -252,7 +264,7 @@ export class SearchOrchestrator {
 
       return await response.json();
     } catch (error) {
-      console.error('❌ [Search Orchestrator] Failed to check quota:', error);
+      logger.error('Failed to check quota', error instanceof Error ? error : undefined);
       return null;
     }
   }

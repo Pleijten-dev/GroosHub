@@ -1,5 +1,6 @@
-import type { PlaceResult, LatLng, PRICE_LEVELS } from './types';
+import type { PlaceResult, LatLng, PRICE_LEVELS, GooglePlaceRaw } from './types';
 import { distanceCalculator } from './distance-calculator';
+import { logger } from '@/shared/utils/logger';
 
 /**
  * Response Parser for Google Places API
@@ -9,28 +10,27 @@ export class ResponseParser {
   /**
    * Parse a single place from Google Places API response
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  parsePlace(rawPlace: any, searchLocation?: LatLng): PlaceResult {
+  parsePlace(rawPlace: GooglePlaceRaw, searchLocation?: LatLng): PlaceResult {
     // Extract location
     const location: LatLng = {
-      lat: rawPlace.location?.latitude || rawPlace.geometry?.location?.lat || 0,
-      lng: rawPlace.location?.longitude || rawPlace.geometry?.location?.lng || 0
+      lat: rawPlace.location?.latitude || 0,
+      lng: rawPlace.location?.longitude || 0
     };
 
-    // Extract name (handle both old and new API formats)
-    const name = rawPlace.displayName?.text || rawPlace.name || 'Unknown';
+    // Extract name
+    const name = rawPlace.displayName?.text || 'Unknown';
 
     // Extract place ID
-    const placeId = rawPlace.id || rawPlace.place_id || '';
+    const placeId = rawPlace.id || '';
 
     // Extract types
     const types: string[] = rawPlace.types || [];
 
     // Extract opening hours
-    const openingHours = rawPlace.regularOpeningHours || rawPlace.opening_hours
+    const openingHours = rawPlace.currentOpeningHours
       ? {
-          openNow: rawPlace.regularOpeningHours?.openNow || rawPlace.opening_hours?.open_now,
-          weekdayText: rawPlace.regularOpeningHours?.weekdayDescriptions || rawPlace.opening_hours?.weekday_text
+          openNow: rawPlace.currentOpeningHours.openNow,
+          weekdayText: rawPlace.currentOpeningHours.weekdayDescriptions
         }
       : undefined;
 
@@ -38,8 +38,6 @@ export class ResponseParser {
     let priceLevel: PRICE_LEVELS | undefined;
     if (rawPlace.priceLevel !== undefined && rawPlace.priceLevel !== null) {
       priceLevel = rawPlace.priceLevel as PRICE_LEVELS;
-    } else if (rawPlace.price_level !== undefined && rawPlace.price_level !== null) {
-      priceLevel = rawPlace.price_level as PRICE_LEVELS;
     }
 
     const place: PlaceResult = {
@@ -48,12 +46,12 @@ export class ResponseParser {
       displayName: rawPlace.displayName,
       location,
       types,
-      formattedAddress: rawPlace.formattedAddress || rawPlace.formatted_address,
+      formattedAddress: rawPlace.formattedAddress,
       rating: rawPlace.rating,
-      userRatingsTotal: rawPlace.userRatingCount || rawPlace.user_ratings_total,
+      userRatingsTotal: rawPlace.userRatingCount,
       priceLevel,
       openingHours,
-      businessStatus: rawPlace.businessStatus || rawPlace.business_status
+      businessStatus: rawPlace.businessStatus
     };
 
     // Calculate distance if search location provided
@@ -68,10 +66,9 @@ export class ResponseParser {
   /**
    * Parse multiple places from API response
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  parsePlaces(rawPlaces: any[], searchLocation?: LatLng): PlaceResult[] {
+  parsePlaces(rawPlaces: GooglePlaceRaw[], searchLocation?: LatLng): PlaceResult[] {
     if (!Array.isArray(rawPlaces)) {
-      console.warn('⚠️  [Response Parser] Expected array, got:', typeof rawPlaces);
+      logger.warn('Expected array of places', { receivedType: typeof rawPlaces });
       return [];
     }
 
@@ -80,7 +77,7 @@ export class ResponseParser {
         try {
           return this.parsePlace(rawPlace, searchLocation);
         } catch (error) {
-          console.error('❌ [Response Parser] Error parsing place:', error);
+          logger.error('Error parsing place', error instanceof Error ? error : undefined);
           return null;
         }
       })
@@ -144,14 +141,24 @@ export class ResponseParser {
   /**
    * Parse error response from Google Places API
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  parseError(error: any): string {
-    if (error.response?.data?.error) {
-      return error.response.data.error.message || 'Unknown API error';
+  parseError(error: unknown): string {
+    const err = error as {
+      response?: {
+        data?: {
+          error?: {
+            message?: string;
+          };
+        };
+      };
+      message?: string;
+    };
+
+    if (err.response?.data?.error) {
+      return err.response.data.error.message || 'Unknown API error';
     }
 
-    if (error.message) {
-      return error.message;
+    if (err.message) {
+      return err.message;
     }
 
     return 'An unknown error occurred';
