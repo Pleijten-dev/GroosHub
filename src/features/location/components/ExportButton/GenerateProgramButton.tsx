@@ -39,7 +39,7 @@ export const GenerateProgramButton: React.FC<GenerateProgramButtonProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<BuildingProgram | null>(null);
   const [steps, setSteps] = useState<GenerationStep[]>([]);
-  const [partialData, setPartialData] = useState<Partial<BuildingProgram> | null>(null);
+  const [partialData, setPartialData] = useState<Partial<BuildingProgram> | undefined>(undefined);
 
   const initializeSteps = (): GenerationStep[] => {
     return [
@@ -98,7 +98,7 @@ export const GenerateProgramButton: React.FC<GenerateProgramButtonProps> = ({
       setShowModal(true);
       setError(null);
       setResult(null);
-      setPartialData(null);
+      setPartialData(undefined);
 
       const initialSteps = initializeSteps();
       setSteps(initialSteps);
