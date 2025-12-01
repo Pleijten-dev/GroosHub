@@ -12,7 +12,7 @@ import type { UnifiedLocationData } from '../../data/aggregator/multiLevelAggreg
 import type { PersonaScore } from '../../utils/targetGroupScoring';
 import type { AmenityMultiCategoryResponse } from '../../data/sources/google-places/types';
 import type { BuildingProgram } from '@/app/api/generate-building-program/route';
-import { locationDataCache } from '../../data/cache/locationDataCache';
+import { llmRapportCache } from '../../data/cache/llmRapportCache';
 import { GenerationProgressModal, type GenerationStep } from './GenerationProgressModal';
 
 export interface GenerateProgramButtonProps {
@@ -39,8 +39,7 @@ export const GenerateProgramButton: React.FC<GenerateProgramButtonProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<BuildingProgram | null>(null);
   const [steps, setSteps] = useState<GenerationStep[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [partialData, setPartialData] = useState<any>(null);
+  const [partialData, setPartialData] = useState<Partial<BuildingProgram> | undefined>(undefined);
 
   const initializeSteps = (): GenerationStep[] => {
     return [
@@ -99,7 +98,7 @@ export const GenerateProgramButton: React.FC<GenerateProgramButtonProps> = ({
       setShowModal(true);
       setError(null);
       setResult(null);
-      setPartialData(null);
+      setPartialData(undefined);
 
       const initialSteps = initializeSteps();
       setSteps(initialSteps);
@@ -115,7 +114,7 @@ export const GenerateProgramButton: React.FC<GenerateProgramButtonProps> = ({
           }
         }
       } catch (err) {
-        console.error('Failed to load custom scenario from cache:', err);
+        // Silent fail - custom scenario is optional
       }
 
       // Generate the compact rapport data
@@ -219,8 +218,7 @@ export const GenerateProgramButton: React.FC<GenerateProgramButtonProps> = ({
             // Always update to latest partial object
             buildingProgram = partial as BuildingProgram;
           } catch (e) {
-            // Log parsing errors for debugging
-            console.warn('Streaming parse error:', e, 'Message:', message);
+            // Silent fail on parsing errors - will retry with remaining buffer
           }
         }
       }
@@ -242,7 +240,7 @@ export const GenerateProgramButton: React.FC<GenerateProgramButtonProps> = ({
             buildingProgram = final as BuildingProgram;
           }
         } catch (e) {
-          console.warn('Final buffer parse error:', e, 'Buffer:', buffer);
+          // Silent fail on final buffer parse
         }
       }
 
@@ -256,15 +254,10 @@ export const GenerateProgramButton: React.FC<GenerateProgramButtonProps> = ({
       // Save rapport to cache using the original search address
       const cachedAddress = localStorage.getItem('grooshub_current_address');
       if (cachedAddress) {
-        const cacheSuccess = locationDataCache.setRapport(cachedAddress, buildingProgram);
-
-        if (cacheSuccess) {
-          console.log('Rapport saved to cache successfully for:', cachedAddress);
-        } else {
-          console.warn('Failed to save rapport to cache for:', cachedAddress);
-        }
-      } else {
-        console.warn('No cached address found, cannot save rapport to cache');
+        llmRapportCache.set(cachedAddress, {
+          housing: buildingProgram,
+          generatedAt: new Date().toISOString()
+        });
       }
 
       // Download the result as JSON
@@ -293,7 +286,6 @@ export const GenerateProgramButton: React.FC<GenerateProgramButtonProps> = ({
       }, 2000);
 
     } catch (err) {
-      console.error('Error generating building program:', err);
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(errorMessage);
 

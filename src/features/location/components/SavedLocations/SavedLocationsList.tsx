@@ -3,6 +3,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/shared/components/UI/Button/Button';
+import { ConfirmDialog } from '@/shared/components/UI/Modal/ConfirmDialog';
+import { AlertDialog } from '@/shared/components/UI/Modal/AlertDialog';
 import { cn } from '@/shared/utils/cn';
 import type { Locale } from '@/lib/i18n/config';
 import type { AccessibleLocation } from '../../types/saved-locations';
@@ -25,6 +27,14 @@ export const SavedLocationsList: React.FC<SavedLocationsListProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; locationId: string | null }>({
+    isOpen: false,
+    locationId: null,
+  });
+  const [errorDialog, setErrorDialog] = useState<{ isOpen: boolean; message: string }>({
+    isOpen: false,
+    message: '',
+  });
 
   // Load saved locations
   const loadLocations = async () => {
@@ -52,16 +62,18 @@ export const SavedLocationsList: React.FC<SavedLocationsListProps> = ({
     loadLocations();
   }, [refreshTrigger]);
 
-  // Delete location
-  const handleDelete = async (id: string, event: React.MouseEvent) => {
+  // Delete location - Open confirmation dialog
+  const handleDelete = (id: string, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent expanding the card
+    setDeleteDialog({ isOpen: true, locationId: id });
+  };
 
-    if (!confirm(locale === 'nl' ? 'Weet u zeker dat u deze locatie wilt verwijderen?' : 'Are you sure you want to delete this location?')) {
-      return;
-    }
+  // Confirm delete location
+  const confirmDelete = async () => {
+    if (!deleteDialog.locationId) return;
 
     try {
-      const response = await fetch(`/api/location/saved/${id}`, {
+      const response = await fetch(`/api/location/saved/${deleteDialog.locationId}`, {
         method: 'DELETE',
       });
 
@@ -70,11 +82,20 @@ export const SavedLocationsList: React.FC<SavedLocationsListProps> = ({
       if (result.success) {
         // Refresh the list
         loadLocations();
+        setDeleteDialog({ isOpen: false, locationId: null });
       } else {
-        alert(result.error || 'Failed to delete location');
+        setDeleteDialog({ isOpen: false, locationId: null });
+        setErrorDialog({
+          isOpen: true,
+          message: result.error || (locale === 'nl' ? 'Verwijderen mislukt' : 'Failed to delete location'),
+        });
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete location');
+      setDeleteDialog({ isOpen: false, locationId: null });
+      setErrorDialog({
+        isOpen: true,
+        message: err instanceof Error ? err.message : (locale === 'nl' ? 'Verwijderen mislukt' : 'Failed to delete location'),
+      });
     }
   };
 
@@ -146,11 +167,17 @@ export const SavedLocationsList: React.FC<SavedLocationsListProps> = ({
         // Refresh the list
         loadLocations();
       } else {
-        alert(result.error || 'Failed to save location');
+        setErrorDialog({
+          isOpen: true,
+          message: result.error || (locale === 'nl' ? 'Opslaan mislukt' : 'Failed to save location'),
+        });
       }
     } catch (err) {
       console.error('❌ [SavedLocationsList] Error saving location:', err);
-      alert(err instanceof Error ? err.message : 'Failed to save location');
+      setErrorDialog({
+        isOpen: true,
+        message: err instanceof Error ? err.message : (locale === 'nl' ? 'Opslaan mislukt' : 'Failed to save location'),
+      });
     }
   };
 
@@ -347,6 +374,30 @@ export const SavedLocationsList: React.FC<SavedLocationsListProps> = ({
           )}
         </div>
       ))}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, locationId: null })}
+        onConfirm={confirmDelete}
+        title={locale === 'nl' ? 'Locatie verwijderen' : 'Delete Location'}
+        message={locale === 'nl'
+          ? 'Weet u zeker dat u deze locatie wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.'
+          : 'Are you sure you want to delete this location? This action cannot be undone.'}
+        confirmText={locale === 'nl' ? 'Verwijderen' : 'Delete'}
+        cancelText={locale === 'nl' ? 'Annuleren' : 'Cancel'}
+        variant="danger"
+      />
+
+      {/* Error Alert Dialog */}
+      <AlertDialog
+        isOpen={errorDialog.isOpen}
+        onClose={() => setErrorDialog({ isOpen: false, message: '' })}
+        title={locale === 'nl' ? 'Fout' : 'Error'}
+        message={errorDialog.message}
+        closeText={locale === 'nl' ? 'Sluiten' : 'Close'}
+        variant="error"
+      />
     </div>
   );
 };

@@ -3,6 +3,8 @@
  * Stores custom program allocations in localStorage for persistence
  */
 
+import { logger } from '@/shared/utils/logger';
+
 export interface PVEAllocations {
   apartments: number;
   commercial: number;
@@ -69,7 +71,7 @@ class PVEConfigCache {
 
       return config;
     } catch (error) {
-      console.error('Error reading PVE config cache:', error);
+      logger.error('Failed to read PVE config cache', error);
       return null;
     }
   }
@@ -91,7 +93,7 @@ class PVEConfigCache {
       localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
       return true;
     } catch (error) {
-      console.error('Error saving PVE config cache:', error);
+      logger.error('Failed to save PVE config cache', error);
       return false;
     }
   }
@@ -107,7 +109,7 @@ class PVEConfigCache {
     try {
       localStorage.removeItem(CACHE_KEY);
     } catch (error) {
-      console.error('Error clearing PVE config cache:', error);
+      logger.error('Failed to clear PVE config cache', error);
     }
   }
 
@@ -140,15 +142,9 @@ class PVEConfigCache {
         return null;
       }
 
-      console.log('[PVE Cache] Retrieved final PVE state:', {
-        totalM2: state.totalM2,
-        percentages: state.percentages,
-        cachedAt: new Date(state.timestamp).toISOString()
-      });
-
       return state;
     } catch (error) {
-      console.error('[PVE Cache] Error reading final PVE state:', error);
+      logger.error('Failed to read final PVE state', error);
       return null;
     }
   }
@@ -169,15 +165,9 @@ class PVEConfigCache {
 
       localStorage.setItem(FINAL_PVE_CACHE_KEY, JSON.stringify(cacheData));
 
-      console.log('[PVE Cache] Saved final PVE state:', {
-        totalM2: state.totalM2,
-        percentages: state.percentages,
-        timestamp: new Date(cacheData.timestamp).toISOString()
-      });
-
       return true;
     } catch (error) {
-      console.error('[PVE Cache] Error saving final PVE state:', error);
+      logger.error('Failed to save final PVE state', error);
       return false;
     }
   }
@@ -192,9 +182,8 @@ class PVEConfigCache {
 
     try {
       localStorage.removeItem(FINAL_PVE_CACHE_KEY);
-      console.log('[PVE Cache] Cleared final PVE state');
     } catch (error) {
-      console.error('[PVE Cache] Error clearing final PVE state:', error);
+      logger.error('Failed to clear final PVE state', error);
     }
   }
 

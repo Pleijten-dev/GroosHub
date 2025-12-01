@@ -12,8 +12,11 @@ import type { AmenityMultiCategoryResponse, PlaceResult } from '../../data/sourc
 // Fix for default marker icons in Leaflet with Next.js
 // Only run on client-side to avoid SSR issues
 if (typeof window !== 'undefined') {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  delete (L.Icon.Default.prototype as any)._getIconUrl;
+  // TypeScript workaround: Leaflet's internal _getIconUrl is not in public API
+  const iconPrototype = L.Icon.Default.prototype as typeof L.Icon.Default.prototype & {
+    _getIconUrl?: () => string;
+  };
+  delete iconPrototype._getIconUrl;
   L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
     iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',

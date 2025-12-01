@@ -14,6 +14,7 @@ import {
 import { searchOrchestrator } from '../data/sources/google-places/search-orchestrator';
 import type { AmenityMultiCategoryResponse } from '../data/sources/google-places/types';
 import { locationDataCache } from '../data/cache/locationDataCache';
+import { logger } from '@/shared/utils/logger';
 
 /**
  * Loading state for each data source
@@ -116,7 +117,7 @@ export function useLocationData(): UseLocationDataReturn {
       if (!skipCache) {
         const cached = locationDataCache.get(address);
         if (cached) {
-          console.log('📦 Loading data from cache for:', address);
+          logger.dataFetch('location data', 'cache', { address });
           setData(cached.data);
           setAmenities(cached.amenities);
           setFromCache(true);
@@ -302,7 +303,7 @@ export function useLocationData(): UseLocationDataReturn {
         // Store in cache
         const cached = locationDataCache.set(address, unifiedData, amenitiesResult);
         if (cached) {
-          console.log('💾 Stored data in cache for:', address);
+          logger.success('Stored location data in cache', { address });
           // Store the search address for later use (e.g., saving rapport)
           localStorage.setItem('grooshub_current_address', address);
         }
@@ -310,7 +311,7 @@ export function useLocationData(): UseLocationDataReturn {
         setData(unifiedData);
         setFromCache(false);
       } catch (err) {
-        console.error('Error fetching location data:', err);
+        logger.error('Failed to fetch location data', err, { address });
         setError((prev) => ({
           ...prev,
           geocoding: err instanceof Error ? err.message : 'Unknown error',
@@ -333,7 +334,7 @@ export function useLocationData(): UseLocationDataReturn {
    * Load saved data directly without making API calls
    */
   const loadSavedData = useCallback((locationData: UnifiedLocationData, amenitiesData?: AmenityMultiCategoryResponse | null, address?: string) => {
-    console.log('📂 Loading saved location data from database');
+    logger.dataFetch('location data', 'saved', { address: address || 'unknown' });
     setData(locationData);
     setAmenities(amenitiesData || null);
     setFromCache(false); // This is from database, not cache
@@ -360,7 +361,7 @@ export function useLocationData(): UseLocationDataReturn {
     if (address) {
       const cached = locationDataCache.set(address, locationData, amenitiesData || null);
       if (cached) {
-        console.log('💾 Stored loaded data in cache for:', address);
+        logger.success('Stored saved data in cache', { address });
       }
     }
   }, []);
@@ -388,7 +389,7 @@ export function useLocationData(): UseLocationDataReturn {
    */
   const clearCache = useCallback(() => {
     locationDataCache.clearAll();
-    console.log('🗑️ Cache cleared');
+    logger.info('Cache cleared');
   }, []);
 
   // Computed properties

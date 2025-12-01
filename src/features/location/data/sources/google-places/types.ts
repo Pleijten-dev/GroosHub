@@ -196,3 +196,83 @@ export interface ApiErrorResponse {
   statusCode: number;
   details?: unknown;
 }
+
+/**
+ * Raw Google Places API Response Types
+ * These represent the actual response structure from Google's API
+ */
+
+export interface GooglePlaceLocation {
+  latitude: number;
+  longitude: number;
+}
+
+export interface GoogleDisplayName {
+  text: string;
+  languageCode: string;
+}
+
+export interface GoogleOpeningHours {
+  openNow?: boolean;
+  weekdayDescriptions?: string[];
+}
+
+export interface GooglePlaceRaw {
+  id: string;
+  displayName?: GoogleDisplayName;
+  formattedAddress?: string;
+  location?: GooglePlaceLocation;
+  types?: string[];
+  rating?: number;
+  userRatingCount?: number;
+  priceLevel?: string;
+  currentOpeningHours?: GoogleOpeningHours;
+  businessStatus?: string;
+  [key: string]: unknown; // Allow additional fields from API
+}
+
+export interface GoogleNearbySearchResponse {
+  places?: GooglePlaceRaw[];
+  [key: string]: unknown;
+}
+
+export interface GoogleTextSearchResponse {
+  places?: GooglePlaceRaw[];
+  [key: string]: unknown;
+}
+
+/**
+ * Google API Request Body Types
+ */
+
+export interface GoogleCircle {
+  center: {
+    latitude: number;
+    longitude: number;
+  };
+  radius: number;
+}
+
+export interface GoogleNearbySearchRequestBody {
+  locationRestriction: {
+    circle: GoogleCircle;
+  };
+  maxResultCount: number;
+  includedTypes?: string[];
+  languageCode?: string;
+  regionCode?: string;
+}
+
+export interface GoogleTextSearchRequestBody {
+  textQuery: string;
+  maxResultCount: number;
+  locationBias?: {
+    circle: GoogleCircle;
+  };
+  priceLevels?: PRICE_LEVELS[];
+  includedType?: string;
+  minRating?: number;
+  openNow?: boolean;
+  languageCode?: string;
+  regionCode?: string;
+}
