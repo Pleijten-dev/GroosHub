@@ -133,7 +133,16 @@ export const ResidentialPage: React.FC<ResidentialPageProps> = ({ data, locale }
   };
 
   /**
+   * Energy label order from most efficient to least efficient
+   */
+  const ENERGY_LABEL_ORDER = [
+    'A++++', 'A+++', 'A++', 'A+', 'A',
+    'B', 'C', 'D', 'E', 'F', 'G'
+  ];
+
+  /**
    * Convert distribution to chart data with percentages
+   * Special handling for energy labels to show all labels in correct order
    */
   const createChartData = (fieldName: string): { data: DensityChartData[], labels: string[] } => {
     const field = getFieldData(fieldName);
@@ -141,6 +150,24 @@ export const ResidentialPage: React.FC<ResidentialPageProps> = ({ data, locale }
       return { data: [], labels: [] };
     }
 
+    // Special handling for energy labels
+    if (fieldName === 'DefinitiveEnergyLabel') {
+      const labels: string[] = [];
+      const chartData: DensityChartData[] = [];
+
+      ENERGY_LABEL_ORDER.forEach((label, index) => {
+        labels.push(label);
+        const count = field.valueDistribution?.[label] || 0;
+        chartData.push({
+          x: index,
+          y: field.count > 0 ? (count / field.count) * 100 : 0
+        });
+      });
+
+      return { data: chartData, labels };
+    }
+
+    // Regular handling for other fields (sort by count)
     const entries = Object.entries(field.valueDistribution)
       .sort(([, a], [, b]) => b - a);
 
@@ -173,7 +200,8 @@ export const ResidentialPage: React.FC<ResidentialPageProps> = ({ data, locale }
       // Bar chart visualization
       const { data: chartData, labels } = createChartData(section.field);
 
-      if (chartData.length === 0) {
+      // Don't show "no data" message for energy labels - always show the chart with all labels
+      if (chartData.length === 0 && section.field !== 'DefinitiveEnergyLabel') {
         return (
           <div className="flex-1 flex items-center justify-center">
             <span className="text-gray-400 text-sm">
