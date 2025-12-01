@@ -55,7 +55,7 @@ export const ResidentialSummary: React.FC<ResidentialSummaryProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900">
-          {locale === 'nl' ? '🏡 Woningmarkt Overzicht' : '🏡 Housing Market Overview'}
+          {locale === 'nl' ? 'Woningmarkt Overzicht' : 'Housing Market Overview'}
         </h3>
         {onViewAll && (
           <button
@@ -117,7 +117,7 @@ export const ResidentialSummary: React.FC<ResidentialSummaryProps> = ({
       {/* Statistics Row */}
       <div className="bg-white rounded-lg border border-gray-200 p-4">
         <h4 className="text-sm font-semibold text-gray-900 mb-3">
-          {locale === 'nl' ? '📊 Markt Statistieken' : '📊 Market Statistics'}
+          {locale === 'nl' ? 'Markt Statistieken' : 'Market Statistics'}
         </h4>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div>
@@ -158,8 +158,8 @@ export const ResidentialSummary: React.FC<ResidentialSummaryProps> = ({
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <h4 className="text-sm font-semibold text-gray-900 mb-3">
             {locale === 'nl'
-              ? '🏠 5 Meest Vergelijkbare Woningen'
-              : '🏠 5 Most Comparable Properties'}
+              ? '5 Meest Vergelijkbare Woningen'
+              : '5 Most Comparable Properties'}
           </h4>
           <ul className="space-y-3">
             {closestReferences.map((ref, idx) => {
@@ -188,10 +188,10 @@ export const ResidentialSummary: React.FC<ResidentialSummaryProps> = ({
                       </div>
                     </div>
                     <div className="flex items-center gap-3 mt-1 text-xs text-gray-600">
-                      <span>📍 {formatDistance(ref.Distance)}</span>
-                      <span>🏠 {ref.HouseType}</span>
-                      <span>📅 {ref.BuildYear}</span>
-                      <span>📐 {ref.InnerSurfaceArea} m²</span>
+                      <span>{formatDistance(ref.Distance)}</span>
+                      <span>{ref.HouseType}</span>
+                      <span>{ref.BuildYear}</span>
+                      <span>{ref.InnerSurfaceArea} m²</span>
                     </div>
                   </div>
                 </li>

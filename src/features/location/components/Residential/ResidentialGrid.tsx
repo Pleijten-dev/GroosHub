@@ -27,7 +27,6 @@ export const ResidentialGrid: React.FC<ResidentialGridProps> = ({
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="text-6xl mb-4">🏠</div>
           <p className="text-lg text-gray-600">
             {locale === 'nl'
               ? 'Geen woningmarkt gegevens beschikbaar'
@@ -88,7 +87,7 @@ export const ResidentialGrid: React.FC<ResidentialGridProps> = ({
       {/* Header with Target Property Info */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">
-          {locale === 'nl' ? '🏡 Woningmarkt Analyse' : '🏡 Housing Market Analysis'}
+          {locale === 'nl' ? 'Woningmarkt Analyse' : 'Housing Market Analysis'}
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -102,17 +101,17 @@ export const ResidentialGrid: React.FC<ResidentialGridProps> = ({
             </p>
             <div className="mt-2 flex flex-wrap gap-2 text-sm text-gray-700">
               <span className="bg-white px-2 py-1 rounded">
-                🏠 {data.targetProperty.characteristics.houseType}
+                {data.targetProperty.characteristics.houseType}
               </span>
               <span className="bg-white px-2 py-1 rounded">
-                📅 {data.targetProperty.characteristics.buildYear}
+                {data.targetProperty.characteristics.buildYear}
               </span>
               <span className="bg-white px-2 py-1 rounded">
-                📐 {data.targetProperty.characteristics.innerSurfaceArea} m²
+                {data.targetProperty.characteristics.innerSurfaceArea} m²
               </span>
               {data.targetProperty.characteristics.energyLabel && (
                 <span className="bg-white px-2 py-1 rounded">
-                  ⚡ Label {data.targetProperty.characteristics.energyLabel}
+                  Label {data.targetProperty.characteristics.energyLabel}
                 </span>
               )}
             </div>
@@ -182,7 +181,7 @@ export const ResidentialGrid: React.FC<ResidentialGridProps> = ({
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                📍 &lt; 1 km ({data.marketStatistics.withinRadius.oneKm})
+                &lt; 1 km ({data.marketStatistics.withinRadius.oneKm})
               </button>
               <button
                 onClick={() => setFilterCategory('within5km')}
@@ -192,7 +191,7 @@ export const ResidentialGrid: React.FC<ResidentialGridProps> = ({
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                📍 &lt; 5 km ({data.marketStatistics.withinRadius.fiveKm})
+                &lt; 5 km ({data.marketStatistics.withinRadius.fiveKm})
               </button>
             </div>
 

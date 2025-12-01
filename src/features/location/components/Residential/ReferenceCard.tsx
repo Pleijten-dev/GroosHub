@@ -75,7 +75,7 @@ export const ReferenceCard: React.FC<ReferenceCardProps> = ({
         </div>
       ) : (
         <div className="mb-3 rounded-md bg-gray-100 h-32 flex items-center justify-center">
-          <span className="text-4xl">🏠</span>
+          <span className="text-gray-400 text-sm">No image</span>
         </div>
       )}
 
@@ -93,7 +93,7 @@ export const ReferenceCard: React.FC<ReferenceCardProps> = ({
       {/* Distance Badge */}
       <div className="mb-3">
         <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getDistanceColor()}`}>
-          📍 {formatDistance(reference.Distance)}
+          {formatDistance(reference.Distance)}
         </span>
       </div>
 

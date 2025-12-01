@@ -8,7 +8,7 @@ import { useLocationSidebarSections } from '../../../features/location/component
 import { useLocationData } from '../../../features/location/hooks/useLocationData';
 import { MultiLevelDataTable } from '../../../features/location/components/DataTables';
 import { AmenitiesGrid, AmenitiesSummary } from '../../../features/location/components/Amenities';
-import { ResidentialSummary, ResidentialGrid } from '../../../features/location/components/Residential';
+import { ResidentialSummary, ResidentialGrid, ResidentialPage } from '../../../features/location/components/Residential';
 import { DoelgroepenGrid } from '../../../features/location/components/Doelgroepen';
 import { DemographicsPage } from '../../../features/location/components/Demographics';
 import { SafetyPage } from '../../../features/location/components/Safety';
@@ -434,26 +434,9 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         );
       }
 
-      // For Woningmarkt tab - show full residential grid
+      // For Woningmarkt tab - show residential page with simplified layout
       if (activeTab === 'woningmarkt') {
-        return (
-          <div className="p-lg overflow-auto h-full">
-            {data.residential ? (
-              <ResidentialGrid data={data.residential} locale={locale} />
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <div className="text-6xl mb-base">🏠</div>
-                  <p className="text-lg text-text-secondary">
-                    {locale === 'nl'
-                      ? 'Woningmarkt gegevens niet beschikbaar'
-                      : 'Housing market data not available'}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        );
+        return <ResidentialPage data={data.residential} locale={locale} />;
       }
 
       // For Kaarten tab - show Leaflet map with WMS layer support
