@@ -146,7 +146,7 @@ export function RadialProgressBar({
 
       {/* Labels below the chart */}
       {showLabels && data.length > 0 && (
-        <div className="mt-4 space-y-2 w-full">
+        <div className="mt-4 space-y-2" style={{ width: `${width}px` }}>
           {data.map((item, index) => {
             const itemMaxValue = item.maxValue || item.value;
             const itemPercentage = itemMaxValue > 0 ? (item.value / itemMaxValue) * 100 : 0;
@@ -154,16 +154,16 @@ export function RadialProgressBar({
             return (
               <div
                 key={index}
-                className="flex items-center justify-between text-sm"
+                className="flex items-center justify-between text-sm gap-2"
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
                   <div
-                    className="w-3 h-3 rounded-full"
+                    className="w-3 h-3 rounded-full flex-shrink-0"
                     style={{ backgroundColor: item.color || DEFAULT_COLOR }}
                   />
-                  <span className="text-gray-700">{item.name}</span>
+                  <span className="text-gray-700 truncate">{item.name}</span>
                 </div>
-                <span className="font-semibold text-gray-900">
+                <span className="font-semibold text-gray-900 flex-shrink-0">
                   {itemPercentage.toFixed(1)}%
                 </span>
               </div>

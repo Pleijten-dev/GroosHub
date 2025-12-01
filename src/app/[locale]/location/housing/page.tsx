@@ -172,6 +172,7 @@ export default function HousingPage() {
                 categories={chartData}
                 totalM2={totalM2}
                 locale={locale}
+                showPercentage={false}
               />
             </div>
           </div>

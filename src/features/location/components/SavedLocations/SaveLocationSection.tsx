@@ -8,6 +8,7 @@ import type { Locale } from '@/lib/i18n/config';
 import type { UnifiedLocationData } from '../../data/aggregator/multiLevelAggregator';
 import type { AmenityMultiCategoryResponse } from '../../data/sources/google-places/types';
 import { pveConfigCache } from '../../data/cache/pveConfigCache';
+import { locationDataCache } from '../../data/cache/locationDataCache';
 import type { CompletionStatus } from '../../types/saved-locations';
 
 interface SaveLocationSectionProps {
@@ -72,6 +73,18 @@ export const SaveLocationSection: React.FC<SaveLocationSectionProps> = ({
 
       console.log('✅ [Save] Completion status:', completionStatus);
 
+      // Retrieve rapport from cache if available
+      let rapportData = null;
+      try {
+        rapportData = locationDataCache.getRapport(address);
+        if (rapportData) {
+          console.log('📄 [Save] Retrieved rapport from cache');
+        }
+      } catch (error) {
+        console.warn('Failed to retrieve rapport from cache:', error);
+        // Continue without rapport - it's optional
+      }
+
       // Prepare save data
       const saveData = {
         name: locationName.trim() || undefined,
@@ -84,7 +97,7 @@ export const SaveLocationSection: React.FC<SaveLocationSectionProps> = ({
           scenario: personasData.scenario,
           customIds: personasData.customIds || []
         } : undefined,
-        llmRapport: undefined, // TODO: Get from rapport cache if needed
+        llmRapport: rapportData || undefined,
         completionStatus,
       };
 

@@ -20,6 +20,7 @@ export interface CategoryRadialChartProps {
   width?: number;
   height?: number;
   locale?: 'nl' | 'en';
+  showPercentage?: boolean;
 }
 
 // Green color palette for categories
@@ -40,6 +41,7 @@ export function CategoryRadialChart({
   width = 400,
   height = 350,
   locale = 'nl',
+  showPercentage = true,
 }: CategoryRadialChartProps) {
   // Transform category data for RadialProgressBar
   const chartData = categories.map((cat, index) => ({
@@ -80,7 +82,7 @@ export function CategoryRadialChart({
         width={width}
         height={height}
         showLabels={true}
-        showPercentage={true}
+        showPercentage={showPercentage}
         strokeWidth={25}
       />
 

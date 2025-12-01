@@ -8,6 +8,7 @@ import type { Locale } from '@/lib/i18n/config';
 import type { AccessibleLocation } from '../../types/saved-locations';
 import { LocationProgress } from './LocationProgress';
 import { pveConfigCache } from '../../data/cache/pveConfigCache';
+import { locationDataCache } from '../../data/cache/locationDataCache';
 import type { CompletionStatus } from '../../types/saved-locations';
 
 interface SavedLocationsListProps {
@@ -117,6 +118,18 @@ export const SavedLocationsList: React.FC<SavedLocationsListProps> = ({
 
       console.log('✅ [SavedLocationsList] Completion status:', completionStatus);
 
+      // Retrieve rapport from cache if available for the current address
+      let rapportData = null;
+      try {
+        rapportData = locationDataCache.getRapport(location.address);
+        if (rapportData) {
+          console.log('📄 [SavedLocationsList] Retrieved rapport from cache');
+        }
+      } catch (error) {
+        console.warn('Failed to retrieve rapport from cache:', error);
+        // Continue without rapport - use existing one from location
+      }
+
       // Update the existing saved location with current PVE/persona data
       const response = await fetch('/api/location/saved', {
         method: 'POST',
@@ -134,7 +147,7 @@ export const SavedLocationsList: React.FC<SavedLocationsListProps> = ({
             scenario: personasData.scenario,
             customIds: personasData.customIds || []
           } : location.selectedPersonas, // Use current personas if available, otherwise keep old
-          llmRapport: location.llmRapport,
+          llmRapport: rapportData || location.llmRapport, // Use cached rapport if available, otherwise keep old
           completionStatus,
         }),
       });

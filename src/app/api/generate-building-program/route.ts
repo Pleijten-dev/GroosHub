@@ -441,9 +441,9 @@ Maak voor ELK scenario een gedetailleerd bouwprogramma dat:
 
 3. LOKALE CONTEXT: Rekening houdt met lokale demografische gegevens (leeftijd, gezinssamenstelling, inkomen)
 
-4. PUBLIEKE RUIMTES: Selecteer publieke en commerciële ruimtes uit de BESCHIKBARE PUBLIEKE EN COMMERCIËLE RUIMTES lijst die passen bij de target_groups. Kies functies die inkomsten kunnen genereren (retail, horeca, gezondheidszorg) of belangrijke publieke functies vervullen, en die de bestaande voorzieningen in de buurt aanvullen (niet concurreren). Groepeer deze per category en bereken totaal m2 en percentage per categorie.
+4. PUBLIEKE RUIMTES: Selecteer publieke en commerciële ruimtes uit de BESCHIKBARE PUBLIEKE EN COMMERCIËLE RUIMTES lijst die passen bij de target_groups. Kies functies die inkomsten kunnen genereren (retail, horeca, gezondheidszorg) of belangrijke publieke functies vervullen, en die de bestaande voorzieningen in de buurt aanvullen (niet concurreren). BELANGRIJK: Vul ZOWEL de 'commercial' sectie ALS de 'public_spaces' sectie met deze data. Voor public_spaces: groepeer alle geselecteerde ruimtes per category, voeg ze toe aan de 'spaces' array, en bereken het totaal m2 en percentage per categorie in 'category_breakdown'.
 
-5. GEMEENSCHAPPELIJKE RUIMTES: Selecteer gemeenschappelijke ruimtes uit de BESCHIKBARE GEMEENSCHAPPELIJKE RUIMTES lijst die passen bij de target_groups van de doelgroep persona's. Kies ruimtes waarvan de target_groups overeenkomen met de persona's in het scenario. Groepeer deze per category en bereken totaal m2 en percentage per categorie.
+5. GEMEENSCHAPPELIJKE RUIMTES: Selecteer gemeenschappelijke ruimtes uit de BESCHIKBARE GEMEENSCHAPPELIJKE RUIMTES lijst die passen bij de target_groups van de doelgroep persona's. Kies ruimtes waarvan de target_groups overeenkomen met de persona's in het scenario. BELANGRIJK: Vul ZOWEL de 'communal' sectie (met amenities array) ALS de 'communal_spaces' sectie met deze data. Voor communal_spaces: groepeer alle geselecteerde ruimtes per category, voeg ze toe aan de 'spaces' array, en bereken het totaal m2 en percentage per categorie in 'category_breakdown'. Zorg ervoor dat ALLE geselecteerde ruimtes in BEIDE secties verschijnen.
 
 6. SOCIALE FACILITEITEN: Plant sociale faciliteiten die de lokale gemeenschap versterken
 
@@ -541,9 +541,9 @@ Create a detailed building program for EACH scenario that:
 
 3. LOCAL CONTEXT: Accounts for local demographics (age, household composition, income)
 
-4. PUBLIC SPACES: Selects public and commercial spaces from the AVAILABLE PUBLIC AND COMMERCIAL SPACES list that match the target_groups. Choose functions that can generate income (retail, hospitality, healthcare) or fulfill important public functions, and complement (not compete with) existing neighborhood amenities. Group these by category and calculate total m2 and percentage per category.
+4. PUBLIC SPACES: Selects public and commercial spaces from the AVAILABLE PUBLIC AND COMMERCIAL SPACES list that match the target_groups. Choose functions that can generate income (retail, hospitality, healthcare) or fulfill important public functions, and complement (not compete with) existing neighborhood amenities. IMPORTANT: Fill BOTH the 'commercial' section AND the 'public_spaces' section with this data. For public_spaces: group all selected spaces by category, add them to the 'spaces' array, and calculate total m2 and percentage per category in 'category_breakdown'.
 
-5. COMMUNAL SPACES: Selects communal spaces from the AVAILABLE COMMUNAL SPACES list that match the target_groups of the target personas. Choose spaces whose target_groups align with the personas in the scenario. Group these by category and calculate total m2 and percentage per category.
+5. COMMUNAL SPACES: Selects communal spaces from the AVAILABLE COMMUNAL SPACES list that match the target_groups of the target personas. Choose spaces whose target_groups align with the personas in the scenario. IMPORTANT: Fill BOTH the 'communal' section (with amenities array) AND the 'communal_spaces' section with this data. For communal_spaces: group all selected spaces by category, add them to the 'spaces' array, and calculate total m2 and percentage per category in 'category_breakdown'. Ensure that ALL selected spaces appear in BOTH sections.
 
 6. SOCIAL FACILITIES: Plans social facilities that strengthen the local community
 
