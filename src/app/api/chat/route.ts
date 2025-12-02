@@ -20,6 +20,9 @@ import {
   trackLLMUsage
 } from '@/lib/ai/chat-store';
 import { getSystemPrompt } from '@/features/chat/lib/prompts/system-prompt';
+import { getUserMemory, formatMemoryForPrompt } from '@/lib/ai/memory-store';
+import { enhanceSystemPromptWithMemory } from '@/lib/ai/memory-prompts';
+import { queueMemoryAnalysis } from '@/lib/ai/memory-analyzer';
 import { randomUUID } from 'crypto';
 
 // Request schema validation
@@ -232,8 +235,21 @@ export async function POST(request: NextRequest) {
     // Truncate messages to fit context window
     const truncatedMessages = truncateMessages(allMessages);
 
+    // Get user memory and enhance system prompt
+    let systemPrompt = getSystemPrompt(locale);
+    try {
+      const userMemory = await getUserMemory(userId);
+      const memoryText = formatMemoryForPrompt(userMemory);
+      if (memoryText) {
+        systemPrompt = enhanceSystemPromptWithMemory(systemPrompt, memoryText, locale);
+        console.log(`[Chat API] 🧠 User memory loaded (${userMemory.token_count} tokens)`);
+      }
+    } catch (error) {
+      console.error('[Chat API] ⚠️  Failed to load user memory:', error);
+      // Continue without memory if there's an error
+    }
+
     // Prepend system prompt with context about GroosHub and GROOSMAN
-    const systemPrompt = getSystemPrompt(locale);
     const messagesWithSystem: UIMessage[] = [
       {
         id: randomUUID(),
@@ -299,6 +315,17 @@ export async function POST(request: NextRequest) {
           });
 
           console.log(`[Chat API] ✅ Usage stats saved successfully!`);
+
+          // Queue memory analysis (background, non-blocking)
+          // Analyzes last 10 messages using cheap model (Claude Haiku)
+          // Only triggers every 10 messages or when significant new info detected
+          try {
+            queueMemoryAnalysis(userId, chatId!, allMessages, locale);
+            console.log(`[Chat API] 🧠 Memory analysis queued for user ${userId}`);
+          } catch (error) {
+            console.error(`[Chat API] ⚠️  Failed to queue memory analysis:`, error);
+            // Non-critical - continue even if memory analysis fails
+          }
         } catch (error) {
           console.error(`[Chat API] ❌ Error in onFinish callback:`, error);
           // Don't throw - allow stream to complete even if save fails
