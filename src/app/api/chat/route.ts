@@ -312,7 +312,15 @@ export async function POST(request: NextRequest) {
             .optional()
             .describe('Filters for list mode'),
         }),
-        async execute(params: any) {
+        async execute(params: {
+          mode: 'search' | 'list';
+          personaIdOrName?: string;
+          filters?: {
+            income_level?: 'Laag inkomen' | 'Midden inkomen' | 'Hoog inkomen';
+            household_type?: string;
+            age_group?: string;
+          };
+        }) {
           return getPersonaInfo.execute(params);
         },
       },

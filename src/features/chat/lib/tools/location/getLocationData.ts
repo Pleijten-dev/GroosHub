@@ -9,6 +9,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import { getDbConnection } from '@/lib/db/connection';
 import type { UnifiedLocationData, UnifiedDataRow } from '@/features/location/data/aggregator/multiLevelAggregator';
+import type { ResidentialData } from '@/features/location/data/sources/altum-ai/types';
 
 // Available data categories
 const DataCategories = [
@@ -258,7 +259,7 @@ function interpretScore(score: number): string {
 /**
  * Format residential data
  */
-function formatResidentialData(locationName: string, residential: any) {
+function formatResidentialData(locationName: string, residential: ResidentialData | null) {
   if (!residential) {
     return {
       success: false,
@@ -267,7 +268,7 @@ function formatResidentialData(locationName: string, residential: any) {
   }
 
   // Extract key housing market metrics
-  const keyMetrics: any[] = [];
+  const keyMetrics: Array<{ title: string; data: unknown }> = [];
 
   if (residential.typologie) {
     keyMetrics.push({
@@ -342,7 +343,7 @@ function formatAmenitiesData(locationName: string, amenities: UnifiedDataRow[]) 
  * Format all data - provides summary of all categories
  */
 function formatAllData(locationName: string, locationData: UnifiedLocationData) {
-  const summary: Record<string, any> = {};
+  const summary: Record<string, unknown> = {};
 
   // Demographics summary
   if (locationData.demographics.neighborhood?.length > 0) {
