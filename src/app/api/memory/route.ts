@@ -217,7 +217,7 @@ const updateRequestSchema = z.object({
   memory_content: z.string().min(0).max(2000), // Max ~500 tokens
   user_name: z.string().optional(),
   user_role: z.string().optional(),
-  preferences: z.record(z.unknown()).optional(),
+  preferences: z.record(z.string(), z.unknown()).optional(),
   interests: z.array(z.string()).optional(),
   patterns: z.array(z.object({
     type: z.string(),
