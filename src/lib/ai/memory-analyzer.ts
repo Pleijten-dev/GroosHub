@@ -28,8 +28,9 @@ import {
 // ============================================
 
 const MEMORY_CONFIG = {
-  // Model for memory analysis (use cheaper model)
-  analysisModel: 'claude-haiku' as const, // or 'gpt-4o-mini'
+  // Model for memory analysis - ALWAYS use Claude Haiku 3.5 (via Vercel AI SDK)
+  // This is separate from the user's chosen model and optimized for cost
+  analysisModel: 'claude-haiku-3.5' as const,
 
   // How many recent messages to analyze
   recentMessageCount: 10,
@@ -164,7 +165,6 @@ async function shouldUpdateMemoryDecision(
       model,
       prompt,
       temperature: 0.2,
-      maxTokens: 200 // Very small response
     });
 
     // Parse JSON response
@@ -206,7 +206,6 @@ async function extractMemoryFromConversation(
     model,
     prompt,
     temperature: 0.3, // Slightly creative but consistent
-    maxTokens: 800 // Enough for ~500 token memory
   });
 
   return result.text.trim();
