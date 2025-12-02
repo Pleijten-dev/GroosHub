@@ -7,7 +7,7 @@
  * Week 2.5: Location Agent - Tools for location analysis
  */
 
-import { streamText, convertToModelMessages, stepCountIs, type UIMessage } from 'ai';
+import { streamText, convertToModelMessages, stepCountIs, tool, type UIMessage } from 'ai';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getModel, type ModelId, MODEL_CAPABILITIES } from '@/lib/ai/models';
@@ -22,11 +22,11 @@ import {
 } from '@/lib/ai/chat-store';
 import { getSystemPrompt } from '@/features/chat/lib/prompts/system-prompt';
 import { getLocationAgentPrompt, getCombinedPrompt } from '@/features/chat/lib/prompts/agent-prompts';
-import {
-  listUserSavedLocations,
-  getLocationData,
-  getPersonaInfo,
-} from '@/features/chat/lib/tools/location';
+import { getDbConnection } from '@/lib/db/connection';
+import type { AccessibleLocation } from '@/features/location/types/saved-locations';
+import type { UnifiedLocationData } from '@/features/location/data/aggregator/multiLevelAggregator';
+import type { ResidentialData } from '@/features/location/data/sources/altum-ai/types';
+import personasData from '@/features/location/data/sources/housing-personas.json';
 import { randomUUID } from 'crypto';
 
 // Request schema validation
@@ -257,73 +257,189 @@ export async function POST(request: NextRequest) {
     console.log(`[Chat API] Chat: ${chatId}, Model: ${modelId}, Locale: ${locale}, Messages: ${truncatedMessages.length}/${allMessages.length}`);
     console.log(`[Chat API] 🔧 Location agent tools enabled for user ${userId}`);
 
-    // Create tool wrappers that inject userId automatically
-    // The LLM doesn't know the userId, so we inject it from the session
+    // Create location agent tools with userId injected from session
+    // These tools are defined inline so we can inject userId without exposing it to the LLM
     const locationTools = {
-      listUserSavedLocations: {
-        description: listUserSavedLocations.description,
-        inputSchema: z.object({}), // No parameters needed from LLM
+      listUserSavedLocations: tool({
+        description: `Get all saved locations for the current user. This includes locations they own and locations shared with them.
+
+        Use this tool when:
+        - User asks about "my locations" or "saved locations"
+        - User references a location without specifying which one
+        - You need to clarify which location the user is asking about
+        - User asks to compare multiple locations
+
+        The tool returns: name, address, completion status, owner info, and timestamps`,
+        inputSchema: z.object({}),
         async execute() {
-          return listUserSavedLocations.execute({ userId });
+          try {
+            const sql = getDbConnection();
+            const results = await sql`
+              SELECT
+                sl.id,
+                sl.name,
+                sl.address,
+                sl.coordinates,
+                sl.completion_status as "completionStatus",
+                sl.created_at as "createdAt",
+                sl.updated_at as "updatedAt",
+                sl.user_id as "ownerId",
+                u.name as "ownerName",
+                FALSE as "isShared",
+                TRUE as "canEdit"
+              FROM saved_locations sl
+              JOIN users u ON sl.user_id = u.id
+              WHERE sl.user_id = ${userId}
+
+              UNION ALL
+
+              SELECT
+                sl.id,
+                sl.name,
+                sl.address,
+                sl.coordinates,
+                sl.completion_status as "completionStatus",
+                sl.created_at as "createdAt",
+                sl.updated_at as "updatedAt",
+                sl.user_id as "ownerId",
+                u.name as "ownerName",
+                TRUE as "isShared",
+                ls.can_edit as "canEdit"
+              FROM saved_locations sl
+              JOIN location_shares ls ON sl.id = ls.saved_location_id
+              JOIN users u ON sl.user_id = u.id
+              WHERE ls.shared_with_user_id = ${userId}
+
+              ORDER BY "createdAt" DESC
+            `;
+
+            const locations = results as unknown as AccessibleLocation[];
+
+            return {
+              success: true,
+              count: locations.length,
+              locations: locations.map(loc => ({
+                id: loc.id,
+                name: loc.name || 'Unnamed Location',
+                address: loc.address,
+                completionStatus: loc.completionStatus,
+                isShared: loc.isShared,
+                canEdit: loc.canEdit,
+                createdAt: loc.createdAt,
+                updatedAt: loc.updatedAt,
+              })),
+            };
+          } catch (error) {
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : 'Failed to fetch locations',
+            };
+          }
         },
-      },
-      getLocationData: {
-        description: getLocationData.description,
+      }),
+
+      getLocationData: tool({
+        description: `Get specific data category for a saved location.
+
+        Available categories:
+        - demographics: Age, income, household types, population statistics
+        - health: Air quality, life expectancy, healthcare metrics
+        - safety: Crime rates, traffic safety, security data
+        - livability: Playgrounds, youth facilities, public amenities
+        - residential: Housing market prices, typologies, ownership data
+        - amenities: Nearby restaurants, shops, schools, services
+        - all: Returns summary of all categories`,
         inputSchema: z.object({
-          locationId: z.string().uuid().describe('The UUID of the saved location'),
-          category: z
-            .enum([
-              'demographics',
-              'health',
-              'safety',
-              'livability',
-              'residential',
-              'amenities',
-              'all',
-            ])
-            .describe('The data category to retrieve'),
+          locationId: z.string().uuid(),
+          category: z.enum(['demographics', 'health', 'safety', 'livability', 'residential', 'amenities', 'all']),
         }),
-        async execute({ locationId, category }: { locationId: string; category: string }) {
-          return getLocationData.execute({ locationId, category, userId });
+        async execute({ locationId, category }) {
+          try {
+            const sql = getDbConnection();
+            const results = await sql`
+              SELECT location_data as "locationData"
+              FROM saved_locations
+              WHERE id = ${locationId}
+                AND (user_id = ${userId} OR EXISTS (
+                  SELECT 1 FROM location_shares
+                  WHERE saved_location_id = ${locationId}
+                    AND shared_with_user_id = ${userId}
+                ))
+            `;
+
+            if (results.length === 0) {
+              return { success: false, error: 'Location not found or access denied' };
+            }
+
+            const locationData = results[0].locationData as UnifiedLocationData;
+
+            // Return simplified data based on category
+            if (category === 'demographics' && locationData.demographics) {
+              const primary = locationData.demographics.neighborhood || locationData.demographics.municipality || [];
+              return {
+                success: true,
+                category: 'demographics',
+                data: primary.slice(0, 10),
+              };
+            }
+
+            return { success: true, category, data: locationData };
+          } catch (error) {
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : 'Failed to fetch location data',
+            };
+          }
         },
-      },
-      getPersonaInfo: {
-        description: getPersonaInfo.description,
+      }),
+
+      getPersonaInfo: tool({
+        description: `Get information about housing personas used in GroosHub location analysis.
+
+        GroosHub uses 30+ housing personas categorized by:
+        - Income level: "Laag inkomen" (Low), "Midden inkomen" (Middle), "Hoog inkomen" (High)
+        - Household type: Single, couples, families
+        - Age group: 20-35, 35-55, 55+`,
         inputSchema: z.object({
-          mode: z
-            .enum(['search', 'list'])
-            .describe('Search for specific persona or list personas with filters'),
-          personaIdOrName: z
-            .string()
-            .optional()
-            .describe('Persona ID (e.g., "jonge-starters") or name for search mode'),
-          filters: z
-            .object({
-              income_level: z
-                .enum(['Laag inkomen', 'Midden inkomen', 'Hoog inkomen'])
-                .optional()
-                .describe('Filter by income level'),
-              household_type: z
-                .string()
-                .optional()
-                .describe('Filter by household type'),
-              age_group: z.string().optional().describe('Filter by age group'),
-            })
-            .optional()
-            .describe('Filters for list mode'),
+          mode: z.enum(['search', 'list']),
+          personaIdOrName: z.string().optional(),
         }),
-        async execute(params: {
-          mode: 'search' | 'list';
-          personaIdOrName?: string;
-          filters?: {
-            income_level?: 'Laag inkomen' | 'Midden inkomen' | 'Hoog inkomen';
-            household_type?: string;
-            age_group?: string;
-          };
-        }) {
-          return getPersonaInfo.execute(params);
+        async execute({ mode, personaIdOrName }) {
+          try {
+            const personas = personasData.nl.housing_personas;
+
+            if (mode === 'search' && personaIdOrName) {
+              const searchTerm = personaIdOrName.toLowerCase();
+              const found = personas.find(
+                p => p.id.toLowerCase().includes(searchTerm) || p.name.toLowerCase().includes(searchTerm)
+              );
+
+              if (found) {
+                return { success: true, persona: found };
+              }
+              return { success: false, error: 'Persona not found' };
+            }
+
+            // List mode
+            return {
+              success: true,
+              count: personas.length,
+              personas: personas.slice(0, 10).map(p => ({
+                id: p.id,
+                name: p.name,
+                income_level: p.income_level,
+                household_type: p.household_type,
+                age_group: p.age_group,
+              })),
+            };
+          } catch (error) {
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : 'Failed to get persona info',
+            };
+          }
         },
-      },
+      }),
     };
 
     // Stream the response with location agent tools
