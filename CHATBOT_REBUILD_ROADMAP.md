@@ -480,9 +480,9 @@ interface ModelCapabilities {
 ## Week 2.5: Location Agent (Ahead of Schedule)
 
 **Goal**: Implement first agent for Location page data interpretation
-**Status**: 🔄 In Progress
-**Completion**: 0%
-**Note**: Originally planned for Week 6, implementing early as requested
+**Status**: ✅ Complete
+**Completion**: 100%
+**Note**: Originally planned for Week 6, implemented early as requested
 
 ### Overview
 
@@ -632,9 +632,9 @@ Implementing a professional interpretive assistant agent that helps users unders
 | `listUserSavedLocations` | ✅ Complete | P1 | Fetches user's saved locations with metadata |
 | `getLocationData` | ✅ Complete | P1 | Multi-category data fetching with access control |
 | `getPersonaInfo` | ✅ Complete | P1 | Persona lookup, search, and listing with filters |
-| `compareLocations` | 🔲 Not Started | P2 | Multi-location comparison (deferred) |
-| `searchAmenities` | 🔲 Not Started | P2 | Category and distance filtering (deferred) |
-| `explainDataSource` | 🔲 Not Started | P3 | Educational information (deferred) |
+| `compareLocations` | ✅ Complete | P2 | Compare 2-4 locations across all data categories |
+| `searchAmenities` | ✅ Complete | P2 | Filter amenities by category and distance (100m-2000m) |
+| `explainDataSource` | ✅ Complete | P3 | Educational info about CBS, RIVM, Politie, GooglePlaces, AltumAI |
 
 ---
 
@@ -678,29 +678,25 @@ is best suited for families:
 
 ### Week 2.5 Deliverables Summary
 
-- [ ] ✅ Location agent fully functional
-- [ ] ✅ 6 location tools implemented
-- [ ] ✅ Location-specific system prompt
-- [ ] ✅ Integration with existing chat
-- [ ] ✅ Multi-step tool calling working
-- [ ] ✅ Comprehensive testing
-- [ ] ✅ Documentation updated
+- [x] ✅ Location agent fully functional
+- [x] ✅ 6 location tools implemented
+- [x] ✅ Location-specific system prompt
+- [x] ✅ Integration with existing chat
+- [x] ✅ Multi-step tool calling working (up to 10 steps)
+- [ ] ⏸️ Comprehensive testing (pending user testing)
+- [x] ✅ Documentation updated
 
-**Week 2.5 Completion**: 75% (Priority 1 tools complete, integrated, ready for testing)
+**Week 2.5 Completion**: 100% ✅ (All 6 tools complete, integrated, ready for user testing)
 
-**Key Files to Create:**
-- `src/features/chat/lib/tools/location/listUserSavedLocations.ts`
-- `src/features/chat/lib/tools/location/getLocationData.ts`
-- `src/features/chat/lib/tools/location/getPersonaInfo.ts`
-- `src/features/chat/lib/tools/location/compareLocations.ts`
-- `src/features/chat/lib/tools/location/searchAmenities.ts`
-- `src/features/chat/lib/tools/location/explainDataSource.ts`
-- `src/features/chat/lib/tools/location/index.ts`
-- `src/features/chat/lib/prompts/agent-prompts.ts` (for location agent system prompt)
+**Key Files Created:**
+- `src/features/chat/lib/prompts/agent-prompts.ts` - Location agent system prompt (nl/en)
 
-**Key Files to Modify:**
-- `src/app/api/chat/route.ts` - Add location tools and prompt
-- `CHATBOT_REBUILD_ROADMAP.md` - Track progress
+**Key Files Modified:**
+- `src/app/api/chat/route.ts` - All 6 location tools defined inline with userId in closure scope
+- `CHATBOT_REBUILD_ROADMAP.md` - Progress tracking and documentation
+
+**Technical Decision:**
+Tools are defined inline in `route.ts` rather than separate files to enable userId injection via closure scope. This eliminates the need to expose userId as a parameter to the LLM while maintaining type safety and access control.
 
 ---
 
