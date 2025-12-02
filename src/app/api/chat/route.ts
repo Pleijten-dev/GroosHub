@@ -4,9 +4,10 @@
  *
  * Week 1: Basic streaming chat with multi-model support
  * Week 2: Persistence - Save/load messages from database
+ * Week 2.5: Location Agent - Tools for location analysis
  */
 
-import { streamText, convertToModelMessages, type UIMessage } from 'ai';
+import { streamText, convertToModelMessages, stepCountIs, type UIMessage } from 'ai';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getModel, type ModelId, MODEL_CAPABILITIES } from '@/lib/ai/models';
@@ -20,6 +21,12 @@ import {
   trackLLMUsage
 } from '@/lib/ai/chat-store';
 import { getSystemPrompt } from '@/features/chat/lib/prompts/system-prompt';
+import { getLocationAgentPrompt, getCombinedPrompt } from '@/features/chat/lib/prompts/agent-prompts';
+import {
+  listUserSavedLocations,
+  getLocationData,
+  getPersonaInfo,
+} from '@/features/chat/lib/tools/location';
 import { randomUUID } from 'crypto';
 
 // Request schema validation
@@ -233,7 +240,11 @@ export async function POST(request: NextRequest) {
     const truncatedMessages = truncateMessages(allMessages);
 
     // Prepend system prompt with context about GroosHub and GROOSMAN
-    const systemPrompt = getSystemPrompt(locale);
+    // Add location agent prompt for location analysis capabilities
+    const baseSystemPrompt = getSystemPrompt(locale);
+    const locationAgentPrompt = getLocationAgentPrompt(locale);
+    const systemPrompt = getCombinedPrompt(baseSystemPrompt, locationAgentPrompt);
+
     const messagesWithSystem: UIMessage[] = [
       {
         id: randomUUID(),
@@ -244,12 +255,78 @@ export async function POST(request: NextRequest) {
     ];
 
     console.log(`[Chat API] Chat: ${chatId}, Model: ${modelId}, Locale: ${locale}, Messages: ${truncatedMessages.length}/${allMessages.length}`);
+    console.log(`[Chat API] 🔧 Location agent tools enabled for user ${userId}`);
 
-    // Stream the response
+    // Create tool wrappers that inject userId automatically
+    // The LLM doesn't know the userId, so we inject it from the session
+    const locationTools = {
+      listUserSavedLocations: {
+        description: listUserSavedLocations.description,
+        inputSchema: z.object({}), // No parameters needed from LLM
+        async execute() {
+          return listUserSavedLocations.execute({ userId });
+        },
+      },
+      getLocationData: {
+        description: getLocationData.description,
+        inputSchema: z.object({
+          locationId: z.string().uuid().describe('The UUID of the saved location'),
+          category: z
+            .enum([
+              'demographics',
+              'health',
+              'safety',
+              'livability',
+              'residential',
+              'amenities',
+              'all',
+            ])
+            .describe('The data category to retrieve'),
+        }),
+        async execute({ locationId, category }: { locationId: string; category: string }) {
+          return getLocationData.execute({ locationId, category, userId });
+        },
+      },
+      getPersonaInfo: {
+        description: getPersonaInfo.description,
+        inputSchema: z.object({
+          mode: z
+            .enum(['search', 'list'])
+            .describe('Search for specific persona or list personas with filters'),
+          personaIdOrName: z
+            .string()
+            .optional()
+            .describe('Persona ID (e.g., "jonge-starters") or name for search mode'),
+          filters: z
+            .object({
+              income_level: z
+                .enum(['Laag inkomen', 'Midden inkomen', 'Hoog inkomen'])
+                .optional()
+                .describe('Filter by income level'),
+              household_type: z
+                .string()
+                .optional()
+                .describe('Filter by household type'),
+              age_group: z.string().optional().describe('Filter by age group'),
+            })
+            .optional()
+            .describe('Filters for list mode'),
+        }),
+        async execute(params: any) {
+          return getPersonaInfo.execute(params);
+        },
+      },
+    };
+
+    // Stream the response with location agent tools
     const result = streamText({
       model,
       messages: convertToModelMessages(messagesWithSystem),
       temperature,
+      // Location agent tools with userId injected
+      tools: locationTools,
+      // Allow multi-step tool calling (up to 10 steps)
+      stopWhen: stepCountIs(10),
       async onFinish({ text, usage }) {
         try {
           const responseTime = Date.now() - startTime;
