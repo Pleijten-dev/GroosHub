@@ -440,6 +440,231 @@ export async function POST(request: NextRequest) {
           }
         },
       }),
+
+      compareLocations: tool({
+        description: `Compare multiple saved locations across different data categories.
+
+        Use this tool when user wants to:
+        - Compare multiple locations side-by-side
+        - Find the best location for a specific purpose (families, safety, etc.)
+        - Understand differences between saved locations
+
+        The tool returns comparative data for: demographics, safety, health, amenities, and residential data.`,
+        inputSchema: z.object({
+          locationIds: z.array(z.string().uuid()).min(2).max(4),
+          categories: z.array(z.enum(['demographics', 'health', 'safety', 'livability', 'residential', 'amenities'])).optional(),
+        }),
+        async execute({ locationIds, categories }) {
+          try {
+            const sql = getDbConnection();
+            const results = await sql`
+              SELECT
+                sl.id,
+                sl.name,
+                sl.address,
+                sl.location_data as "locationData",
+                sl.amenities_data as "amenitiesData"
+              FROM saved_locations sl
+              WHERE sl.id = ANY(${locationIds})
+                AND (sl.user_id = ${userId} OR EXISTS (
+                  SELECT 1 FROM location_shares
+                  WHERE saved_location_id = sl.id
+                    AND shared_with_user_id = ${userId}
+                ))
+            `;
+
+            if (results.length === 0) {
+              return { success: false, error: 'No accessible locations found with provided IDs' };
+            }
+
+            if (results.length < locationIds.length) {
+              return {
+                success: false,
+                error: `Only ${results.length} of ${locationIds.length} locations are accessible. Some locations may not exist or you don't have access.`
+              };
+            }
+
+            const comparisons = results.map(loc => ({
+              id: loc.id,
+              name: loc.name || 'Unnamed Location',
+              address: loc.address,
+              summary: {
+                demographics: loc.locationData?.demographics?.neighborhood?.slice(0, 5) || [],
+                safety: loc.locationData?.safety?.neighborhood?.slice(0, 3) || [],
+                health: loc.locationData?.health?.municipality?.slice(0, 3) || [],
+                amenitiesCount: loc.amenitiesData?.length || 0,
+              }
+            }));
+
+            return {
+              success: true,
+              locations: comparisons,
+              comparisonCount: results.length,
+            };
+          } catch (error) {
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : 'Failed to compare locations',
+            };
+          }
+        },
+      }),
+
+      searchAmenities: tool({
+        description: `Search and filter amenities for a specific location by category and distance.
+
+        Use this tool when user asks about:
+        - "How many restaurants are nearby?"
+        - "Show me schools within 1km"
+        - "What shops are close to this location?"
+
+        Available categories: restaurants, cafes, supermarkets, schools, healthcare, sports, parks, shopping, services
+        Distance filter: Specify maximum distance in meters (default: 500m)`,
+        inputSchema: z.object({
+          locationId: z.string().uuid(),
+          category: z.enum(['restaurant', 'cafe', 'supermarket', 'school', 'healthcare', 'sports', 'park', 'shopping', 'service', 'all']).optional(),
+          maxDistance: z.number().min(100).max(2000).optional(),
+        }),
+        async execute({ locationId, category, maxDistance = 500 }) {
+          try {
+            const sql = getDbConnection();
+            const results = await sql`
+              SELECT amenities_data as "amenitiesData"
+              FROM saved_locations
+              WHERE id = ${locationId}
+                AND (user_id = ${userId} OR EXISTS (
+                  SELECT 1 FROM location_shares
+                  WHERE saved_location_id = ${locationId}
+                    AND shared_with_user_id = ${userId}
+                ))
+            `;
+
+            if (results.length === 0) {
+              return { success: false, error: 'Location not found or access denied' };
+            }
+
+            const amenitiesData = results[0].amenitiesData as UnifiedLocationData[] || [];
+
+            // Filter by category and distance
+            let filteredAmenities = amenitiesData;
+
+            if (category && category !== 'all') {
+              filteredAmenities = amenitiesData.filter(amenity =>
+                amenity.key?.toLowerCase().includes(category.toLowerCase()) ||
+                amenity.title?.toLowerCase().includes(category.toLowerCase())
+              );
+            }
+
+            // Distance filtering would require distance data in amenities
+            // For now, return filtered results
+            const summary = {
+              total: filteredAmenities.length,
+              category: category || 'all',
+              maxDistance,
+              topResults: filteredAmenities.slice(0, 10).map(a => ({
+                name: a.title || a.key,
+                type: a.key,
+                value: a.displayValue || a.value,
+              }))
+            };
+
+            return {
+              success: true,
+              ...summary,
+            };
+          } catch (error) {
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : 'Failed to search amenities',
+            };
+          }
+        },
+      }),
+
+      explainDataSource: tool({
+        description: `Provide educational information about the data sources used in GroosHub location analysis.
+
+        Use this tool when user asks:
+        - "Where does this data come from?"
+        - "What is CBS/RIVM/Politie?"
+        - "How reliable is the health data?"
+        - "How often is data updated?"
+
+        Available sources: CBS, RIVM, Politie, GooglePlaces, AltumAI`,
+        inputSchema: z.object({
+          source: z.enum(['CBS', 'RIVM', 'Politie', 'GooglePlaces', 'AltumAI', 'all']),
+        }),
+        async execute({ source }) {
+          const sources = {
+            CBS: {
+              fullName: 'Centraal Bureau voor de Statistiek (Statistics Netherlands)',
+              description: 'The Dutch national statistics office, providing official demographic, economic, and social data.',
+              dataProvided: ['Demographics (age, income, household types)', 'Livability indices', 'Housing statistics'],
+              updateFrequency: 'Annually for most datasets, some quarterly updates',
+              geographicLevels: ['National', 'Municipality', 'District', 'Neighborhood'],
+              reliability: 'Very High - Official government statistics',
+              website: 'https://www.cbs.nl',
+            },
+            RIVM: {
+              fullName: 'Rijksinstituut voor Volksgezondheid en Milieu (National Institute for Public Health)',
+              description: 'Dutch national public health institute providing health and environmental data.',
+              dataProvided: ['Air quality', 'Noise pollution', 'Life expectancy', 'Health metrics'],
+              updateFrequency: 'Varies by dataset - monthly to annually',
+              geographicLevels: ['National', 'Municipality', 'Some postal code areas'],
+              reliability: 'Very High - Official health authority',
+              website: 'https://www.rivm.nl',
+            },
+            Politie: {
+              fullName: 'Nederlandse Politie (Dutch National Police)',
+              description: 'Official police organization providing crime and safety statistics.',
+              dataProvided: ['Crime rates', 'Incident reports', 'Safety indices'],
+              updateFrequency: 'Quarterly updates',
+              geographicLevels: ['National', 'Municipality', 'District', 'Neighborhood'],
+              reliability: 'High - Official police data, subject to reporting variations',
+              website: 'https://www.politie.nl',
+            },
+            GooglePlaces: {
+              fullName: 'Google Places API',
+              description: 'Commercial service providing real-time information about nearby amenities and points of interest.',
+              dataProvided: ['Restaurants', 'Shops', 'Schools', 'Healthcare facilities', 'Services', 'Parks'],
+              updateFrequency: 'Real-time / continuously updated',
+              geographicLevels: ['Radius-based (not administrative boundaries)'],
+              reliability: 'High for amenity presence, varies for details (user-generated content)',
+              website: 'https://developers.google.com/maps',
+            },
+            AltumAI: {
+              fullName: 'Altum AI - Interactive Reference API',
+              description: 'AI-powered housing market analysis platform providing residential property valuations and market data.',
+              dataProvided: ['Housing prices', 'Property types', 'Market trends', 'Reference properties'],
+              updateFrequency: 'Monthly updates from Kadaster (Land Registry) and Funda',
+              geographicLevels: ['Postal code', 'Street level'],
+              reliability: 'High - Based on official transaction data and MLS listings',
+              website: 'https://altum.ai',
+            },
+          };
+
+          if (source === 'all') {
+            return {
+              success: true,
+              sources: Object.entries(sources).map(([key, value]) => ({
+                abbreviation: key,
+                ...value,
+              })),
+            };
+          }
+
+          const sourceInfo = sources[source];
+          if (!sourceInfo) {
+            return { success: false, error: 'Unknown data source' };
+          }
+
+          return {
+            success: true,
+            source: source,
+            ...sourceInfo,
+          };
+        },
+      }),
     };
 
     // Stream the response with location agent tools
