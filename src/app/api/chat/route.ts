@@ -19,6 +19,7 @@ import {
   updateChatModel,
   trackLLMUsage
 } from '@/lib/ai/chat-store';
+import { getSystemPrompt } from '@/features/chat/lib/prompts/system-prompt';
 import { randomUUID } from 'crypto';
 
 // Request schema validation
@@ -135,6 +136,7 @@ export async function POST(request: NextRequest) {
     // Priority: message metadata > root metadata > headers > body
     const requestChatId = messageMetadata.chatId || rootMetadata.chatId || headerChatId || bodyChatId;
     const modelId = messageMetadata.modelId || rootMetadata.modelId || headerModelId || bodyModelId || 'claude-sonnet-4.5';
+    const locale = (messageMetadata.locale || rootMetadata.locale || body.locale || 'nl') as 'nl' | 'en';
 
     // Validate model ID
     const model = getModel(modelId as ModelId);
@@ -230,12 +232,23 @@ export async function POST(request: NextRequest) {
     // Truncate messages to fit context window
     const truncatedMessages = truncateMessages(allMessages);
 
-    console.log(`[Chat API] Chat: ${chatId}, Model: ${modelId}, Messages: ${truncatedMessages.length}/${allMessages.length}`);
+    // Prepend system prompt with context about GroosHub and GROOSMAN
+    const systemPrompt = getSystemPrompt(locale);
+    const messagesWithSystem: UIMessage[] = [
+      {
+        id: randomUUID(),
+        role: 'system',
+        parts: [{ type: 'text', text: systemPrompt }]
+      },
+      ...truncatedMessages
+    ];
+
+    console.log(`[Chat API] Chat: ${chatId}, Model: ${modelId}, Locale: ${locale}, Messages: ${truncatedMessages.length}/${allMessages.length}`);
 
     // Stream the response
     const result = streamText({
       model,
-      messages: convertToModelMessages(truncatedMessages),
+      messages: convertToModelMessages(messagesWithSystem),
       temperature,
       async onFinish({ text, usage }) {
         try {
