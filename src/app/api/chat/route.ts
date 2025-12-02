@@ -1,330 +1,423 @@
-// Chat API endpoint with streaming support
+/**
+ * Chat API Route
+ * Handles streaming chat responses using Vercel AI SDK
+ *
+ * Week 1: Basic streaming chat with multi-model support
+ * Week 2: Persistence - Save/load messages from database
+ */
+
+import { streamText, convertToModelMessages, type UIMessage } from 'ai';
+import { NextRequest } from 'next/server';
+import { z } from 'zod';
+import { getModel, type ModelId, MODEL_CAPABILITIES } from '@/lib/ai/models';
 import { auth } from '@/lib/auth';
-import { streamText, type CoreMessage } from 'ai';
-import { getLanguageModel } from '@/features/chat/lib/ai/providers';
-import { getSystemPrompt } from '@/features/chat/lib/ai/prompts';
-import { DEFAULT_CHAT_MODEL } from '@/features/chat/lib/ai/models';
-import { createChat, createMessage, getChatById } from '@/features/chat/lib/db/queries';
+import {
+  createChat,
+  getChat,
+  loadChatMessages,
+  saveChatMessage,
+  updateChatModel,
+  trackLLMUsage
+} from '@/lib/ai/chat-store';
+import { getSystemPrompt } from '@/features/chat/lib/prompts/system-prompt';
+import { randomUUID } from 'crypto';
 
-// Type for UIMessage format (from AI SDK client)
-interface UIMessagePart {
-  type: string;
-  text?: string;
+// Request schema validation
+const chatRequestSchema = z.object({
+  messages: z.any(), // UIMessage[] - complex type, validated by AI SDK
+  chatId: z.string().optional(), // Optional - create new chat if not provided
+  modelId: z.string().optional(),
+  temperature: z.number().min(0).max(2).optional(),
+});
+
+// Context window configuration
+const CONTEXT_CONFIG = {
+  maxMessages: 20, // Keep last N messages
+  alwaysPreserveRoles: ['system'], // Always preserve system messages
+};
+
+/**
+ * Truncate message history to fit context window
+ * Preserves system messages and keeps recent messages
+ */
+function truncateMessages(messages: UIMessage[]): UIMessage[] {
+  // Separate system messages from conversation messages
+  const systemMessages = messages.filter(m => m.role === 'system');
+  const conversationMessages = messages.filter(m => m.role !== 'system');
+
+  // Keep only the last N conversation messages
+  const recentMessages = conversationMessages.slice(-CONTEXT_CONFIG.maxMessages);
+
+  // Combine system messages (at the start) with recent conversation
+  return [...systemMessages, ...recentMessages];
 }
 
-interface UIMessage {
-  role: string;
-  parts?: UIMessagePart[];
-  content?: string;
-}
-
-// Helper to extract text from UIMessage parts
-function extractTextFromMessage(message: UIMessage): string {
-  // If it has parts array (UIMessage format)
-  if (message.parts && Array.isArray(message.parts)) {
-    const textParts = message.parts
-      .filter((part): part is UIMessagePart & { text: string } =>
-        'text' in part && typeof part.text === 'string'
-      )
-      .map(part => part.text);
-    return textParts.join('');
+/**
+ * Get provider name from model ID
+ */
+function getProviderFromModel(modelId: string): string {
+  const modelInfo = MODEL_CAPABILITIES[modelId as ModelId];
+  if (modelInfo && modelInfo.providers.length > 0) {
+    return modelInfo.providers[0];
   }
 
-  // If it has content string (CoreMessage format)
-  if (message.content && typeof message.content === 'string') {
-    return message.content;
+  // Fallback: Guess provider from model ID
+  if (modelId.startsWith('gpt')) return 'openai';
+  if (modelId.startsWith('claude')) return 'anthropic';
+  if (modelId.startsWith('gemini')) return 'google';
+  if (modelId.startsWith('mistral')) return 'mistral';
+  if (modelId.startsWith('grok')) return 'xai';
+
+  return 'unknown';
+}
+
+/**
+ * Calculate cost from tokens
+ */
+function calculateCost(modelId: string, inputTokens: number, outputTokens: number): {
+  costInput: number;
+  costOutput: number;
+} {
+  const modelInfo = MODEL_CAPABILITIES[modelId as ModelId];
+  if (!modelInfo) {
+    return { costInput: 0, costOutput: 0 };
   }
 
-  // Fallback
-  return '';
+  // Cost is per 1k tokens, so divide by 1000
+  const costInput = (inputTokens / 1000) * modelInfo.costPer1kTokens.input;
+  const costOutput = (outputTokens / 1000) * modelInfo.costPer1kTokens.output;
+
+  return { costInput, costOutput };
 }
 
-// Convert UIMessage to CoreMessage format
-function convertUIMessageToCoreMessage(message: UIMessage): CoreMessage {
-  const content = extractTextFromMessage(message);
-  const role = message.role as 'user' | 'assistant' | 'system';
+/**
+ * POST /api/chat
+ * Stream chat responses with persistence
+ */
+export async function POST(request: NextRequest) {
+  const startTime = Date.now();
 
-  return {
-    role,
-    content,
-  };
-}
-
-export const maxDuration = 60;
-
-export async function POST(req: Request) {
   try {
     // Check authentication
     const session = await auth();
     if (!session?.user) {
-      console.error('Unauthorized: No session');
-      return new Response('Unauthorized', { status: 401 });
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
-    console.log('User authenticated:', session.user.id);
+    const userId = session.user.id;
 
-    const body = await req.json();
+    // Parse and validate request body
+    const body = await request.json();
+
+    // Extract metadata from sendMessage options (AI SDK v5)
+    // Metadata can be in body.metadata or in the last message's metadata
+    const rootMetadata = body.metadata || {};
+    const lastMessage = Array.isArray(body.messages) && body.messages.length > 0
+      ? body.messages[body.messages.length - 1]
+      : {};
+    const messageMetadata = lastMessage.metadata || {};
+
+    const validatedData = chatRequestSchema.parse(body);
+
+    // Read chatId and modelId from headers (for AI SDK v5 compatibility) or fallback to body
+    const headerChatId = request.headers.get('X-Chat-Id');
+    const headerModelId = request.headers.get('X-Model-Id');
+
     const {
-      messages: rawMessages,
-      model = DEFAULT_CHAT_MODEL,
-      chatId,
-      locale = 'en'
-    } = body as {
-      messages: unknown[]; // Can be UIMessage[] or CoreMessage[], will convert later
-      model?: string;
-      chatId?: string;
-      locale?: string
-    };
+      messages: clientMessages,
+      chatId: bodyChatId,
+      modelId: bodyModelId,
+      temperature = 0.7
+    } = validatedData;
 
-    console.log('Request:', { model, chatId, messageCount: rawMessages?.length });
+    // Priority: message metadata > root metadata > headers > body
+    const requestChatId = messageMetadata.chatId || rootMetadata.chatId || headerChatId || bodyChatId;
+    const modelId = messageMetadata.modelId || rootMetadata.modelId || headerModelId || bodyModelId || 'claude-sonnet-4.5';
+    const locale = (messageMetadata.locale || rootMetadata.locale || body.locale || 'nl') as 'nl' | 'en';
 
-    if (!rawMessages || !Array.isArray(rawMessages)) {
-      console.error('Invalid request: messages array required');
-      return new Response('Invalid request: messages array required', { status: 400 });
-    }
+    // Validate model ID
+    const model = getModel(modelId as ModelId);
 
-    // Get or create chat
-    let currentChatId = chatId;
-    if (currentChatId) {
-      // Verify chat exists and belongs to user
-      const existingChat = await getChatById(currentChatId);
-      if (!existingChat) {
-        // Chat doesn't exist, create a new one
-        console.log(`Chat ${currentChatId} not found, creating new chat`);
-        currentChatId = undefined;
-      } else if (existingChat.userId !== Number(session.user.id)) {
-        console.error(`Chat ${currentChatId} belongs to user ${existingChat.userId}, but current user is ${session.user.id}`);
-        return new Response('Forbidden', { status: 403 });
+    // Handle chat persistence
+    let chatId = requestChatId;
+    let existingMessages: UIMessage[] = [];
+
+    console.log(`[Chat API] 🔍 Received ${clientMessages.length} messages from client`);
+    console.log(`[Chat API] 📝 Client message roles:`, (clientMessages as UIMessage[]).map(m => m.role).join(', '));
+
+    if (chatId) {
+      // Check if chat exists in database
+      const existingChat = await getChat(chatId);
+
+      if (existingChat) {
+        // Chat exists - load existing messages
+        try {
+          existingMessages = await loadChatMessages(chatId);
+          console.log(`[Chat API] 💾 Loaded ${existingMessages.length} existing messages from DB for chat ${chatId}`);
+          console.log(`[Chat API] 💾 DB message roles:`, existingMessages.map(m => m.role).join(', '));
+
+          // Update chat model if different
+          await updateChatModel(chatId, modelId);
+        } catch (error) {
+          console.error(`[Chat API] ❌ Error loading chat ${chatId}:`, error);
+          // Continue without existing messages if there's an error
+        }
       } else {
-        console.log(`Using existing chat: ${currentChatId}`);
-      }
-    }
+        // Chat doesn't exist - create it with the provided chatId
+        const firstUserMessage = (clientMessages as UIMessage[]).find(m => m.role === 'user');
+        const firstText = firstUserMessage?.parts.find(p => p.type === 'text')?.text || 'New Chat';
+        const title = firstText.substring(0, 100); // Limit title length
 
-    if (!currentChatId) {
-      // Create new chat with title from first user message
-      const firstMessage = rawMessages.find((m) => {
-        const msg = m as UIMessage;
-        return msg.role === 'user';
-      }) as UIMessage | undefined;
-      const title = firstMessage
-        ? extractTextFromMessage(firstMessage).substring(0, 100) || 'New Chat'
-        : 'New Chat';
+        chatId = await createChat({
+          userId,
+          title,
+          modelId,
+          metadata: { temperature },
+          chatId // Use the client-provided chatId
+        });
 
-      console.log('Creating new chat for user:', session.user.id, 'with title:', title);
-      const chat = await createChat(Number(session.user.id), title);
-      currentChatId = chat.id;
-      console.log(`Created new chat: ${currentChatId} with title: "${title}"`);
-    }
-
-    // Save user message to database
-    const userMessage = rawMessages[rawMessages.length - 1] as UIMessage | undefined;
-    if (userMessage && userMessage.role === 'user') {
-      const content = extractTextFromMessage(userMessage);
-
-      if (content) {
-        console.log(`Saving user message to chat ${currentChatId}: "${content.substring(0, 50)}..."`);
-        await createMessage(currentChatId, 'user', content);
-        console.log('✅ User message saved to database');
-      } else {
-        console.warn('⚠️ User message has no text content');
+        console.log(`[Chat API] ✅ Created new chat ${chatId} for user ${userId}`);
       }
     } else {
-      console.warn('⚠️ No user message found to save');
+      // No chatId provided - create new chat with auto-generated ID
+      const firstUserMessage = (clientMessages as UIMessage[]).find(m => m.role === 'user');
+      const firstText = firstUserMessage?.parts.find(p => p.type === 'text')?.text || 'New Chat';
+      const title = firstText.substring(0, 100); // Limit title length
+
+      chatId = await createChat({
+        userId,
+        title,
+        modelId,
+        metadata: { temperature }
+      });
+
+      console.log(`[Chat API] ✅ Created new chat ${chatId} for user ${userId}`);
     }
 
-    // Get system prompt
-    const systemPrompt = getSystemPrompt(
-      session.user.name || 'User',
-      session.user.role || 'user',
-      locale
-    );
+    // Combine existing messages with new client messages
+    // Since client uses nanoid IDs and we use UUIDs in DB, we can't match by ID
+    // Instead, determine new messages by comparing message counts
+    const existingCount = existingMessages.length;
+    const clientCount = clientMessages.length;
 
-    console.log(`Calling AI model: ${model}`);
-    console.log('Messages being sent to AI:', JSON.stringify(rawMessages, null, 2));
+    console.log(`[Chat API] 🔢 Message count - Existing: ${existingCount}, Client: ${clientCount}, New: ${clientCount - existingCount}`);
 
-    // Determine provider for debugging
-    const provider = model.startsWith('grok') ? 'xai' :
-                    model.startsWith('gpt') ? 'openai' :
-                    model.startsWith('claude') ? 'anthropic' :
-                    model.startsWith('mistral') ? 'mistral' :
-                    model.startsWith('gemini') ? 'google' : 'unknown';
+    const allMessages = [...existingMessages, ...clientMessages.slice(existingCount)];
 
-    // Check if API key exists for this provider
-    const apiKeyEnvVar = provider === 'xai' ? 'XAI_API_KEY' :
-                        provider === 'openai' ? 'OPENAI_API_KEY' :
-                        provider === 'anthropic' ? 'ANTHROPIC_API_KEY' :
-                        provider === 'mistral' ? 'MISTRAL_API_KEY' :
-                        provider === 'google' ? 'GOOGLE_GENERATIVE_AI_API_KEY' : 'UNKNOWN';
+    // Save only the NEW user messages (beyond what we already have in DB)
+    const newMessages = (clientMessages as UIMessage[]).slice(existingCount);
+    console.log(`[Chat API] 💬 Processing ${newMessages.length} new messages`);
 
-    const apiKeyExists = !!process.env[apiKeyEnvVar];
-    console.log(`Provider: ${provider}, API Key Env Var: ${apiKeyEnvVar}, API Key Exists: ${apiKeyExists}`);
+    for (let i = 0; i < newMessages.length; i++) {
+      const message = newMessages[i];
+      console.log(`[Chat API] 📨 Message ${i + 1}/${newMessages.length}: role=${message.role}, id=${message.id}`);
 
-    if (!apiKeyExists) {
-      console.error(`❌ CRITICAL: ${apiKeyEnvVar} is not set!`);
-      return Response.json({
-        error: `${provider.toUpperCase()} API key not configured`,
-        message: `Please set ${apiKeyEnvVar} in your environment variables`,
-        provider,
-        model,
-      }, { status: 500 });
-    }
-
-    console.log(`🚀 Attempting to call ${provider} API with model: ${model}`);
-
-    // Convert UIMessages to CoreMessages
-    console.log('🔄 Converting messages from UIMessage format to CoreMessage format...');
-    const convertedMessages: CoreMessage[] = rawMessages.map((msg) => {
-      const message = msg as UIMessage;
-      // If already in CoreMessage format with content string, use as-is
-      if ('content' in message && typeof message.content === 'string' && !('parts' in message)) {
-        return message as unknown as CoreMessage;
+      if (message.role === 'user') {
+        const text = message.parts.find(p => p.type === 'text' && 'text' in p)?.text || '';
+        console.log(`[Chat API] 💾 Saving user message: "${text.substring(0, 50)}..."`);
+        try {
+          await saveChatMessage(chatId, message, { modelId });
+          console.log(`[Chat API] ✅ User message saved successfully`);
+        } catch (error) {
+          console.error(`[Chat API] ❌ Failed to save user message:`, error);
+        }
+      } else {
+        console.log(`[Chat API] ⏭️  Skipping ${message.role} message (not from user)`);
       }
-      // Otherwise convert from UIMessage format
-      return convertUIMessageToCoreMessage(message);
-    });
-    console.log('✅ Messages converted successfully:', JSON.stringify(convertedMessages, null, 2));
+    }
 
-    // Track diagnostics to send in headers
-    const diagnostics = {
-      streamInitialized: false,
-      streamError: '',
-      finishReason: '',
-      textLength: 0,
-      providerError: '',
-    };
+    // Truncate messages to fit context window
+    const truncatedMessages = truncateMessages(allMessages);
 
-    // Stream AI response with comprehensive error handling
-    let result;
-    try {
-      result = streamText({
-        model: getLanguageModel(model),
-        system: systemPrompt,
-        messages: convertedMessages,
-        async onFinish({ text, finishReason, usage }) {
-          diagnostics.finishReason = finishReason || 'unknown';
-          diagnostics.textLength = text?.length || 0;
+    // Prepend system prompt with context about GroosHub and GROOSMAN
+    const systemPrompt = getSystemPrompt(locale);
+    const messagesWithSystem: UIMessage[] = [
+      {
+        id: randomUUID(),
+        role: 'system',
+        parts: [{ type: 'text', text: systemPrompt }]
+      },
+      ...truncatedMessages
+    ];
 
-          console.log('🏁 AI stream finished:', {
-            textLength: text?.length || 0,
-            finishReason,
-            usage,
-            preview: text ? text.substring(0, 100) : '(empty)',
-          });
+    console.log(`[Chat API] Chat: ${chatId}, Model: ${modelId}, Locale: ${locale}, Messages: ${truncatedMessages.length}/${allMessages.length}`);
+
+    // Stream the response
+    const result = streamText({
+      model,
+      messages: convertToModelMessages(messagesWithSystem),
+      temperature,
+      async onFinish({ text, usage }) {
+        try {
+          const responseTime = Date.now() - startTime;
+
+          console.log(`[Chat API] 🎯 onFinish callback triggered`);
+          console.log(`[Chat API] 📊 Response - Chat: ${chatId}, Tokens: ${usage.totalTokens}, Length: ${text.length}, Time: ${responseTime}ms`);
 
           // Save assistant message to database
-          if (text && text.length > 0) {
-            console.log(`💾 Saving assistant message to chat ${currentChatId}`);
-            try {
-              await createMessage(currentChatId, 'assistant', text);
-              console.log('✅ Assistant message saved to database');
-            } catch (dbError) {
-              console.error('❌ Failed to save assistant message:', dbError);
-              if (dbError instanceof Error) {
-                console.error('DB Error:', dbError.message);
-              }
-            }
-          } else {
-            console.error('❌ EMPTY AI RESPONSE!');
-            console.error('Finish reason:', finishReason);
-            console.error('Usage:', usage);
-            diagnostics.streamError = `Empty response. FinishReason: ${finishReason}`;
-          }
-        },
-        onError(error) {
-          const errorMsg = error instanceof Error ? error.message : String(error);
-          diagnostics.streamError = errorMsg;
-          diagnostics.providerError = errorMsg;
+          const assistantMessage: UIMessage = {
+            id: randomUUID(),
+            role: 'assistant',
+            parts: [{ type: 'text', text }]
+          };
 
-          console.error('❌ Stream error callback triggered:', error);
-          if (error instanceof Error) {
-            console.error('Stream error details:', {
-              name: error.name,
-              message: error.message,
-              stack: error.stack,
-            });
-          }
-        },
-      });
+          // Get token counts with defaults
+          const inputTokens = usage.inputTokens || 0;
+          const outputTokens = usage.outputTokens || 0;
 
-      diagnostics.streamInitialized = true;
-      console.log('✅ streamText() initialized successfully');
-      console.log('📊 Result type:', typeof result);
-      console.log('📊 Result methods:', Object.keys(result));
+          console.log(`[Chat API] 💾 Saving assistant message to chat ${chatId}`);
+          console.log(`[Chat API] 💾 Assistant text preview: "${text.substring(0, 50)}..."`);
+          console.log(`[Chat API] 💾 Tokens - Input: ${inputTokens}, Output: ${outputTokens}`);
 
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      diagnostics.streamError = `Init failed: ${errorMsg}`;
+          await saveChatMessage(chatId!, assistantMessage, {
+            modelId,
+            inputTokens,
+            outputTokens
+          });
 
-      console.error('❌ FATAL: streamText() threw an error:', error);
-      if (error instanceof Error) {
-        console.error('Error details:', {
-          name: error.name,
-          message: error.message,
-          stack: error.stack,
-        });
-      }
+          console.log(`[Chat API] ✅ Assistant message saved successfully!`);
 
-      return Response.json({
-        error: 'Failed to initialize AI stream',
-        message: errorMsg,
-        provider,
-        model,
-        diagnostics,
-      }, { status: 500 });
-    }
+          // Track usage for analytics
+          const costs = calculateCost(modelId, inputTokens, outputTokens);
 
-    // Create streaming response with additional logging
-    try {
-      const response = result.toTextStreamResponse();
+          console.log(`[Chat API] 📈 Tracking LLM usage...`);
+          await trackLLMUsage({
+            userId,
+            chatId,
+            model: modelId,
+            provider: getProviderFromModel(modelId),
+            inputTokens,
+            outputTokens,
+            costInput: costs.costInput,
+            costOutput: costs.costOutput,
+            requestType: 'chat',
+            responseTimeMs: responseTime,
+            metadata: { temperature }
+          });
 
-      // Add diagnostic headers so client can see server-side info
-      response.headers.set('X-Chat-Id', currentChatId);
-      response.headers.set('X-Model', model);
-      response.headers.set('X-Provider', provider);
-      response.headers.set('X-Debug-Stream-Type', 'text-stream');
-      response.headers.set('X-Debug-Stream-Init', String(diagnostics.streamInitialized));
-      response.headers.set('X-Debug-API-Key-Exists', String(apiKeyExists));
-      response.headers.set('X-Debug-Model-ID', model);
-      response.headers.set('X-Debug-Provider', provider);
+          console.log(`[Chat API] ✅ Usage stats saved successfully!`);
+        } catch (error) {
+          console.error(`[Chat API] ❌ Error in onFinish callback:`, error);
+          // Don't throw - allow stream to complete even if save fails
+        }
+      },
+    });
 
-      console.log(`✅ Returning streaming response:`, {
-        chatId: currentChatId,
-        model,
-        provider,
-        contentType: response.headers.get('Content-Type'),
-        diagnostics,
-      });
+    // Return streaming response in UIMessage format
+    return result.toUIMessageStreamResponse();
 
-      return response;
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      diagnostics.streamError = `Response creation failed: ${errorMsg}`;
-
-      console.error('❌ FATAL: Failed to create stream response:', error);
-      if (error instanceof Error) {
-        console.error('Response error:', {
-          name: error.name,
-          message: error.message,
-        });
-      }
-
-      return Response.json({
-        error: 'Failed to create stream response',
-        message: errorMsg,
-        provider,
-        model,
-        diagnostics,
-      }, { status: 500 });
-    }
   } catch (error) {
-    console.error('Chat API error:', error);
+    console.error('[Chat API] Error:', error);
 
-    // Log more details about the error
-    if (error instanceof Error) {
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
+    // Handle validation errors
+    if (error instanceof z.ZodError) {
+      return new Response(
+        JSON.stringify({
+          error: 'Invalid request',
+          details: error.issues,
+        }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
     }
 
-    return new Response(error instanceof Error ? error.message : 'Internal server error', { status: 500 });
+    // Handle model errors
+    if (error instanceof Error && error.message.includes('Invalid model ID')) {
+      return new Response(
+        JSON.stringify({
+          error: 'Invalid model',
+          message: error.message,
+        }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Handle API key errors
+    if (error instanceof Error &&
+        (error.message.includes('API key') ||
+         error.message.includes('authentication') ||
+         error.message.includes('401'))) {
+      return new Response(
+        JSON.stringify({
+          error: 'Authentication error',
+          message: 'API key is missing or invalid. Please check your environment variables.',
+        }),
+        {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Handle rate limiting
+    if (error instanceof Error &&
+        (error.message.includes('rate limit') ||
+         error.message.includes('429'))) {
+      return new Response(
+        JSON.stringify({
+          error: 'Rate limit exceeded',
+          message: 'Too many requests. Please try again later.',
+        }),
+        {
+          status: 429,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Handle network errors
+    if (error instanceof Error &&
+        (error.message.includes('network') ||
+         error.message.includes('ECONNREFUSED') ||
+         error.message.includes('ETIMEDOUT'))) {
+      return new Response(
+        JSON.stringify({
+          error: 'Network error',
+          message: 'Unable to connect to AI service. Please try again.',
+        }),
+        {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Generic error
+    return new Response(
+      JSON.stringify({
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
   }
+}
+
+/**
+ * GET /api/chat
+ * Health check endpoint
+ */
+export async function GET() {
+  return new Response(
+    JSON.stringify({
+      status: 'ok',
+      message: 'Chat API is running',
+      version: '2.0.0', // Updated for Week 2: Persistence
+    }),
+    {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }
+  );
 }
