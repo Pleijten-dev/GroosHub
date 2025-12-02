@@ -20,7 +20,7 @@ import {
   formatMemoryForPrompt
 } from '@/lib/ai/memory-store';
 import { getMemoryExtractionPrompt } from '@/lib/ai/memory-prompts';
-import { getModel } from '@/lib/ai/models';
+import { getModel, type ModelId } from '@/lib/ai/models';
 import { generateText, type UIMessage } from 'ai';
 import { z } from 'zod';
 
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
 
     const messages = validated.messages as UIMessage[];
     const locale = validated.locale || 'nl';
-    const modelId = validated.modelId || 'claude-sonnet-4.5';
+    const modelId = (validated.modelId || 'claude-haiku-3.5') as ModelId;
 
     console.log(`[Memory API] 🧠 Analyzing ${messages.length} messages for user ${userId}`);
 
@@ -125,7 +125,6 @@ export async function POST(request: NextRequest) {
       model,
       prompt: extractionPrompt,
       temperature: 0.3, // Lower temperature for more consistent extraction
-      maxTokens: 1000
     });
 
     const updatedMemoryContent = result.text.trim();
