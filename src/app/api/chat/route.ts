@@ -24,7 +24,7 @@ import { getSystemPrompt } from '@/features/chat/lib/prompts/system-prompt';
 import { getLocationAgentPrompt, getCombinedPrompt } from '@/features/chat/lib/prompts/agent-prompts';
 import { getDbConnection } from '@/lib/db/connection';
 import type { AccessibleLocation } from '@/features/location/types/saved-locations';
-import type { UnifiedLocationData } from '@/features/location/data/aggregator/multiLevelAggregator';
+import type { UnifiedLocationData, UnifiedDataRow } from '@/features/location/data/aggregator/multiLevelAggregator';
 import type { ResidentialData } from '@/features/location/data/sources/altum-ai/types';
 import personasData from '@/features/location/data/sources/housing-personas.json';
 import { randomUUID } from 'crypto';
@@ -543,7 +543,7 @@ export async function POST(request: NextRequest) {
               return { success: false, error: 'Location not found or access denied' };
             }
 
-            const amenitiesData = results[0].amenitiesData as UnifiedLocationData[] || [];
+            const amenitiesData = results[0].amenitiesData as UnifiedDataRow[] || [];
 
             // Filter by category and distance
             let filteredAmenities = amenitiesData;
