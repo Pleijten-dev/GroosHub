@@ -22,7 +22,7 @@ interface TestResult {
   status: 'pass' | 'fail' | 'skip';
   message: string;
   duration?: number;
-  data?: any;
+  data?: Record<string, unknown>;
 }
 
 /**
@@ -50,7 +50,7 @@ function generateTestImage(): Buffer {
  */
 async function runTest(
   name: string,
-  testFn: () => Promise<{ status: 'pass' | 'fail' | 'skip'; message: string; data?: any }>
+  testFn: () => Promise<{ status: 'pass' | 'fail' | 'skip'; message: string; data?: Record<string, unknown> }>
 ): Promise<TestResult> {
   const start = Date.now();
   console.log(`\n🧪 Running: ${name}`);
@@ -176,7 +176,7 @@ export async function GET(request: NextRequest) {
     // Test 4: Vision Models Check
     results.push(await runTest('Vision Models Available', async () => {
       const visionModels = Object.entries(MODEL_CAPABILITIES)
-        .filter(([_, info]) => info.supportsVision)
+        .filter(([, info]) => info.supportsVision)
         .map(([id]) => id);
 
       return {
