@@ -9,9 +9,21 @@
 import { neon } from '@neondatabase/serverless';
 import * as fs from 'fs';
 import * as path from 'path';
+import { config } from 'dotenv';
+
+// Load environment variables from .env.local
+config({ path: path.join(__dirname, '..', '.env.local') });
 
 async function runMigration() {
-  const sql = neon(process.env.POSTGRES_URL!);
+  // Verify POSTGRES_URL is set
+  if (!process.env.POSTGRES_URL) {
+    console.error('❌ Error: POSTGRES_URL is not set in .env.local');
+    console.error('Please make sure .env.local exists in the project root and contains:');
+    console.error('POSTGRES_URL=your_postgres_connection_url_here');
+    process.exit(1);
+  }
+
+  const sql = neon(process.env.POSTGRES_URL);
 
   console.log('🔄 Running chat_files table migration...');
 
