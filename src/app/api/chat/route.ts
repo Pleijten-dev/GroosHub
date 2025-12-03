@@ -353,8 +353,12 @@ export async function POST(request: NextRequest) {
     // Truncate messages to fit context window
     const truncatedMessages = truncateMessages(allMessages);
 
+    // Build system prompt: base + location agent + user memory
+    const baseSystemPrompt = getSystemPrompt(locale);
+    const locationAgentPrompt = getLocationAgentPrompt(locale);
+    let systemPrompt = getCombinedPrompt(baseSystemPrompt, locationAgentPrompt);
+
     // Get user memory and enhance system prompt
-    let systemPrompt = getSystemPrompt(locale);
     try {
       const userMemory = await getUserMemory(userId);
       const memoryText = formatMemoryForPrompt(userMemory);
@@ -366,12 +370,6 @@ export async function POST(request: NextRequest) {
       console.error('[Chat API] ⚠️  Failed to load user memory:', error);
       // Continue without memory if there's an error
     }
-
-    // Prepend system prompt with context about GroosHub and GROOSMAN
-    // Add location agent prompt for location analysis capabilities
-    const baseSystemPrompt = getSystemPrompt(locale);
-    const locationAgentPrompt = getLocationAgentPrompt(locale);
-    const systemPrompt = getCombinedPrompt(baseSystemPrompt, locationAgentPrompt);
 
     const messagesWithSystem: UIMessage[] = [
       {
