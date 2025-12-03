@@ -5,6 +5,7 @@
  * Week 1: Basic streaming chat with multi-model support
  * Week 2: Persistence - Save/load messages from database
  * Week 2.5: Location Agent - Tools for location analysis
+ * Week 3: Multi-Modal Input - Support for images and PDFs with vision models
  */
 
 import { streamText, convertToModelMessages, stepCountIs, tool, type UIMessage } from 'ai';
@@ -12,6 +13,8 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getModel, type ModelId, MODEL_CAPABILITIES } from '@/lib/ai/models';
 import { auth } from '@/lib/auth';
+import { neon } from '@neondatabase/serverless';
+import { getPresignedUrl } from '@/lib/storage/r2-client';
 import {
   createChat,
   getChat,
@@ -35,6 +38,7 @@ const chatRequestSchema = z.object({
   chatId: z.string().optional(), // Optional - create new chat if not provided
   modelId: z.string().optional(),
   temperature: z.number().min(0).max(2).optional(),
+  fileIds: z.array(z.string()).optional(), // Week 3: File attachments (chat_files.id)
 });
 
 // Context window configuration
@@ -98,6 +102,80 @@ function calculateCost(modelId: string, inputTokens: number, outputTokens: numbe
 }
 
 /**
+ * Process file attachments for multimodal input
+ * Fetches file metadata and generates presigned URLs
+ */
+async function processFileAttachments(
+  fileIds: string[],
+  userId: number,
+  chatId: string,
+  messageId: string
+): Promise<Array<{ type: 'image'; image: URL }>> {
+  if (!fileIds || fileIds.length === 0) {
+    return [];
+  }
+
+  const sql = neon(process.env.POSTGRES_URL!);
+  const imageParts: Array<{ type: 'image'; image: URL }> = [];
+
+  console.log(`[Chat API] 📎 Processing ${fileIds.length} file attachments`);
+
+  for (const fileId of fileIds) {
+    try {
+      // Fetch file metadata and verify ownership
+      const files = await sql`
+        SELECT cf.*, c.user_id
+        FROM chat_files cf
+        JOIN chats c ON c.id = cf.chat_id
+        WHERE cf.id = ${fileId}
+          AND c.user_id = ${userId};
+      `;
+
+      if (files.length === 0) {
+        console.error(`[Chat API] ❌ File ${fileId} not found or access denied for user ${userId}`);
+        continue;
+      }
+
+      const file = files[0];
+
+      // Only process images for vision models (PDFs will be handled separately)
+      if (file.file_type !== 'image') {
+        console.log(`[Chat API] ⏭️  Skipping non-image file: ${file.file_name} (${file.file_type})`);
+        continue;
+      }
+
+      // Update message_id if not set (file was uploaded but not yet sent)
+      if (!file.message_id) {
+        await sql`
+          UPDATE chat_files
+          SET message_id = ${messageId}
+          WHERE id = ${fileId};
+        `;
+        console.log(`[Chat API] 🔗 Linked file ${fileId} to message ${messageId}`);
+      }
+
+      // Generate presigned URL (1 hour expiration)
+      const presignedUrl = await getPresignedUrl(file.storage_key, 3600);
+
+      imageParts.push({
+        type: 'image',
+        image: new URL(presignedUrl)
+      });
+
+      console.log(`[Chat API] ✅ Added image: ${file.file_name} (${file.file_size} bytes)`);
+
+    } catch (error) {
+      console.error(`[Chat API] ❌ Error processing file ${fileId}:`, error);
+      // Continue with other files
+    }
+  }
+
+  console.log(`[Chat API] 📎 Successfully processed ${imageParts.length}/${fileIds.length} file attachments`);
+
+  return imageParts;
+}
+
+/**
  * POST /api/chat
  * Stream chat responses with persistence
  */
@@ -137,7 +215,8 @@ export async function POST(request: NextRequest) {
       messages: clientMessages,
       chatId: bodyChatId,
       modelId: bodyModelId,
-      temperature = 0.7
+      temperature = 0.7,
+      fileIds
     } = validatedData;
 
     // Priority: message metadata > root metadata > headers > body
@@ -147,6 +226,21 @@ export async function POST(request: NextRequest) {
 
     // Validate model ID
     const model = getModel(modelId as ModelId);
+
+    // Check if model supports vision when files are attached
+    const modelInfo = MODEL_CAPABILITIES[modelId as ModelId];
+    if (fileIds && fileIds.length > 0 && !modelInfo?.supportsVision) {
+      return new Response(
+        JSON.stringify({
+          error: 'Model does not support vision',
+          message: `The selected model "${modelId}" does not support image input. Please select a vision-capable model like GPT-4o, Claude Sonnet 4.5, or Gemini 2.0 Flash.`,
+        }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
 
     // Handle chat persistence
     let chatId = requestChatId;
@@ -202,6 +296,23 @@ export async function POST(request: NextRequest) {
       });
 
       console.log(`[Chat API] ✅ Created new chat ${chatId} for user ${userId}`);
+    }
+
+    // Process file attachments for multimodal input (Week 3)
+    if (fileIds && fileIds.length > 0) {
+      // Get the last user message ID (the one we're about to save)
+      const lastUserMessage = (clientMessages as UIMessage[]).slice().reverse().find(m => m.role === 'user');
+      const messageId = lastUserMessage?.id || randomUUID();
+
+      const imageParts = await processFileAttachments(fileIds, userId, chatId!, messageId);
+
+      // Add image parts to the last user message
+      // Type assertion needed because AI SDK's UIMessagePart type doesn't properly recognize image parts
+      if (imageParts.length > 0 && lastUserMessage) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        lastUserMessage.parts.push(...(imageParts as any));
+        console.log(`[Chat API] 📎 Added ${imageParts.length} images to user message`);
+      }
     }
 
     // Combine existing messages with new client messages
@@ -839,7 +950,13 @@ export async function GET() {
     JSON.stringify({
       status: 'ok',
       message: 'Chat API is running',
-      version: '2.0.0', // Updated for Week 2: Persistence
+      version: '3.0.0', // Updated for Week 3: Multi-Modal Input
+      features: {
+        streaming: true,
+        persistence: true,
+        multimodal: true,
+        visionModels: 11, // 11 out of 17 models support vision
+      }
     }),
     {
       status: 200,
