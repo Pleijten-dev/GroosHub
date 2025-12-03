@@ -103,7 +103,8 @@ export async function GET(
     const file = files[0];
 
     // 5. Verify user owns the chat containing this file
-    if (file.user_id !== userId) {
+    // Convert both to numbers for comparison (file.user_id is INTEGER, userId is string from session)
+    if (Number(file.user_id) !== Number(userId)) {
       return NextResponse.json(
         { error: 'Forbidden. You do not have access to this file.' },
         { status: 403 }
@@ -200,7 +201,8 @@ export async function DELETE(
     const file = files[0];
 
     // 4. Verify ownership
-    if (file.user_id !== userId) {
+    // Convert both to numbers for comparison (file.user_id is INTEGER, userId is string from session)
+    if (Number(file.user_id) !== Number(userId)) {
       return NextResponse.json(
         { error: 'Forbidden' },
         { status: 403 }
