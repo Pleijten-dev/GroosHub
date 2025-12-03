@@ -15,7 +15,7 @@ import { auth } from '@/lib/auth';
 import { neon } from '@neondatabase/serverless';
 import { uploadFileToR2, getPresignedUrl, deleteFileFromR2, generateFileKey } from '@/lib/storage/r2-client';
 import { createChat } from '@/lib/ai/chat-store';
-import { MODEL_CAPABILITIES } from '@/lib/ai/models';
+import { MODEL_CAPABILITIES, ModelId } from '@/lib/ai/models';
 
 interface TestResult {
   test: string;
@@ -383,7 +383,7 @@ export async function GET(request: NextRequest) {
       ];
 
       const results = testModels.map(({ id, shouldSupport }) => {
-        const actualSupport = MODEL_CAPABILITIES[id]?.supportsVision || false;
+        const actualSupport = MODEL_CAPABILITIES[id as ModelId]?.supportsVision || false;
         const correct = actualSupport === shouldSupport;
         return { id, expected: shouldSupport, actual: actualSupport, correct };
       });
