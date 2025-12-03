@@ -302,6 +302,7 @@ export async function POST(request: NextRequest) {
       // Add image parts to the last user message
       // Type assertion needed because AI SDK's UIMessagePart type doesn't properly recognize image parts
       if (imageParts.length > 0 && lastUserMessage) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         lastUserMessage.parts.push(...(imageParts as any));
         console.log(`[Chat API] 📎 Added ${imageParts.length} images to user message`);
       }
