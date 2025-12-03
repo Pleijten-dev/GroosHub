@@ -133,7 +133,7 @@ BEGIN
     0 as token_count,
     NULL::TIMESTAMP as last_analysis_at
   WHERE NOT EXISTS (
-    SELECT 1 FROM user_memories WHERE user_id = p_user_id
+    SELECT 1 FROM user_memories um WHERE um.user_id = p_user_id
   )
   LIMIT 1;
 END;
