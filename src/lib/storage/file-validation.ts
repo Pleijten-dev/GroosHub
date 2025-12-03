@@ -14,20 +14,20 @@
 export const FILE_CONFIGS = {
   image: {
     maxSize: 10 * 1024 * 1024, // 10MB
-    allowedExtensions: ['.png', '.jpg', '.jpeg', '.webp', '.gif'],
+    allowedExtensions: ['.png', '.jpg', '.jpeg', '.webp', '.gif'] as string[],
     allowedMimeTypes: [
       'image/png',
       'image/jpeg',
       'image/webp',
       'image/gif',
-    ],
+    ] as string[],
   },
   pdf: {
     maxSize: 50 * 1024 * 1024, // 50MB
-    allowedExtensions: ['.pdf'],
-    allowedMimeTypes: ['application/pdf'],
+    allowedExtensions: ['.pdf'] as string[],
+    allowedMimeTypes: ['application/pdf'] as string[],
   },
-} as const;
+};
 
 export type FileType = keyof typeof FILE_CONFIGS;
 
