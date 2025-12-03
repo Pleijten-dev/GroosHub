@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
         // Generate storage key
         const sanitized = sanitizeFilename(file.name);
         const storageKey = generateFileKey(
-          userId,
+          String(userId),
           chatId,
           messageId || 'temp',
           sanitized
