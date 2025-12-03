@@ -1,16 +1,19 @@
-# Chatbot Rebuild Roadmap
-## GroosHub Database Restructuring Implementation Guide
+# Database Restructuring Roadmap
+## GroosHub Multi-Organization & Project Architecture Implementation Guide
 
 > **Version**: 1.0
 > **Date**: 2025-12-03
 > **Status**: Implementation Ready
 > **Related**: DATABASE_RESTRUCTURING_PROPOSAL.md
+>
+> **IMPORTANT**: This roadmap is for database restructuring (organizations, projects, multi-tenancy).
+> It is separate from the original chatbot feature rebuild documented in `/CHATBOT_REBUILD_ROADMAP.md`.
 
 ---
 
 ## Overview
 
-This roadmap provides detailed implementation steps for the database restructuring outlined in DATABASE_RESTRUCTURING_PROPOSAL.md. It includes code examples, migration scripts, API changes, and UI updates.
+This roadmap provides detailed implementation steps for the database restructuring outlined in DATABASE_RESTRUCTURING_PROPOSAL.md. It includes complete SQL migration scripts (001-014), rollback procedures, and verification queries for all phases of the multi-organization project architecture.
 
 ---
 

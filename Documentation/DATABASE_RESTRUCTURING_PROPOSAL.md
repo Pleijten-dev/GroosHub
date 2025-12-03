@@ -2105,11 +2105,13 @@ Before proceeding with implementation, please review and confirm:
 
 Once approved:
 
-1. Create `CHATBOT_REBUILD_ROADMAP.md` with implementation details
-2. Create `DATABASE_MIGRATION_SCRIPTS.md` with SQL scripts
+1. ✓ Created `DATABASE_RESTRUCTURING_ROADMAP.md` with implementation details
+2. ✓ Included migration scripts (001-014) in roadmap
 3. Create `ENCRYPTION_IMPLEMENTATION_GUIDE.md` with code examples
 4. Set up project tracking (GitHub Projects or similar)
 5. Begin Phase 0: Preparation
+
+**Note**: This database restructuring is separate from the original chatbot feature rebuild documented in `/CHATBOT_REBUILD_ROADMAP.md` (root).
 
 ---
 
