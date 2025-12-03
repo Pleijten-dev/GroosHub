@@ -14,11 +14,9 @@
  * - Keep existing columns for backwards compatibility
  */
 
--- Step 1: Add new columns
-ALTER TABLE chat_files
-  ADD COLUMN IF NOT EXISTS user_id INTEGER,
-  ADD COLUMN IF NOT EXISTS storage_key TEXT,
-  ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP;
+-- Step 1: Drop and recreate user_id with correct type
+ALTER TABLE chat_files DROP COLUMN IF EXISTS user_id;
+ALTER TABLE chat_files ADD COLUMN user_id INTEGER;
 
 -- Step 2: Add foreign key constraint for user_id
 ALTER TABLE chat_files
