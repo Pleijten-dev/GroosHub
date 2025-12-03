@@ -39,12 +39,29 @@ for (const envVar of requiredEnvVars) {
 }
 
 /**
+ * Build R2 endpoint URL based on jurisdiction
+ *
+ * Default: https://{account_id}.r2.cloudflarestorage.com
+ * EU:      https://{account_id}.eu.r2.cloudflarestorage.com
+ */
+function buildR2Endpoint(): string {
+  const accountId = process.env.R2_ACCOUNT_ID!;
+  const jurisdiction = process.env.R2_JURISDICTION?.toLowerCase();
+
+  if (jurisdiction === 'eu') {
+    return `https://${accountId}.eu.r2.cloudflarestorage.com`;
+  }
+
+  return `https://${accountId}.r2.cloudflarestorage.com`;
+}
+
+/**
  * R2 Client Configuration
  * Using AWS SDK v3 with S3-compatible endpoint
  */
 export const r2Client = new S3Client({
   region: 'auto', // R2 uses 'auto' region
-  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  endpoint: buildR2Endpoint(),
   credentials: {
     accessKeyId: process.env.R2_ACCESS_KEY_ID!,
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
