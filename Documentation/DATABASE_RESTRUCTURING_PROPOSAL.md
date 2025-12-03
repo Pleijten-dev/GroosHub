@@ -195,6 +195,39 @@ This proposal addresses critical architectural limitations and prepares GroosHub
 └──────────┘  └───────┘  └───────┘  └───────┘  └───────┘
 ```
 
+### Unified project_id Across All Features
+
+**Key Architectural Decision**: All major features share the same `project_id` reference:
+
+| Feature | Table | project_id Column | Behavior |
+|---------|-------|-------------------|----------|
+| **Chat** | `chat_conversations` | `project_id UUID` (nullable) | NULL = private chat<br>UUID = project chat with access to project data |
+| **Location** | `location_snapshots` | `project_id UUID` (required) | Each project has versioned location snapshots<br>Agent uses latest active snapshot |
+| **LCA** | `lca_snapshots` | `project_id UUID` (required) | Each project has versioned LCA snapshots<br>Agent uses latest active snapshot |
+| **Files** | `file_uploads` | `project_id UUID` (nullable) | NULL = private file<br>UUID = project file (RAG accessible) |
+| **Notes** | `notes` | `project_id UUID` (required) | Project documentation |
+| **Tasks** | `tasks` | `project_id UUID` (required) | Project task management |
+
+**Benefits**:
+1. **Unified Context**: Agents can access all project data via single `project_id`
+2. **Access Control**: Single permission system via `project_members`
+3. **Data Isolation**: Clear boundaries between personal and project data
+4. **Historical Tracking**: Versioned snapshots preserve data over time
+5. **Simplified Queries**: Join on `project_id` to get all related data
+
+**Example Flow**:
+```
+User opens chat in "Amsterdam Renovation Project" (project_id: abc-123)
+  → Chat agent can query:
+    - location_snapshots WHERE project_id = 'abc-123' AND is_active = true
+    - lca_snapshots WHERE project_id = 'abc-123' AND is_active = true
+    - file_uploads WHERE project_id = 'abc-123' AND is_indexed = true
+    - notes WHERE project_id = 'abc-123'
+  → RAG system retrieves context from project files
+  → Location agent uses latest active location snapshot
+  → LCA agent uses latest active LCA snapshot
+```
+
 ---
 
 ## Table Specifications
@@ -1005,25 +1038,25 @@ ALTER TABLE note_lists
 
 #### Step 1: Create Default Organization
 ```sql
--- Create default organization for existing data
+-- Create GROOSMAN organization for existing data
 INSERT INTO org_organizations (id, name, slug, plan_tier)
 VALUES (
-  'default-org-uuid',
-  'Default Organization',
-  'default',
+  gen_random_uuid(), -- Will be generated: e.g., '550e8400-e29b-41d4-a716-446655440000'
+  'GROOSMAN',
+  'groosman',
   'professional'
 );
 ```
 
 #### Step 2: Migrate Users
 ```sql
--- Add org_id to all existing users
+-- Add org_id to all existing users (using GROOSMAN organization)
 INSERT INTO user_accounts (
   id, org_id, email, password, name, role, created_at, updated_at
 )
 SELECT
   id,
-  'default-org-uuid'::uuid,
+  (SELECT id FROM org_organizations WHERE slug = 'groosman'),
   email,
   password,
   name,
@@ -1035,11 +1068,11 @@ FROM users;
 
 #### Step 3: Create Projects from LCA Projects
 ```sql
--- Create main projects from lca_projects
+-- Create main projects from lca_projects (all under GROOSMAN organization)
 INSERT INTO project_projects (id, org_id, name, description, project_number, created_at, updated_at)
 SELECT
   id,
-  'default-org-uuid'::uuid,
+  (SELECT id FROM org_organizations WHERE slug = 'groosman'),
   name,
   description,
   project_number,
@@ -1419,6 +1452,27 @@ CREATE TABLE audit_logs (
 
 ## UI/UX Flow
 
+### UI Design Principles
+
+**IMPORTANT: No Emoticons Policy**
+
+All UI elements, mockups, and actual implementation **MUST NOT** include any emoticons, emojis, or icon characters in:
+- Text labels
+- Button labels
+- Navigation items
+- Form placeholders
+- Messages or notifications
+- Database content
+- Any user-facing text
+
+**Rationale**: Professional appearance, consistency with brand guidelines, and accessibility requirements.
+
+**Allowed**: SVG icons, icon fonts (Font Awesome, Material Icons), and properly designed UI iconography.
+
+**Not Allowed**: Unicode emoticons (📊, 💬, 🏗️, etc.) in any UI context.
+
+---
+
 ### Sidebar Structure
 
 ```
@@ -1429,26 +1483,26 @@ CREATE TABLE audit_logs (
 │  PROJECTS                           │
 │  [+ New Project]                    │  ← Create button
 │                                     │
-│  📌 Project A (pinned)              │  ← Pinned projects (sortable)
-│  📌 Project B (pinned)              │
+│  [Pin] Project A (pinned)           │  ← Pinned projects (sortable)
+│  [Pin] Project B (pinned)           │
 │                                     │
 │  Project C                          │  ← Recent projects (auto-sorted)
 │  Project D                          │
 │  Project E                          │
 │  ...                                │
-│  [▼ Show 12 more projects]          │  ← Expand menu (if > 10)
+│  [Show 12 more projects...]         │  ← Expand menu (if > 10)
 │                                     │
 ├─────────────────────────────────────┤
 │                                     │
 │  CHATS                              │
 │  [+ New Chat]                       │  ← Create button
 │                                     │
-│  💬 Personal Planning               │  ← Recent chats (scrollable)
-│  💬 Project A - Requirements        │
-│  💬 Location Analysis Q&A           │
-│  💬 LCA Calculation Help            │
-│  💬 Project B - Design              │
-│  💬 Material Selection              │
+│  Personal Planning                  │  ← Recent chats (scrollable)
+│  Project A - Requirements           │
+│  Location Analysis Q&A              │
+│  LCA Calculation Help               │
+│  Project B - Design                 │
+│  Material Selection                 │
 │  ...                                │
 │  (scrollable list)                  │
 │                                     │
@@ -1474,16 +1528,16 @@ CREATE TABLE audit_logs (
 │             │  Start a new conversation:        │
 │             │                                   │
 │             │  ┌──────────────────────────────┐ │
-│             │  │ 💡 Analyze a new location    │ │
+│             │  │ Analyze a new location       │ │
 │             │  └──────────────────────────────┘ │
 │             │  ┌──────────────────────────────┐ │
-│             │  │ 📊 Calculate LCA for project │ │
+│             │  │ Calculate LCA for project    │ │
 │             │  └──────────────────────────────┘ │
 │             │  ┌──────────────────────────────┐ │
-│             │  │ 📝 Help me create a report   │ │
+│             │  │ Help me create a report      │ │
 │             │  └──────────────────────────────┘ │
 │             │  ┌──────────────────────────────┐ │
-│             │  │ 🔍 Search project documents  │ │
+│             │  │ Search project documents     │ │
 │             │  └──────────────────────────────┘ │
 │             │                                   │
 │             │  ───────────────────────────────  │
@@ -1502,7 +1556,7 @@ CREATE TABLE audit_logs (
 
 ```
 ┌─────────────────────────────────────────────────┐
-│  [Sidebar]  │  [Project Name] [Settings ⚙️]     │
+│  [Sidebar]  │  [Project Name] [Settings]       │
 │             │                                   │
 │             │  ┌─────────────┬─────────────┐   │
 │             │  │ Overview    │ Files       │   │
@@ -1512,11 +1566,11 @@ CREATE TABLE audit_logs (
 │             │                                   │
 │             │  PROJECT STATISTICS              │
 │             │  ┌─────────────────────────────┐ │
-│             │  │ 📊 23 Messages              │ │
-│             │  │ 📁 12 Files (2.3 MB)        │ │
-│             │  │ 👥 5 Members                │ │
-│             │  │ 📍 Location: Amsterdam      │ │
-│             │  │ 🏗️ LCA Score: 0.67 kg CO₂/m²│ │
+│             │  │ Messages: 23                │ │
+│             │  │ Files: 12 (2.3 MB)          │ │
+│             │  │ Members: 5                  │ │
+│             │  │ Location: Amsterdam         │ │
+│             │  │ LCA Score: 0.67 kg CO2/m2   │ │
 │             │  └─────────────────────────────┘ │
 │             │                                   │
 │             │  PROJECT FILES                   │
@@ -1525,15 +1579,15 @@ CREATE TABLE audit_logs (
 │             │  │   or click to browse         ││
 │             │  └──────────────────────────────┘│
 │             │                                   │
-│             │  📄 requirements.pdf  [Delete]   │
-│             │  📄 floor-plan.dwg    [Delete]   │
-│             │  📊 budget.xlsx       [Delete]   │
+│             │  requirements.pdf     [Delete]   │
+│             │  floor-plan.dwg       [Delete]   │
+│             │  budget.xlsx          [Delete]   │
 │             │                                   │
 │             │  PROJECT CHATS                   │
 │             │  [+ New Project Chat]            │
 │             │                                   │
-│             │  💬 Project A - Requirements     │
-│             │  💬 LCA Calculation Help         │
+│             │  Project A - Requirements        │
+│             │  LCA Calculation Help            │
 │             │                                   │
 └─────────────────────────────────────────────────┘
 ```
@@ -1553,7 +1607,7 @@ CREATE TABLE audit_logs (
 
 ```
 ┌─────────────────────────────────────────────────┐
-│  [Sidebar]  │  [Chat Title]  [Project: X ▼]    │
+│  [Sidebar]  │  [Chat Title]  [Project: X v]    │
 │             │                                   │
 │             │  ┌─────────────────────────────┐ │
 │             │  │ User: Analyze this location │ │
@@ -1616,7 +1670,7 @@ CREATE TABLE audit_logs (
    │  Description:  [_________________]  │
    │                [_________________]  │
    │                                     │
-   │  Template:     [None ▼]             │
+   │  Template:     [None v]             │
    │                - Residential        │
    │                - Commercial         │
    │                - Infrastructure     │
