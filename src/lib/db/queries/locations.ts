@@ -57,7 +57,7 @@ export async function getActiveLocationSnapshot(
     LIMIT 1
   `;
 
-  return result.length > 0 ? result[0] : null;
+  return result.length > 0 ? (result[0] as LocationSnapshot) : null;
 }
 
 /**
@@ -82,7 +82,7 @@ export async function getProjectLocationSnapshots(
     ORDER BY version_number DESC
   `;
 
-  return result;
+  return result as LocationSnapshot[];
 }
 
 /**
@@ -107,7 +107,7 @@ export async function getLocationSnapshotById(
     LIMIT 1
   `;
 
-  return result.length > 0 ? result[0] : null;
+  return result.length > 0 ? (result[0] as LocationSnapshot) : null;
 }
 
 /**
@@ -203,7 +203,7 @@ export async function createLocationSnapshot(params: {
       created_at, updated_at
   `;
 
-  return result[0];
+  return result[0] as LocationSnapshot;
 }
 
 /**
@@ -300,5 +300,5 @@ export async function getUserLocationSnapshots(userId: number): Promise<Location
     ORDER BY created_at DESC
   `;
 
-  return result;
+  return result as LocationSnapshot[];
 }

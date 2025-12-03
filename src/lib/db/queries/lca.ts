@@ -55,7 +55,7 @@ export async function getActiveLCASnapshot(projectId: string): Promise<LCASnapsh
     LIMIT 1
   `;
 
-  return result.length > 0 ? result[0] : null;
+  return result.length > 0 ? (result[0] as LCASnapshot) : null;
 }
 
 /**
@@ -78,7 +78,7 @@ export async function getProjectLCASnapshots(projectId: string): Promise<LCASnap
     ORDER BY version_number DESC
   `;
 
-  return result;
+  return result as LCASnapshot[];
 }
 
 /**
@@ -101,7 +101,7 @@ export async function getLCASnapshotById(snapshotId: string): Promise<LCASnapsho
     LIMIT 1
   `;
 
-  return result.length > 0 ? result[0] : null;
+  return result.length > 0 ? (result[0] as LCASnapshot) : null;
 }
 
 /**
@@ -191,7 +191,7 @@ export async function createLCASnapshot(params: {
       created_at, updated_at
   `;
 
-  return result[0];
+  return result[0] as LCASnapshot;
 }
 
 /**
@@ -240,42 +240,130 @@ export async function updateLCASnapshotData(
 ): Promise<void> {
   const db = getDbConnection();
 
-  const updates = [];
-  const values = [];
-
-  if (data.processes !== undefined) {
-    updates.push(`processes = $${updates.length + 1}`);
-    values.push(JSON.stringify(data.processes));
+  // Use conditional queries based on which fields are provided
+  if (data.processes !== undefined && data.flows !== undefined && data.impactCategories !== undefined && data.parameters !== undefined) {
+    await db`
+      UPDATE lca_snapshots
+      SET processes = ${JSON.stringify(data.processes)},
+          flows = ${JSON.stringify(data.flows)},
+          impact_categories = ${JSON.stringify(data.impactCategories)},
+          parameters = ${JSON.stringify(data.parameters)},
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${snapshotId}
+    `;
+  } else if (data.processes !== undefined && data.flows !== undefined && data.impactCategories !== undefined) {
+    await db`
+      UPDATE lca_snapshots
+      SET processes = ${JSON.stringify(data.processes)},
+          flows = ${JSON.stringify(data.flows)},
+          impact_categories = ${JSON.stringify(data.impactCategories)},
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${snapshotId}
+    `;
+  } else if (data.processes !== undefined && data.flows !== undefined && data.parameters !== undefined) {
+    await db`
+      UPDATE lca_snapshots
+      SET processes = ${JSON.stringify(data.processes)},
+          flows = ${JSON.stringify(data.flows)},
+          parameters = ${JSON.stringify(data.parameters)},
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${snapshotId}
+    `;
+  } else if (data.processes !== undefined && data.impactCategories !== undefined && data.parameters !== undefined) {
+    await db`
+      UPDATE lca_snapshots
+      SET processes = ${JSON.stringify(data.processes)},
+          impact_categories = ${JSON.stringify(data.impactCategories)},
+          parameters = ${JSON.stringify(data.parameters)},
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${snapshotId}
+    `;
+  } else if (data.flows !== undefined && data.impactCategories !== undefined && data.parameters !== undefined) {
+    await db`
+      UPDATE lca_snapshots
+      SET flows = ${JSON.stringify(data.flows)},
+          impact_categories = ${JSON.stringify(data.impactCategories)},
+          parameters = ${JSON.stringify(data.parameters)},
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${snapshotId}
+    `;
+  } else if (data.processes !== undefined && data.flows !== undefined) {
+    await db`
+      UPDATE lca_snapshots
+      SET processes = ${JSON.stringify(data.processes)},
+          flows = ${JSON.stringify(data.flows)},
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${snapshotId}
+    `;
+  } else if (data.processes !== undefined && data.impactCategories !== undefined) {
+    await db`
+      UPDATE lca_snapshots
+      SET processes = ${JSON.stringify(data.processes)},
+          impact_categories = ${JSON.stringify(data.impactCategories)},
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${snapshotId}
+    `;
+  } else if (data.processes !== undefined && data.parameters !== undefined) {
+    await db`
+      UPDATE lca_snapshots
+      SET processes = ${JSON.stringify(data.processes)},
+          parameters = ${JSON.stringify(data.parameters)},
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${snapshotId}
+    `;
+  } else if (data.flows !== undefined && data.impactCategories !== undefined) {
+    await db`
+      UPDATE lca_snapshots
+      SET flows = ${JSON.stringify(data.flows)},
+          impact_categories = ${JSON.stringify(data.impactCategories)},
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${snapshotId}
+    `;
+  } else if (data.flows !== undefined && data.parameters !== undefined) {
+    await db`
+      UPDATE lca_snapshots
+      SET flows = ${JSON.stringify(data.flows)},
+          parameters = ${JSON.stringify(data.parameters)},
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${snapshotId}
+    `;
+  } else if (data.impactCategories !== undefined && data.parameters !== undefined) {
+    await db`
+      UPDATE lca_snapshots
+      SET impact_categories = ${JSON.stringify(data.impactCategories)},
+          parameters = ${JSON.stringify(data.parameters)},
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${snapshotId}
+    `;
+  } else if (data.processes !== undefined) {
+    await db`
+      UPDATE lca_snapshots
+      SET processes = ${JSON.stringify(data.processes)},
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${snapshotId}
+    `;
+  } else if (data.flows !== undefined) {
+    await db`
+      UPDATE lca_snapshots
+      SET flows = ${JSON.stringify(data.flows)},
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${snapshotId}
+    `;
+  } else if (data.impactCategories !== undefined) {
+    await db`
+      UPDATE lca_snapshots
+      SET impact_categories = ${JSON.stringify(data.impactCategories)},
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${snapshotId}
+    `;
+  } else if (data.parameters !== undefined) {
+    await db`
+      UPDATE lca_snapshots
+      SET parameters = ${JSON.stringify(data.parameters)},
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${snapshotId}
+    `;
   }
-
-  if (data.flows !== undefined) {
-    updates.push(`flows = $${updates.length + 1}`);
-    values.push(JSON.stringify(data.flows));
-  }
-
-  if (data.impactCategories !== undefined) {
-    updates.push(`impact_categories = $${updates.length + 1}`);
-    values.push(JSON.stringify(data.impactCategories));
-  }
-
-  if (data.parameters !== undefined) {
-    updates.push(`parameters = $${updates.length + 1}`);
-    values.push(JSON.stringify(data.parameters));
-  }
-
-  if (updates.length === 0) return;
-
-  updates.push(`updated_at = CURRENT_TIMESTAMP`);
-  values.push(snapshotId);
-
-  await db(
-    `
-    UPDATE lca_snapshots
-    SET ${updates.join(', ')}
-    WHERE id = $${values.length}
-  `,
-    values
-  );
 }
 
 /**
@@ -363,5 +451,5 @@ export async function getUserLCASnapshots(userId: number): Promise<LCASnapshot[]
     ORDER BY created_at DESC
   `;
 
-  return result;
+  return result as LCASnapshot[];
 }
