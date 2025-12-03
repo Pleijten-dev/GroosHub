@@ -300,8 +300,9 @@ export async function POST(request: NextRequest) {
       const imageParts = await processFileAttachments(fileIds, userId, chatId!, messageId);
 
       // Add image parts to the last user message
+      // Type assertion needed because AI SDK's UIMessagePart type doesn't properly recognize image parts
       if (imageParts.length > 0 && lastUserMessage) {
-        lastUserMessage.parts.push(...imageParts);
+        lastUserMessage.parts.push(...(imageParts as any));
         console.log(`[Chat API] 📎 Added ${imageParts.length} images to user message`);
       }
     }
