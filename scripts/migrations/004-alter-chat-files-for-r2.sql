@@ -16,7 +16,7 @@
 
 -- Step 1: Add new columns
 ALTER TABLE chat_files
-  ADD COLUMN IF NOT EXISTS user_id UUID,
+  ADD COLUMN IF NOT EXISTS user_id INTEGER,
   ADD COLUMN IF NOT EXISTS storage_key TEXT,
   ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP;
 

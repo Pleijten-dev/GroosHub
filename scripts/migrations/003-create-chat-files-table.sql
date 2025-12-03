@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS chat_files (
   -- Relationships
   chat_id UUID NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
   message_id UUID, -- Can be NULL for chat-level files (not yet sent in a message)
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 
   -- Storage information
   storage_key TEXT NOT NULL UNIQUE, -- R2 storage key (full path)
