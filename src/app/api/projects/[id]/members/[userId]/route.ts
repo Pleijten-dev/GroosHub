@@ -40,43 +40,47 @@ export async function PATCH(
     const body = await request.json();
     const { role, permissions } = body;
 
-    const db = getDbConnection();
-
-    // Build update query
-    const updates = [];
-    const values = [];
-
-    if (role !== undefined) {
-      updates.push(`role = $${updates.length + 1}`);
-      values.push(role);
-    }
-
-    if (permissions !== undefined) {
-      updates.push(`permissions = $${updates.length + 1}`);
-      values.push(JSON.stringify(permissions));
-    }
-
-    if (updates.length === 0) {
+    if (role === undefined && permissions === undefined) {
       return NextResponse.json(
         { success: false, error: 'No fields to update' },
         { status: 400 }
       );
     }
 
-    values.push(id); // project_id
-    values.push(userIdNum); // user_id
+    const db = getDbConnection();
 
-    const result = await db(
-      `
-      UPDATE project_members
-      SET ${updates.join(', ')}
-      WHERE project_id = $${values.length - 1}
-      AND user_id = $${values.length}
-      AND left_at IS NULL
-      RETURNING id, project_id, user_id, role, permissions, joined_at
-    `,
-      values
-    );
+    let result;
+
+    // Handle different update combinations
+    if (role !== undefined && permissions !== undefined) {
+      result = await db`
+        UPDATE project_members
+        SET role = ${role},
+            permissions = ${JSON.stringify(permissions)}
+        WHERE project_id = ${id}
+        AND user_id = ${userIdNum}
+        AND left_at IS NULL
+        RETURNING id, project_id, user_id, role, permissions, joined_at
+      `;
+    } else if (role !== undefined) {
+      result = await db`
+        UPDATE project_members
+        SET role = ${role}
+        WHERE project_id = ${id}
+        AND user_id = ${userIdNum}
+        AND left_at IS NULL
+        RETURNING id, project_id, user_id, role, permissions, joined_at
+      `;
+    } else {
+      result = await db`
+        UPDATE project_members
+        SET permissions = ${JSON.stringify(permissions)}
+        WHERE project_id = ${id}
+        AND user_id = ${userIdNum}
+        AND left_at IS NULL
+        RETURNING id, project_id, user_id, role, permissions, joined_at
+      `;
+    }
 
     if (result.length === 0) {
       return NextResponse.json({ error: 'Member not found' }, { status: 404 });

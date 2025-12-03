@@ -102,64 +102,53 @@ export async function PATCH(
     const body = await request.json();
     const { name, description, project_number, settings, status, is_pinned } = body;
 
-    const db = getDbConnection();
-
-    // Build update query dynamically based on provided fields
-    const updates = [];
-    const values = [];
-
-    if (name !== undefined) {
-      updates.push(`name = $${updates.length + 1}`);
-      values.push(name);
-    }
-
-    if (description !== undefined) {
-      updates.push(`description = $${updates.length + 1}`);
-      values.push(description);
-    }
-
-    if (project_number !== undefined) {
-      updates.push(`project_number = $${updates.length + 1}`);
-      values.push(project_number);
-    }
-
-    if (settings !== undefined) {
-      updates.push(`settings = $${updates.length + 1}`);
-      values.push(JSON.stringify(settings));
-    }
-
-    if (status !== undefined) {
-      updates.push(`status = $${updates.length + 1}`);
-      values.push(status);
-    }
-
-    if (is_pinned !== undefined) {
-      updates.push(`is_pinned = $${updates.length + 1}`);
-      values.push(is_pinned);
-    }
-
-    // Always update updated_at
-    updates.push(`updated_at = CURRENT_TIMESTAMP`);
-
-    if (updates.length === 1) {
-      // Only updated_at would be updated
+    // Check if at least one field is provided
+    if (
+      name === undefined &&
+      description === undefined &&
+      project_number === undefined &&
+      settings === undefined &&
+      status === undefined &&
+      is_pinned === undefined
+    ) {
       return NextResponse.json(
         { success: false, error: 'No fields to update' },
         { status: 400 }
       );
     }
 
-    values.push(id); // Add ID for WHERE clause
+    const db = getDbConnection();
 
-    const result = await db(
-      `
+    // Get current project to preserve non-updated fields
+    const currentProject = await getProjectById(id);
+
+    if (!currentProject) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
+
+    // Use provided values or keep current values
+    const updatedName = name !== undefined ? name : currentProject.name;
+    const updatedDescription =
+      description !== undefined ? description : currentProject.description;
+    const updatedProjectNumber =
+      project_number !== undefined ? project_number : currentProject.project_number;
+    const updatedSettings =
+      settings !== undefined ? JSON.stringify(settings) : JSON.stringify(currentProject.settings);
+    const updatedStatus = status !== undefined ? status : currentProject.status;
+    const updatedIsPinned = is_pinned !== undefined ? is_pinned : currentProject.is_pinned;
+
+    const result = await db`
       UPDATE project_projects
-      SET ${updates.join(', ')}
-      WHERE id = $${values.length}
+      SET name = ${updatedName},
+          description = ${updatedDescription},
+          project_number = ${updatedProjectNumber},
+          settings = ${updatedSettings},
+          status = ${updatedStatus},
+          is_pinned = ${updatedIsPinned},
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${id}
       RETURNING id, org_id, name, description, project_number, settings, metadata, status, is_template, is_pinned, created_at, updated_at, last_accessed_at
-    `,
-      values
-    );
+    `;
 
     if (result.length === 0) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
