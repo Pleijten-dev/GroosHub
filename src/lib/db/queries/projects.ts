@@ -51,7 +51,7 @@ export async function getProjectById(projectId: string): Promise<Project | null>
     AND deleted_at IS NULL
   `;
 
-  return result.length > 0 ? result[0] : null;
+  return result.length > 0 ? (result[0] as Project) : null;
 }
 
 /**
@@ -74,7 +74,7 @@ export async function getUserProjects(userId: number): Promise<ProjectWithMember
     ORDER BY p.last_accessed_at DESC
   `;
 
-  return result;
+  return result as ProjectWithMemberRole[];
 }
 
 /**
@@ -98,7 +98,7 @@ export async function getUserPinnedProjects(userId: number): Promise<ProjectWith
     ORDER BY p.name ASC
   `;
 
-  return result;
+  return result as ProjectWithMemberRole[];
 }
 
 /**
@@ -126,7 +126,7 @@ export async function getUserRecentProjects(
     LIMIT ${limit}
   `;
 
-  return result;
+  return result as ProjectWithMemberRole[];
 }
 
 /**
@@ -143,7 +143,7 @@ export async function getProjectMembers(projectId: string): Promise<ProjectMembe
     ORDER BY joined_at ASC
   `;
 
-  return result;
+  return result as ProjectMember[];
 }
 
 /**
@@ -290,10 +290,18 @@ export async function updateProjectMemberRole(
   `;
 }
 
+export interface ProjectStats {
+  member_count: number;
+  file_count: number;
+  chat_count: number;
+  location_snapshot_count: number;
+  lca_snapshot_count: number;
+}
+
 /**
  * Get project statistics
  */
-export async function getProjectStats(projectId: string) {
+export async function getProjectStats(projectId: string): Promise<ProjectStats> {
   const db = getDbConnection();
 
   const result = await db`
@@ -305,5 +313,5 @@ export async function getProjectStats(projectId: string) {
       (SELECT COUNT(*) FROM lca_snapshots WHERE project_id = ${projectId}) as lca_snapshot_count
   `;
 
-  return result[0];
+  return result[0] as ProjectStats;
 }

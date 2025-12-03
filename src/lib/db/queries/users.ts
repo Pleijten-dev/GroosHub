@@ -32,7 +32,7 @@ export async function getUserById(userId: number): Promise<UserAccount | null> {
     AND is_active = true
   `;
 
-  return result.length > 0 ? result[0] : null;
+  return result.length > 0 ? (result[0] as UserAccount) : null;
 }
 
 /**
@@ -48,7 +48,7 @@ export async function getUserByEmail(email: string): Promise<UserAccount | null>
     WHERE LOWER(email) = LOWER(${email})
   `;
 
-  return result.length > 0 ? result[0] : null;
+  return result.length > 0 ? (result[0] as UserAccount) : null;
 }
 
 /**
@@ -65,7 +65,7 @@ export async function getUsersByOrgId(orgId: string): Promise<UserAccount[]> {
     ORDER BY created_at DESC
   `;
 
-  return result;
+  return result as UserAccount[];
 }
 
 /**
@@ -83,7 +83,7 @@ export async function getActiveUsersByOrgId(orgId: string): Promise<UserAccount[
     ORDER BY created_at DESC
   `;
 
-  return result;
+  return result as UserAccount[];
 }
 
 /**
