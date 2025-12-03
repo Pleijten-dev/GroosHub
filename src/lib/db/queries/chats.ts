@@ -44,7 +44,7 @@ export async function getChatById(chatId: string): Promise<ChatConversation | nu
     WHERE id = ${chatId}
   `;
 
-  return result.length > 0 ? result[0] : null;
+  return result.length > 0 ? (result[0] as ChatConversation) : null;
 }
 
 /**
@@ -61,7 +61,7 @@ export async function getUserChats(userId: number): Promise<ChatConversation[]> 
     ORDER BY last_message_at DESC
   `;
 
-  return result;
+  return result as ChatConversation[];
 }
 
 /**
@@ -79,7 +79,7 @@ export async function getUserPrivateChats(userId: number): Promise<ChatConversat
     ORDER BY last_message_at DESC
   `;
 
-  return result;
+  return result as ChatConversation[];
 }
 
 /**
@@ -97,7 +97,7 @@ export async function getUserProjectChats(userId: number, projectId: string): Pr
     ORDER BY last_message_at DESC
   `;
 
-  return result;
+  return result as ChatConversation[];
 }
 
 /**
@@ -114,7 +114,7 @@ export async function getProjectChats(projectId: string): Promise<ChatConversati
     ORDER BY last_message_at DESC
   `;
 
-  return result;
+  return result as ChatConversation[];
 }
 
 /**
@@ -131,7 +131,7 @@ export async function getChatMessages(chatId: string): Promise<ChatMessage[]> {
     ORDER BY created_at ASC
   `;
 
-  return result;
+  return result as ChatMessage[];
 }
 
 /**
