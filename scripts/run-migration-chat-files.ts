@@ -28,12 +28,28 @@ async function runMigration() {
   console.log('🔄 Running chat_files table migration...');
 
   try {
+    // First, check if table already exists
+    const existingTables = await sql`
+      SELECT table_name
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+        AND table_name = 'chat_files';
+    `;
+
+    if (existingTables.length > 0) {
+      console.log('✅ Table chat_files already exists - skipping migration');
+      console.log('📝 No action needed');
+      return;
+    }
+
+    console.log('📝 Table does not exist - creating...');
+
     // Read the SQL file
     const sqlPath = path.join(__dirname, 'migrations', '003-create-chat-files-table.sql');
     const sqlContent = fs.readFileSync(sqlPath, 'utf-8');
 
-    // Execute the migration
-    await sql(sqlContent);
+    // Execute the migration using neon's query method for raw SQL
+    await sql.query(sqlContent);
 
     console.log('✅ Migration completed successfully!');
     console.log('📝 Created table: chat_files');
