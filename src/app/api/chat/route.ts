@@ -103,13 +103,13 @@ async function processFileAttachments(
   userId: number,
   chatId: string,
   messageId: string
-): Promise<{ type: 'image'; image: string }[]> {
+): Promise<Array<{ type: 'image'; image: URL }>> {
   if (!fileIds || fileIds.length === 0) {
     return [];
   }
 
   const sql = neon(process.env.POSTGRES_URL!);
-  const imageParts: { type: 'image'; image: string }[] = [];
+  const imageParts: Array<{ type: 'image'; image: URL }> = [];
 
   console.log(`[Chat API] 📎 Processing ${fileIds.length} file attachments`);
 
@@ -152,7 +152,7 @@ async function processFileAttachments(
 
       imageParts.push({
         type: 'image',
-        image: presignedUrl
+        image: new URL(presignedUrl)
       });
 
       console.log(`[Chat API] ✅ Added image: ${file.file_name} (${file.file_size} bytes)`);
@@ -292,13 +292,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Process file attachments for multimodal input (Week 3)
-    let imageParts: { type: 'image'; image: string }[] = [];
     if (fileIds && fileIds.length > 0) {
       // Get the last user message ID (the one we're about to save)
       const lastUserMessage = (clientMessages as UIMessage[]).slice().reverse().find(m => m.role === 'user');
       const messageId = lastUserMessage?.id || randomUUID();
 
-      imageParts = await processFileAttachments(fileIds, userId, chatId!, messageId);
+      const imageParts = await processFileAttachments(fileIds, userId, chatId!, messageId);
 
       // Add image parts to the last user message
       if (imageParts.length > 0 && lastUserMessage) {
