@@ -7,10 +7,10 @@
  * Usage: GET /api/debug/r2-config
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Check authentication
     const session = await auth();
@@ -50,33 +50,35 @@ export async function GET(request: NextRequest) {
     }
 
     // Check what's missing
-    const missing = [];
+    const missing: string[] = [];
     if (!process.env.R2_ACCOUNT_ID) missing.push('R2_ACCOUNT_ID');
     if (!process.env.R2_ACCESS_KEY_ID) missing.push('R2_ACCESS_KEY_ID');
     if (!process.env.R2_SECRET_ACCESS_KEY) missing.push('R2_SECRET_ACCESS_KEY');
     if (!process.env.R2_BUCKET_NAME) missing.push('R2_BUCKET_NAME');
+
+    const recommendations: string[] = [];
 
     const diagnosis = {
       status: missing.length === 0 ? 'CONFIGURED' : 'INCOMPLETE',
       config,
       endpoint,
       missing,
-      recommendations: []
+      recommendations
     };
 
     // Add recommendations
     if (missing.length > 0) {
-      diagnosis.recommendations.push(`Add missing environment variables: ${missing.join(', ')}`);
+      recommendations.push(`Add missing environment variables: ${missing.join(', ')}`);
     }
 
     if (!process.env.R2_JURISDICTION) {
-      diagnosis.recommendations.push(
+      recommendations.push(
         'If your bucket is in EU region, add: R2_JURISDICTION=eu'
       );
     }
 
     if (process.env.R2_BUCKET_NAME !== 'grooshub-chat-files') {
-      diagnosis.recommendations.push(
+      recommendations.push(
         `Bucket name is '${process.env.R2_BUCKET_NAME}', expected 'grooshub-chat-files'`
       );
     }
