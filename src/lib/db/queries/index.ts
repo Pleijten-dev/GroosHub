@@ -12,3 +12,9 @@ export * from './projects';
 
 // Chat queries
 export * from './chats';
+
+// Location queries
+export * from './locations';
+
+// LCA queries
+export * from './lca';
