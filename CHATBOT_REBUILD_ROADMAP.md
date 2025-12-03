@@ -1607,7 +1607,7 @@ R2_JURISDICTION=eu  # For EU region buckets
 - [ ] Optimize image loading
 - [ ] Code splitting for heavy components
 
-#### Day 3-4: Cost Optimization
+#### Day 3-4: Cost Optimization & User Memory System ✅
 
 **Model Routing:**
 - [ ] Implement model router (`lib/ai/model-router.ts`)
@@ -1615,11 +1615,230 @@ R2_JURISDICTION=eu  # For EU region buckets
 - [ ] Route complex queries to advanced models
 - [ ] Query classification logic
 
-**Context Optimization:**
-- [ ] Implement message summarization for old messages
-- [ ] Remove redundant context
-- [ ] Compress chat history
-- [ ] Track token usage per chat
+**Context Optimization:** ✅ **Completed 2025-12-03**
+- [x] ✅ Implement message summarization for old messages
+- [x] ✅ User memory system for personalized context
+- [x] ✅ Unified conversation analyzer (memory + summarization)
+- [x] ✅ Remove redundant context
+- [x] ✅ Compress chat history with summaries
+- [x] ✅ Track token usage per chat
+
+**User Memory System** ✅ **Completed 2025-12-03**
+
+We implemented a comprehensive user memory system inspired by Claude's memory feature:
+
+**Purpose**: Store user preferences, patterns, interests, and context persistently across all conversations to personalize LLM responses.
+
+**Architecture:**
+- **Per-User Memory**: One memory record per user (not per-chat)
+- **Automatic Updates**: LLM analyzes conversations every 10 messages or 24 hours
+- **Token-Efficient**: Target ~500 tokens max to minimize cost on repeated sends
+- **Background Processing**: Non-blocking analysis using fire-and-forget pattern
+- **Cost Optimization**: Uses Claude Haiku 3.5 (10x cheaper than main models)
+
+**Database Schema:**
+```sql
+-- User Memories Table
+user_memories (
+  user_id INTEGER PRIMARY KEY,
+  memory_content TEXT,              -- Brief structured memory (~500 tokens)
+  user_name VARCHAR(255),            -- Extracted name
+  user_role VARCHAR(255),            -- Job role/function
+  preferences JSONB,                 -- {"response_style": "brief", "language": "nl"}
+  interests JSONB,                   -- ["sustainability", "urban planning"]
+  patterns JSONB,                    -- [{"type": "translation", "from": "es", "to": "nl"}]
+  context JSONB,                     -- [{"key": "current_project", "value": "Noord"}]
+  token_count INTEGER,
+  last_analysis_at TIMESTAMP
+)
+
+-- Memory Updates History
+user_memory_updates (
+  id UUID PRIMARY KEY,
+  user_id INTEGER,
+  previous_content TEXT,
+  new_content TEXT,
+  change_summary TEXT,
+  change_type VARCHAR(50),           -- 'initial', 'addition', 'modification'
+  trigger_source VARCHAR(50),        -- 'chat', 'manual', 'api'
+  metadata JSONB
+)
+
+-- Analytics View
+recent_memory_updates VIEW (
+  user_id, user_name, email,
+  total_updates, last_update,
+  recent_change_types
+)
+```
+
+**Memory Update Flow:**
+1. User sends message in chat
+2. Message is saved and streamed to user
+3. Background analyzer is queued (non-blocking)
+4. Every 10 messages or 24 hours:
+   - Quick decision check: "Should memory be updated?" (~50 tokens)
+   - If yes: Full memory extraction (~500 tokens)
+   - Update database with new memory
+5. Next chat: Memory is loaded and injected into system prompt
+
+**Key Components:**
+
+- `src/lib/db/migrations/008_user_memories.sql` - Database schema
+- `src/lib/ai/memory-store.ts` - CRUD operations for user memory
+- `src/lib/ai/memory-prompts.ts` - LLM prompts for memory extraction
+- `src/lib/ai/memory-analyzer.ts` - Background memory analysis service
+- `src/app/api/memory/route.ts` - REST API for memory management
+
+**Memory API Endpoints:**
+- `GET /api/memory` - Retrieve user memory
+- `POST /api/memory/analyze` - Trigger memory analysis
+- `PUT /api/memory` - Manual memory update
+- `DELETE /api/memory` - Delete memory (GDPR)
+
+**Conversation Summarization System** ✅ **Completed 2025-12-03**
+
+We also implemented conversation summarization (originally planned for Week 7):
+
+**Purpose**: Compress old messages in long conversations to save context window space.
+
+**Architecture:**
+- **Per-Chat Summaries**: One or more summaries per chat
+- **Automatic Summarization**: After every 20+ messages
+- **Context Window Optimization**: Keep recent 10 messages, summarize older ones
+- **Progressive Summarization**: Multiple summaries for very long chats
+
+**Database Schema:**
+```sql
+chat_summaries (
+  id UUID PRIMARY KEY,
+  chat_id UUID REFERENCES chats(id),
+  summary_text TEXT,                 -- Compressed summary of message chunk
+  message_range_start INTEGER,       -- First message index in summary
+  message_range_end INTEGER,         -- Last message index in summary
+  messages_summarized INTEGER,       -- Count of messages
+  original_tokens INTEGER,           -- Token count before summarization
+  summary_tokens INTEGER,            -- Token count after summarization
+  compression_ratio DECIMAL,         -- Efficiency metric
+  created_at TIMESTAMP
+)
+```
+
+**Key Components:**
+- `src/lib/db/migrations/009_conversation_summaries.sql` - Database schema
+- `src/lib/ai/summary-store.ts` - CRUD operations for summaries
+- `src/lib/ai/conversation-analyzer.ts` - **Unified analyzer** (see below)
+
+**Unified Conversation Analyzer** ✅ **Completed 2025-12-03**
+
+**Key Innovation**: We unified memory extraction and conversation summarization into a single background service:
+
+**Benefits:**
+- **Single LLM Call**: Extract both memory and summary in one pass
+- **Cost Efficient**: < 3% overhead (one cheap model call per 10 messages)
+- **Parallel Processing**: Both analyses run concurrently
+- **Shared Infrastructure**: One background job, one model call
+
+**Flow:**
+```
+Chat Message Sent
+     ↓
+onFinish Callback
+     ↓
+queueConversationAnalysis() [non-blocking]
+     ↓
+┌─────────────────────────────────────┐
+│  Unified Conversation Analyzer      │
+│  (Claude Haiku 3.5)                 │
+│                                     │
+│  ┌─────────────┐  ┌──────────────┐ │
+│  │   Memory    │  │ Summarization│ │
+│  │  Analysis   │  │   Analysis   │ │
+│  │             │  │              │ │
+│  │ - Extract   │  │ - Compress   │ │
+│  │   prefs     │  │   old msgs   │ │
+│  │ - Detect    │  │ - Preserve   │ │
+│  │   patterns  │  │   context    │ │
+│  └─────────────┘  └──────────────┘ │
+└─────────────────────────────────────┘
+     ↓               ↓
+     ↓               ↓
+user_memories   chat_summaries
+   table           table
+```
+
+**Configuration:**
+```typescript
+const ANALYZER_CONFIG = {
+  analysisModel: 'claude-haiku-3.5',  // 10x cheaper
+
+  summarization: {
+    enabled: true,
+    summarizeAfterMessages: 20,       // Start after 20 messages
+    keepRecentMessages: 10,           // Don't summarize recent ones
+    summaryChunkSize: 15,             // Summarize 15 messages at a time
+  },
+
+  memory: {
+    enabled: true,
+    recentMessageCount: 10,           // Analyze last 10 messages
+    triggerEveryNMessages: 10,        // Check every 10 messages
+    minMessagesBeforeFirstUpdate: 3,  // Wait for 3 messages minimum
+    useSmartDecision: true,           // Two-step: decision + extraction
+  },
+};
+```
+
+**Cost Analysis:**
+
+Example: 100-message conversation
+- Main chat model (Claude Sonnet 4.5): ~50,000 input tokens, ~5,000 output tokens
+  - Cost: ~$1.50 per conversation
+
+- Memory analysis (10 updates × Claude Haiku 3.5):
+  - Decision checks: 10 × 50 tokens = 500 tokens
+  - Extractions: 10 × 500 tokens = 5,000 tokens
+  - Total: 5,500 tokens input + 500 tokens output
+  - Cost: ~$0.005 (0.3% overhead)
+
+- Summarization (4 summaries × Claude Haiku 3.5):
+  - 4 × 1,500 tokens input = 6,000 tokens
+  - 4 × 200 tokens output = 800 tokens
+  - Cost: ~$0.006 (0.4% overhead)
+
+**Total overhead: < 3% of chat cost**
+
+**Integration with Chat API:**
+
+```typescript
+// In /api/chat route.ts
+
+// BEFORE streaming - Load memory
+const userMemory = await getUserMemory(userId);
+const memoryText = formatMemoryForPrompt(userMemory);
+systemPrompt = enhanceSystemPromptWithMemory(systemPrompt, memoryText, locale);
+
+// AFTER streaming - Analyze in background
+onFinish: async ({ response, usage }) => {
+  // Save message
+  await saveChatMessage(...);
+
+  // Queue unified analysis (non-blocking)
+  queueConversationAnalysis(userId, chatId, allMessages, locale);
+}
+```
+
+**User Benefits:**
+1. **Personalized Responses**: LLM remembers user preferences across all chats
+2. **Context Efficiency**: Long conversations stay within context windows
+3. **Consistent Experience**: Same preferences apply to all conversations
+4. **Learning Over Time**: Memory improves as user interacts more
+
+**Documentation:**
+- `Documentation/USER_MEMORY_SYSTEM.md` - Complete technical documentation
+- `Documentation/MEMORY_SYSTEM_QUICKSTART.md` - Developer quick start guide
+
+**Status**: ✅ Fully functional and integrated into production chat API
 
 **Cost Tracking:**
 - [ ] Dashboard for cost monitoring
@@ -2360,6 +2579,88 @@ ON messages USING gin(to_tsvector('english', content_json::text));
 ---
 
 ## Change Log
+
+### Version 1.3 - 2025-12-03
+**User Memory System & Conversation Summarization (Advanced Week 7 Features)**
+
+**Major Features:**
+- ✅ User memory system for personalized LLM context
+- ✅ Conversation summarization for context window optimization
+- ✅ Unified conversation analyzer (memory + summarization in single pass)
+- ✅ Background processing with non-blocking analysis
+- ✅ Cost-optimized using Claude Haiku 3.5 (< 3% overhead)
+
+**User Memory System:**
+- 📝 Database schema: `user_memories` and `user_memory_updates` tables
+- 📝 Per-user memory storage (not per-chat) for consistent personalization
+- 📝 Automatic LLM-based memory extraction every 10 messages or 24 hours
+- 📝 Two-step memory update: quick decision check + full extraction
+- 📝 Token-efficient: ~500 tokens max per user memory
+- 📝 Structured memory fields: name, role, preferences, interests, patterns, context
+- 📝 Memory injected into system prompt before each chat response
+- 📝 REST API endpoints: GET/POST/PUT/DELETE at `/api/memory`
+- 📝 Analytics view: `recent_memory_updates` for monitoring
+
+**Conversation Summarization:**
+- 📝 Database schema: `chat_summaries` table with compression metrics
+- 📝 Per-chat summarization of old messages (20+ messages)
+- 📝 Progressive summarization for very long conversations
+- 📝 Keeps recent 10 messages, summarizes older ones
+- 📝 Compression ratio tracking for efficiency monitoring
+- 📝 Helper functions: `getChatSummaries()`, `getLatestChatSummary()`
+
+**Unified Conversation Analyzer:**
+- 📝 Single background service for both memory and summarization
+- 📝 Parallel processing of both analyses in one LLM call
+- 📝 Shared infrastructure: one job, one cheap model call
+- 📝 Fire-and-forget pattern: non-blocking, doesn't slow down chat
+- 📝 Uses Claude Haiku 3.5 specifically for cost optimization
+- 📝 Configuration-driven: easy to enable/disable features
+
+**Technical Implementation:**
+- Created `src/lib/db/migrations/008_user_memories.sql` - Memory schema
+- Created `src/lib/db/migrations/009_conversation_summaries.sql` - Summary schema
+- Created `src/lib/ai/memory-store.ts` - Memory CRUD operations
+- Created `src/lib/ai/memory-prompts.ts` - LLM prompts for memory extraction
+- Created `src/lib/ai/memory-analyzer.ts` - Background memory analysis
+- Created `src/lib/ai/summary-store.ts` - Summary CRUD operations
+- Created `src/lib/ai/conversation-analyzer.ts` - Unified analyzer
+- Created `src/app/api/memory/route.ts` - Memory REST API
+- Updated `src/app/api/chat/route.ts` - Integrated memory loading and analysis queuing
+
+**Bug Fixes:**
+- 🐛 Fixed PostgreSQL ambiguous column reference in `get_user_memory()` function
+  - Root cause: Subquery WHERE clause could reference parameter or column
+  - Solution: Added explicit table alias `um` to disambiguate
+  - Location: Line 136 in `008_user_memories.sql`
+
+**Cost Analysis:**
+- Memory overhead: ~0.3% of total chat cost
+- Summarization overhead: ~0.4% of total chat cost
+- Total combined overhead: < 3% of chat cost
+- Example: 100-message conversation costing $1.50 adds only $0.011 for memory + summarization
+
+**User Benefits:**
+- Personalized responses across all conversations
+- LLM remembers preferences, patterns, and context
+- Long conversations stay within context windows
+- Consistent user experience
+- Memory improves over time with more interactions
+
+**Documentation:**
+- `Documentation/USER_MEMORY_SYSTEM.md` - Complete system documentation
+- `Documentation/MEMORY_SYSTEM_QUICKSTART.md` - Quick start guide
+- Updated `CHATBOT_REBUILD_ROADMAP.md` - Added comprehensive explanation
+
+**Project Status:**
+- 🎯 Advanced Week 7 features completed early (context optimization)
+- 🎯 Significant cost optimization achieved
+- 🎯 Production-ready and fully integrated
+- 🎯 Next: Continue with Week 3 (Multi-Modal Input)
+
+**Status**: ✅ Fully functional and tested
+
+---
 
 ### Version 1.2 - 2025-12-02
 **Week 2 Completed - Full Chat Persistence & System Prompts**
