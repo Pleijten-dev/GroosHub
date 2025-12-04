@@ -100,7 +100,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { name, description, project_number, settings, status, is_pinned } = body;
+    const { name, description, project_number, settings, status } = body;
 
     // Check if at least one field is provided
     if (
@@ -108,8 +108,7 @@ export async function PATCH(
       description === undefined &&
       project_number === undefined &&
       settings === undefined &&
-      status === undefined &&
-      is_pinned === undefined
+      status === undefined
     ) {
       return NextResponse.json(
         { success: false, error: 'No fields to update' },
@@ -135,7 +134,6 @@ export async function PATCH(
     const updatedSettings =
       settings !== undefined ? JSON.stringify(settings) : JSON.stringify(currentProject.settings);
     const updatedStatus = status !== undefined ? status : currentProject.status;
-    const updatedIsPinned = is_pinned !== undefined ? is_pinned : currentProject.is_pinned;
 
     const result = await db`
       UPDATE project_projects
@@ -144,10 +142,9 @@ export async function PATCH(
           project_number = ${updatedProjectNumber},
           settings = ${updatedSettings},
           status = ${updatedStatus},
-          is_pinned = ${updatedIsPinned},
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ${id}
-      RETURNING id, org_id, name, description, project_number, settings, metadata, status, is_template, is_pinned, created_at, updated_at, last_accessed_at
+      RETURNING id, org_id, name, description, project_number, settings, metadata, status, is_template, created_at, updated_at, last_accessed_at
     `;
 
     if (result.length === 0) {
