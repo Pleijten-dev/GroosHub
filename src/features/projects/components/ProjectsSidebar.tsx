@@ -76,10 +76,10 @@ export function ProjectsSidebar({
   async function fetchChats() {
     try {
       setIsLoadingChats(true);
-      const res = await fetch('/api/chat');
+      const res = await fetch('/api/chat/conversations');
       if (res.ok) {
         const data = await res.json();
-        setChats(data.chats || []);
+        setChats(data.conversations || []);
       }
     } catch (error) {
       console.error('Failed to fetch chats:', error);
