@@ -28,6 +28,9 @@ export default function DatabaseTestPage() {
     { title: '7. Location Snapshots', tests: [] },
     { title: '8. LCA Snapshots', tests: [] },
     { title: '9. File Uploads', tests: [] },
+    { title: '10. Location Page Integration', tests: [] },
+    { title: '11. LCA Page Integration', tests: [] },
+    { title: '12. AI Assistant Integration', tests: [] },
   ]);
 
   const [isRunning, setIsRunning] = useState(false);
@@ -336,6 +339,158 @@ export default function DatabaseTestPage() {
     });
   };
 
+  // Test Location Page Integration
+  const testLocationPageIntegration = async () => {
+    await runTest(9, 'GET geocode address (Amsterdam)', async () => {
+      const res = await fetch('/api/location/geocode?address=Dam 1, Amsterdam');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (!data.latitude || !data.longitude) {
+        throw new Error('Missing coordinates in response');
+      }
+      return data;
+    });
+
+    await runTest(9, 'GET demographics data', async () => {
+      const res = await fetch('/api/location/demographics?lat=52.3676&lng=4.9041');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    });
+
+    await runTest(9, 'GET health data', async () => {
+      const res = await fetch('/api/location/health?lat=52.3676&lng=4.9041');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    });
+
+    await runTest(9, 'GET safety data', async () => {
+      const res = await fetch('/api/location/safety?lat=52.3676&lng=4.9041');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    });
+
+    await runTest(9, 'GET livability data', async () => {
+      const res = await fetch('/api/location/livability?lat=52.3676&lng=4.9041');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    });
+
+    await runTest(9, 'GET amenities (Google Places)', async () => {
+      const res = await fetch('/api/location/amenities?lat=52.3676&lng=4.9041&category=restaurant');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    });
+
+    await runTest(9, 'Save location', async () => {
+      const res = await fetch('/api/location/saved', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          address: 'Test Location Integration',
+          coordinates: { lat: 52.3676, lng: 4.9041 },
+          location_data: { test: true }
+        })
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    });
+
+    await runTest(9, 'GET saved locations', async () => {
+      const res = await fetch('/api/location/saved');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    });
+  };
+
+  // Test LCA Page Integration
+  const testLCAPageIntegration = async () => {
+    await runTest(10, 'GET LCA materials database', async () => {
+      const res = await fetch('/api/lca/materials?search=concrete');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (!data.materials || !Array.isArray(data.materials)) {
+        throw new Error('Invalid materials response format');
+      }
+      return data;
+    });
+
+    await runTest(10, 'POST calculate LCA impacts', async () => {
+      const res = await fetch('/api/lca/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_name: 'Test LCA Integration',
+          materials: [
+            { name: 'Concrete', amount: 100, unit: 'm3' }
+          ]
+        })
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    });
+
+    await runTest(10, 'GET LCA projects', async () => {
+      const res = await fetch('/api/lca/projects');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    });
+  };
+
+  // Test AI Assistant Integration
+  const testAIAssistantIntegration = async () => {
+    await runTest(11, 'GET AI models list', async () => {
+      const res = await fetch('/api/chat/models');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (!data.models || !Array.isArray(data.models)) {
+        throw new Error('Invalid models response format');
+      }
+      return data;
+    });
+
+    let testConversationId: string | null = null;
+
+    await runTest(11, 'POST create AI conversation', async () => {
+      const res = await fetch('/api/chat/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'Test AI Integration',
+          model_id: 'claude-sonnet-4.5'
+        })
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      testConversationId = data.conversation?.id || data.id;
+      return data;
+    });
+
+    await runTest(11, 'GET conversation history', async () => {
+      const res = await fetch('/api/chat/conversations');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const conversations = data.data || data.conversations || [];
+      if (conversations.length === 0) {
+        throw new Error('No conversations found');
+      }
+      return data;
+    });
+
+    if (testConversationId) {
+      await runTest(11, 'GET conversation messages', async () => {
+        const res = await fetch(`/api/chat/${testConversationId}/messages`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      });
+    }
+
+    await runTest(11, 'GET chat memory/context', async () => {
+      const res = await fetch('/api/memory');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    });
+  };
+
   const runAllTests = async () => {
     setIsRunning(true);
 
@@ -349,6 +504,9 @@ export default function DatabaseTestPage() {
       await testLocationSnapshots();
       await testLCASnapshots();
       await testFileUploads();
+      await testLocationPageIntegration();
+      await testLCAPageIntegration();
+      await testAIAssistantIntegration();
     } catch (error) {
       console.error('Test suite error:', error);
     }
@@ -478,7 +636,10 @@ export default function DatabaseTestPage() {
                           testChatMessages,
                           testLocationSnapshots,
                           testLCASnapshots,
-                          testFileUploads
+                          testFileUploads,
+                          testLocationPageIntegration,
+                          testLCAPageIntegration,
+                          testAIAssistantIntegration
                         ];
                         testFunctions[sectionIndex]();
                       }}
