@@ -37,10 +37,10 @@ BEGIN
     email,
     password,
     name,
-    image as avatar_url,
+    NULL as avatar_url,  -- Original users table doesn't have image column
     role,
     true as is_active,
-    email_verified as email_verified_at,
+    NULL as email_verified_at,  -- Original users table doesn't have email_verified column
     NULL as last_login_at,
     created_at,
     created_at as updated_at
