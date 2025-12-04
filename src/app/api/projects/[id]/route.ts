@@ -79,7 +79,7 @@ export async function GET(
       success: true,
       data: {
         ...project,
-        is_pinned: (project.settings as any)?.is_pinned || false,
+        is_pinned: Boolean(project.settings?.is_pinned),
         user_role: role,
         permissions: permissions,
         member_count: stats.member_count,
