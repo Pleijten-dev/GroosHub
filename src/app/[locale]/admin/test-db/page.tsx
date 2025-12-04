@@ -341,20 +341,42 @@ export default function DatabaseTestPage() {
 
   // Test Location Page Integration
   const testLocationPageIntegration = async () => {
-    await runTest(9, 'GET residential data (Altum AI)', async () => {
-      const res = await fetch('/api/location/residential?lat=52.3676&lng=4.9041');
+    await runTest(9, 'POST residential data (Altum AI)', async () => {
+      const res = await fetch('/api/location/residential', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          postcode: '1012JS',
+          housenumber: '1'
+        })
+      });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
     });
 
-    await runTest(9, 'GET text search (places)', async () => {
-      const res = await fetch('/api/location/text-search?query=restaurant&lat=52.3676&lng=4.9041');
+    await runTest(9, 'POST text search (places)', async () => {
+      const res = await fetch('/api/location/text-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location: { lat: 52.3676, lng: 4.9041 },
+          category: { id: 'restaurant', name: 'Restaurants' },
+          textQuery: 'restaurant'
+        })
+      });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
     });
 
-    await runTest(9, 'GET nearby places', async () => {
-      const res = await fetch('/api/location/nearby-places-new?lat=52.3676&lng=4.9041&type=restaurant');
+    await runTest(9, 'POST nearby places', async () => {
+      const res = await fetch('/api/location/nearby-places-new', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location: { lat: 52.3676, lng: 4.9041 },
+          category: { id: 'restaurant', name: 'Restaurants' }
+        })
+      });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
     });
@@ -371,8 +393,19 @@ export default function DatabaseTestPage() {
       return await res.json();
     });
 
-    await runTest(9, 'GET location snapshots', async () => {
-      const res = await fetch('/api/location/snapshots');
+    // Get user's snapshots instead of all snapshots
+    await runTest(9, 'GET user location snapshots', async () => {
+      const usersRes = await fetch('/api/admin/users');
+      if (!usersRes.ok) throw new Error('Cannot fetch users');
+      const usersData = await usersRes.json();
+      const users = usersData.users || usersData.data || [];
+
+      if (users.length === 0) {
+        return { message: 'No users to test snapshots' };
+      }
+
+      const userId = users[0].id;
+      const res = await fetch(`/api/location/snapshots?user_id=${userId}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
     });
@@ -396,8 +429,19 @@ export default function DatabaseTestPage() {
       return await res.json();
     });
 
-    await runTest(10, 'GET LCA snapshots', async () => {
-      const res = await fetch('/api/lca/snapshots');
+    // Get user's snapshots instead of all snapshots
+    await runTest(10, 'GET user LCA snapshots', async () => {
+      const usersRes = await fetch('/api/admin/users');
+      if (!usersRes.ok) throw new Error('Cannot fetch users');
+      const usersData = await usersRes.json();
+      const users = usersData.users || usersData.data || [];
+
+      if (users.length === 0) {
+        return { message: 'No users to test snapshots' };
+      }
+
+      const userId = users[0].id;
+      const res = await fetch(`/api/lca/snapshots?user_id=${userId}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
     });
