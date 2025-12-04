@@ -62,10 +62,11 @@ CREATE TABLE IF NOT EXISTS project_memory_updates (
 );
 
 -- Create indexes
-CREATE INDEX idx_memory_project ON project_memory_updates(project_id);
-CREATE INDEX idx_memory_created ON project_memory_updates(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_memory_project ON project_memory_updates(project_id);
+CREATE INDEX IF NOT EXISTS idx_memory_created ON project_memory_updates(created_at DESC);
 
--- Add updated_at trigger
+-- Add updated_at trigger (drop first if exists)
+DROP TRIGGER IF EXISTS project_memories_updated_at ON project_memories;
 CREATE TRIGGER project_memories_updated_at
   BEFORE UPDATE ON project_memories
   FOR EACH ROW
