@@ -77,6 +77,7 @@ BEGIN
   );
 
   -- Migrate saved_locations to location_snapshots
+  -- Extract data from JSONB structure
   INSERT INTO location_snapshots (
     project_id,
     user_id,
@@ -108,33 +109,40 @@ BEGIN
     pp.id as project_id,
     sl.user_id,
     sl.address,
-    sl.latitude,
-    sl.longitude,
-    sl.neighborhood_code,
-    sl.district_code,
-    sl.municipality_code,
-    COALESCE(sl.saved_date, sl.created_at::date) as snapshot_date,
+    -- Extract lat/lng from coordinates JSONB
+    (sl.coordinates->>'lat')::DECIMAL(10, 8) as latitude,
+    (sl.coordinates->>'lng')::DECIMAL(11, 8) as longitude,
+    -- Extract geographic codes from location_data if available
+    sl.location_data->'neighborhood'->>'code' as neighborhood_code,
+    sl.location_data->'district'->>'code' as district_code,
+    sl.location_data->'municipality'->>'code' as municipality_code,
+    sl.created_at::date as snapshot_date,
     1 as version_number,
     true as is_active,
-    COALESCE(sl.demographics_data, '{}'::jsonb),
-    COALESCE(sl.health_data, '{}'::jsonb),
-    COALESCE(sl.safety_data, '{}'::jsonb),
-    COALESCE(sl.livability_data, '{}'::jsonb),
-    COALESCE(sl.amenities_data, '{}'::jsonb),
-    COALESCE(sl.housing_data, '{}'::jsonb),
-    sl.overall_score,
-    COALESCE(sl.category_scores, '{}'::jsonb),
-    COALESCE(sl.data_sources, '{}'::jsonb),
-    sl.notes,
-    sl.tags,
+    -- Extract data categories from location_data
+    COALESCE(sl.location_data->'demographics', '{}'::jsonb) as demographics_data,
+    COALESCE(sl.location_data->'health', '{}'::jsonb) as health_data,
+    COALESCE(sl.location_data->'safety', '{}'::jsonb) as safety_data,
+    COALESCE(sl.location_data->'livability', '{}'::jsonb) as livability_data,
+    COALESCE(sl.location_data->'amenities', '{}'::jsonb) as amenities_data,
+    COALESCE(sl.location_data->'housing', '{}'::jsonb) as housing_data,
+    -- Extract scores if available
+    (sl.location_data->'scores'->>'overall')::DECIMAL(5, 2) as overall_score,
+    COALESCE(sl.location_data->'scores'->'categories', '{}'::jsonb) as category_scores,
+    COALESCE(sl.location_data->'metadata'->'sources', '{}'::jsonb) as data_sources,
+    NULL as notes,  -- Original table doesn't have notes field
+    NULL as tags,   -- Original table doesn't have tags field
     jsonb_build_object(
       'migrated_from', 'saved_locations',
       'original_id', sl.id,
       'original_name', sl.name,
+      'selected_pve', sl.selected_pve,
+      'selected_personas', sl.selected_personas,
+      'has_llm_rapport', (sl.llm_rapport IS NOT NULL),
       'migration_date', CURRENT_TIMESTAMP
     ) as metadata,
     sl.created_at,
-    sl.updated_at
+    COALESCE(sl.updated_at, sl.created_at) as updated_at
   FROM saved_locations sl
   JOIN project_projects pp ON pp.metadata->>'original_location_id' = sl.id::text
   WHERE NOT EXISTS (
