@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     const projectResult = await db`
       INSERT INTO project_projects (org_id, name, description, project_number, settings, is_template)
       VALUES (${session.user.org_id}, ${name.trim()}, ${description || null}, ${project_number || null}, ${JSON.stringify(settings)}, ${is_template})
-      RETURNING id, org_id, name, description, project_number, settings, metadata, status, is_template, is_pinned, created_at, updated_at, last_accessed_at
+      RETURNING id, org_id, name, description, project_number, settings, metadata, status, is_template, created_at, updated_at, last_accessed_at
     `;
 
     const project = projectResult[0];

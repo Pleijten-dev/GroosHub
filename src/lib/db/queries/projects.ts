@@ -14,7 +14,6 @@ export interface Project {
   metadata: Record<string, unknown>;
   status: string;
   is_template: boolean;
-  is_pinned: boolean;
   deleted_at: Date | null;
   created_at: Date;
   updated_at: Date;
@@ -45,7 +44,7 @@ export async function getProjectById(projectId: string): Promise<Project | null>
 
   const result = await db`
     SELECT id, org_id, name, description, project_number, settings, metadata,
-           status, is_template, is_pinned, deleted_at, created_at, updated_at, last_accessed_at
+           status, is_template, deleted_at, created_at, updated_at, last_accessed_at
     FROM project_projects
     WHERE id = ${projectId}
     AND deleted_at IS NULL
@@ -63,7 +62,7 @@ export async function getUserProjects(userId: number): Promise<ProjectWithMember
   const result = await db`
     SELECT
       p.id, p.org_id, p.name, p.description, p.project_number, p.settings, p.metadata,
-      p.status, p.is_template, p.is_pinned, p.deleted_at, p.created_at, p.updated_at, p.last_accessed_at,
+      p.status, p.is_template, p.deleted_at, p.created_at, p.updated_at, p.last_accessed_at,
       pm.role as user_role,
       pm.permissions as user_permissions
     FROM project_projects p
@@ -79,6 +78,7 @@ export async function getUserProjects(userId: number): Promise<ProjectWithMember
 
 /**
  * Get pinned projects for a user
+ * Note: Pin status stored in settings JSONB field
  */
 export async function getUserPinnedProjects(userId: number): Promise<ProjectWithMemberRole[]> {
   const db = getDbConnection();
@@ -86,14 +86,14 @@ export async function getUserPinnedProjects(userId: number): Promise<ProjectWith
   const result = await db`
     SELECT
       p.id, p.org_id, p.name, p.description, p.project_number, p.settings, p.metadata,
-      p.status, p.is_template, p.is_pinned, p.deleted_at, p.created_at, p.updated_at, p.last_accessed_at,
+      p.status, p.is_template, p.deleted_at, p.created_at, p.updated_at, p.last_accessed_at,
       pm.role as user_role,
       pm.permissions as user_permissions
     FROM project_projects p
     INNER JOIN project_members pm ON p.id = pm.project_id
     WHERE pm.user_id = ${userId}
     AND p.deleted_at IS NULL
-    AND p.is_pinned = true
+    AND (p.settings->>'is_pinned')::boolean = true
     AND pm.left_at IS NULL
     ORDER BY p.name ASC
   `;
@@ -103,6 +103,7 @@ export async function getUserPinnedProjects(userId: number): Promise<ProjectWith
 
 /**
  * Get recent projects for a user (not pinned)
+ * Note: Pin status stored in settings JSONB field
  */
 export async function getUserRecentProjects(
   userId: number,
@@ -113,14 +114,14 @@ export async function getUserRecentProjects(
   const result = await db`
     SELECT
       p.id, p.org_id, p.name, p.description, p.project_number, p.settings, p.metadata,
-      p.status, p.is_template, p.is_pinned, p.deleted_at, p.created_at, p.updated_at, p.last_accessed_at,
+      p.status, p.is_template, p.deleted_at, p.created_at, p.updated_at, p.last_accessed_at,
       pm.role as user_role,
       pm.permissions as user_permissions
     FROM project_projects p
     INNER JOIN project_members pm ON p.id = pm.project_id
     WHERE pm.user_id = ${userId}
     AND p.deleted_at IS NULL
-    AND p.is_pinned = false
+    AND COALESCE((p.settings->>'is_pinned')::boolean, false) = false
     AND pm.left_at IS NULL
     ORDER BY p.last_accessed_at DESC
     LIMIT ${limit}
@@ -199,13 +200,14 @@ export async function updateProjectLastAccessed(projectId: string): Promise<void
 
 /**
  * Toggle project pin status
+ * Note: Stores pin status in settings JSONB field
  */
 export async function toggleProjectPin(projectId: string, isPinned: boolean): Promise<void> {
   const db = getDbConnection();
 
   await db`
     UPDATE project_projects
-    SET is_pinned = ${isPinned},
+    SET settings = jsonb_set(settings, '{is_pinned}', ${JSON.stringify(isPinned)}::jsonb),
         updated_at = CURRENT_TIMESTAMP
     WHERE id = ${projectId}
   `;
