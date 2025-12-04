@@ -6,6 +6,7 @@ import { Button } from '@/shared/components/UI/Button/Button';
 import { cn } from '@/shared/utils/cn';
 import { ProjectMembers } from './ProjectMembers';
 import { ProjectFiles } from './ProjectFiles';
+import { ProjectChats } from './ProjectChats';
 
 interface ProjectOverviewProps {
   projectId: string;
@@ -275,8 +276,10 @@ export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
 
         {activeTab === 'chats' && (
           <Card>
-            <h2 className="text-xl font-semibold mb-base">{t.chats}</h2>
-            <p className="text-gray-600">Chat management coming soon...</p>
+            <ProjectChats
+              projectId={projectId}
+              locale={locale}
+            />
           </Card>
         )}
 
