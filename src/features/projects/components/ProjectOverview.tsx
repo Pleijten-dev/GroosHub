@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/shared/components/UI/Card/Card';
 import { Button } from '@/shared/components/UI/Button/Button';
 import { cn } from '@/shared/utils/cn';
+import { ProjectMembers } from './ProjectMembers';
 
 interface ProjectOverviewProps {
   projectId: string;
@@ -287,8 +288,11 @@ export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
 
         {activeTab === 'members' && (
           <Card>
-            <h2 className="text-xl font-semibold mb-base">{t.members}</h2>
-            <p className="text-gray-600">Member management coming soon...</p>
+            <ProjectMembers
+              projectId={projectId}
+              locale={locale}
+              canManageMembers={project.permissions.can_manage_members}
+            />
           </Card>
         )}
 
