@@ -510,7 +510,7 @@ export default function DatabaseTestPage() {
                                   {test.message}
                                 </p>
                               )}
-                              {test.data && (
+                              {test.data !== undefined && (
                                 <details className="mt-sm">
                                   <summary className="text-sm text-gray-600 cursor-pointer hover:text-gray-900">
                                     View response data
