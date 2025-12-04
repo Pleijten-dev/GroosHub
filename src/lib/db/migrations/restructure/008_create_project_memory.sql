@@ -1,73 +1,73 @@
 -- ================================================
 -- Migration 008: Create Project Memory System
--- Description: Contextual memory for AI agents
+-- Description: Contextual memory for AI agents (consolidated format)
 -- Date: 2025-12-03
+-- Updated: 2025-12-04 - Changed to consolidated memory format
 -- ================================================
 
 BEGIN;
 
--- Create project_memory table
-CREATE TABLE IF NOT EXISTS project_memory (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+-- Create project_memories table (consolidated memory per project)
+CREATE TABLE IF NOT EXISTS project_memories (
+  -- Primary key is project_id (one memory record per project)
+  project_id UUID PRIMARY KEY REFERENCES project_projects(id) ON DELETE CASCADE,
 
-  -- Project Linkage (required)
-  project_id UUID NOT NULL REFERENCES project_projects(id) ON DELETE CASCADE,
+  -- Consolidated Memory Content
+  memory_content TEXT NOT NULL,
 
-  -- Memory Entry Details
-  memory_type VARCHAR(50) NOT NULL, -- 'fact', 'preference', 'decision', 'context', 'note'
-  content TEXT NOT NULL,
+  -- Project Summary
+  project_summary TEXT,
 
-  -- Source Information
-  source_type VARCHAR(50), -- 'chat', 'file', 'location', 'lca', 'manual'
-  source_id UUID, -- Reference to chat_id, file_id, snapshot_id, etc.
+  -- Structured Data
+  key_decisions JSONB DEFAULT '[]'::jsonb, -- Array of decision objects
+  preferences JSONB DEFAULT '{}'::jsonb,    -- Project/team preferences
+  patterns JSONB DEFAULT '{}'::jsonb,       -- Recurring patterns
+  context JSONB DEFAULT '{}'::jsonb,        -- Additional context
 
-  -- Importance and Relevance
-  importance_score DECIMAL(3, 2) DEFAULT 0.5, -- 0.0 to 1.0
-  relevance_score DECIMAL(3, 2) DEFAULT 1.0,  -- 0.0 to 1.0
-  access_count INTEGER DEFAULT 0,
-  last_accessed_at TIMESTAMP,
+  -- Update Tracking
+  total_updates INTEGER DEFAULT 0,
+  last_analysis_at TIMESTAMP,
 
-  -- Vector Embedding (for semantic search)
-  embedding vector(1536), -- OpenAI embedding dimension
-
-  -- Categorization
-  category VARCHAR(100),
-  tags TEXT[],
-
-  -- Temporal Information
-  valid_from TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  valid_until TIMESTAMP, -- NULL = always valid
-  is_active BOOLEAN DEFAULT true,
-
-  -- User Association
-  created_by_user_id INTEGER NOT NULL REFERENCES user_accounts(id),
-  updated_by_user_id INTEGER REFERENCES user_accounts(id),
-
-  -- Metadata
-  metadata JSONB DEFAULT '{}'::jsonb,
+  -- Token Management
+  token_count INTEGER DEFAULT 0,
 
   -- Timestamps
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create indexes
-CREATE INDEX idx_memory_project ON project_memory(project_id);
-CREATE INDEX idx_memory_type ON project_memory(memory_type);
-CREATE INDEX idx_memory_active ON project_memory(is_active) WHERE is_active = true;
-CREATE INDEX idx_memory_importance ON project_memory(importance_score DESC);
-CREATE INDEX idx_memory_created ON project_memory(created_at DESC);
-CREATE INDEX idx_memory_accessed ON project_memory(last_accessed_at DESC);
-CREATE INDEX idx_memory_category ON project_memory(category);
-CREATE INDEX idx_memory_valid ON project_memory(valid_from, valid_until);
+-- Create project_memory_updates table (audit trail)
+CREATE TABLE IF NOT EXISTS project_memory_updates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
--- Create embedding index for vector similarity search (if pgvector extension is available)
--- Uncomment if pgvector is installed:
--- CREATE INDEX idx_memory_embedding ON project_memory USING ivfflat (embedding vector_cosine_ops);
+  -- Project Reference
+  project_id UUID NOT NULL REFERENCES project_projects(id) ON DELETE CASCADE,
+
+  -- Change Details
+  previous_content TEXT,
+  new_content TEXT,
+  change_summary TEXT,
+  change_type VARCHAR(50), -- 'addition', 'modification', 'removal', 'consolidation'
+
+  -- Trigger Information
+  trigger_source VARCHAR(50), -- 'chat', 'note', 'task', 'file_upload', 'manual'
+  trigger_id UUID, -- ID of chat, note, etc.
+  triggered_by_user_id INTEGER REFERENCES user_accounts(id),
+
+  -- Metadata
+  metadata JSONB DEFAULT '{}'::jsonb,
+
+  -- Timestamp
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create indexes
+CREATE INDEX idx_memory_project ON project_memory_updates(project_id);
+CREATE INDEX idx_memory_created ON project_memory_updates(created_at DESC);
 
 -- Add updated_at trigger
-CREATE TRIGGER project_memory_updated_at
-  BEFORE UPDATE ON project_memory
+CREATE TRIGGER project_memories_updated_at
+  BEFORE UPDATE ON project_memories
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
@@ -75,6 +75,6 @@ COMMIT;
 
 -- Verification
 SELECT
-  'project_memory' as table_name,
+  'project_memories' as table_name,
   COUNT(*) as row_count
-FROM project_memory;
+FROM project_memories;
