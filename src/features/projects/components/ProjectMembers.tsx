@@ -323,7 +323,7 @@ export function ProjectMembers({ projectId, locale, canManageMembers }: ProjectM
                 <select
                   id="invite-role"
                   value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value as any)}
+                  onChange={(e) => setInviteRole(e.target.value as 'member' | 'admin' | 'viewer')}
                   className="w-full px-base py-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                   disabled={isSubmitting}
                 >
