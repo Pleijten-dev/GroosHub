@@ -341,62 +341,38 @@ export default function DatabaseTestPage() {
 
   // Test Location Page Integration
   const testLocationPageIntegration = async () => {
-    await runTest(9, 'GET geocode address (Amsterdam)', async () => {
-      const res = await fetch('/api/location/geocode?address=Dam 1, Amsterdam');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (!data.latitude || !data.longitude) {
-        throw new Error('Missing coordinates in response');
-      }
-      return data;
-    });
-
-    await runTest(9, 'GET demographics data', async () => {
-      const res = await fetch('/api/location/demographics?lat=52.3676&lng=4.9041');
+    await runTest(9, 'GET residential data (Altum AI)', async () => {
+      const res = await fetch('/api/location/residential?lat=52.3676&lng=4.9041');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
     });
 
-    await runTest(9, 'GET health data', async () => {
-      const res = await fetch('/api/location/health?lat=52.3676&lng=4.9041');
+    await runTest(9, 'GET text search (places)', async () => {
+      const res = await fetch('/api/location/text-search?query=restaurant&lat=52.3676&lng=4.9041');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
     });
 
-    await runTest(9, 'GET safety data', async () => {
-      const res = await fetch('/api/location/safety?lat=52.3676&lng=4.9041');
+    await runTest(9, 'GET nearby places', async () => {
+      const res = await fetch('/api/location/nearby-places-new?lat=52.3676&lng=4.9041&type=restaurant');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
     });
 
-    await runTest(9, 'GET livability data', async () => {
-      const res = await fetch('/api/location/livability?lat=52.3676&lng=4.9041');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
-    });
-
-    await runTest(9, 'GET amenities (Google Places)', async () => {
-      const res = await fetch('/api/location/amenities?lat=52.3676&lng=4.9041&category=restaurant');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
-    });
-
-    await runTest(9, 'Save location', async () => {
-      const res = await fetch('/api/location/saved', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          address: 'Test Location Integration',
-          coordinates: { lat: 52.3676, lng: 4.9041 },
-          location_data: { test: true }
-        })
-      });
+    await runTest(9, 'GET location usage stats', async () => {
+      const res = await fetch('/api/location/usage-stats');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
     });
 
     await runTest(9, 'GET saved locations', async () => {
       const res = await fetch('/api/location/saved');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    });
+
+    await runTest(9, 'GET location snapshots', async () => {
+      const res = await fetch('/api/location/snapshots');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
     });
@@ -407,26 +383,11 @@ export default function DatabaseTestPage() {
     await runTest(10, 'GET LCA materials database', async () => {
       const res = await fetch('/api/lca/materials?search=concrete');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (!data.materials || !Array.isArray(data.materials)) {
+      const response = await res.json();
+      if (!response.success || !response.data || !Array.isArray(response.data)) {
         throw new Error('Invalid materials response format');
       }
-      return data;
-    });
-
-    await runTest(10, 'POST calculate LCA impacts', async () => {
-      const res = await fetch('/api/lca/calculate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          project_name: 'Test LCA Integration',
-          materials: [
-            { name: 'Concrete', amount: 100, unit: 'm3' }
-          ]
-        })
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
+      return response;
     });
 
     await runTest(10, 'GET LCA projects', async () => {
@@ -434,20 +395,16 @@ export default function DatabaseTestPage() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
     });
+
+    await runTest(10, 'GET LCA snapshots', async () => {
+      const res = await fetch('/api/lca/snapshots');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    });
   };
 
   // Test AI Assistant Integration
   const testAIAssistantIntegration = async () => {
-    await runTest(11, 'GET AI models list', async () => {
-      const res = await fetch('/api/chat/models');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (!data.models || !Array.isArray(data.models)) {
-        throw new Error('Invalid models response format');
-      }
-      return data;
-    });
-
     let testConversationId: string | null = null;
 
     await runTest(11, 'POST create AI conversation', async () => {
