@@ -147,7 +147,8 @@ export default function DatabaseTestPage() {
     await runTest(2, 'GET project statistics', async () => {
       const projectsRes = await fetch('/api/projects');
       if (!projectsRes.ok) throw new Error(`HTTP ${projectsRes.status}`);
-      const { projects } = await projectsRes.json();
+      const projectsData = await projectsRes.json();
+      const projects = projectsData.data || projectsData.projects || [];
 
       if (projects.length === 0) {
         return { message: 'No projects to test' };
@@ -164,7 +165,8 @@ export default function DatabaseTestPage() {
   const testProjectMembers = async () => {
     const projectsRes = await fetch('/api/projects');
     if (!projectsRes.ok) throw new Error('Cannot fetch projects');
-    const { projects } = await projectsRes.json();
+    const projectsData = await projectsRes.json();
+    const projects = projectsData.data || projectsData.projects || [];
 
     if (projects.length === 0) {
       updateTest(3, 'Project Members', {
@@ -209,7 +211,8 @@ export default function DatabaseTestPage() {
   const testChatMessages = async () => {
     const chatsRes = await fetch('/api/chat/conversations');
     if (!chatsRes.ok) throw new Error('Cannot fetch chats');
-    const { conversations } = await chatsRes.json();
+    const chatsData = await chatsRes.json();
+    const conversations = chatsData.data || chatsData.conversations || [];
 
     if (conversations.length === 0) {
       updateTest(5, 'Chat Messages', {
@@ -232,7 +235,8 @@ export default function DatabaseTestPage() {
   const testLocationSnapshots = async () => {
     const projectsRes = await fetch('/api/projects');
     if (!projectsRes.ok) throw new Error('Cannot fetch projects');
-    const { projects } = await projectsRes.json();
+    const projectsData = await projectsRes.json();
+    const projects = projectsData.data || projectsData.projects || [];
 
     if (projects.length === 0) {
       updateTest(6, 'Location Snapshots', {
@@ -272,7 +276,8 @@ export default function DatabaseTestPage() {
   const testLCASnapshots = async () => {
     const projectsRes = await fetch('/api/projects');
     if (!projectsRes.ok) throw new Error('Cannot fetch projects');
-    const { projects } = await projectsRes.json();
+    const projectsData = await projectsRes.json();
+    const projects = projectsData.data || projectsData.projects || [];
 
     if (projects.length === 0) {
       updateTest(7, 'LCA Snapshots', {
@@ -311,7 +316,8 @@ export default function DatabaseTestPage() {
   const testFileUploads = async () => {
     const projectsRes = await fetch('/api/projects');
     if (!projectsRes.ok) throw new Error('Cannot fetch projects');
-    const { projects } = await projectsRes.json();
+    const projectsData = await projectsRes.json();
+    const projects = projectsData.data || projectsData.projects || [];
 
     if (projects.length === 0) {
       updateTest(8, 'File Uploads', {
