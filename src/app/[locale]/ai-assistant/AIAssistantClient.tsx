@@ -18,7 +18,7 @@ export function AIAssistantClient({
   userEmail,
   userName,
   chatId,
-  projectId
+  projectId // Note: projectId support will be added to ChatUI in future enhancement
 }: AIAssistantClientProps) {
   const { isCollapsed, toggleSidebar, isLoaded } = useProjectsSidebar();
 
@@ -50,8 +50,7 @@ export function AIAssistantClient({
       >
         <ChatUI
           locale={locale as 'nl' | 'en'}
-          initialChatId={chatId}
-          initialProjectId={projectId}
+          chatId={chatId}
         />
       </main>
     </div>
