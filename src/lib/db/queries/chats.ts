@@ -265,3 +265,45 @@ export async function getChatTokenUsage(chatId: string) {
       parseInt(result[0].total_input_tokens) + parseInt(result[0].total_output_tokens),
   };
 }
+
+/**
+ * Create a new chat conversation
+ */
+export async function createChatConversation(params: {
+  userId: number;
+  title: string;
+  modelId: string;
+  projectId?: string | null;
+  modelSettings?: Record<string, unknown>;
+}): Promise<ChatConversation> {
+  const db = getDbConnection();
+
+  const result = await db`
+    INSERT INTO chat_conversations (
+      user_id,
+      project_id,
+      title,
+      model_id,
+      model_settings,
+      metadata,
+      created_at,
+      updated_at,
+      last_message_at
+    )
+    VALUES (
+      ${params.userId},
+      ${params.projectId || null},
+      ${params.title},
+      ${params.modelId},
+      ${JSON.stringify(params.modelSettings || {})},
+      ${JSON.stringify({})},
+      CURRENT_TIMESTAMP,
+      CURRENT_TIMESTAMP,
+      CURRENT_TIMESTAMP
+    )
+    RETURNING id, user_id, project_id, title, model_id, model_settings, metadata,
+              created_at, updated_at, last_message_at
+  `;
+
+  return result[0] as ChatConversation;
+}
