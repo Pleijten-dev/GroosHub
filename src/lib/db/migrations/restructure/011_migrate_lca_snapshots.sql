@@ -45,98 +45,53 @@ SELECT
   'Building life cycle (cradle to grave)' as system_boundary,  -- Default value
   'Economic allocation' as allocation_method,  -- Default value
 
-  -- Aggregate processes
-  COALESCE(
-    (SELECT jsonb_agg(
-      jsonb_build_object(
-        'id', proc.id,
-        'name', proc.name,
-        'category', proc.category,
-        'amount', proc.amount,
-        'unit', proc.unit,
-        'data', proc.data
-      )
-    )
-    FROM lca_processes proc
-    WHERE proc.project_id = lp.id),
-    '[]'::jsonb
-  ) as processes,
+  -- Processes: Empty array (no separate lca_processes table exists)
+  '[]'::jsonb as processes,
 
-  -- Aggregate flows
-  COALESCE(
-    (SELECT jsonb_agg(
-      jsonb_build_object(
-        'id', flow.id,
-        'name', flow.name,
-        'type', flow.type,
-        'amount', flow.amount,
-        'unit', flow.unit,
-        'data', flow.data
-      )
-    )
-    FROM lca_flows flow
-    WHERE flow.project_id = lp.id),
-    '[]'::jsonb
-  ) as flows,
+  -- Flows: Empty array (no separate lca_flows table exists)
+  '[]'::jsonb as flows,
 
-  -- Aggregate impact categories
-  COALESCE(
-    (SELECT jsonb_agg(
-      jsonb_build_object(
-        'id', ic.id,
-        'name', ic.name,
-        'unit', ic.unit,
-        'value', ic.value
-      )
+  -- Impact categories: Build from existing GWP results
+  jsonb_build_array(
+    jsonb_build_object(
+      'name', 'Global Warming Potential',
+      'unit', 'kg CO2-eq',
+      'value', lp.total_gwp_sum
     )
-    FROM lca_impact_categories ic
-    WHERE ic.project_id = lp.id),
-    '[]'::jsonb
   ) as impact_categories,
 
-  -- Aggregate results
-  COALESCE(
-    (SELECT jsonb_object_agg(
-      res.category,
-      jsonb_build_object(
-        'value', res.value,
-        'unit', res.unit,
-        'data', res.data
-      )
-    )
-    FROM lca_results res
-    WHERE res.project_id = lp.id),
-    '{}'::jsonb
+  -- Results: Build from existing total_gwp_* columns
+  jsonb_build_object(
+    'A1-A3', jsonb_build_object('value', lp.total_gwp_a1_a3, 'unit', 'kg CO2-eq', 'description', 'Product stage'),
+    'A4', jsonb_build_object('value', lp.total_gwp_a4, 'unit', 'kg CO2-eq', 'description', 'Transport'),
+    'A5', jsonb_build_object('value', lp.total_gwp_a5, 'unit', 'kg CO2-eq', 'description', 'Construction'),
+    'B4', jsonb_build_object('value', lp.total_gwp_b4, 'unit', 'kg CO2-eq', 'description', 'Replacement'),
+    'C', jsonb_build_object('value', lp.total_gwp_c, 'unit', 'kg CO2-eq', 'description', 'End of life'),
+    'D', jsonb_build_object('value', lp.total_gwp_d, 'unit', 'kg CO2-eq', 'description', 'Benefits beyond'),
+    'Total', jsonb_build_object('value', lp.total_gwp_sum, 'unit', 'kg CO2-eq', 'description', 'Total A-C'),
+    'Per_m2_year', jsonb_build_object('value', lp.total_gwp_per_m2_year, 'unit', 'kg CO2-eq/m²/year', 'description', 'Normalized'),
+    'Operational', jsonb_build_object('value', lp.operational_carbon, 'unit', 'kg CO2-eq', 'description', 'B6 operational'),
+    'Total_Carbon', jsonb_build_object('value', lp.total_carbon, 'unit', 'kg CO2-eq', 'description', 'Embodied + operational')
   ) as results,
 
-  -- Aggregate parameters
-  COALESCE(
-    (SELECT jsonb_object_agg(
-      param.name,
-      jsonb_build_object(
-        'value', param.value,
-        'unit', param.unit,
-        'description', param.description
-      )
-    )
-    FROM lca_parameters param
-    WHERE param.project_id = lp.id),
-    '{}'::jsonb
+  -- Parameters: Build from existing project data
+  jsonb_build_object(
+    'gross_floor_area', jsonb_build_object('value', lp.gross_floor_area, 'unit', 'm²', 'description', 'Gross floor area'),
+    'building_type', jsonb_build_object('value', lp.building_type, 'unit', '', 'description', 'Type of building'),
+    'construction_system', jsonb_build_object('value', lp.construction_system, 'unit', '', 'description', 'Construction system'),
+    'floors', jsonb_build_object('value', lp.floors, 'unit', '', 'description', 'Number of floors'),
+    'study_period', jsonb_build_object('value', lp.study_period, 'unit', 'years', 'description', 'Study period'),
+    'location', jsonb_build_object('value', lp.location, 'unit', '', 'description', 'Project location'),
+    'energy_label', jsonb_build_object('value', lp.energy_label, 'unit', '', 'description', 'Energy label'),
+    'heating_system', jsonb_build_object('value', lp.heating_system, 'unit', '', 'description', 'Heating system'),
+    'annual_gas_use', jsonb_build_object('value', lp.annual_gas_use, 'unit', 'm³/year', 'description', 'Annual gas consumption'),
+    'annual_electricity', jsonb_build_object('value', lp.annual_electricity, 'unit', 'kWh/year', 'description', 'Annual electricity consumption'),
+    'mpg_reference_value', jsonb_build_object('value', lp.mpg_reference_value, 'unit', 'kg CO2/m²/year', 'description', 'MPG reference value'),
+    'is_compliant', jsonb_build_object('value', lp.is_compliant, 'unit', '', 'description', 'MPG compliant')
   ) as parameters,
 
-  -- Aggregate comparisons
-  COALESCE(
-    (SELECT jsonb_agg(
-      jsonb_build_object(
-        'id', comp.id,
-        'name', comp.name,
-        'data', comp.data
-      )
-    )
-    FROM lca_comparisons comp
-    WHERE comp.project_id = lp.id),
-    '[]'::jsonb
-  ) as comparisons,
+  -- Comparisons: Empty array (no separate lca_comparisons table exists)
+  '[]'::jsonb as comparisons,
 
   'completed' as calculation_status,
   lp.updated_at as last_calculated_at,
