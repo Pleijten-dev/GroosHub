@@ -8,7 +8,7 @@ interface TestResult {
   name: string;
   status: 'pending' | 'running' | 'success' | 'error';
   message?: string;
-  data?: any;
+  data?: unknown;
   duration?: number;
 }
 
@@ -66,7 +66,7 @@ export default function DatabaseTestPage() {
   const runTest = async (
     sectionIndex: number,
     testName: string,
-    testFn: () => Promise<any>
+    testFn: () => Promise<unknown>
   ) => {
     const startTime = Date.now();
     updateTest(sectionIndex, testName, { status: 'running' });
@@ -81,11 +81,12 @@ export default function DatabaseTestPage() {
         duration,
         message: `✓ Completed in ${duration}ms`
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       const duration = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       updateTest(sectionIndex, testName, {
         status: 'error',
-        message: error.message || 'Unknown error',
+        message: errorMessage,
         duration
       });
     }
