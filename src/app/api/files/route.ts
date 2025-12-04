@@ -28,42 +28,42 @@ export async function GET(request: NextRequest) {
       // Get files for specific project
       files = await db`
         SELECT
-          cf.id,
-          cf.file_name,
-          cf.file_type,
-          cf.mime_type,
-          cf.file_size,
-          cf.storage_url,
-          cf.is_indexed,
-          cf.chunk_count,
-          cf.created_at,
-          cf.chat_id,
+          f.id,
+          f.filename as file_name,
+          f.file_category as file_type,
+          f.mime_type,
+          f.file_size_bytes as file_size,
+          f.storage_url,
+          f.processing_status,
+          f.created_at,
+          f.chat_id,
           u.name as user_name
-        FROM chat_files cf
-        LEFT JOIN user_accounts u ON cf.uploaded_by_user_id = u.id
-        WHERE cf.project_id = ${projectId}
-        ORDER BY cf.created_at DESC
+        FROM file_uploads f
+        LEFT JOIN user_accounts u ON f.user_id = u.id
+        WHERE f.project_id = ${projectId}
+        AND f.deleted_at IS NULL
+        ORDER BY f.created_at DESC
       `;
     } else {
       // Get all files for user (across all their projects)
       files = await db`
         SELECT
-          cf.id,
-          cf.file_name,
-          cf.file_type,
-          cf.mime_type,
-          cf.file_size,
-          cf.storage_url,
-          cf.is_indexed,
-          cf.chunk_count,
-          cf.created_at,
-          cf.chat_id,
-          cf.project_id,
+          f.id,
+          f.filename as file_name,
+          f.file_category as file_type,
+          f.mime_type,
+          f.file_size_bytes as file_size,
+          f.storage_url,
+          f.processing_status,
+          f.created_at,
+          f.chat_id,
+          f.project_id,
           u.name as user_name
-        FROM chat_files cf
-        LEFT JOIN user_accounts u ON cf.uploaded_by_user_id = u.id
-        WHERE cf.uploaded_by_user_id = ${session.user.id}
-        ORDER BY cf.created_at DESC
+        FROM file_uploads f
+        LEFT JOIN user_accounts u ON f.user_id = u.id
+        WHERE f.user_id = ${session.user.id}
+        AND f.deleted_at IS NULL
+        ORDER BY f.created_at DESC
       `;
     }
 

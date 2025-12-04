@@ -13,12 +13,11 @@ interface ProjectFilesProps {
 interface FileUpload {
   id: string;
   file_name: string;
-  file_type: string;
+  file_type: string | null;
   mime_type: string;
   file_size: number;
   storage_url: string | null;
-  is_indexed: boolean;
-  chunk_count: number;
+  processing_status: string;
   created_at: string;
   user_name: string;
   chat_id: string | null;
@@ -34,39 +33,19 @@ export function ProjectFiles({ projectId, locale, canManageFiles }: ProjectFiles
       files: 'Bestanden',
       uploadFile: 'Bestand Uploaden',
       noFiles: 'Nog geen bestanden',
-      fileName: 'Bestandsnaam',
-      type: 'Type',
-      size: 'Grootte',
-      uploaded: 'Geüpload',
       uploadedBy: 'Geüpload door',
-      indexed: 'Geïndexeerd',
-      download: 'Downloaden',
-      delete: 'Verwijderen',
       confirmDelete: 'Weet je zeker dat je dit bestand wilt verwijderen?',
       loading: 'Laden...',
-      errorLoading: 'Fout bij laden bestanden',
-      yes: 'Ja',
-      no: 'Nee',
-      chunks: 'chunks'
+      errorLoading: 'Fout bij laden bestanden'
     },
     en: {
       files: 'Files',
       uploadFile: 'Upload File',
       noFiles: 'No files yet',
-      fileName: 'File Name',
-      type: 'Type',
-      size: 'Size',
-      uploaded: 'Uploaded',
       uploadedBy: 'Uploaded by',
-      indexed: 'Indexed',
-      download: 'Download',
-      delete: 'Delete',
       confirmDelete: 'Are you sure you want to delete this file?',
       loading: 'Loading...',
-      errorLoading: 'Error loading files',
-      yes: 'Yes',
-      no: 'No',
-      chunks: 'chunks'
+      errorLoading: 'Error loading files'
     }
   };
 
@@ -194,15 +173,16 @@ export function ProjectFiles({ projectId, locale, canManageFiles }: ProjectFiles
                   <div className="text-xs text-gray-600 mt-xs flex items-center gap-md flex-wrap">
                     <span>{formatFileSize(file.file_size)}</span>
                     <span>•</span>
-                    <span>{file.file_type}</span>
-                    {file.is_indexed && (
-                      <>
-                        <span>•</span>
-                        <span className="text-green-600">
-                          {t.indexed} ({file.chunk_count} {t.chunks})
-                        </span>
-                      </>
-                    )}
+                    <span>{file.file_type || 'unknown'}</span>
+                    <span>•</span>
+                    <span className={cn(
+                      file.processing_status === 'completed' && 'text-green-600',
+                      file.processing_status === 'processing' && 'text-blue-600',
+                      file.processing_status === 'failed' && 'text-red-600',
+                      file.processing_status === 'pending' && 'text-gray-500'
+                    )}>
+                      {file.processing_status}
+                    </span>
                   </div>
                   <div className="text-xs text-gray-500 mt-xs">
                     {t.uploadedBy} {file.user_name} • {new Date(file.created_at).toLocaleDateString(locale)}
