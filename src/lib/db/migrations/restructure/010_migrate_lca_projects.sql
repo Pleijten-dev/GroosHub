@@ -36,22 +36,23 @@ BEGIN
     groosman_org_id,
     name,
     description,
-    NULL as project_number,
+    project_number,
     jsonb_build_object(
-      'lca_database', database_source,
-      'lca_version', database_version,
-      'functional_unit', functional_unit
+      'gross_floor_area', gross_floor_area,
+      'building_type', building_type,
+      'construction_system', construction_system,
+      'floors', floors,
+      'study_period', study_period,
+      'location', location
     ) as settings,
     jsonb_build_object(
       'migrated_from', 'lca_projects',
-      'original_id', id
+      'original_id', id,
+      'is_public', is_public,
+      'is_compliant', is_compliant
     ) as metadata,
-    CASE
-      WHEN status = 'active' THEN 'active'
-      WHEN status = 'archived' THEN 'archived'
-      ELSE 'active'
-    END as status,
-    false as is_template,
+    'active' as status,  -- Original lca_projects doesn't have status column
+    is_template,
     created_at,
     updated_at,
     COALESCE(updated_at, created_at) as last_accessed_at
