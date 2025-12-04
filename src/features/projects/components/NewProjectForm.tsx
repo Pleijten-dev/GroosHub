@@ -92,7 +92,7 @@ export function NewProjectForm({ locale }: NewProjectFormProps) {
       const data = await res.json();
 
       // Redirect to the new project
-      router.push(`/${locale}/projects/${data.project.id}`);
+      router.push(`/${locale}/projects/${data.data.id}`);
     } catch (err) {
       console.error('Failed to create project:', err);
       setError(err instanceof Error ? err.message : t.error);
