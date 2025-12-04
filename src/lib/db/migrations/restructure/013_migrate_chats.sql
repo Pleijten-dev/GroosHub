@@ -24,7 +24,7 @@ SELECT
   c.user_id,
   NULL as project_id, -- All existing chats are private (no project)
   c.title,
-  'grok-beta' as model_id, -- Default model (original chats table doesn't have model column)
+  'claude-sonnet-4.5' as model_id, -- Default model (original chats table doesn't have model column)
   '{}'::jsonb as model_settings, -- Default empty settings (original doesn't have this column)
   jsonb_build_object(
     'migrated_from', 'chats',
