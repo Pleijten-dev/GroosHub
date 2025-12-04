@@ -113,7 +113,7 @@ export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
       }
 
       const data = await res.json();
-      setProject(data.project);
+      setProject(data.data);
     } catch (err) {
       console.error('Failed to fetch project:', err);
       setError(t.error);

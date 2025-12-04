@@ -60,7 +60,11 @@ export async function GET(
       success: true,
       data: {
         ...project,
-        stats,
+        member_count: stats.member_count,
+        file_count: stats.file_count,
+        chat_count: stats.chat_count,
+        location_count: stats.location_snapshot_count,
+        lca_count: stats.lca_snapshot_count,
       },
     });
   } catch (error) {
