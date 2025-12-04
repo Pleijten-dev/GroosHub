@@ -41,9 +41,9 @@ SELECT
   CURRENT_DATE as snapshot_date,
   1 as version_number,
   true as is_active,
-  lp.functional_unit,
-  lp.system_boundary,
-  lp.allocation_method,
+  CONCAT(lp.gross_floor_area, ' m² GFA over ', lp.study_period, ' years') as functional_unit,  -- Derived from existing data
+  'Building life cycle (cradle to grave)' as system_boundary,  -- Default value
+  'Economic allocation' as allocation_method,  -- Default value
 
   -- Aggregate processes
   COALESCE(
@@ -140,8 +140,8 @@ SELECT
 
   'completed' as calculation_status,
   lp.updated_at as last_calculated_at,
-  lp.database_source,
-  lp.database_version,
+  'National Environmental Database' as database_source,  -- Default value for existing projects
+  '3.0' as database_version,  -- Default version
   NULL as notes,
   jsonb_build_object(
     'migrated_from', 'lca_projects',
