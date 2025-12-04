@@ -5,6 +5,7 @@ import { Card } from '@/shared/components/UI/Card/Card';
 import { Button } from '@/shared/components/UI/Button/Button';
 import { cn } from '@/shared/utils/cn';
 import { ProjectMembers } from './ProjectMembers';
+import { ProjectFiles } from './ProjectFiles';
 
 interface ProjectOverviewProps {
   projectId: string;
@@ -281,8 +282,11 @@ export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
 
         {activeTab === 'files' && (
           <Card>
-            <h2 className="text-xl font-semibold mb-base">{t.files}</h2>
-            <p className="text-gray-600">File management coming soon...</p>
+            <ProjectFiles
+              projectId={projectId}
+              locale={locale}
+              canManageFiles={project.permissions.can_manage_files}
+            />
           </Card>
         )}
 
