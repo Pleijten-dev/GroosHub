@@ -56,11 +56,13 @@ CREATE TABLE IF NOT EXISTS location_snapshots (
 
   -- Timestamps
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-  -- Ensure only one active snapshot per project
-  UNIQUE (project_id, is_active) WHERE is_active = true
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Ensure only one active snapshot per project (partial unique index)
+CREATE UNIQUE INDEX idx_location_snapshots_active_project
+ON location_snapshots(project_id, is_active)
+WHERE is_active = true;
 
 -- Create indexes
 CREATE INDEX idx_location_project ON location_snapshots(project_id);
