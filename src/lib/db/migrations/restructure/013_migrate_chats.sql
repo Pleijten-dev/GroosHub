@@ -24,14 +24,14 @@ SELECT
   c.user_id,
   NULL as project_id, -- All existing chats are private (no project)
   c.title,
-  c.model,
-  COALESCE(c.model_settings, '{}'::jsonb),
+  'grok-beta' as model_id, -- Default model (original chats table doesn't have model column)
+  '{}'::jsonb as model_settings, -- Default empty settings (original doesn't have this column)
   jsonb_build_object(
     'migrated_from', 'chats',
     'original_id', c.id
   ) as metadata,
   c.created_at,
-  c.created_at as updated_at,
+  COALESCE(c.updated_at, c.created_at) as updated_at,
   COALESCE(
     (SELECT MAX(created_at) FROM chats_messages WHERE chat_id = c.id),
     c.created_at
@@ -60,11 +60,11 @@ SELECT
   cm.chat_id,
   cm.role,
   cm.content,
-  COALESCE(cm.content_json, NULL),
-  COALESCE(cm.content_encrypted, false),
-  cm.model,
-  cm.input_tokens,
-  cm.output_tokens,
+  NULL as content_json, -- Original chats_messages doesn't have this column
+  false as content_encrypted, -- Original doesn't have this column
+  NULL as model_id, -- Original doesn't have model column
+  NULL as input_tokens, -- Original doesn't have token tracking
+  NULL as output_tokens, -- Original doesn't have token tracking
   jsonb_build_object(
     'migrated_from', 'chats_messages',
     'original_id', cm.id
@@ -88,7 +88,7 @@ SELECT
   cmv.message_id,
   cmv.user_id,
   cmv.is_upvoted,
-  cmv.feedback,
+  NULL as feedback, -- Original chats_messages_votes doesn't have feedback column
   cmv.created_at,
   cmv.created_at as updated_at
 FROM chats_messages_votes cmv
