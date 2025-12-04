@@ -64,7 +64,7 @@ export function ProjectsSidebar({
       const res = await fetch('/api/projects');
       if (res.ok) {
         const data = await res.json();
-        setProjects(data.projects || []);
+        setProjects(data.data || []);
       }
     } catch (error) {
       console.error('Failed to fetch projects:', error);

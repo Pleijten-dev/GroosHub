@@ -13,7 +13,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const conversations = await getUserChats(Number(session.user.id));
+    // Get query parameters
+    const { searchParams } = new URL(request.url);
+    const projectId = searchParams.get('project_id');
+
+    let conversations = await getUserChats(Number(session.user.id));
+
+    // Filter by project_id if provided
+    if (projectId) {
+      conversations = conversations.filter(chat => chat.project_id === projectId);
+    }
+
     return NextResponse.json({ conversations });
 
   } catch (error) {

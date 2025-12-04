@@ -67,10 +67,10 @@ export function ProjectChats({ projectId, locale }: ProjectChatsProps) {
   async function fetchChats() {
     try {
       setIsLoading(true);
-      const res = await fetch(`/api/chat?project_id=${projectId}`);
+      const res = await fetch(`/api/chat/conversations?project_id=${projectId}`);
       if (res.ok) {
         const data = await res.json();
-        setChats(data.chats || []);
+        setChats(data.conversations || []);
       } else {
         setError(t.errorLoading);
       }
@@ -86,7 +86,7 @@ export function ProjectChats({ projectId, locale }: ProjectChatsProps) {
     if (!confirm(t.confirmDelete)) return;
 
     try {
-      const res = await fetch(`/api/chat/${chatId}`, {
+      const res = await fetch(`/api/chats/${chatId}`, {
         method: 'DELETE'
       });
 
