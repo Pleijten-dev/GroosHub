@@ -222,6 +222,7 @@ interface DbMessageRow {
   id: string;
   chat_id: string;
   role: string;
+  content: string | null; // Legacy text content field
   content_json: unknown;
   model_id: string | null;
   input_tokens: number | null;
@@ -239,7 +240,7 @@ export async function loadChatMessages(chatId: string): Promise<UIMessage[]> {
 
   const messages = await db`
     SELECT
-      id, chat_id, role, content_json, model_id, input_tokens, output_tokens, metadata, created_at
+      id, chat_id, role, content, content_json, model_id, input_tokens, output_tokens, metadata, created_at
     FROM chat_messages
     WHERE chat_id = ${chatId}
     ORDER BY created_at ASC
@@ -277,6 +278,12 @@ export async function loadChatMessages(chatId: string): Promise<UIMessage[]> {
           text: typeof msg.content_json === 'string' ? msg.content_json : JSON.stringify(msg.content_json)
         }];
       }
+    } else if (msg.content) {
+      // Fallback: use legacy content field (for migrated messages)
+      uiMessage.parts = [{
+        type: 'text',
+        text: msg.content
+      }];
     }
 
     return uiMessage;
