@@ -50,6 +50,25 @@ export async function GET(
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
+    // Get user's role and permissions for this project
+    const db = getDbConnection();
+    const memberInfo = await db`
+      SELECT role, permissions
+      FROM project_members
+      WHERE project_id = ${id}
+      AND user_id = ${session.user.id}
+      AND left_at IS NULL
+    `;
+
+    if (memberInfo.length === 0) {
+      return NextResponse.json(
+        { error: 'You do not have access to this project' },
+        { status: 403 }
+      );
+    }
+
+    const { role, permissions } = memberInfo[0];
+
     // Get project statistics
     const stats = await getProjectStats(id);
 
@@ -60,6 +79,9 @@ export async function GET(
       success: true,
       data: {
         ...project,
+        is_pinned: (project.settings as any)?.is_pinned || false,
+        user_role: role,
+        permissions: permissions,
         member_count: stats.member_count,
         file_count: stats.file_count,
         chat_count: stats.chat_count,
