@@ -34,22 +34,22 @@ SELECT
   -- Get project_id from chat_conversations (will be NULL for private chats)
   (SELECT project_id FROM chat_conversations WHERE id = cf.chat_id) as project_id,
   cf.chat_id,
-  cf.name as filename,
-  cf.name as original_filename,
-  cf.path as file_path,
-  cf.size as file_size_bytes,
-  cf.type as mime_type,
+  cf.file_name as filename,  -- Actual column is file_name, not name
+  cf.file_name as original_filename,
+  cf.file_url as file_path,  -- Actual column is file_url, not path
+  cf.file_size as file_size_bytes,  -- Actual column is file_size, not size
+  cf.mime_type,  -- Already correct column name
   -- Categorize based on mime_type
   CASE
-    WHEN cf.type LIKE 'image/%' THEN 'image'
-    WHEN cf.type LIKE 'application/pdf' THEN 'pdf'
-    WHEN cf.type LIKE 'application/vnd.ms-excel%' OR cf.type LIKE 'application/vnd.openxmlformats-officedocument.spreadsheetml%' THEN 'spreadsheet'
-    WHEN cf.type LIKE 'application/msword%' OR cf.type LIKE 'application/vnd.openxmlformats-officedocument.wordprocessingml%' THEN 'document'
-    WHEN cf.type LIKE 'text/%' THEN 'document'
+    WHEN cf.mime_type LIKE 'image/%' THEN 'image'
+    WHEN cf.mime_type LIKE 'application/pdf' THEN 'pdf'
+    WHEN cf.mime_type LIKE 'application/vnd.ms-excel%' OR cf.mime_type LIKE 'application/vnd.openxmlformats-officedocument.spreadsheetml%' THEN 'spreadsheet'
+    WHEN cf.mime_type LIKE 'application/msword%' OR cf.mime_type LIKE 'application/vnd.openxmlformats-officedocument.wordprocessingml%' THEN 'document'
+    WHEN cf.mime_type LIKE 'text/%' THEN 'document'
     ELSE 'other'
   END as file_category,
   'local' as storage_provider,
-  cf.path as storage_url,
+  cf.file_url as storage_url,  -- Actual column is file_url, not path
   false as is_public,
   -- If chat has project_id, it's project-level, otherwise private
   CASE
@@ -57,10 +57,20 @@ SELECT
     THEN 'project'
     ELSE 'private'
   END as access_level,
-  'completed' as processing_status,
+  CASE
+    WHEN cf.status = 'processed' THEN 'completed'
+    WHEN cf.status = 'processing' THEN 'processing'
+    WHEN cf.status = 'error' THEN 'failed'
+    ELSE 'completed'  -- Default: 'uploaded' → 'completed'
+  END as processing_status,
   jsonb_build_object(
     'migrated_from', 'chat_files',
     'original_id', cf.id,
+    'original_status', cf.status,
+    'original_file_type', cf.file_type,
+    'message_id', cf.message_id,
+    'error_message', cf.error_message,
+    'original_metadata', cf.metadata,
     'migration_date', CURRENT_TIMESTAMP
   ) as metadata,
   cf.created_at,
