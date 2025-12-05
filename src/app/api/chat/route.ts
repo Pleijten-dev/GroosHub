@@ -8,7 +8,7 @@
  * Week 3: Multi-Modal Input - Support for images and PDFs with vision models
  */
 
-import { streamText, convertToModelMessages, stepCountIs, tool, type UIMessage } from 'ai';
+import { streamText, convertToModelMessages, stepCountIs, tool, type UIMessage, type ImagePart } from 'ai';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getModel, type ModelId, MODEL_CAPABILITIES } from '@/lib/ai/models';
@@ -113,13 +113,13 @@ async function processFileAttachments(
   userId: number,
   chatId: string,
   messageId: string
-): Promise<Array<{ type: 'image'; image: string; mediaType: string }>> {
+): Promise<ImagePart[]> {
   if (!fileIds || fileIds.length === 0) {
     return [];
   }
 
   const sql = neon(process.env.POSTGRES_URL!);
-  const imageParts: Array<{ type: 'image'; image: string; mediaType: string }> = [];
+  const imageParts: ImagePart[] = [];
 
   console.log(`[Chat API] 📎 Processing ${fileIds.length} file attachments`);
 
@@ -185,11 +185,11 @@ async function processFileAttachments(
       console.log(`[Chat API] 📸 Image format: ${imageFormat}, Data URL length: ${dataUrl.length}, Base64 length: ${base64.length}`);
       console.log(`[Chat API] 📸 Data URL prefix: ${dataUrl.substring(0, 100)}...`);
 
-      // AI SDK v5 expects image parts without mediaType for UIMessage
-      // The SDK will infer the type from the data URL
+      // Create ImagePart following official AI SDK interface
+      // Note: mediaType is optional and auto-detected, but we provide it for clarity
       imageParts.push({
         type: 'image',
-        image: dataUrl,
+        image: dataUrl, // DataContent: base64 data URL string
         mediaType: file.mime_type || 'image/png',
       });
 
@@ -416,8 +416,8 @@ export async function POST(request: NextRequest) {
     // Debug: Log the last user message to see if images are included
     const lastUserMsg = messagesWithSystem.filter(m => m.role === 'user').slice(-1)[0];
     if (lastUserMsg) {
-      // Type-safe part inspection (UIMessage types don't include image parts)
-      type MessagePart = typeof lastUserMsg.parts[number] | { type: 'image'; image: string; mediaType?: string };
+      // Type-safe part inspection using official ImagePart type
+      type MessagePart = typeof lastUserMsg.parts[number] | ImagePart;
 
       console.log(`[Chat API] 🔍 Last user message before sending to model:`, JSON.stringify({
         role: lastUserMsg.role,
