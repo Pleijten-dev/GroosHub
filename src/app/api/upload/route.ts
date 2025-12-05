@@ -28,6 +28,7 @@ import {
   FileValidationError,
   MAX_FILES_PER_UPLOAD,
 } from '@/lib/storage/file-validation';
+import { createChat } from '@/lib/ai/chat-store';
 
 export const runtime = 'nodejs'; // Required for file uploads
 
@@ -118,8 +119,35 @@ export async function POST(request: NextRequest) {
       throw error;
     }
 
-    // 5. Upload files to R2 and store metadata
+    // 5. Ensure chat exists in database (create if needed)
+    // This handles the case where user uploads files before sending first message
     const sql = neon(process.env.POSTGRES_URL!);
+
+    try {
+      // Check if chat exists
+      const existingChat = await sql`
+        SELECT id FROM chat_conversations WHERE id = ${chatId} LIMIT 1;
+      `;
+
+      if (existingChat.length === 0) {
+        // Chat doesn't exist, create it
+        console.log(`[Upload] Chat ${chatId} doesn't exist, creating it for user ${userId}`);
+        await createChat({
+          userId: Number(userId),
+          chatId: chatId,
+          title: 'New Chat', // Will be updated when first message is sent
+        });
+        console.log(`[Upload] Chat ${chatId} created successfully`);
+      }
+    } catch (error) {
+      console.error('[Upload] Error checking/creating chat:', error);
+      return NextResponse.json(
+        { error: 'Failed to prepare chat for file upload' },
+        { status: 500 }
+      );
+    }
+
+    // 6. Upload files to R2 and store metadata
     const uploadedFiles: UploadedFile[] = [];
 
     for (const file of files) {
@@ -193,7 +221,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 6. Return success response
+    // 7. Return success response
     return NextResponse.json({
       success: true,
       files: uploadedFiles,
