@@ -870,13 +870,11 @@ export async function POST(request: NextRequest) {
 
     // Stream the response with location agent tools
     // Note: Don't use convertToModelMessages() for multimodal messages - it strips image parts!
-    // The streamText function accepts messages with ImageParts directly.
-    // Type assertion: UIMessage with image parts added dynamically
-    type MessageWithImages = UIMessage & { parts: Array<UIMessage['parts'][number] | ImagePart> };
-
+    // The streamText function accepts messages with ImageParts directly at runtime.
     const result = streamText({
       model,
-      messages: messagesWithSystem as unknown as MessageWithImages[],
+      // @ts-expect-error - TypeScript types don't include ImagePart support, but runtime does
+      messages: messagesWithSystem,
       temperature,
       // Location agent tools with userId injected
       tools: locationTools,
