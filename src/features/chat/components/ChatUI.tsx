@@ -224,13 +224,13 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
         );
       }
 
-      // Handle image parts
-      if (part.type === 'image') {
+      // Handle image parts (use type guard since 'image' is not in UIMessage part types)
+      if ('image' in part && part.image) {
         return (
           <div key={`${message.id}-image-${index}`} className="mt-2">
             <ImageAttachment
-              imageUrl={part.image}
-              onClick={() => setLightboxImage({ url: part.image })}
+              imageUrl={part.image as string | URL}
+              onClick={() => setLightboxImage({ url: part.image as string | URL })}
               alt="Attached image"
             />
           </div>
