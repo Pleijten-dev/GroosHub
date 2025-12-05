@@ -9,29 +9,29 @@ BEGIN;
 -- Create audit_logs table
 CREATE TABLE IF NOT EXISTS audit_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  
+
   -- Who performed the action
   user_id INTEGER REFERENCES user_accounts(id) ON DELETE SET NULL,
-  org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
-  
+  org_id UUID, -- Organization context (nullable, no FK since organizations table may not exist yet)
+
   -- What action was performed
   action VARCHAR(100) NOT NULL, -- 'create', 'read', 'update', 'delete', 'login', 'logout', etc.
   entity_type VARCHAR(100) NOT NULL, -- 'project', 'chat', 'file', 'user', 'organization', etc.
   entity_id VARCHAR(255), -- ID of the affected entity
-  
+
   -- Request metadata
   ip_address INET,
   user_agent TEXT,
   request_method VARCHAR(10), -- 'GET', 'POST', 'PUT', 'DELETE', etc.
   request_path TEXT,
-  
+
   -- Response metadata
   status_code INTEGER,
   error_message TEXT,
-  
+
   -- Additional context
   metadata JSONB DEFAULT '{}'::jsonb,
-  
+
   -- Timestamp
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

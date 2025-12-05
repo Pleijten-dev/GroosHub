@@ -8,5 +8,5 @@ export {
   decryptMessage,
   encryptJSON,
   decryptJSON,
-  isEncryptionConfigured
+  isEncryptionEnabled
 } from './messageEncryption';
