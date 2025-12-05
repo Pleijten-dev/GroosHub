@@ -13,6 +13,29 @@ Always use vercelAISDKv5.md as the complete documentation to the vercel AI SDK, 
 
 ---
 
+## 🗄️ Database Table Mapping (Post-Restructuring)
+
+**IMPORTANT**: After database restructuring (Phases 3-6 complete), the following tables have been renamed. **Always use the new table names** in all code:
+
+| Old Table Name | New Table Name | Notes |
+|----------------|----------------|-------|
+| `users` | `user_accounts` | Added org_id support |
+| `chats` | `chat_conversations` | Clearer naming |
+| `chats_messages` | `chat_messages` | Simplified naming |
+| `chats_messages_votes` | `chat_message_votes` | Simplified naming |
+| `chat_files` | `file_uploads` | Unified file management |
+| `saved_locations` | `location_snapshots` | Versioned snapshots |
+| `lca_projects` | `project_projects` | Expanded project system |
+| (none) | `org_organizations` | NEW - Multi-org support |
+| (none) | `project_members` | NEW - Team collaboration |
+| (none) | `project_invitations` | NEW - Invite system |
+| (none) | `project_memories` | NEW - AI memory |
+| (none) | `audit_logs` | NEW - Security logging |
+
+**Reference**: See `DATABASE_RESTRUCTURING_ROADMAP.md` for complete schema details.
+
+---
+
 ## 📋 Table of Contents
 
 1. [Project Overview](#project-overview)
