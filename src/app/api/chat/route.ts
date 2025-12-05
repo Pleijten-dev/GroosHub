@@ -849,9 +849,11 @@ export async function POST(request: NextRequest) {
     };
 
     // Stream the response with location agent tools
+    // Note: Don't use convertToModelMessages() for multimodal messages - it strips image parts!
+    // The streamText function accepts messages with ImageParts directly.
     const result = streamText({
       model,
-      messages: convertToModelMessages(messagesWithSystem),
+      messages: messagesWithSystem as any, // Type assertion needed - UIMessage doesn't include ImagePart in types
       temperature,
       // Location agent tools with userId injected
       tools: locationTools,
