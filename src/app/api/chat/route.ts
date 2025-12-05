@@ -119,7 +119,7 @@ async function processFileAttachments(
   }
 
   const sql = neon(process.env.POSTGRES_URL!);
-  const imageParts: Array<{ type: 'image'; image: URL }> = [];
+  const imageParts: Array<{ type: 'image'; image: URL; mediaType: string }> = [];
 
   console.log(`[Chat API] 📎 Processing ${fileIds.length} file attachments`);
 
@@ -165,7 +165,8 @@ async function processFileAttachments(
 
       imageParts.push({
         type: 'image',
-        image: new URL(presignedUrl)
+        image: new URL(presignedUrl),
+        mediaType: file.mime_type || 'image/png', // Required by Vercel AI SDK v5
       });
 
       console.log(`[Chat API] ✅ Added image: ${file.file_name} (${file.file_size} bytes)`);
