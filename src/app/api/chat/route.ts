@@ -421,14 +421,14 @@ export async function POST(request: NextRequest) {
         id: lastUserMsg.id,
         partsCount: lastUserMsg.parts?.length,
         partTypes: lastUserMsg.parts?.map(p => p.type),
-        partSummary: lastUserMsg.parts?.map(p => {
-          if (p.type === 'text') return { type: 'text', preview: ('text' in p ? p.text?.substring(0, 50) : '') };
-          if (p.type === 'image') return {
+        partSummary: lastUserMsg.parts?.map((p: any) => {
+          if (p.type === 'text') return { type: 'text', preview: p.text?.substring(0, 50) || '' };
+          if ('image' in p) return {
             type: 'image',
-            imageType: ('image' in p && typeof p.image === 'string') ?
+            imageType: (typeof p.image === 'string') ?
               (p.image.startsWith('data:') ? 'data-url' : 'url') :
               'buffer',
-            imagePrefix: ('image' in p && typeof p.image === 'string') ? p.image.substring(0, 50) : 'binary'
+            imagePrefix: (typeof p.image === 'string') ? p.image.substring(0, 50) : 'binary'
           };
           return { type: p.type };
         })
