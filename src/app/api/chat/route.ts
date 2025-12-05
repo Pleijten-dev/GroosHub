@@ -132,7 +132,6 @@ async function processFileAttachments(
           fu.id,
           fu.chat_id,
           fu.user_id,
-          fu.message_id,
           fu.file_category as file_type,
           fu.original_filename as file_name,
           fu.file_path as storage_key,
@@ -158,15 +157,8 @@ async function processFileAttachments(
         continue;
       }
 
-      // Update message_id if not set (file was uploaded but not yet sent)
-      if (!file.message_id) {
-        await sql`
-          UPDATE file_uploads
-          SET message_id = ${messageId}
-          WHERE id = ${fileId};
-        `;
-        console.log(`[Chat API] 🔗 Linked file ${fileId} to message ${messageId}`);
-      }
+      // Note: file_uploads table doesn't track message_id in restructured schema
+      // Files are linked to chats, not individual messages
 
       // Generate presigned URL (1 hour expiration)
       const presignedUrl = await getPresignedUrl(file.storage_key, 3600);
