@@ -15,6 +15,7 @@ import { getModel, type ModelId, MODEL_CAPABILITIES } from '@/lib/ai/models';
 import { auth } from '@/lib/auth';
 import { neon } from '@neondatabase/serverless';
 import { getPresignedUrl } from '@/lib/storage/r2-client';
+import sharp from 'sharp';
 import {
   createChat,
   getChat,
@@ -175,10 +176,29 @@ async function processFileAttachments(
       }
 
       const imageBuffer = await imageResponse.arrayBuffer();
-      const base64 = Buffer.from(imageBuffer).toString('base64');
+      const originalSize = imageBuffer.byteLength;
 
-      // Extract image format from mime type (e.g., "image/png" -> "png")
-      const imageFormat = (file.mime_type || 'image/png').split('/')[1] || 'png';
+      // Resize image to reduce token usage and API costs
+      // Max 1024px dimension, JPEG quality 80 = 85-90% size reduction
+      console.log(`[Chat API] 📐 Resizing image from ${Math.round(originalSize / 1024)}KB...`);
+
+      const resizedBuffer = await sharp(Buffer.from(imageBuffer))
+        .resize(1024, 1024, {
+          fit: 'inside',           // Maintain aspect ratio, fit within 1024x1024
+          withoutEnlargement: true // Don't upscale small images
+        })
+        .jpeg({ quality: 80 })     // Convert to JPEG with 80% quality
+        .toBuffer();
+
+      const resizedSize = resizedBuffer.byteLength;
+      const reductionPercent = Math.round((1 - resizedSize / originalSize) * 100);
+
+      console.log(`[Chat API] ✨ Resized: ${Math.round(originalSize / 1024)}KB → ${Math.round(resizedSize / 1024)}KB (${reductionPercent}% reduction)`);
+
+      const base64 = resizedBuffer.toString('base64');
+
+      // Use JPEG format for resized images (better compression than PNG)
+      const imageFormat = 'jpeg';
       const dataUrl = `data:image/${imageFormat};base64,${base64}`;
 
       // Verify data URL format
@@ -190,10 +210,10 @@ async function processFileAttachments(
       imageParts.push({
         type: 'image',
         image: dataUrl, // DataContent: base64 data URL string
-        mediaType: file.mime_type || 'image/png',
+        mediaType: 'image/jpeg', // Always JPEG after resizing
       });
 
-      console.log(`[Chat API] ✅ Added image: ${file.file_name} (${file.file_size} bytes, base64 data URL)`);
+      console.log(`[Chat API] ✅ Added image: ${file.file_name} (original: ${Math.round(originalSize / 1024)}KB, resized: ${Math.round(resizedSize / 1024)}KB)`);
 
     } catch (error) {
       console.error(`[Chat API] ❌ Error processing file ${fileId}:`, error);
