@@ -163,16 +163,38 @@ async function processFileAttachments(
       // Generate presigned URL (1 hour expiration)
       const presignedUrl = await getPresignedUrl(file.storage_key, 3600);
 
-      console.log(`[Chat API] 🔗 Full presigned URL: ${presignedUrl}`);
+      console.log(`[Chat API] 🔗 Presigned URL generated for: ${file.file_name}`);
 
-      // Use presigned URL directly - Vercel AI SDK supports HTTP URLs
+      // Anthropic requires base64 data URLs (they don't fetch external URLs)
+      // Download the image and convert to base64
+      const imageResponse = await fetch(presignedUrl);
+
+      if (!imageResponse.ok) {
+        console.error(`[Chat API] ❌ Failed to fetch image from presigned URL: ${imageResponse.status} ${imageResponse.statusText}`);
+        continue;
+      }
+
+      const imageBuffer = await imageResponse.arrayBuffer();
+      const base64 = Buffer.from(imageBuffer).toString('base64');
+
+      // Extract image format from mime type (e.g., "image/png" -> "png")
+      const imageFormat = (file.mime_type || 'image/png').split('/')[1] || 'png';
+      const dataUrl = `data:image/${imageFormat};base64,${base64}`;
+
+      // Verify data URL format
+      console.log(`[Chat API] 📸 Image format: ${imageFormat}, Data URL length: ${dataUrl.length}, Base64 length: ${base64.length}`);
+      console.log(`[Chat API] 📸 Data URL prefix: ${dataUrl.substring(0, 100)}...`);
+
+      // AI SDK v5 expects image parts without mediaType for UIMessage
+      // The SDK will infer the type from the data URL
       imageParts.push({
         type: 'image',
-        image: presignedUrl, // Use presigned URL directly
+        image: dataUrl,
+        // @ts-expect-error - AI SDK internal type expects just 'image', but examples show mediaType works
         mediaType: file.mime_type || 'image/png',
       });
 
-      console.log(`[Chat API] ✅ Added image: ${file.file_name} (${file.file_size} bytes, using presigned URL)`);
+      console.log(`[Chat API] ✅ Added image: ${file.file_name} (${file.file_size} bytes, base64 data URL)`);
 
     } catch (error) {
       console.error(`[Chat API] ❌ Error processing file ${fileId}:`, error);
@@ -399,7 +421,18 @@ export async function POST(request: NextRequest) {
         role: lastUserMsg.role,
         id: lastUserMsg.id,
         partsCount: lastUserMsg.parts?.length,
-        partTypes: lastUserMsg.parts?.map(p => p.type)
+        partTypes: lastUserMsg.parts?.map(p => p.type),
+        partSummary: lastUserMsg.parts?.map(p => {
+          if (p.type === 'text') return { type: 'text', preview: ('text' in p ? p.text?.substring(0, 50) : '') };
+          if (p.type === 'image') return {
+            type: 'image',
+            imageType: ('image' in p && typeof p.image === 'string') ?
+              (p.image.startsWith('data:') ? 'data-url' : 'url') :
+              'buffer',
+            imagePrefix: ('image' in p && typeof p.image === 'string') ? p.image.substring(0, 50) : 'binary'
+          };
+          return { type: p.type };
+        })
       }, null, 2));
     }
 
