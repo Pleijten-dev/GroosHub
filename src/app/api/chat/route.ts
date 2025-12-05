@@ -190,7 +190,6 @@ async function processFileAttachments(
       imageParts.push({
         type: 'image',
         image: dataUrl,
-        // @ts-expect-error - AI SDK internal type expects just 'image', but examples show mediaType works
         mediaType: file.mime_type || 'image/png',
       });
 
