@@ -165,20 +165,14 @@ async function processFileAttachments(
 
       console.log(`[Chat API] 🔗 Full presigned URL: ${presignedUrl}`);
 
-      // Download image and convert to base64 data URL
-      // The Vercel AI SDK requires data URLs, not HTTP URLs
-      const imageResponse = await fetch(presignedUrl);
-      const imageBuffer = await imageResponse.arrayBuffer();
-      const base64 = Buffer.from(imageBuffer).toString('base64');
-      const dataUrl = `data:${file.mime_type};base64,${base64}`;
-
+      // Use presigned URL directly - Vercel AI SDK supports HTTP URLs
       imageParts.push({
         type: 'image',
-        image: dataUrl, // Data URL instead of HTTP URL
+        image: presignedUrl, // Use presigned URL directly
         mediaType: file.mime_type || 'image/png',
       });
 
-      console.log(`[Chat API] ✅ Added image: ${file.file_name} (${file.file_size} bytes, converted to base64)`);
+      console.log(`[Chat API] ✅ Added image: ${file.file_name} (${file.file_size} bytes, using presigned URL)`);
 
     } catch (error) {
       console.error(`[Chat API] ❌ Error processing file ${fileId}:`, error);
