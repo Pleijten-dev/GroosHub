@@ -113,13 +113,13 @@ async function processFileAttachments(
   userId: number,
   chatId: string,
   messageId: string
-): Promise<Array<{ type: 'image'; image: URL }>> {
+): Promise<Array<{ type: 'image'; image: string; mediaType: string }>> {
   if (!fileIds || fileIds.length === 0) {
     return [];
   }
 
   const sql = neon(process.env.POSTGRES_URL!);
-  const imageParts: Array<{ type: 'image'; image: URL; mediaType: string }> = [];
+  const imageParts: Array<{ type: 'image'; image: string; mediaType: string }> = [];
 
   console.log(`[Chat API] 📎 Processing ${fileIds.length} file attachments`);
 
@@ -165,13 +165,20 @@ async function processFileAttachments(
 
       console.log(`[Chat API] 🔗 Full presigned URL: ${presignedUrl}`);
 
+      // Download image and convert to base64 data URL
+      // The Vercel AI SDK requires data URLs, not HTTP URLs
+      const imageResponse = await fetch(presignedUrl);
+      const imageBuffer = await imageResponse.arrayBuffer();
+      const base64 = Buffer.from(imageBuffer).toString('base64');
+      const dataUrl = `data:${file.mime_type};base64,${base64}`;
+
       imageParts.push({
         type: 'image',
-        image: new URL(presignedUrl),
-        mediaType: file.mime_type || 'image/png', // Required by Vercel AI SDK v5
+        image: dataUrl, // Data URL instead of HTTP URL
+        mediaType: file.mime_type || 'image/png',
       });
 
-      console.log(`[Chat API] ✅ Added image: ${file.file_name} (${file.file_size} bytes)`);
+      console.log(`[Chat API] ✅ Added image: ${file.file_name} (${file.file_size} bytes, converted to base64)`);
 
     } catch (error) {
       console.error(`[Chat API] ❌ Error processing file ${fileId}:`, error);
