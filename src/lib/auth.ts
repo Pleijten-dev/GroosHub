@@ -5,13 +5,15 @@ import { authConfig } from './auth.config';
 import { getDbConnection } from './db/connection';
 
 /**
- * User type matching the database schema
+ * User type matching the database schema (user_accounts table)
  */
 export interface User {
   id: number;
   name: string;
   email: string;
   role: string;
+  org_id: string; // UUID from org_organizations
+  is_active: boolean;
 }
 
 /**
@@ -22,12 +24,15 @@ declare module 'next-auth' {
     user: {
       id: number;
       role: string;
+      org_id: string;
     } & DefaultSession['user'];
   }
 
   interface User {
     id: number;
     role: string;
+    org_id: string;
+    is_active: boolean;
   }
 }
 
@@ -58,10 +63,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           const db = getDbConnection();
 
-          // Query user from database with case-insensitive email match
+          // Query user from user_accounts table with case-insensitive email match
           const result = await db`
-            SELECT id, name, email, role, password
-            FROM users
+            SELECT id, name, email, role, password, org_id, is_active
+            FROM user_accounts
             WHERE LOWER(email) = LOWER(${email})
           `;
 
@@ -73,7 +78,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
 
           const user = result[0];
-          console.log('👤 Auth: Found user:', user.id, user.email, user.role);
+          console.log('👤 Auth: Found user:', user.id, user.email, user.role, 'org:', user.org_id);
+
+          // Check if user account is active
+          if (!user.is_active) {
+            console.log('❌ Auth: User account is inactive:', email);
+            return null;
+          }
 
           // Verify password using bcrypt
           const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -93,6 +104,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             name: user.name,
             email: user.email,
             role: user.role,
+            org_id: user.org_id,
+            is_active: user.is_active,
           };
         } catch (error) {
           console.error('❌ Auth error:', error);
@@ -109,6 +122,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           ...token,
           id: user.id,
           role: user.role,
+          org_id: user.org_id,
         };
       }
       return token;
@@ -121,6 +135,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           ...session.user,
           id: token.id as number,
           role: token.role as string,
+          org_id: token.org_id as string,
         },
       };
     },

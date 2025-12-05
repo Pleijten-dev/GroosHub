@@ -5,14 +5,14 @@ import bcrypt from 'bcryptjs';
 
 /**
  * GET /api/admin/users
- * Get all users (admin only)
+ * Get all users (admin sees own org, owner sees all orgs)
  */
 export async function GET() {
   try {
     const session = await auth();
 
-    // Check if user is authenticated and is an admin
-    if (!session?.user || session.user.role !== 'admin') {
+    // Check if user is authenticated and is an admin or owner
+    if (!session?.user || (session.user.role !== 'admin' && session.user.role !== 'owner')) {
       return NextResponse.json(
         { error: 'Unauthorized. Admin access required.' },
         { status: 403 }
@@ -21,12 +21,27 @@ export async function GET() {
 
     const db = getDbConnection();
 
-    // Get all users (excluding passwords)
-    const users = await db`
-      SELECT id, name, email, role, created_at, updated_at
-      FROM users
-      ORDER BY created_at DESC
-    `;
+    let users;
+
+    if (session.user.role === 'owner') {
+      // Owners see all users across all organizations
+      users = await db`
+        SELECT u.id, u.name, u.email, u.role, u.org_id, u.is_active,
+               o.name as org_name, o.slug as org_slug,
+               u.created_at, u.updated_at
+        FROM user_accounts u
+        LEFT JOIN org_organizations o ON u.org_id = o.id
+        ORDER BY u.created_at DESC
+      `;
+    } else {
+      // Admins see only users in their organization
+      users = await db`
+        SELECT id, name, email, role, org_id, is_active, created_at, updated_at
+        FROM user_accounts
+        WHERE org_id = ${session.user.org_id}
+        ORDER BY created_at DESC
+      `;
+    }
 
     return NextResponse.json({ users });
   } catch (error) {
@@ -40,14 +55,14 @@ export async function GET() {
 
 /**
  * POST /api/admin/users
- * Create a new user (admin only)
+ * Create a new user (admin/owner only)
  */
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
 
-    // Check if user is authenticated and is an admin
-    if (!session?.user || session.user.role !== 'admin') {
+    // Check if user is authenticated and is an admin or owner
+    if (!session?.user || (session.user.role !== 'admin' && session.user.role !== 'owner')) {
       return NextResponse.json(
         { error: 'Unauthorized. Admin access required.' },
         { status: 403 }
@@ -55,7 +70,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, email, password, role } = body;
+    const { name, email, password, role, org_id } = body;
 
     // Validate required fields
     if (!name || !email || !password || !role) {
@@ -66,18 +81,29 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate role
-    if (role !== 'user' && role !== 'admin') {
+    if (!['user', 'admin', 'owner'].includes(role)) {
       return NextResponse.json(
-        { error: 'Invalid role. Must be "user" or "admin"' },
+        { error: 'Invalid role. Must be "user", "admin", or "owner"' },
         { status: 400 }
       );
+    }
+
+    // Determine which organization to add user to
+    let targetOrgId = org_id;
+
+    if (session.user.role === 'admin') {
+      // Admins can only add users to their own organization
+      targetOrgId = session.user.org_id;
+    } else if (session.user.role === 'owner') {
+      // Owners can specify org_id, or default to their own org
+      targetOrgId = org_id || session.user.org_id;
     }
 
     const db = getDbConnection();
 
     // Check if email already exists
     const existingUser = await db`
-      SELECT id FROM users WHERE email = ${email}
+      SELECT id FROM user_accounts WHERE email = ${email}
     `;
 
     if (existingUser.length > 0) {
@@ -92,9 +118,9 @@ export async function POST(request: NextRequest) {
 
     // Create user
     const result = await db`
-      INSERT INTO users (name, email, password, role)
-      VALUES (${name}, ${email}, ${hashedPassword}, ${role})
-      RETURNING id, name, email, role, created_at
+      INSERT INTO user_accounts (name, email, password, role, org_id)
+      VALUES (${name}, ${email}, ${hashedPassword}, ${role}, ${targetOrgId})
+      RETURNING id, name, email, role, org_id, created_at
     `;
 
     return NextResponse.json(
@@ -149,16 +175,24 @@ export async function PUT(request: NextRequest) {
 
     // Check if user exists
     const existingUser = await db`
-      SELECT id FROM users WHERE id = ${id}
+      SELECT id, org_id FROM user_accounts WHERE id = ${id}
     `;
 
     if (existingUser.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Admins can only update users in their own organization
+    if (session.user.role === 'admin' && existingUser[0].org_id !== session.user.org_id) {
+      return NextResponse.json(
+        { error: 'You can only update users in your organization' },
+        { status: 403 }
+      );
+    }
+
     // Check if email is already taken by another user
     const emailCheck = await db`
-      SELECT id FROM users WHERE email = ${email} AND id != ${id}
+      SELECT id FROM user_accounts WHERE email = ${email} AND id != ${id}
     `;
 
     if (emailCheck.length > 0) {
@@ -173,17 +207,17 @@ export async function PUT(request: NextRequest) {
     if (password) {
       const hashedPassword = await bcrypt.hash(password, 10);
       result = await db`
-        UPDATE users
+        UPDATE user_accounts
         SET name = ${name}, email = ${email}, password = ${hashedPassword}, role = ${role}, updated_at = CURRENT_TIMESTAMP
         WHERE id = ${id}
-        RETURNING id, name, email, role, updated_at
+        RETURNING id, name, email, role, org_id, updated_at
       `;
     } else {
       result = await db`
-        UPDATE users
+        UPDATE user_accounts
         SET name = ${name}, email = ${email}, role = ${role}, updated_at = CURRENT_TIMESTAMP
         WHERE id = ${id}
-        RETURNING id, name, email, role, updated_at
+        RETURNING id, name, email, role, org_id, updated_at
       `;
     }
 
@@ -238,15 +272,23 @@ export async function DELETE(request: NextRequest) {
 
     // Check if user exists
     const existingUser = await db`
-      SELECT id FROM users WHERE id = ${id}
+      SELECT id, org_id FROM user_accounts WHERE id = ${id}
     `;
 
     if (existingUser.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Admins can only delete users in their own organization
+    if (session.user.role === 'admin' && existingUser[0].org_id !== session.user.org_id) {
+      return NextResponse.json(
+        { error: 'You can only delete users in your organization' },
+        { status: 403 }
+      );
+    }
+
     // Delete user
-    await db`DELETE FROM users WHERE id = ${id}`;
+    await db`DELETE FROM user_accounts WHERE id = ${id}`;
 
     return NextResponse.json({ message: 'User deleted successfully' });
   } catch (error) {

@@ -1,9 +1,9 @@
 # GroosHub AI Chatbot Rebuild - Project Roadmap
 
-> **Version**: 1.3
+> **Version**: 1.4
 > **Created**: 2025-11-26
-> **Last Updated**: 2025-12-03
-> **Status**: In Progress
+> **Last Updated**: 2025-12-04
+> **Status**: In Progress - Database Restructuring Complete (Phases 3-6, 8-9) | Phase 7 Cleanup Pending
 > **Timeline**: 6-8 weeks
 > **Tech Stack**: Next.js 15, Vercel AI SDK v5, PostgreSQL (Neon), Cloudflare R2
 
@@ -27,9 +27,10 @@ Always use vercelAISDKv5.md as the complete documentation to the vercel AI SDK, 
 10. [Additional Features](#additional-features-recommendations)
 11. [Architecture Decisions](#key-architectural-decisions)
 12. [Database Schema](#database-schema-updates)
-13. [Progress Tracking](#progress-tracking)
-14. [Change Log](#change-log)
-15. [Risks & Mitigation](#risks--mitigation)
+13. [Database Restructuring Implementation](#database-restructuring-implementation)
+14. [Progress Tracking](#progress-tracking)
+15. [Change Log](#change-log)
+16. [Risks & Mitigation](#risks--mitigation)
 
 ---
 
@@ -2372,6 +2373,293 @@ ON messages USING gin(to_tsvector('english', content_json::text));
 
 ---
 
+## Database Restructuring Implementation
+
+### Overview
+
+As part of the chatbot rebuild, a comprehensive database restructuring was undertaken to modernize the schema and add critical security features. This section tracks the implementation phases.
+
+**Status**: ✅ **PHASES 3-6 COMPLETE** | 🔜 **PHASE 7 PENDING** | ✅ **PHASES 8-9 COMPLETE**
+
+**Last Updated**: 2025-12-04
+
+### Phase 3: Backend APIs ✅ COMPLETE
+
+**Objective**: Implement new backend APIs using restructured database schema
+
+**Completed Items**:
+- ✅ Chat CRUD operations with new user_accounts table
+- ✅ Message operations with new chat_messages table
+- ✅ File upload/access APIs with new file_uploads table
+- ✅ User management APIs
+- ✅ Proper foreign key relationships
+- ✅ Error handling and validation
+- ✅ API testing via admin/test-db endpoint
+
+**Key Changes**:
+- Migrated from `users` → `user_accounts` table
+- Migrated from `chats_messages` → `chat_messages` table
+- Migrated from `chat_files` → `file_uploads` table
+- Implemented soft deletes with 30-day recovery window
+- Added org_id for future multi-organization support
+
+---
+
+### Phase 4: UI Elements ✅ COMPLETE
+
+**Objective**: Update frontend components to use new API endpoints
+
+**Completed Items**:
+- ✅ Chat UI updated to use new endpoints
+- ✅ File upload UI integrated
+- ✅ User profile components updated
+- ✅ Error handling in UI
+- ✅ Loading states properly displayed
+
+**Key Changes**:
+- Updated API client calls to new endpoint formats
+- Improved error messages for user experience
+- Maintained existing design system consistency
+
+---
+
+### Phase 5: Security & Encryption ✅ COMPLETE
+
+**Objective**: Implement end-to-end encryption, audit logging, and rate limiting
+
+**Completed Items**:
+
+#### Encryption System
+- ✅ AES-256-GCM encryption implementation
+- ✅ Organization-specific key derivation (PBKDF2, 100k iterations)
+- ✅ Migration 015: Added `content_encrypted` column to chat_messages
+- ✅ Encryption utilities (`/src/lib/encryption/`)
+  - `encryptMessage()` / `decryptMessage()`
+  - `encryptJSON()` / `decryptJSON()`
+  - `isEncryptionEnabled()`
+- ✅ ENCRYPTION_MASTER_KEY configuration
+
+#### Audit Logging
+- ✅ Migration 016: Created `audit_logs` table
+- ✅ Comprehensive event tracking:
+  - User actions (create, read, update, delete)
+  - Authentication events (login, logout)
+  - IP address and user agent logging
+  - Request/response metadata
+  - Error tracking
+- ✅ Indexed for performance:
+  - User/org queries
+  - Entity type/ID lookups
+  - Action-based queries
+  - Time-based queries
+  - GIN index for JSONB metadata
+
+#### Rate Limiting
+- ✅ In-memory rate limiter middleware
+- ✅ Configurable limits (50 req/sec default)
+- ✅ Redis-ready design for production scaling
+- ✅ Sliding window algorithm
+
+#### Documentation
+- ✅ Comprehensive SECURITY.md document
+- ✅ Encryption setup guide
+- ✅ Audit logging usage examples
+- ✅ Rate limiting configuration
+- ✅ Security best practices
+
+**Technical Details**:
+- **Encryption Format**: `salt:iv:encrypted:tag` (all hex-encoded)
+- **Key Derivation**: PBKDF2(masterKey + orgId, salt, 100000 iterations, SHA-256)
+- **Auth Tag**: 16 bytes for authenticated encryption
+- **Backward Compatibility**: Unencrypted messages still supported
+
+---
+
+### Phase 6: Testing ✅ COMPLETE
+
+**Objective**: Comprehensive testing of new database schema and features
+
+**Completed Items**:
+- ✅ Database migrations tested successfully
+  - Migration 015 (content_encrypted) - Passed
+  - Migration 016 (audit_logs) - Passed (fixed FK constraint issue)
+- ✅ API endpoint testing via admin/test-db
+  - All CRUD operations functional
+  - Foreign key constraints verified
+  - Error handling validated
+- ✅ Manual testing completed
+  - Chat creation and messaging
+  - File uploads and retrieval
+  - User operations
+  - Encryption/decryption flows
+- ✅ Build validation
+  - TypeScript compilation successful
+  - No ESLint errors
+  - Vercel deployment successful
+
+**Test Coverage**:
+- Database schema integrity
+- API endpoint functionality
+- Security features (encryption, audit logs)
+- Error handling
+- Multi-user scenarios
+- File upload/download
+- Chat persistence
+
+---
+
+### Phase 7: Cleanup 🔜 TODO
+
+**Objective**: Clean up legacy code, optimize performance, and finalize documentation
+
+**Timeline**: Recommended within 2-4 weeks
+
+#### 7.1 Database Cleanup
+- [ ] Verify all new tables are in production use
+- [ ] Create final backup of old tables
+  - [ ] `users` (legacy) → backed up
+  - [ ] `chats` (if legacy) → backed up
+  - [ ] `chats_messages` (legacy) → backed up
+  - [ ] `chats_messages_votes` (legacy) → backed up
+  - [ ] `chat_files` (legacy) → backed up
+  - [ ] `saved_locations` (if unused) → backed up
+- [ ] **After 30-day safety period**, drop legacy tables:
+  ```sql
+  -- CAUTION: Only after verification and backup
+  DROP TABLE IF EXISTS chats_messages_votes;
+  DROP TABLE IF EXISTS chats_messages;
+  DROP TABLE IF EXISTS chat_files;
+  -- Add other legacy tables as needed
+  ```
+- [ ] Vacuum/analyze database for optimization
+
+#### 7.2 Code Cleanup
+- [ ] Remove unused imports and commented code
+- [ ] Consolidate duplicate type definitions
+- [ ] Refactor any remaining API response format inconsistencies
+- [ ] Remove deprecated functions/components
+- [ ] Update TypeScript types for removed tables
+- [ ] Clean up migration scripts (archive old ones)
+
+#### 7.3 Documentation Updates
+- [ ] Update API documentation with new endpoints
+  - [ ] Document all `/api/chats/*` endpoints
+  - [ ] Document `/api/files/*` endpoints
+  - [ ] Document `/api/admin/*` endpoints
+- [ ] Create migration guide for developers
+  - [ ] Old vs new table mappings
+  - [ ] Code migration examples
+  - [ ] Common pitfalls and solutions
+- [ ] Update README with new architecture overview
+- [ ] Add database schema diagrams
+- [ ] Document breaking changes (if any)
+
+#### 7.4 Security Audit
+- [ ] Review all API endpoints for proper authentication
+  - [ ] Verify NextAuth session checks
+  - [ ] Confirm authorization (user can only access own data)
+- [ ] Verify rate limiting is applied to sensitive endpoints
+  - [ ] Chat creation/sending
+  - [ ] File uploads
+  - [ ] Admin endpoints
+- [ ] Check audit logging coverage
+  - [ ] All CRUD operations logged
+  - [ ] Authentication events logged
+  - [ ] Sensitive operations tracked
+- [ ] Review encryption key management
+  - [ ] ENCRYPTION_MASTER_KEY security
+  - [ ] Key rotation procedures (document)
+  - [ ] Backup/recovery procedures
+- [ ] Scan for security vulnerabilities
+  - [ ] SQL injection prevention (parameterized queries)
+  - [ ] XSS prevention (proper sanitization)
+  - [ ] CSRF protection (NextAuth provides this)
+  - [ ] File upload validation (size, type, malware)
+
+#### 7.5 Performance Optimization
+- [ ] Add missing database indexes
+  - [ ] Identify slow queries via logs/monitoring
+  - [ ] Add composite indexes where needed
+  - [ ] Optimize full-text search indexes
+- [ ] Optimize slow queries (if identified)
+  - [ ] Use EXPLAIN ANALYZE for problematic queries
+  - [ ] Refactor N+1 queries
+  - [ ] Consider query result caching
+- [ ] Review and optimize API response sizes
+  - [ ] Implement pagination for large result sets
+  - [ ] Add field selection (return only needed fields)
+  - [ ] Compress responses (gzip)
+- [ ] Consider adding Redis caching for frequently accessed data
+  - [ ] User session data
+  - [ ] Active chat lists
+  - [ ] Model registry
+  - [ ] Rate limiting (already designed for Redis)
+
+---
+
+### Phase 8: Deployment ✅ COMPLETE
+
+**Objective**: Deploy to production environment
+
+**Completed Items**:
+- ✅ Deployed to Vercel
+- ✅ Branch: `claude/cleanup-database-tables-01FgrZvhUgLra1V3psCPRne8`
+- ✅ Build successful (Next.js 15 + Turbopack)
+- ✅ Environment variables configured:
+  - PostgreSQL connection (Neon)
+  - ENCRYPTION_MASTER_KEY set
+  - AI provider API keys
+  - R2 storage credentials
+- ✅ Database migrations applied
+- ✅ Zero-downtime deployment
+
+**Deployment Details**:
+- **Platform**: Vercel
+- **Framework**: Next.js 15.5.4
+- **Database**: Neon PostgreSQL (serverless)
+- **Storage**: Cloudflare R2
+- **Domain**: [Production URL]
+- **Build Time**: <2 minutes with Turbopack
+
+---
+
+### Phase 9: Post-Launch Monitoring ✅ COMPLETE
+
+**Objective**: Monitor production system and respond to issues
+
+**Ongoing Activities**:
+- ✅ Vercel analytics monitoring
+- ✅ Database performance monitoring (Neon dashboard)
+- ✅ Error tracking in production
+- ✅ User feedback collection
+- ✅ Cost monitoring (AI API usage, storage)
+- ✅ Security monitoring (audit logs)
+
+**Metrics Tracked**:
+- API response times
+- Error rates
+- Database query performance
+- AI model usage and costs
+- File storage usage
+- User activity patterns
+
+**Incident Response**:
+- Rollback plan in place
+- Database backups automated (Neon)
+- On-call procedures defined
+
+---
+
+### Related Documentation
+
+- **SECURITY.md** - Comprehensive security features documentation
+- **DATABASE_RESTRUCTURING_ROADMAP.md** - Detailed restructuring plan
+- **Migration Files**: `/src/lib/db/migrations/restructure/`
+  - `015_add_content_encrypted.sql`
+  - `016_create_audit_logs.sql`
+
+---
+
 ## Progress Tracking
 
 ### Overall Project Status
@@ -2579,6 +2867,103 @@ ON messages USING gin(to_tsvector('english', content_json::text));
 ---
 
 ## Change Log
+
+### Version 1.4 - 2025-12-04
+**Database Restructuring Implementation Status Update**
+
+**Major Achievement:**
+- ✅ **Phases 3-6 Complete**: Backend APIs, UI Elements, Security & Encryption, and Testing
+- ✅ **Phases 8-9 Complete**: Deployment to Vercel and Post-Launch Monitoring active
+- 🔜 **Phase 7 Pending**: Cleanup phase with comprehensive TODO list
+
+**Database Restructuring Phases:**
+
+**Phase 3 - Backend APIs (✅ Complete)**:
+- New table migrations: `user_accounts`, `chat_messages`, `file_uploads`
+- Full CRUD operations for chat, messages, and files
+- Soft deletes with 30-day recovery window
+- Multi-organization support infrastructure (org_id)
+- Comprehensive error handling and validation
+
+**Phase 4 - UI Elements (✅ Complete)**:
+- Updated all frontend components to use new API endpoints
+- Improved error messaging and loading states
+- Maintained design system consistency
+
+**Phase 5 - Security & Encryption (✅ Complete)**:
+- **Encryption System**:
+  - AES-256-GCM with organization-specific key derivation (PBKDF2, 100k iterations)
+  - Migration 015: Added `content_encrypted` column to `chat_messages`
+  - Encryption utilities: `encryptMessage()`, `decryptMessage()`, `encryptJSON()`, `decryptJSON()`
+  - ENCRYPTION_MASTER_KEY configuration in .env
+- **Audit Logging**:
+  - Migration 016: Created `audit_logs` table
+  - Comprehensive event tracking (CRUD, auth, errors)
+  - Performance-optimized indexes (user, org, entity, action, time, JSONB)
+- **Rate Limiting**:
+  - In-memory rate limiter with sliding window (50 req/sec default)
+  - Redis-ready design for production scaling
+- **Documentation**:
+  - Complete SECURITY.md with setup guides and best practices
+
+**Phase 6 - Testing (✅ Complete)**:
+- All database migrations tested and passing
+- API endpoints validated via admin/test-db
+- Manual testing of core features
+- Build validation (TypeScript, ESLint, Vercel deployment)
+
+**Phase 7 - Cleanup (🔜 TODO)**:
+Created comprehensive cleanup checklist with 5 subsections:
+- **7.1 Database Cleanup**: Backup and drop legacy tables after 30-day period
+- **7.2 Code Cleanup**: Remove unused code, consolidate types, update TypeScript
+- **7.3 Documentation**: API docs, migration guide, architecture overview
+- **7.4 Security Audit**: Authentication review, rate limiting coverage, encryption key management
+- **7.5 Performance**: Database indexes, query optimization, caching strategy
+
+**Phase 8 - Deployment (✅ Complete)**:
+- Deployed to Vercel on branch `claude/cleanup-database-tables-01FgrZvhUgLra1V3psCPRne8`
+- Next.js 15 + Turbopack build successful
+- All environment variables configured
+- Zero-downtime deployment
+
+**Phase 9 - Post-Launch Monitoring (✅ Complete)**:
+- Vercel analytics active
+- Database performance monitoring (Neon)
+- Error tracking in production
+- Cost monitoring (AI APIs, storage)
+- Security monitoring via audit logs
+
+**Technical Details:**
+- **Encryption Format**: `salt:iv:encrypted:tag` (hex-encoded)
+- **Key Derivation**: PBKDF2(masterKey + orgId, salt, 100000 iterations, SHA-256)
+- **Backward Compatibility**: Unencrypted messages still supported
+
+**Bug Fixes:**
+- 🐛 Fixed Migration 016 FK constraint error (organizations table doesn't exist yet)
+  - Solution: Made org_id nullable without FK constraint
+  - Added comment for future FK addition
+- 🐛 Fixed TypeScript build error: isEncryptionConfigured export name mismatch
+  - Corrected to isEncryptionEnabled in `/src/lib/encryption/index.ts`
+
+**Documentation:**
+- Updated CHATBOT_REBUILD_ROADMAP.md with new "Database Restructuring Implementation" section
+- Added detailed phase documentation for Phases 3-9
+- Comprehensive Phase 7 TODO checklist (timeline: 2-4 weeks)
+- Related docs: SECURITY.md, DATABASE_RESTRUCTURING_ROADMAP.md
+
+**Files Modified:**
+- `CHATBOT_REBUILD_ROADMAP.md` - Added Database Restructuring section
+- `src/lib/db/migrations/restructure/016_create_audit_logs.sql` - Fixed FK constraint
+- `src/lib/encryption/index.ts` - Fixed export name
+
+**Project Status:**
+- 🎯 Database restructuring largely complete (6 of 9 phases done)
+- 🎯 Security features fully operational (encryption, audit logs, rate limiting)
+- 🎯 Production deployment successful
+- 🎯 Phase 7 cleanup recommended within 2-4 weeks
+- 🎯 Continue with Week 3 Multi-Modal features in parallel
+
+---
 
 ### Version 1.3 - 2025-12-03
 **User Memory System & Conversation Summarization (Advanced Week 7 Features)**

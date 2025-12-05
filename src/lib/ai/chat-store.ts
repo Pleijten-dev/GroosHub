@@ -67,8 +67,8 @@ export async function createChat(params: CreateChatParams): Promise<string> {
   const title = params.title || 'New Chat';
 
   await db`
-    INSERT INTO chats (
-      id, user_id, title, project_id, model_id, metadata, created_at, updated_at
+    INSERT INTO chat_conversations (
+      id, user_id, title, project_id, model_id, metadata, created_at, updated_at, last_message_at
     ) VALUES (
       ${chatId},
       ${params.userId},
@@ -76,6 +76,7 @@ export async function createChat(params: CreateChatParams): Promise<string> {
       ${params.projectId || null},
       ${params.modelId || null},
       ${JSON.stringify(params.metadata || {})},
+      NOW(),
       NOW(),
       NOW()
     )
@@ -101,7 +102,7 @@ export async function listUserChats(
   let query = db`
     SELECT
       id, user_id, title, project_id, model_id, metadata, created_at, updated_at
-    FROM chats
+    FROM chat_conversations
     WHERE user_id = ${userId}
   `;
 
@@ -116,7 +117,7 @@ export async function listUserChats(
 
   query = db`
     ${query}
-    ORDER BY updated_at DESC
+    ORDER BY last_message_at DESC
     LIMIT ${limit}
     OFFSET ${offset}
   `;
@@ -135,7 +136,7 @@ export async function getChat(chatId: string): Promise<Chat | null> {
   const result = await db`
     SELECT
       id, user_id, title, project_id, model_id, metadata, created_at, updated_at
-    FROM chats
+    FROM chat_conversations
     WHERE id = ${chatId}
     LIMIT 1
   `;
@@ -154,7 +155,7 @@ export async function updateChatTitle(chatId: string, title: string): Promise<vo
   const db = getDbConnection();
 
   await db`
-    UPDATE chats
+    UPDATE chat_conversations
     SET title = ${title}, updated_at = NOW()
     WHERE id = ${chatId}
   `;
@@ -172,7 +173,7 @@ export async function updateChatMetadata(
   const db = getDbConnection();
 
   await db`
-    UPDATE chats
+    UPDATE chat_conversations
     SET metadata = ${JSON.stringify(metadata)}, updated_at = NOW()
     WHERE id = ${chatId}
   `;
@@ -187,7 +188,7 @@ export async function updateChatModel(chatId: string, modelId: string): Promise<
   const db = getDbConnection();
 
   await db`
-    UPDATE chats
+    UPDATE chat_conversations
     SET model_id = ${modelId}, updated_at = NOW()
     WHERE id = ${chatId}
   `;
@@ -203,7 +204,7 @@ export async function deleteChat(chatId: string): Promise<void> {
 
   // This will cascade delete all messages due to ON DELETE CASCADE
   await db`
-    DELETE FROM chats
+    DELETE FROM chat_conversations
     WHERE id = ${chatId}
   `;
 
@@ -221,6 +222,7 @@ interface DbMessageRow {
   id: string;
   chat_id: string;
   role: string;
+  content: string | null; // Legacy text content field
   content_json: unknown;
   model_id: string | null;
   input_tokens: number | null;
@@ -238,8 +240,8 @@ export async function loadChatMessages(chatId: string): Promise<UIMessage[]> {
 
   const messages = await db`
     SELECT
-      id, chat_id, role, content_json, model_id, input_tokens, output_tokens, metadata, created_at
-    FROM chats_messages
+      id, chat_id, role, content, content_json, model_id, input_tokens, output_tokens, metadata, created_at
+    FROM chat_messages
     WHERE chat_id = ${chatId}
     ORDER BY created_at ASC
   `;
@@ -276,6 +278,12 @@ export async function loadChatMessages(chatId: string): Promise<UIMessage[]> {
           text: typeof msg.content_json === 'string' ? msg.content_json : JSON.stringify(msg.content_json)
         }];
       }
+    } else if (msg.content) {
+      // Fallback: use legacy content field (for migrated messages)
+      uiMessage.parts = [{
+        type: 'text',
+        text: msg.content
+      }];
     }
 
     return uiMessage;
@@ -320,7 +328,7 @@ export async function saveChatMessage(
   console.log(`[ChatStore]    - Text preview: "${textPreview}..."`);
 
   await db`
-    INSERT INTO chats_messages (
+    INSERT INTO chat_messages (
       id, chat_id, role, content, content_json, model_id, input_tokens, output_tokens, metadata, created_at
     ) VALUES (
       ${messageId},
@@ -346,10 +354,11 @@ export async function saveChatMessage(
 
   console.log(`[ChatStore] ✅ Message saved successfully with DB ID: ${messageId}`);
 
-  // Update chat's updated_at timestamp
+  // Update chat's updated_at and last_message_at timestamps
   await db`
-    UPDATE chats
-    SET updated_at = NOW()
+    UPDATE chat_conversations
+    SET updated_at = NOW(),
+        last_message_at = NOW()
     WHERE id = ${chatId}
   `;
 }
@@ -450,7 +459,7 @@ export async function getChatStatistics(chatId: string): Promise<ChatStatistics>
       COUNT(*) FILTER (WHERE role = 'assistant') as assistant_message_count,
       COALESCE(SUM(input_tokens), 0) as total_input_tokens,
       COALESCE(SUM(output_tokens), 0) as total_output_tokens
-    FROM chats_messages
+    FROM chat_messages
     WHERE chat_id = ${chatId}
   `;
 
