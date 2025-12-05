@@ -8,7 +8,7 @@
  * Week 3: Multi-Modal Input - Support for images and PDFs with vision models
  */
 
-import { streamText, convertToModelMessages, stepCountIs, tool, type UIMessage, type ImagePart } from 'ai';
+import { streamText, stepCountIs, tool, type UIMessage, type ImagePart } from 'ai';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getModel, type ModelId, MODEL_CAPABILITIES } from '@/lib/ai/models';
@@ -871,9 +871,12 @@ export async function POST(request: NextRequest) {
     // Stream the response with location agent tools
     // Note: Don't use convertToModelMessages() for multimodal messages - it strips image parts!
     // The streamText function accepts messages with ImageParts directly.
+    // Type assertion: UIMessage with image parts added dynamically
+    type MessageWithImages = UIMessage & { parts: Array<UIMessage['parts'][number] | ImagePart> };
+
     const result = streamText({
       model,
-      messages: messagesWithSystem as any, // Type assertion needed - UIMessage doesn't include ImagePart in types
+      messages: messagesWithSystem as unknown as MessageWithImages[],
       temperature,
       // Location agent tools with userId injected
       tools: locationTools,
