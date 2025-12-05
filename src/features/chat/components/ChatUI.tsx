@@ -18,8 +18,21 @@ import { cn } from '@/shared/utils/cn';
 import {
   getAllModelIds,
   DEFAULT_MODEL,
+  MODEL_CAPABILITIES,
   type ModelId
 } from '@/lib/ai/models';
+import { FileUploadZone } from './FileUploadZone';
+import { ImageAttachment } from './ImageAttachment';
+import { ImageLightbox } from './ImageLightbox';
+
+interface UploadedFile {
+  id: string;
+  name: string;
+  type: 'image' | 'pdf';
+  mimeType: string;
+  size: number;
+  previewUrl?: string;
+}
 
 export interface ChatUIProps {
   locale: 'nl' | 'en';
@@ -35,10 +48,24 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
   const currentChatIdRef = useRef<string | undefined>(chatId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Sync currentChatId with chatId prop
+  // File upload state
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+
+  // Lightbox state
+  const [lightboxImage, setLightboxImage] = useState<{ url: string | URL; fileName?: string } | null>(null);
+
+  // Sync currentChatId with chatId prop, or create new one
   useEffect(() => {
-    setCurrentChatId(chatId);
-    currentChatIdRef.current = chatId;
+    if (chatId) {
+      setCurrentChatId(chatId);
+      currentChatIdRef.current = chatId;
+    } else if (!currentChatIdRef.current) {
+      // Create a chatId upfront for file uploads (will be used when first message is sent)
+      const newChatId = crypto.randomUUID();
+      setCurrentChatId(newChatId);
+      currentChatIdRef.current = newChatId;
+      console.log(`[ChatUI] Generated chatId upfront for file uploads: ${newChatId}`);
+    }
   }, [chatId]);
 
   // Load existing messages when chatId is provided
@@ -122,24 +149,33 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
-    // Generate a new chatId if we don't have one (client-side UUID)
+    // chatId is already generated in useEffect above
     if (!currentChatIdRef.current) {
-      const newChatId = crypto.randomUUID();
-      console.log(`[ChatUI] Generated new chatId: ${newChatId}`);
-      setCurrentChatId(newChatId);
-      currentChatIdRef.current = newChatId;
+      console.error('[ChatUI] No chatId available, this should not happen');
+      return;
     }
 
-    // Send message with chatId, modelId, and locale in metadata
+    // Send message with chatId, modelId, locale, and fileIds in metadata
     sendMessage({
       text: input,
       metadata: {
         chatId: currentChatIdRef.current,
         modelId: selectedModel,
         locale: locale,
+        fileIds: uploadedFiles.map(f => f.id), // Add file IDs
       },
     });
     setInput('');
+    setUploadedFiles([]); // Clear uploaded files after sending
+  };
+
+  // File upload handlers
+  const handleFilesUploaded = (newFiles: UploadedFile[]) => {
+    setUploadedFiles(prev => [...prev, ...newFiles]);
+  };
+
+  const handleFileRemove = (fileId: string) => {
+    setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
   };
 
   const availableModels = getAllModelIds();
@@ -173,6 +209,10 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
 
   const t = translations[locale];
 
+  // Check if selected model supports vision (for file uploads)
+  const selectedModelCapabilities = MODEL_CAPABILITIES[selectedModel];
+  const modelSupportsVision = selectedModelCapabilities?.supportsVision ?? false;
+
   // Render message content from parts array (AI SDK v5)
   const renderMessageContent = (message: typeof messages[0]) => {
     return message.parts.map((part, index) => {
@@ -183,7 +223,21 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
           </span>
         );
       }
-      // Handle other part types if needed in future (images, files, etc.)
+
+      // Handle image parts (use type guard since 'image' is not in UIMessage part types)
+      if ('image' in part && part.image) {
+        return (
+          <div key={`${message.id}-image-${index}`} className="mt-2">
+            <ImageAttachment
+              imageUrl={part.image as string | URL}
+              onClick={() => setLightboxImage({ url: part.image as string | URL })}
+              alt="Attached image"
+            />
+          </div>
+        );
+      }
+
+      // Handle other part types if needed in future (files, etc.)
       return null;
     });
   };
@@ -295,7 +349,20 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
 
       {/* Input Area */}
       <div className="bg-white border-t border-gray-200 px-base py-sm shadow-lg">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto space-y-sm">
+          {/* File Upload Zone - Only shown if model supports vision */}
+          {currentChatId && (
+            <FileUploadZone
+              onFilesUploaded={handleFilesUploaded}
+              onFileRemove={handleFileRemove}
+              uploadedFiles={uploadedFiles}
+              chatId={currentChatId}
+              disabled={isLoading}
+              modelSupportsVision={modelSupportsVision}
+              locale={locale}
+            />
+          )}
+
           <form id="chat-form" onSubmit={handleSubmit} className="flex gap-sm">
             <input
               type="text"
@@ -345,6 +412,17 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
           </p>
         </div>
       </div>
+
+      {/* Image Lightbox */}
+      {lightboxImage && (
+        <ImageLightbox
+          imageUrl={lightboxImage.url}
+          isOpen={true}
+          onClose={() => setLightboxImage(null)}
+          fileName={lightboxImage.fileName}
+          locale={locale}
+        />
+      )}
     </div>
   );
 }

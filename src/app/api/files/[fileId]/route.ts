@@ -80,17 +80,17 @@ export async function GET(
 
     const files = await sql`
       SELECT
-        cf.id,
-        cf.storage_key,
-        cf.file_name,
-        cf.file_type,
-        cf.mime_type,
-        cf.file_size,
-        cf.chat_id,
-        c.user_id
-      FROM chat_files cf
-      JOIN chats c ON c.id = cf.chat_id
-      WHERE cf.id = ${fileId};
+        fu.id,
+        fu.file_path as storage_key,
+        fu.original_filename as file_name,
+        fu.file_category as file_type,
+        fu.mime_type,
+        fu.file_size_bytes as file_size,
+        fu.chat_id,
+        cc.user_id
+      FROM file_uploads fu
+      JOIN chat_conversations cc ON cc.id = fu.chat_id
+      WHERE fu.id = ${fileId};
     `;
 
     if (files.length === 0) {
@@ -183,12 +183,12 @@ export async function DELETE(
 
     const files = await sql`
       SELECT
-        cf.id,
-        cf.storage_key,
-        c.user_id
-      FROM chat_files cf
-      JOIN chats c ON c.id = cf.chat_id
-      WHERE cf.id = ${fileId};
+        fu.id,
+        fu.file_path as storage_key,
+        cc.user_id
+      FROM file_uploads fu
+      JOIN chat_conversations cc ON cc.id = fu.chat_id
+      WHERE fu.id = ${fileId};
     `;
 
     if (files.length === 0) {
@@ -215,7 +215,7 @@ export async function DELETE(
 
     // 6. Delete from database
     await sql`
-      DELETE FROM chat_files
+      DELETE FROM file_uploads
       WHERE id = ${fileId};
     `;
 

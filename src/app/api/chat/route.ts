@@ -41,7 +41,7 @@ const chatRequestSchema = z.object({
   chatId: z.string().optional(), // Optional - create new chat if not provided
   modelId: z.string().optional(),
   temperature: z.number().min(0).max(2).optional(),
-  fileIds: z.array(z.string()).optional(), // Week 3: File attachments (chat_files.id)
+  fileIds: z.array(z.string()).optional(), // Week 3: File attachments (file_uploads.id)
 });
 
 // Context window configuration
@@ -113,25 +113,35 @@ async function processFileAttachments(
   userId: number,
   chatId: string,
   messageId: string
-): Promise<Array<{ type: 'image'; image: URL }>> {
+): Promise<Array<{ type: 'image'; image: string; mediaType: string }>> {
   if (!fileIds || fileIds.length === 0) {
     return [];
   }
 
   const sql = neon(process.env.POSTGRES_URL!);
-  const imageParts: Array<{ type: 'image'; image: URL }> = [];
+  const imageParts: Array<{ type: 'image'; image: string; mediaType: string }> = [];
 
   console.log(`[Chat API] 📎 Processing ${fileIds.length} file attachments`);
 
   for (const fileId of fileIds) {
     try {
       // Fetch file metadata and verify ownership
+      // Map new column names to what code expects
       const files = await sql`
-        SELECT cf.*, c.user_id
-        FROM chat_files cf
-        JOIN chats c ON c.id = cf.chat_id
-        WHERE cf.id = ${fileId}
-          AND c.user_id = ${userId};
+        SELECT
+          fu.id,
+          fu.chat_id,
+          fu.user_id,
+          fu.file_category as file_type,
+          fu.original_filename as file_name,
+          fu.file_path as storage_key,
+          fu.file_size_bytes as file_size,
+          fu.mime_type,
+          cc.user_id as chat_user_id
+        FROM file_uploads fu
+        JOIN chat_conversations cc ON cc.id = fu.chat_id
+        WHERE fu.id = ${fileId}
+          AND cc.user_id = ${userId};
       `;
 
       if (files.length === 0) {
@@ -147,25 +157,28 @@ async function processFileAttachments(
         continue;
       }
 
-      // Update message_id if not set (file was uploaded but not yet sent)
-      if (!file.message_id) {
-        await sql`
-          UPDATE chat_files
-          SET message_id = ${messageId}
-          WHERE id = ${fileId};
-        `;
-        console.log(`[Chat API] 🔗 Linked file ${fileId} to message ${messageId}`);
-      }
+      // Note: file_uploads table doesn't track message_id in restructured schema
+      // Files are linked to chats, not individual messages
 
       // Generate presigned URL (1 hour expiration)
       const presignedUrl = await getPresignedUrl(file.storage_key, 3600);
 
+      console.log(`[Chat API] 🔗 Full presigned URL: ${presignedUrl}`);
+
+      // Download image and convert to base64 data URL
+      // The Vercel AI SDK requires data URLs, not HTTP URLs
+      const imageResponse = await fetch(presignedUrl);
+      const imageBuffer = await imageResponse.arrayBuffer();
+      const base64 = Buffer.from(imageBuffer).toString('base64');
+      const dataUrl = `data:${file.mime_type};base64,${base64}`;
+
       imageParts.push({
         type: 'image',
-        image: new URL(presignedUrl)
+        image: dataUrl, // Data URL instead of HTTP URL
+        mediaType: file.mime_type || 'image/png',
       });
 
-      console.log(`[Chat API] ✅ Added image: ${file.file_name} (${file.file_size} bytes)`);
+      console.log(`[Chat API] ✅ Added image: ${file.file_name} (${file.file_size} bytes, converted to base64)`);
 
     } catch (error) {
       console.error(`[Chat API] ❌ Error processing file ${fileId}:`, error);
@@ -226,13 +239,14 @@ export async function POST(request: NextRequest) {
     const requestChatId = messageMetadata.chatId || rootMetadata.chatId || headerChatId || bodyChatId;
     const modelId = messageMetadata.modelId || rootMetadata.modelId || headerModelId || bodyModelId || 'claude-sonnet-4.5';
     const locale = (messageMetadata.locale || rootMetadata.locale || body.locale || 'nl') as 'nl' | 'en';
+    const requestFileIds = messageMetadata.fileIds || rootMetadata.fileIds || fileIds;
 
     // Validate model ID
     const model = getModel(modelId as ModelId);
 
     // Check if model supports vision when files are attached
     const modelInfo = MODEL_CAPABILITIES[modelId as ModelId];
-    if (fileIds && fileIds.length > 0 && !modelInfo?.supportsVision) {
+    if (requestFileIds && requestFileIds.length > 0 && !modelInfo?.supportsVision) {
       return new Response(
         JSON.stringify({
           error: 'Model does not support vision',
@@ -302,12 +316,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Process file attachments for multimodal input (Week 3)
-    if (fileIds && fileIds.length > 0) {
+    if (requestFileIds && requestFileIds.length > 0) {
       // Get the last user message ID (the one we're about to save)
       const lastUserMessage = (clientMessages as UIMessage[]).slice().reverse().find(m => m.role === 'user');
       const messageId = lastUserMessage?.id || randomUUID();
 
-      const imageParts = await processFileAttachments(fileIds, userId, chatId!, messageId);
+      const imageParts = await processFileAttachments(requestFileIds, userId, chatId!, messageId);
 
       // Add image parts to the last user message
       // Type assertion needed because AI SDK's UIMessagePart type doesn't properly recognize image parts
@@ -315,6 +329,7 @@ export async function POST(request: NextRequest) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         lastUserMessage.parts.push(...(imageParts as any));
         console.log(`[Chat API] 📎 Added ${imageParts.length} images to user message`);
+        console.log(`[Chat API] 🔍 Last user message parts:`, JSON.stringify(lastUserMessage.parts, null, 2));
       }
     }
 
@@ -383,6 +398,17 @@ export async function POST(request: NextRequest) {
     console.log(`[Chat API] Chat: ${chatId}, Model: ${modelId}, Locale: ${locale}, Messages: ${truncatedMessages.length}/${allMessages.length}`);
     console.log(`[Chat API] 🔧 Location agent tools enabled for user ${userId}`);
 
+    // Debug: Log the last user message to see if images are included
+    const lastUserMsg = messagesWithSystem.filter(m => m.role === 'user').slice(-1)[0];
+    if (lastUserMsg) {
+      console.log(`[Chat API] 🔍 Last user message before sending to model:`, JSON.stringify({
+        role: lastUserMsg.role,
+        id: lastUserMsg.id,
+        partsCount: lastUserMsg.parts?.length,
+        partTypes: lastUserMsg.parts?.map(p => p.type)
+      }, null, 2));
+    }
+
     // Create location agent tools with userId injected from session
     // These tools are defined inline so we can inject userId without exposing it to the LLM
     const locationTools = {
@@ -410,11 +436,11 @@ export async function POST(request: NextRequest) {
                 sl.created_at as "createdAt",
                 sl.updated_at as "updatedAt",
                 sl.user_id as "ownerId",
-                u.name as "ownerName",
+                ua.name as "ownerName",
                 FALSE as "isShared",
                 TRUE as "canEdit"
               FROM saved_locations sl
-              JOIN users u ON sl.user_id = u.id
+              JOIN user_accounts ua ON sl.user_id = ua.id
               WHERE sl.user_id = ${userId}
 
               UNION ALL
@@ -428,12 +454,12 @@ export async function POST(request: NextRequest) {
                 sl.created_at as "createdAt",
                 sl.updated_at as "updatedAt",
                 sl.user_id as "ownerId",
-                u.name as "ownerName",
+                ua.name as "ownerName",
                 TRUE as "isShared",
                 ls.can_edit as "canEdit"
               FROM saved_locations sl
               JOIN location_shares ls ON sl.id = ls.saved_location_id
-              JOIN users u ON sl.user_id = u.id
+              JOIN user_accounts ua ON sl.user_id = ua.id
               WHERE ls.shared_with_user_id = ${userId}
 
               ORDER BY "createdAt" DESC
