@@ -126,8 +126,19 @@ async function processFileAttachments(
   for (const fileId of fileIds) {
     try {
       // Fetch file metadata and verify ownership
+      // Map new column names to what code expects
       const files = await sql`
-        SELECT fu.*, cc.user_id
+        SELECT
+          fu.id,
+          fu.chat_id,
+          fu.user_id,
+          fu.message_id,
+          fu.file_category as file_type,
+          fu.original_filename as file_name,
+          fu.file_path as storage_key,
+          fu.file_size_bytes as file_size,
+          fu.mime_type,
+          cc.user_id as chat_user_id
         FROM file_uploads fu
         JOIN chat_conversations cc ON cc.id = fu.chat_id
         WHERE fu.id = ${fileId}
