@@ -226,13 +226,14 @@ export async function POST(request: NextRequest) {
     const requestChatId = messageMetadata.chatId || rootMetadata.chatId || headerChatId || bodyChatId;
     const modelId = messageMetadata.modelId || rootMetadata.modelId || headerModelId || bodyModelId || 'claude-sonnet-4.5';
     const locale = (messageMetadata.locale || rootMetadata.locale || body.locale || 'nl') as 'nl' | 'en';
+    const requestFileIds = messageMetadata.fileIds || rootMetadata.fileIds || fileIds;
 
     // Validate model ID
     const model = getModel(modelId as ModelId);
 
     // Check if model supports vision when files are attached
     const modelInfo = MODEL_CAPABILITIES[modelId as ModelId];
-    if (fileIds && fileIds.length > 0 && !modelInfo?.supportsVision) {
+    if (requestFileIds && requestFileIds.length > 0 && !modelInfo?.supportsVision) {
       return new Response(
         JSON.stringify({
           error: 'Model does not support vision',
@@ -302,12 +303,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Process file attachments for multimodal input (Week 3)
-    if (fileIds && fileIds.length > 0) {
+    if (requestFileIds && requestFileIds.length > 0) {
       // Get the last user message ID (the one we're about to save)
       const lastUserMessage = (clientMessages as UIMessage[]).slice().reverse().find(m => m.role === 'user');
       const messageId = lastUserMessage?.id || randomUUID();
 
-      const imageParts = await processFileAttachments(fileIds, userId, chatId!, messageId);
+      const imageParts = await processFileAttachments(requestFileIds, userId, chatId!, messageId);
 
       // Add image parts to the last user message
       // Type assertion needed because AI SDK's UIMessagePart type doesn't properly recognize image parts
