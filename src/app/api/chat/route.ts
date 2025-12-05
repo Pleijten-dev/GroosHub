@@ -322,6 +322,7 @@ export async function POST(request: NextRequest) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         lastUserMessage.parts.push(...(imageParts as any));
         console.log(`[Chat API] 📎 Added ${imageParts.length} images to user message`);
+        console.log(`[Chat API] 🔍 Last user message parts:`, JSON.stringify(lastUserMessage.parts, null, 2));
       }
     }
 
@@ -389,6 +390,17 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Chat API] Chat: ${chatId}, Model: ${modelId}, Locale: ${locale}, Messages: ${truncatedMessages.length}/${allMessages.length}`);
     console.log(`[Chat API] 🔧 Location agent tools enabled for user ${userId}`);
+
+    // Debug: Log the last user message to see if images are included
+    const lastUserMsg = messagesWithSystem.filter(m => m.role === 'user').slice(-1)[0];
+    if (lastUserMsg) {
+      console.log(`[Chat API] 🔍 Last user message before sending to model:`, JSON.stringify({
+        role: lastUserMsg.role,
+        id: lastUserMsg.id,
+        partsCount: lastUserMsg.parts?.length,
+        partTypes: lastUserMsg.parts?.map(p => p.type)
+      }, null, 2));
+    }
 
     // Create location agent tools with userId injected from session
     // These tools are defined inline so we can inject userId without exposing it to the LLM
