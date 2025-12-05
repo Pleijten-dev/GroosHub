@@ -242,8 +242,8 @@ export async function GET(request: NextRequest) {
       const sql = neon(process.env.POSTGRES_URL!);
 
       const result = await sql`
-        INSERT INTO chat_files (
-          chat_id, user_id, storage_key, file_name, file_type, mime_type, file_size
+        INSERT INTO file_uploads (
+          chat_id, user_id, file_path, original_filename, file_category, mime_type, file_size_bytes
         ) VALUES (
           ${testChatId},
           ${userId},
@@ -352,11 +352,11 @@ export async function GET(request: NextRequest) {
 
       const start = Date.now();
       const files = await sql`
-        SELECT cf.*, c.user_id
-        FROM chat_files cf
-        JOIN chats c ON c.id = cf.chat_id
-        WHERE cf.id = ${testFileId}
-          AND c.user_id = ${userId};
+        SELECT fu.*, cc.user_id
+        FROM file_uploads fu
+        JOIN chat_conversations cc ON cc.id = fu.chat_id
+        WHERE fu.id = ${testFileId}
+          AND cc.user_id = ${userId};
       `;
       const queryTime = Date.now() - start;
 
@@ -404,7 +404,7 @@ export async function GET(request: NextRequest) {
       results.push(await runTest('Cleanup: Delete File from Database', async () => {
         const sql = neon(process.env.POSTGRES_URL!);
 
-        await sql`DELETE FROM chat_files WHERE id = ${testFileId}`;
+        await sql`DELETE FROM file_uploads WHERE id = ${testFileId}`;
 
         return {
           status: 'pass',
@@ -424,7 +424,7 @@ export async function GET(request: NextRequest) {
       results.push(await runTest('Cleanup: Delete Test Chat', async () => {
         const sql = neon(process.env.POSTGRES_URL!);
 
-        await sql`DELETE FROM chats WHERE id = ${testChatId}`;
+        await sql`DELETE FROM chat_conversations WHERE id = ${testChatId}`;
 
         return {
           status: 'pass',

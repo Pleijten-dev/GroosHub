@@ -41,7 +41,7 @@ const chatRequestSchema = z.object({
   chatId: z.string().optional(), // Optional - create new chat if not provided
   modelId: z.string().optional(),
   temperature: z.number().min(0).max(2).optional(),
-  fileIds: z.array(z.string()).optional(), // Week 3: File attachments (chat_files.id)
+  fileIds: z.array(z.string()).optional(), // Week 3: File attachments (file_uploads.id)
 });
 
 // Context window configuration
@@ -127,11 +127,11 @@ async function processFileAttachments(
     try {
       // Fetch file metadata and verify ownership
       const files = await sql`
-        SELECT cf.*, c.user_id
-        FROM chat_files cf
-        JOIN chats c ON c.id = cf.chat_id
-        WHERE cf.id = ${fileId}
-          AND c.user_id = ${userId};
+        SELECT fu.*, cc.user_id
+        FROM file_uploads fu
+        JOIN chat_conversations cc ON cc.id = fu.chat_id
+        WHERE fu.id = ${fileId}
+          AND cc.user_id = ${userId};
       `;
 
       if (files.length === 0) {
@@ -150,7 +150,7 @@ async function processFileAttachments(
       // Update message_id if not set (file was uploaded but not yet sent)
       if (!file.message_id) {
         await sql`
-          UPDATE chat_files
+          UPDATE file_uploads
           SET message_id = ${messageId}
           WHERE id = ${fileId};
         `;
@@ -410,11 +410,11 @@ export async function POST(request: NextRequest) {
                 sl.created_at as "createdAt",
                 sl.updated_at as "updatedAt",
                 sl.user_id as "ownerId",
-                u.name as "ownerName",
+                ua.name as "ownerName",
                 FALSE as "isShared",
                 TRUE as "canEdit"
               FROM saved_locations sl
-              JOIN users u ON sl.user_id = u.id
+              JOIN user_accounts ua ON sl.user_id = ua.id
               WHERE sl.user_id = ${userId}
 
               UNION ALL
@@ -428,12 +428,12 @@ export async function POST(request: NextRequest) {
                 sl.created_at as "createdAt",
                 sl.updated_at as "updatedAt",
                 sl.user_id as "ownerId",
-                u.name as "ownerName",
+                ua.name as "ownerName",
                 TRUE as "isShared",
                 ls.can_edit as "canEdit"
               FROM saved_locations sl
               JOIN location_shares ls ON sl.id = ls.saved_location_id
-              JOIN users u ON sl.user_id = u.id
+              JOIN user_accounts ua ON sl.user_id = ua.id
               WHERE ls.shared_with_user_id = ${userId}
 
               ORDER BY "createdAt" DESC

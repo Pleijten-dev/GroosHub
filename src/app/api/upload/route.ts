@@ -175,38 +175,42 @@ export async function POST(request: NextRequest) {
         // Upload to R2
         await uploadFileToR2(buffer, storageKey, file.type);
 
-        // Store metadata in database
+        // Store metadata in database using new file_uploads table
         const result = await sql`
-          INSERT INTO chat_files (
+          INSERT INTO file_uploads (
             chat_id,
-            message_id,
             user_id,
-            storage_key,
-            file_name,
-            file_type,
+            filename,
+            original_filename,
+            file_path,
+            file_size_bytes,
             mime_type,
-            file_size
+            file_category,
+            storage_provider,
+            storage_url
           ) VALUES (
             ${chatId},
-            ${messageId},
             ${userId},
-            ${storageKey},
+            ${sanitized},
             ${file.name},
-            ${fileType},
+            ${storageKey},
+            ${file.size},
             ${file.type},
-            ${file.size}
+            ${fileType},
+            ${'r2'},
+            ${null}
           )
-          RETURNING id, file_name, file_type, mime_type, file_size, storage_key, created_at;
+          RETURNING id, filename, original_filename, file_path, file_size_bytes, mime_type, file_category, created_at;
         `;
 
         const uploadedFile = result[0];
         uploadedFiles.push({
           id: uploadedFile.id,
-          fileName: uploadedFile.file_name,
-          fileType: uploadedFile.file_type,
+          fileName: uploadedFile.original_filename,
+          fileType: uploadedFile.file_category,
           mimeType: uploadedFile.mime_type,
-          fileSize: uploadedFile.file_size,
-          storageKey: uploadedFile.storage_key,
+          fileSize: uploadedFile.file_size_bytes,
+          storageKey: uploadedFile.file_path,
           createdAt: uploadedFile.created_at,
         });
 
@@ -284,19 +288,18 @@ export async function GET(request: NextRequest) {
 
     const files = await sql`
       SELECT
-        cf.id,
-        cf.file_name,
-        cf.file_type,
-        cf.mime_type,
-        cf.file_size,
-        cf.storage_key,
-        cf.message_id,
-        cf.created_at
-      FROM chat_files cf
-      JOIN chats c ON c.id = cf.chat_id
-      WHERE cf.chat_id = ${chatId}
-        AND c.user_id = ${userId}
-      ORDER BY cf.created_at DESC;
+        fu.id,
+        fu.original_filename as file_name,
+        fu.file_category as file_type,
+        fu.mime_type,
+        fu.file_size_bytes as file_size,
+        fu.file_path as storage_key,
+        fu.created_at
+      FROM file_uploads fu
+      JOIN chat_conversations cc ON cc.id = fu.chat_id
+      WHERE fu.chat_id = ${chatId}
+        AND cc.user_id = ${userId}
+      ORDER BY fu.created_at DESC;
     `;
 
     return NextResponse.json({
