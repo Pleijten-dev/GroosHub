@@ -416,13 +416,16 @@ export async function POST(request: NextRequest) {
     // Debug: Log the last user message to see if images are included
     const lastUserMsg = messagesWithSystem.filter(m => m.role === 'user').slice(-1)[0];
     if (lastUserMsg) {
+      // Type-safe part inspection (UIMessage types don't include image parts)
+      type MessagePart = typeof lastUserMsg.parts[number] | { type: 'image'; image: string; mediaType?: string };
+
       console.log(`[Chat API] 🔍 Last user message before sending to model:`, JSON.stringify({
         role: lastUserMsg.role,
         id: lastUserMsg.id,
         partsCount: lastUserMsg.parts?.length,
         partTypes: lastUserMsg.parts?.map(p => p.type),
-        partSummary: lastUserMsg.parts?.map((p: any) => {
-          if (p.type === 'text') return { type: 'text', preview: p.text?.substring(0, 50) || '' };
+        partSummary: lastUserMsg.parts?.map((p: MessagePart) => {
+          if (p.type === 'text') return { type: 'text', preview: ('text' in p ? p.text?.substring(0, 50) : '') || '' };
           if ('image' in p) return {
             type: 'image',
             imageType: (typeof p.image === 'string') ?
