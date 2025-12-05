@@ -163,6 +163,8 @@ async function processFileAttachments(
       // Generate presigned URL (1 hour expiration)
       const presignedUrl = await getPresignedUrl(file.storage_key, 3600);
 
+      console.log(`[Chat API] 🔗 Presigned URL generated: ${presignedUrl.substring(0, 100)}...`);
+
       imageParts.push({
         type: 'image',
         image: new URL(presignedUrl),
