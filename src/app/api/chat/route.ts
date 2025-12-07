@@ -8,7 +8,7 @@
  * Week 3: Multi-Modal Input - Support for images and PDFs with vision models
  */
 
-import { streamText, stepCountIs, tool, type UIMessage, type ImagePart } from 'ai';
+import { streamText, stepCountIs, tool, convertToModelMessages, type UIMessage, type FileUIPart } from 'ai';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getModel, type ModelId, MODEL_CAPABILITIES } from '@/lib/ai/models';
@@ -114,13 +114,13 @@ async function processFileAttachments(
   userId: number,
   chatId: string,
   messageId: string
-): Promise<ImagePart[]> {
+): Promise<FileUIPart[]> {
   if (!fileIds || fileIds.length === 0) {
     return [];
   }
 
   const sql = neon(process.env.POSTGRES_URL!);
-  const imageParts: ImagePart[] = [];
+  const fileParts: FileUIPart[] = [];
 
   console.log(`[Chat API] 📎 Processing ${fileIds.length} file attachments`);
 
@@ -205,12 +205,13 @@ async function processFileAttachments(
       console.log(`[Chat API] 📸 Image format: ${imageFormat}, Data URL length: ${dataUrl.length}, Base64 length: ${base64.length}`);
       console.log(`[Chat API] 📸 Data URL prefix: ${dataUrl.substring(0, 100)}...`);
 
-      // Create ImagePart following official AI SDK interface
-      // Note: mediaType is optional and auto-detected, but we provide it for clarity
-      imageParts.push({
-        type: 'image',
-        image: dataUrl, // DataContent: base64 data URL string
+      // Create FileUIPart following official Vercel AI SDK v5 pattern
+      // FileUIPart is the correct format for multimodal UIMessages
+      // convertToModelMessages() will convert FileUIPart → FilePart for the model
+      fileParts.push({
+        type: 'file',
         mediaType: 'image/jpeg', // Always JPEG after resizing
+        url: dataUrl, // Base64 data URL
       });
 
       console.log(`[Chat API] ✅ Added image: ${file.file_name} (original: ${Math.round(originalSize / 1024)}KB, resized: ${Math.round(resizedSize / 1024)}KB)`);
@@ -221,9 +222,9 @@ async function processFileAttachments(
     }
   }
 
-  console.log(`[Chat API] 📎 Successfully processed ${imageParts.length}/${fileIds.length} file attachments`);
+  console.log(`[Chat API] 📎 Successfully processed ${fileParts.length}/${fileIds.length} file attachments`);
 
-  return imageParts;
+  return fileParts;
 }
 
 /**
@@ -356,14 +357,14 @@ export async function POST(request: NextRequest) {
       const lastUserMessage = (clientMessages as UIMessage[]).slice().reverse().find(m => m.role === 'user');
       const messageId = lastUserMessage?.id || randomUUID();
 
-      const imageParts = await processFileAttachments(requestFileIds, userId, chatId!, messageId);
+      const fileParts = await processFileAttachments(requestFileIds, userId, chatId!, messageId);
 
-      // Add image parts to the last user message
-      // Type assertion needed because AI SDK's UIMessagePart type doesn't properly recognize image parts
-      if (imageParts.length > 0 && lastUserMessage) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        lastUserMessage.parts.push(...(imageParts as any));
-        console.log(`[Chat API] 📎 Added ${imageParts.length} images to user message`);
+      // Add FileUIParts to the last user message
+      // FileUIPart is the correct UIMessage format for file attachments
+      // convertToModelMessages() will convert FileUIPart → FilePart for the model
+      if (fileParts.length > 0 && lastUserMessage) {
+        lastUserMessage.parts.push(...fileParts);
+        console.log(`[Chat API] 📎 Added ${fileParts.length} file attachments to user message`);
         console.log(`[Chat API] 🔍 Last user message parts:`, JSON.stringify(lastUserMessage.parts, null, 2));
       }
     }
@@ -433,11 +434,11 @@ export async function POST(request: NextRequest) {
     console.log(`[Chat API] Chat: ${chatId}, Model: ${modelId}, Locale: ${locale}, Messages: ${truncatedMessages.length}/${allMessages.length}`);
     console.log(`[Chat API] 🔧 Location agent tools enabled for user ${userId}`);
 
-    // Debug: Log the last user message to see if images are included
+    // Debug: Log the last user message to see if files/images are included
     const lastUserMsg = messagesWithSystem.filter(m => m.role === 'user').slice(-1)[0];
     if (lastUserMsg) {
-      // Type-safe part inspection using official ImagePart type
-      type MessagePart = typeof lastUserMsg.parts[number] | ImagePart;
+      // Type-safe part inspection using official FileUIPart type
+      type MessagePart = typeof lastUserMsg.parts[number] | FileUIPart;
 
       console.log(`[Chat API] 🔍 Last user message before sending to model:`, JSON.stringify({
         role: lastUserMsg.role,
@@ -446,12 +447,13 @@ export async function POST(request: NextRequest) {
         partTypes: lastUserMsg.parts?.map(p => p.type),
         partSummary: lastUserMsg.parts?.map((p: MessagePart) => {
           if (p.type === 'text') return { type: 'text', preview: ('text' in p ? p.text?.substring(0, 50) : '') || '' };
-          if ('image' in p) return {
-            type: 'image',
-            imageType: (typeof p.image === 'string') ?
-              (p.image.startsWith('data:') ? 'data-url' : 'url') :
-              'buffer',
-            imagePrefix: (typeof p.image === 'string') ? p.image.substring(0, 50) : 'binary'
+          if (p.type === 'file' && 'url' in p) return {
+            type: 'file',
+            mediaType: 'mediaType' in p ? p.mediaType : 'unknown',
+            urlType: (typeof p.url === 'string') ?
+              (p.url.startsWith('data:') ? 'data-url' : 'http-url') :
+              'unknown',
+            urlPrefix: (typeof p.url === 'string') ? p.url.substring(0, 50) : 'N/A'
           };
           return { type: p.type };
         })
@@ -869,12 +871,11 @@ export async function POST(request: NextRequest) {
     };
 
     // Stream the response with location agent tools
-    // Note: Don't use convertToModelMessages() for multimodal messages - it strips image parts!
-    // The streamText function accepts messages with ImageParts directly at runtime.
+    // Use convertToModelMessages to convert UIMessages → CoreMessages
+    // This automatically handles multimodal content including FileParts (images)
     const result = streamText({
       model,
-      // @ts-expect-error - TypeScript types don't include ImagePart support, but runtime does
-      messages: messagesWithSystem,
+      messages: convertToModelMessages(messagesWithSystem),
       temperature,
       // Location agent tools with userId injected
       tools: locationTools,
