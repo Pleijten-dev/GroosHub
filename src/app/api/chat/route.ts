@@ -567,8 +567,8 @@ export async function POST(request: NextRequest) {
 
             const row = results[0];
 
-            // Build unified location data structure from separate fields
-            const locationData: UnifiedLocationData = {
+            // Build location data structure from separate database fields
+            const locationData = {
               demographics: row.demographics_data || {},
               health: row.health_data || {},
               safety: row.safety_data || {},
@@ -592,10 +592,11 @@ export async function POST(request: NextRequest) {
             }
 
             // Return specific category
+            const categoryData = locationData[category as keyof typeof locationData];
             return {
               success: true,
               category,
-              data: locationData[category as keyof UnifiedLocationData]
+              data: categoryData
             };
           } catch (error) {
             return {
