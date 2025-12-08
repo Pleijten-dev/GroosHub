@@ -28,7 +28,15 @@
 
 ## 📚 Documentation Structure
 
-**This file** (CLAUDE.md) provides quick reference for AI assistants. For comprehensive documentation, see the `/docs/` directory:
+**This file** (CLAUDE.md) provides quick reference for AI assistants. For comprehensive documentation, see the `/docs/` directory.
+
+### 📋 Master TODO List
+
+**[TODO.md](TODO.md)** - Consolidated task list with ~150 actionable items:
+- 🚨 **CRITICAL**: Database migration (URGENT - old tables will be deleted!)
+- 🔥 **HIGH**: LCA Phase 3.3 UI components
+- ⚙️ **MEDIUM**: Testing & quality assurance
+- 💡 **LOW**: Future enhancements
 
 ### Quick Links
 
