@@ -893,6 +893,412 @@ export async function POST(request: NextRequest) {
           };
         },
       }),
+
+      visualizeDemographics: tool({
+        description: `Generate demographic data visualizations (charts) for a saved location.
+
+        Use this tool when user asks to:
+        - "Show me demographics charts"
+        - "Visualize the age distribution"
+        - "Display demographic data as graphs"
+        - "Show me population statistics visually"
+
+        Returns structured chart data for age distribution, marital status, migration background, and family composition.`,
+        inputSchema: z.object({
+          locationId: z.string().uuid(),
+          sections: z.array(z.enum(['age', 'status', 'immigration', 'family'])).optional().describe('Specific sections to visualize. If not provided, shows all sections.'),
+        }),
+        async execute({ locationId, sections }) {
+          try {
+            const sql = getDbConnection();
+            const results = await sql`
+              SELECT ls.demographics_data, ls.address, p.name as project_name
+              FROM location_snapshots ls
+              JOIN project_projects p ON ls.project_id = p.id
+              JOIN project_members pm ON p.id = pm.project_id
+              WHERE ls.id = ${locationId}
+                AND pm.user_id = ${userId}
+                AND pm.left_at IS NULL
+                AND ls.is_active = true
+            `;
+
+            if (results.length === 0) {
+              return { success: false, error: 'Location not found or access denied' };
+            }
+
+            const data = results[0].demographics_data as any;
+            const address = results[0].address;
+
+            if (!data || !data.neighborhood) {
+              return { success: false, error: 'Demographics data not available for this location' };
+            }
+
+            const neighborhood = data.neighborhood;
+
+            // Helper function to find field value
+            const findField = (fieldKey: string) => {
+              const field = neighborhood.find((f: any) => f.key === fieldKey);
+              return field ? parseFloat(field.value) || 0 : 0;
+            };
+
+            const charts: any = {};
+            const requestedSections = sections || ['age', 'status', 'immigration', 'family'];
+
+            if (requestedSections.includes('age')) {
+              charts.age = {
+                title: 'Age Distribution',
+                type: 'density',
+                data: [
+                  { name: '0-15', value: findField('k_0Tot15Jaar_8'), color: '#477638' },
+                  { name: '15-25', value: findField('k_15Tot25Jaar_9'), color: '#5a8a4d' },
+                  { name: '25-45', value: findField('k_25Tot45Jaar_10'), color: '#6d9e62' },
+                  { name: '45-65', value: findField('k_45Tot65Jaar_11'), color: '#80b277' },
+                  { name: '65+', value: findField('k_65JaarOfOuder_12'), color: '#93c68c' }
+                ]
+              };
+            }
+
+            if (requestedSections.includes('status')) {
+              charts.maritalStatus = {
+                title: 'Marital Status',
+                type: 'bar',
+                data: [
+                  { name: 'Unmarried', value: findField('Ongehuwd_13'), color: '#477638' },
+                  { name: 'Married', value: findField('Gehuwd_14'), color: '#5a8a4d' },
+                  { name: 'Divorced', value: findField('Gescheiden_15'), color: '#6d9e62' },
+                  { name: 'Widowed', value: findField('Verweduwd_16'), color: '#80b277' }
+                ]
+              };
+            }
+
+            if (requestedSections.includes('immigration')) {
+              charts.migration = {
+                title: 'Migration Background',
+                type: 'bar',
+                data: [
+                  { name: 'Native', value: findField('Autochtoon'), color: '#477638' },
+                  { name: 'Western', value: findField('WestersTotaal_17'), color: '#5a8a4d' },
+                  { name: 'Non-Western', value: findField('NietWestersTotaal_18'), color: '#6d9e62' },
+                  { name: 'Morocco', value: findField('Marokko_19'), color: '#80b277' },
+                  { name: 'Antilles', value: findField('NederlandseAntillenEnAruba_20'), color: '#93c68c' },
+                  { name: 'Suriname', value: findField('Suriname_21'), color: '#a6da9e' },
+                  { name: 'Turkey', value: findField('Turkije_22'), color: '#b9edb0' },
+                  { name: 'Other', value: findField('OverigNietWesters_23'), color: '#ccffc2' }
+                ]
+              };
+            }
+
+            if (requestedSections.includes('family')) {
+              charts.familyType = {
+                title: 'Family Composition',
+                type: 'bar',
+                data: [
+                  { name: 'Single', value: findField('Eenpersoonshuishoudens_29'), color: '#477638' },
+                  { name: 'No children', value: findField('HuishoudensZonderKinderen_30'), color: '#5a8a4d' },
+                  { name: 'With children', value: findField('HuishoudensMetKinderen_31'), color: '#6d9e62' }
+                ]
+              };
+            }
+
+            return {
+              success: true,
+              address,
+              charts,
+              visualizationType: 'demographics'
+            };
+          } catch (error) {
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : 'Failed to generate demographics visualization'
+            };
+          }
+        },
+      }),
+
+      visualizeSafety: tool({
+        description: `Generate safety data visualizations for a saved location.
+
+        Use this tool when user asks to:
+        - "Show me safety charts"
+        - "Visualize crime statistics"
+        - "Display safety data graphically"
+
+        Returns structured chart data for different crime categories.`,
+        inputSchema: z.object({
+          locationId: z.string().uuid(),
+        }),
+        async execute({ locationId }) {
+          try {
+            const sql = getDbConnection();
+            const results = await sql`
+              SELECT ls.safety_data, ls.address
+              FROM location_snapshots ls
+              JOIN project_projects p ON ls.project_id = p.id
+              JOIN project_members pm ON p.id = pm.project_id
+              WHERE ls.id = ${locationId}
+                AND pm.user_id = ${userId}
+                AND pm.left_at IS NULL
+                AND ls.is_active = true
+            `;
+
+            if (results.length === 0) {
+              return { success: false, error: 'Location not found or access denied' };
+            }
+
+            const data = results[0].safety_data as any;
+            const address = results[0].address;
+
+            if (!data || !data.neighborhood) {
+              return { success: false, error: 'Safety data not available for this location' };
+            }
+
+            const neighborhood = data.neighborhood;
+
+            const findField = (fieldKey: string) => {
+              const field = neighborhood.find((f: any) => f.key === fieldKey);
+              return field ? parseFloat(field.value) || 0 : 0;
+            };
+
+            return {
+              success: true,
+              address,
+              charts: {
+                crimeTypes: {
+                  title: 'Crime Statistics',
+                  type: 'bar',
+                  data: [
+                    { name: 'Total Crime', value: findField('TotaalGeregistreerdeMisdrijven_2'), color: '#ef4444' },
+                    { name: 'Violent', value: findField('Geweldsmisdrijven_3'), color: '#dc2626' },
+                    { name: 'Property', value: findField('VermogensmisdrijvenTotaal_4'), color: '#f59e0b' },
+                    { name: 'Vandalism', value: findField('Vernieling_5'), color: '#f97316' }
+                  ]
+                }
+              },
+              visualizationType: 'safety'
+            };
+          } catch (error) {
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : 'Failed to generate safety visualization'
+            };
+          }
+        },
+      }),
+
+      visualizeHealth: tool({
+        description: `Generate health data visualizations for a saved location.
+
+        Use this tool when user asks to:
+        - "Show me health charts"
+        - "Visualize health indicators"
+        - "Display health data as graphs"
+
+        Returns structured chart data for health metrics.`,
+        inputSchema: z.object({
+          locationId: z.string().uuid(),
+        }),
+        async execute({ locationId }) {
+          try {
+            const sql = getDbConnection();
+            const results = await sql`
+              SELECT ls.health_data, ls.address
+              FROM location_snapshots ls
+              JOIN project_projects p ON ls.project_id = p.id
+              JOIN project_members pm ON p.id = pm.project_id
+              WHERE ls.id = ${locationId}
+                AND pm.user_id = ${userId}
+                AND pm.left_at IS NULL
+                AND ls.is_active = true
+            `;
+
+            if (results.length === 0) {
+              return { success: false, error: 'Location not found or access denied' };
+            }
+
+            const data = results[0].health_data as any;
+            const address = results[0].address;
+
+            if (!data || !data.municipality) {
+              return { success: false, error: 'Health data not available for this location' };
+            }
+
+            const municipality = data.municipality;
+
+            const findField = (fieldKey: string) => {
+              const field = municipality.find((f: any) => f.key === fieldKey);
+              return field ? parseFloat(field.value) || 0 : 0;
+            };
+
+            return {
+              success: true,
+              address,
+              charts: {
+                healthMetrics: {
+                  title: 'Health Indicators',
+                  type: 'bar',
+                  data: [
+                    { name: 'Life Expectancy', value: findField('Levensverwachting_2'), color: '#10b981' },
+                    { name: 'Healthy Life Years', value: findField('GezondLevensverwachting_3'), color: '#059669' }
+                  ]
+                }
+              },
+              visualizationType: 'health'
+            };
+          } catch (error) {
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : 'Failed to generate health visualization'
+            };
+          }
+        },
+      }),
+
+      visualizeLivability: tool({
+        description: `Generate livability data visualizations for a saved location.
+
+        Use this tool when user asks to:
+        - "Show me livability charts"
+        - "Visualize livability scores"
+        - "Display quality of life metrics"
+
+        Returns structured chart data for livability indicators.`,
+        inputSchema: z.object({
+          locationId: z.string().uuid(),
+        }),
+        async execute({ locationId }) {
+          try {
+            const sql = getDbConnection();
+            const results = await sql`
+              SELECT ls.livability_data, ls.address
+              FROM location_snapshots ls
+              JOIN project_projects p ON ls.project_id = p.id
+              JOIN project_members pm ON p.id = pm.project_id
+              WHERE ls.id = ${locationId}
+                AND pm.user_id = ${userId}
+                AND pm.left_at IS NULL
+                AND ls.is_active = true
+            `;
+
+            if (results.length === 0) {
+              return { success: false, error: 'Location not found or access denied' };
+            }
+
+            const data = results[0].livability_data as any;
+            const address = results[0].address;
+
+            if (!data || !data.neighborhood) {
+              return { success: false, error: 'Livability data not available for this location' };
+            }
+
+            const neighborhood = data.neighborhood;
+
+            const findField = (fieldKey: string) => {
+              const field = neighborhood.find((f: any) => f.key === fieldKey);
+              return field ? parseFloat(field.value) || 0 : 0;
+            };
+
+            return {
+              success: true,
+              address,
+              charts: {
+                livabilityScores: {
+                  title: 'Livability Indicators',
+                  type: 'radial',
+                  data: [
+                    { name: 'Physical Environment', value: findField('FysiekeBevolking_2') * 10, color: '#477638' },
+                    { name: 'Social Cohesion', value: findField('SocialeCohesie_4') * 10, color: '#5a8a4d' },
+                    { name: 'Safety', value: findField('VeiligheidsIndex_5') * 10, color: '#6d9e62' },
+                    { name: 'Services', value: findField('VoorzieningenIndex_6') * 10, color: '#80b277' },
+                    { name: 'Housing', value: findField('WoningIndex_3') * 10, color: '#93c68c' }
+                  ]
+                }
+              },
+              visualizationType: 'livability'
+            };
+          } catch (error) {
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : 'Failed to generate livability visualization'
+            };
+          }
+        },
+      }),
+
+      visualizeHousing: tool({
+        description: `Generate housing market data visualizations for a saved location.
+
+        Use this tool when user asks to:
+        - "Show me housing charts"
+        - "Visualize property prices"
+        - "Display housing market data"
+
+        Returns structured chart data for housing metrics.`,
+        inputSchema: z.object({
+          locationId: z.string().uuid(),
+        }),
+        async execute({ locationId }) {
+          try {
+            const sql = getDbConnection();
+            const results = await sql`
+              SELECT ls.housing_data, ls.address
+              FROM location_snapshots ls
+              JOIN project_projects p ON ls.project_id = p.id
+              JOIN project_members pm ON p.id = pm.project_id
+              WHERE ls.id = ${locationId}
+                AND pm.user_id = ${userId}
+                AND pm.left_at IS NULL
+                AND ls.is_active = true
+            `;
+
+            if (results.length === 0) {
+              return { success: false, error: 'Location not found or access denied' };
+            }
+
+            const data = results[0].housing_data as any;
+            const address = results[0].address;
+
+            if (!data || !data.neighborhood) {
+              return { success: false, error: 'Housing data not available for this location' };
+            }
+
+            const neighborhood = data.neighborhood;
+
+            const findField = (fieldKey: string) => {
+              const field = neighborhood.find((f: any) => f.key === fieldKey);
+              return field ? parseFloat(field.value) || 0 : 0;
+            };
+
+            return {
+              success: true,
+              address,
+              charts: {
+                housingTypes: {
+                  title: 'Housing Ownership',
+                  type: 'radial',
+                  data: [
+                    { name: 'Owner-Occupied', value: findField('EigendomWoning_37'), color: '#3b82f6' },
+                    { name: 'Rental', value: findField('HuurwoningTotaal_38'), color: '#60a5fa' }
+                  ]
+                },
+                propertyTypes: {
+                  title: 'Property Types',
+                  type: 'bar',
+                  data: [
+                    { name: 'Single Family', value: findField('Eengezinswoning_34'), color: '#3b82f6' },
+                    { name: 'Apartment', value: findField('Meergezinswoning_35'), color: '#60a5fa' }
+                  ]
+                }
+              },
+              visualizationType: 'housing'
+            };
+          } catch (error) {
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : 'Failed to generate housing visualization'
+            };
+          }
+        },
+      }),
     };
 
     // Stream the response with location agent tools

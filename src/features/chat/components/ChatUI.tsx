@@ -25,6 +25,7 @@ import { FileUploadZone } from './FileUploadZone';
 import { ImageAttachment } from './ImageAttachment';
 import { ImageLightbox } from './ImageLightbox';
 import { MarkdownMessage } from './MarkdownMessage';
+import { ChartVisualization, type ChartVisualizationProps } from './ChartVisualization';
 
 interface UploadedFile {
   id: string;
@@ -214,10 +215,46 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
   const selectedModelCapabilities = MODEL_CAPABILITIES[selectedModel];
   const modelSupportsVision = selectedModelCapabilities?.supportsVision ?? false;
 
+  // Helper function to detect and parse chart visualization data
+  const tryParseChartData = (text: string): ChartVisualizationProps | null => {
+    try {
+      // Look for JSON blocks in the text (tool call results)
+      const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/);
+      const jsonText = jsonMatch ? jsonMatch[1] : text;
+
+      const parsed = JSON.parse(jsonText);
+
+      // Check if this is chart visualization data
+      if (parsed.success && parsed.visualizationType && parsed.charts) {
+        return {
+          address: parsed.address,
+          charts: parsed.charts,
+          visualizationType: parsed.visualizationType,
+        };
+      }
+    } catch (e) {
+      // Not valid JSON or not chart data, that's okay
+    }
+    return null;
+  };
+
   // Render message content from parts array (AI SDK v5)
   const renderMessageContent = (message: typeof messages[0]) => {
     return message.parts.map((part, index) => {
       if (part.type === 'text') {
+        // Try to parse as chart visualization data
+        const chartData = tryParseChartData(part.text);
+
+        if (chartData) {
+          return (
+            <ChartVisualization
+              key={`${message.id}-chart-${index}`}
+              {...chartData}
+            />
+          );
+        }
+
+        // Regular markdown rendering
         return (
           <MarkdownMessage
             key={`${message.id}-text-${index}`}
