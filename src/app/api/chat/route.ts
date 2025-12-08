@@ -871,53 +871,33 @@ export async function POST(request: NextRequest) {
     };
 
     // Stream the response with location agent tools
-    // Manual message conversion for proper Anthropic image handling
-    // We need to convert FileUIPart with image mediaType → ImagePart (not FilePart)
-    const convertedMessages = messagesWithSystem.map(msg => {
-      if (msg.role === 'user' && msg.parts) {
+    // Two-step conversion for proper Anthropic image handling:
+    // 1. Use convertToModelMessages() to get correct message structure
+    // 2. Post-process to convert FilePart → ImagePart for images
+    const modelMessages = convertToModelMessages(messagesWithSystem);
+
+    // Fix image parts: Anthropic needs type 'image' for visual analysis, not 'file'
+    const convertedMessages = modelMessages.map(msg => {
+      if (msg.role === 'user' && Array.isArray(msg.content)) {
         return {
-          role: msg.role,
-          content: msg.parts.map(part => {
-            // Convert text parts
-            if (part.type === 'text' && 'text' in part) {
-              return { type: 'text' as const, text: part.text };
-            }
-            // Convert FileUIPart with image mediaType → ImagePart for visual analysis
-            if (part.type === 'file' && 'mediaType' in part && 'url' in part) {
-              const mediaType = part.mediaType as string;
-              if (mediaType.startsWith('image/')) {
-                return {
-                  type: 'image' as const,
-                  image: part.url, // data URL
-                };
-              }
-              // For non-image files (PDFs, audio), convert to FilePart
+          ...msg,
+          content: msg.content.map((part: any) => {
+            // Convert FilePart with image data → ImagePart for visual analysis
+            if (part.type === 'file' && part.mimeType?.startsWith('image/')) {
               return {
-                type: 'file' as const,
-                data: part.url,
-                mimeType: mediaType,
+                type: 'image',
+                image: part.data, // Base64 data URL
               };
             }
-            // Default: return as-is
             return part;
           })
         };
       }
-      // For assistant/system messages, use default conversion
-      return {
-        role: msg.role,
-        content: msg.parts.map(part => {
-          if (part.type === 'text' && 'text' in part) {
-            return { type: 'text' as const, text: part.text };
-          }
-          return part;
-        })
-      };
+      return msg;
     });
 
     const result = streamText({
       model,
-      // @ts-expect-error - Custom conversion produces correct runtime format but types don't match
       messages: convertedMessages,
       temperature,
       // Location agent tools with userId injected
