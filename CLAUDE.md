@@ -1,8 +1,9 @@
 # CLAUDE.md - AI Assistant Guide for GroosHub
 
-> **Last Updated**: 2025-11-21
+> **Last Updated**: 2025-12-08
 > **Project**: GroosHub - Urban Development & Location Analysis Platform
 > **Framework**: Next.js 15.5.4 with React 19 and TypeScript
+> **Documentation**: See `/docs/` for comprehensive guides organized by topic
 
 ---
 
@@ -22,6 +23,51 @@
 12. [Common Tasks](#common-tasks)
 13. [Important Files](#important-files)
 14. [Best Practices](#best-practices)
+
+---
+
+## 📚 Documentation Structure
+
+**This file** (CLAUDE.md) provides quick reference for AI assistants. For comprehensive documentation, see the `/docs/` directory.
+
+### 📋 Master TODO List
+
+**[TODO.md](TODO.md)** - Consolidated task list with ~150 actionable items:
+- 🚨 **CRITICAL**: Database migration (URGENT - old tables will be deleted!)
+- 🔥 **HIGH**: LCA Phase 3.3 UI components
+- ⚙️ **MEDIUM**: Testing & quality assurance
+- 💡 **LOW**: Future enhancements
+
+### Quick Links
+
+- **🚀 Getting Started**: [`/docs/01-getting-started/`](docs/01-getting-started/) - Setup guides
+- **🏗️ Architecture**: [`/docs/02-core-concepts/`](docs/02-core-concepts/) - Core concepts & patterns
+- **✨ Features**: [`/docs/03-features/`](docs/03-features/) - Feature-specific documentation
+  - [Location Analysis](docs/03-features/location-analysis/) - Scoring, amenities, data pipeline
+  - [AI Chatbot](docs/03-features/ai-chatbot/) - Memory system, multimodal support
+  - [LCA](docs/03-features/lca/) - Life Cycle Assessment
+- **🗄️ Database**: [`/docs/07-database/`](docs/07-database/) - Schema, migrations
+  - ⚠️ **[URGENT: Migration Required](docs/07-database/URGENT-MIGRATION-REQUIRED.md)** - Critical database updates needed
+- **📖 Complete Index**: [`/docs/README.md`](docs/README.md) - Master documentation index
+
+### Key Documentation Files
+
+| Topic | Location |
+|-------|----------|
+| **Current Database Schema** | `/docs/07-database/current-schema.md` |
+| **Scoring System** | `/docs/03-features/location-analysis/scoring-system.md` |
+| **Multimodal Support** | `/docs/03-features/ai-chatbot/multimodal-support.md` |
+| **Memory System** | `/docs/03-features/ai-chatbot/memory-system.md` |
+| **API Reference** | `/docs/04-api-reference/endpoints.md` |
+| **Testing Strategy** | `/docs/08-testing/testing-strategy.md` |
+
+### 📚 External Reference Documentation
+
+**[`/references/`](references/)** - Official vendor documentation (Cloudflare R2, Vercel AI SDK)
+
+These are complete API references from external services - essential for implementing features correctly:
+- **CloudFlareR2_Documentation.md** (517 KB) - R2 storage API reference
+- **vercelAISDKv5.md** (1.1 MB) - Vercel AI SDK v5 complete guide
 
 ---
 
