@@ -464,7 +464,7 @@ export async function POST(request: NextRequest) {
     // These tools are defined inline so we can inject userId without exposing it to the LLM
     const locationTools = {
       listUserSavedLocations: tool({
-        description: `Get all saved locations for the current user. This includes locations they own and locations shared with them.
+        description: `Get all saved locations accessible to the current user through their project memberships.
 
         Use this tool when:
         - User asks about "my locations" or "saved locations"
@@ -472,46 +472,31 @@ export async function POST(request: NextRequest) {
         - You need to clarify which location the user is asking about
         - User asks to compare multiple locations
 
-        The tool returns: name, address, completion status, owner info, and timestamps`,
+        The tool returns: project name, address, owner info, and timestamps`,
         inputSchema: z.object({}),
         async execute() {
           try {
             const sql = getDbConnection();
             const results = await sql`
               SELECT
-                sl.id,
-                sl.name,
-                sl.address,
-                sl.coordinates,
-                sl.completion_status as "completionStatus",
-                sl.created_at as "createdAt",
-                sl.updated_at as "updatedAt",
-                sl.user_id as "ownerId",
+                ls.id,
+                p.name as name,
+                ls.address,
+                JSONB_BUILD_OBJECT('lat', ls.latitude, 'lng', ls.longitude) as coordinates,
+                'completed' as "completionStatus",
+                ls.created_at as "createdAt",
+                ls.updated_at as "updatedAt",
+                ls.user_id as "ownerId",
                 ua.name as "ownerName",
-                FALSE as "isShared",
-                TRUE as "canEdit"
-              FROM saved_locations sl
-              JOIN user_accounts ua ON sl.user_id = ua.id
-              WHERE sl.user_id = ${userId}
-
-              UNION ALL
-
-              SELECT
-                sl.id,
-                sl.name,
-                sl.address,
-                sl.coordinates,
-                sl.completion_status as "completionStatus",
-                sl.created_at as "createdAt",
-                sl.updated_at as "updatedAt",
-                sl.user_id as "ownerId",
-                ua.name as "ownerName",
-                TRUE as "isShared",
-                ls.can_edit as "canEdit"
-              FROM saved_locations sl
-              JOIN location_shares ls ON sl.id = ls.saved_location_id
-              JOIN user_accounts ua ON sl.user_id = ua.id
-              WHERE ls.shared_with_user_id = ${userId}
+                CASE WHEN ls.user_id = ${userId} THEN FALSE ELSE TRUE END as "isShared",
+                CASE WHEN pm.role IN ('owner', 'admin') OR ls.user_id = ${userId} THEN TRUE ELSE FALSE END as "canEdit"
+              FROM location_snapshots ls
+              JOIN project_projects p ON ls.project_id = p.id
+              JOIN project_members pm ON p.id = pm.project_id
+              JOIN user_accounts ua ON ls.user_id = ua.id
+              WHERE pm.user_id = ${userId}
+                AND pm.left_at IS NULL
+                AND ls.is_active = true
 
               ORDER BY "createdAt" DESC
             `;
@@ -560,21 +545,37 @@ export async function POST(request: NextRequest) {
           try {
             const sql = getDbConnection();
             const results = await sql`
-              SELECT location_data as "locationData"
-              FROM saved_locations
-              WHERE id = ${locationId}
-                AND (user_id = ${userId} OR EXISTS (
-                  SELECT 1 FROM location_shares
-                  WHERE saved_location_id = ${locationId}
-                    AND shared_with_user_id = ${userId}
-                ))
+              SELECT
+                ls.demographics_data,
+                ls.health_data,
+                ls.safety_data,
+                ls.livability_data,
+                ls.amenities_data,
+                ls.housing_data
+              FROM location_snapshots ls
+              JOIN project_projects p ON ls.project_id = p.id
+              JOIN project_members pm ON p.id = pm.project_id
+              WHERE ls.id = ${locationId}
+                AND pm.user_id = ${userId}
+                AND pm.left_at IS NULL
+                AND ls.is_active = true
             `;
 
             if (results.length === 0) {
               return { success: false, error: 'Location not found or access denied' };
             }
 
-            const locationData = results[0].locationData as UnifiedLocationData;
+            const row = results[0];
+
+            // Build unified location data structure from separate fields
+            const locationData: UnifiedLocationData = {
+              demographics: row.demographics_data || {},
+              health: row.health_data || {},
+              safety: row.safety_data || {},
+              livability: row.livability_data || {},
+              residential: row.housing_data || {},
+              amenities: row.amenities_data || []
+            };
 
             // Return simplified data based on category
             if (category === 'demographics' && locationData.demographics) {
@@ -586,7 +587,16 @@ export async function POST(request: NextRequest) {
               };
             }
 
-            return { success: true, category, data: locationData };
+            if (category === 'all') {
+              return { success: true, category, data: locationData };
+            }
+
+            // Return specific category
+            return {
+              success: true,
+              category,
+              data: locationData[category as keyof UnifiedLocationData]
+            };
           } catch (error) {
             return {
               success: false,
@@ -662,18 +672,22 @@ export async function POST(request: NextRequest) {
             const sql = getDbConnection();
             const results = await sql`
               SELECT
-                sl.id,
-                sl.name,
-                sl.address,
-                sl.location_data as "locationData",
-                sl.amenities_data as "amenitiesData"
-              FROM saved_locations sl
-              WHERE sl.id = ANY(${locationIds})
-                AND (sl.user_id = ${userId} OR EXISTS (
-                  SELECT 1 FROM location_shares
-                  WHERE saved_location_id = sl.id
-                    AND shared_with_user_id = ${userId}
-                ))
+                ls.id,
+                p.name,
+                ls.address,
+                ls.demographics_data,
+                ls.health_data,
+                ls.safety_data,
+                ls.livability_data,
+                ls.amenities_data,
+                ls.housing_data
+              FROM location_snapshots ls
+              JOIN project_projects p ON ls.project_id = p.id
+              JOIN project_members pm ON p.id = pm.project_id
+              WHERE ls.id = ANY(${locationIds})
+                AND pm.user_id = ${userId}
+                AND pm.left_at IS NULL
+                AND ls.is_active = true
             `;
 
             if (results.length === 0) {
@@ -687,17 +701,27 @@ export async function POST(request: NextRequest) {
               };
             }
 
-            const comparisons = results.map(loc => ({
-              id: loc.id,
-              name: loc.name || 'Unnamed Location',
-              address: loc.address,
-              summary: {
-                demographics: loc.locationData?.demographics?.neighborhood?.slice(0, 5) || [],
-                safety: loc.locationData?.safety?.neighborhood?.slice(0, 3) || [],
-                health: loc.locationData?.health?.municipality?.slice(0, 3) || [],
-                amenitiesCount: loc.amenitiesData?.length || 0,
-              }
-            }));
+            const comparisons = results.map(loc => {
+              // Build unified location data from separate fields
+              const locationData = {
+                demographics: loc.demographics_data || {},
+                health: loc.health_data || {},
+                safety: loc.safety_data || {},
+                livability: loc.livability_data || {},
+              };
+
+              return {
+                id: loc.id,
+                name: loc.name || 'Unnamed Location',
+                address: loc.address,
+                summary: {
+                  demographics: locationData.demographics?.neighborhood?.slice(0, 5) || [],
+                  safety: locationData.safety?.neighborhood?.slice(0, 3) || [],
+                  health: locationData.health?.municipality?.slice(0, 3) || [],
+                  amenitiesCount: Array.isArray(loc.amenities_data) ? loc.amenities_data.length : 0,
+                }
+              };
+            });
 
             return {
               success: true,
@@ -732,21 +756,21 @@ export async function POST(request: NextRequest) {
           try {
             const sql = getDbConnection();
             const results = await sql`
-              SELECT amenities_data as "amenitiesData"
-              FROM saved_locations
-              WHERE id = ${locationId}
-                AND (user_id = ${userId} OR EXISTS (
-                  SELECT 1 FROM location_shares
-                  WHERE saved_location_id = ${locationId}
-                    AND shared_with_user_id = ${userId}
-                ))
+              SELECT ls.amenities_data
+              FROM location_snapshots ls
+              JOIN project_projects p ON ls.project_id = p.id
+              JOIN project_members pm ON p.id = pm.project_id
+              WHERE ls.id = ${locationId}
+                AND pm.user_id = ${userId}
+                AND pm.left_at IS NULL
+                AND ls.is_active = true
             `;
 
             if (results.length === 0) {
               return { success: false, error: 'Location not found or access denied' };
             }
 
-            const amenitiesData = results[0].amenitiesData as UnifiedDataRow[] || [];
+            const amenitiesData = results[0].amenities_data as UnifiedDataRow[] || [];
 
             // Filter by category and distance
             let filteredAmenities = amenitiesData;
