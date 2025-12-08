@@ -44,12 +44,12 @@ Voor andere vragen (zoals algemene afbeeldingen, concepten, of technische vragen
 
 **BELANGRIJK voor Visualisaties:**
 - Wanneer gebruiker vraagt om "grafieken", "charts", "visualiseer", of "toon visueel", gebruik dan ALTIJD de visualisatie-tools
-- **KRITISCH**: Na het aanroepen van een visualisatie-tool, output ALLEEN dit:
-  1. Eén korte regel: "📊 [Type] visualisatie wordt geladen..."
-  2. STOP. Genereer GEEN extra tekst. De grafieken worden automatisch getoond.
-- Bijvoorbeeld: "📊 Demografische visualisatie wordt geladen..."
-- GEEN data uitleg, GEEN samenvattingen, GEEN extra tekst
-- De JSON van de tool wordt automatisch omgezet naar interactieve grafieken
+- **KRITISCH**: Na het aanroepen van een visualisatie-tool:
+  1. Output EXACT het JSON resultaat van de tool in een code block
+  2. Voeg GEEN tekst toe voor of na het JSON blok
+  3. Format: \`\`\`json\n{...tool result...}\n\`\`\`
+- De frontend detecteert automatisch het JSON en toont interactieve grafieken
+- GEEN uitleg, GEEN samenvatting - alleen het raw JSON
 
 ### Belangrijke Richtlijnen (alleen voor locatie-gerelateerde vragen)
 
@@ -120,12 +120,12 @@ For other questions (like general images, concepts, or technical questions), sim
 
 **IMPORTANT for Visualizations:**
 - When user asks for "charts", "graphs", "visualize", or "show visually", ALWAYS use the visualization tools
-- **CRITICAL**: After calling a visualization tool, output ONLY:
-  1. One short line: "📊 [Type] visualization loading..."
-  2. STOP. Generate NO additional text. Charts will display automatically.
-- Example: "📊 Demographics visualization loading..."
-- NO data explanation, NO summaries, NO additional text
-- Tool JSON is automatically converted to interactive charts
+- **CRITICAL**: After calling a visualization tool:
+  1. Output EXACTLY the JSON result from the tool in a code block
+  2. Add NO text before or after the JSON block
+  3. Format: \`\`\`json\n{...tool result...}\n\`\`\`
+- Frontend automatically detects JSON and displays interactive charts
+- NO explanation, NO summary - just the raw JSON
 
 ### Important Guidelines (only for location-related questions)
 

@@ -1328,9 +1328,6 @@ export async function POST(request: NextRequest) {
       return msg;
     });
 
-    // Track visualization tool results to inject into response
-    const visualizationResults: any[] = [];
-
     const result = streamText({
       model,
       messages: convertedMessages,
@@ -1339,28 +1336,16 @@ export async function POST(request: NextRequest) {
       tools: locationTools,
       // Allow multi-step tool calling (up to 10 steps)
       stopWhen: stepCountIs(10),
-      // Log each step to debug tool calls and capture visualization results
+      // Log each step to debug tool calls
       onStepFinish({ text, toolCalls, toolResults, usage, finishReason }) {
         console.log(`[Chat API] 🔧 Step finished`);
         console.log(`[Chat API] 📝 Text length: ${text.length}`);
         console.log(`[Chat API] 🛠️  Tool calls: ${toolCalls.length}`);
 
-        // Check if any visualization tools were called
         if (toolCalls.length > 0) {
           toolCalls.forEach((call, index) => {
             console.log(`[Chat API] 🔨 Tool ${index + 1}: ${call.toolName}`);
             console.log(`[Chat API] 📋 Tool call ID: ${call.toolCallId}`);
-
-            // Check if this is a visualization tool
-            const vizTools = ['visualizeDemographics', 'visualizeSafety', 'visualizeHealth', 'visualizeLivability', 'visualizeHousing'];
-            if (vizTools.includes(call.toolName)) {
-              // Find the corresponding tool result
-              const result = toolResults.find(r => 'toolCallId' in r && r.toolCallId === call.toolCallId);
-              if (result && 'output' in result) {
-                console.log(`[Chat API] 📊 Captured visualization result from ${call.toolName}`);
-                visualizationResults.push(result.output);
-              }
-            }
           });
         }
 
@@ -1377,24 +1362,11 @@ export async function POST(request: NextRequest) {
           console.log(`[Chat API] 🎯 onFinish callback triggered`);
           console.log(`[Chat API] 📊 Response - Chat: ${chatId}, Tokens: ${usage.totalTokens}, Length: ${text.length}, Time: ${responseTime}ms`);
 
-          // Inject visualization results if any were captured
-          let finalText = text;
-          if (visualizationResults.length > 0) {
-            console.log(`[Chat API] 📊 Injecting ${visualizationResults.length} visualization result(s) into response`);
-
-            // Append each visualization as a JSON code block
-            visualizationResults.forEach((vizData, index) => {
-              finalText += `\n\n\`\`\`json\n${JSON.stringify(vizData, null, 2)}\n\`\`\``;
-            });
-
-            console.log(`[Chat API] ✅ Final text length: ${finalText.length} (added ${finalText.length - text.length} chars)`);
-          }
-
           // Save assistant message to database
           const assistantMessage: UIMessage = {
             id: randomUUID(),
             role: 'assistant',
-            parts: [{ type: 'text', text: finalText }]
+            parts: [{ type: 'text', text }]
           };
 
           // Get token counts with defaults
