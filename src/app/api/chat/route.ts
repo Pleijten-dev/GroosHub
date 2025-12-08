@@ -871,11 +871,54 @@ export async function POST(request: NextRequest) {
     };
 
     // Stream the response with location agent tools
-    // Use convertToModelMessages to convert UIMessages → CoreMessages
-    // This automatically handles multimodal content including FileParts (images)
+    // Manual message conversion for proper Anthropic image handling
+    // We need to convert FileUIPart with image mediaType → ImagePart (not FilePart)
+    const convertedMessages = messagesWithSystem.map(msg => {
+      if (msg.role === 'user' && msg.parts) {
+        return {
+          role: msg.role,
+          content: msg.parts.map(part => {
+            // Convert text parts
+            if (part.type === 'text' && 'text' in part) {
+              return { type: 'text' as const, text: part.text };
+            }
+            // Convert FileUIPart with image mediaType → ImagePart for visual analysis
+            if (part.type === 'file' && 'mediaType' in part && 'url' in part) {
+              const mediaType = part.mediaType as string;
+              if (mediaType.startsWith('image/')) {
+                return {
+                  type: 'image' as const,
+                  image: part.url, // data URL
+                };
+              }
+              // For non-image files (PDFs, audio), convert to FilePart
+              return {
+                type: 'file' as const,
+                data: part.url,
+                mimeType: mediaType,
+              };
+            }
+            // Default: return as-is
+            return part;
+          })
+        };
+      }
+      // For assistant/system messages, use default conversion
+      return {
+        role: msg.role,
+        content: msg.parts.map(part => {
+          if (part.type === 'text' && 'text' in part) {
+            return { type: 'text' as const, text: part.text };
+          }
+          return part;
+        })
+      };
+    });
+
     const result = streamText({
       model,
-      messages: convertToModelMessages(messagesWithSystem),
+      // @ts-expect-error - Custom conversion produces correct runtime format but types don't match
+      messages: convertedMessages,
       temperature,
       // Location agent tools with userId injected
       tools: locationTools,
