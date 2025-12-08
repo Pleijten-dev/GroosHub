@@ -14,7 +14,7 @@ interface Project {
 
 interface SaveLocationToProjectProps {
   locale: Locale;
-  address: string;
+  address: string | null;
   latitude: number;
   longitude: number;
   locationData?: any;
@@ -161,6 +161,23 @@ export const SaveLocationToProject: React.FC<SaveLocationToProjectProps> = ({
             {locale === 'nl'
               ? 'Maak eerst een project aan om locaties op te slaan.'
               : 'Please create a project first to save locations.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!address) {
+    return (
+      <div className="p-base">
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-sm">
+          <p className="text-sm font-medium text-blue-800 mb-xs">
+            {locale === 'nl' ? 'ℹ️ Geen locatie geselecteerd' : 'ℹ️ No location selected'}
+          </p>
+          <p className="text-xs text-blue-700">
+            {locale === 'nl'
+              ? 'Zoek eerst een locatie om op te slaan.'
+              : 'Please search for a location first to save it.'}
           </p>
         </div>
       </div>
