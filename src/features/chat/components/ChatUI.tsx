@@ -24,6 +24,7 @@ import {
 import { FileUploadZone } from './FileUploadZone';
 import { ImageAttachment } from './ImageAttachment';
 import { ImageLightbox } from './ImageLightbox';
+import { MarkdownMessage } from './MarkdownMessage';
 
 interface UploadedFile {
   id: string;
@@ -218,9 +219,11 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
     return message.parts.map((part, index) => {
       if (part.type === 'text') {
         return (
-          <span key={`${message.id}-text-${index}`} className="whitespace-pre-wrap break-words">
-            {part.text}
-          </span>
+          <MarkdownMessage
+            key={`${message.id}-text-${index}`}
+            content={part.text}
+            variant={message.role === 'user' ? 'user' : 'assistant'}
+          />
         );
       }
 
