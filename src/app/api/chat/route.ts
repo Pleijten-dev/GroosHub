@@ -8,13 +8,14 @@
  * Week 3: Multi-Modal Input - Support for images and PDFs with vision models
  */
 
-import { streamText, convertToModelMessages, stepCountIs, tool, type UIMessage } from 'ai';
+import { streamText, stepCountIs, tool, convertToModelMessages, type UIMessage, type FileUIPart } from 'ai';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getModel, type ModelId, MODEL_CAPABILITIES } from '@/lib/ai/models';
 import { auth } from '@/lib/auth';
 import { neon } from '@neondatabase/serverless';
 import { getPresignedUrl } from '@/lib/storage/r2-client';
+import sharp from 'sharp';
 import {
   createChat,
   getChat,
@@ -113,13 +114,13 @@ async function processFileAttachments(
   userId: number,
   chatId: string,
   messageId: string
-): Promise<Array<{ type: 'image'; image: string; mediaType: string }>> {
+): Promise<FileUIPart[]> {
   if (!fileIds || fileIds.length === 0) {
     return [];
   }
 
   const sql = neon(process.env.POSTGRES_URL!);
-  const imageParts: Array<{ type: 'image'; image: string; mediaType: string }> = [];
+  const fileParts: FileUIPart[] = [];
 
   console.log(`[Chat API] 📎 Processing ${fileIds.length} file attachments`);
 
@@ -163,22 +164,57 @@ async function processFileAttachments(
       // Generate presigned URL (1 hour expiration)
       const presignedUrl = await getPresignedUrl(file.storage_key, 3600);
 
-      console.log(`[Chat API] 🔗 Full presigned URL: ${presignedUrl}`);
+      console.log(`[Chat API] 🔗 Presigned URL generated for: ${file.file_name}`);
 
-      // Download image and convert to base64 data URL
-      // The Vercel AI SDK requires data URLs, not HTTP URLs
+      // Anthropic requires base64 data URLs (they don't fetch external URLs)
+      // Download the image and convert to base64
       const imageResponse = await fetch(presignedUrl);
-      const imageBuffer = await imageResponse.arrayBuffer();
-      const base64 = Buffer.from(imageBuffer).toString('base64');
-      const dataUrl = `data:${file.mime_type};base64,${base64}`;
 
-      imageParts.push({
-        type: 'image',
-        image: dataUrl, // Data URL instead of HTTP URL
-        mediaType: file.mime_type || 'image/png',
+      if (!imageResponse.ok) {
+        console.error(`[Chat API] ❌ Failed to fetch image from presigned URL: ${imageResponse.status} ${imageResponse.statusText}`);
+        continue;
+      }
+
+      const imageBuffer = await imageResponse.arrayBuffer();
+      const originalSize = imageBuffer.byteLength;
+
+      // Resize image to reduce token usage and API costs
+      // Max 1024px dimension, JPEG quality 80 = 85-90% size reduction
+      console.log(`[Chat API] 📐 Resizing image from ${Math.round(originalSize / 1024)}KB...`);
+
+      const resizedBuffer = await sharp(Buffer.from(imageBuffer))
+        .resize(1024, 1024, {
+          fit: 'inside',           // Maintain aspect ratio, fit within 1024x1024
+          withoutEnlargement: true // Don't upscale small images
+        })
+        .jpeg({ quality: 80 })     // Convert to JPEG with 80% quality
+        .toBuffer();
+
+      const resizedSize = resizedBuffer.byteLength;
+      const reductionPercent = Math.round((1 - resizedSize / originalSize) * 100);
+
+      console.log(`[Chat API] ✨ Resized: ${Math.round(originalSize / 1024)}KB → ${Math.round(resizedSize / 1024)}KB (${reductionPercent}% reduction)`);
+
+      const base64 = resizedBuffer.toString('base64');
+
+      // Use JPEG format for resized images (better compression than PNG)
+      const imageFormat = 'jpeg';
+      const dataUrl = `data:image/${imageFormat};base64,${base64}`;
+
+      // Verify data URL format
+      console.log(`[Chat API] 📸 Image format: ${imageFormat}, Data URL length: ${dataUrl.length}, Base64 length: ${base64.length}`);
+      console.log(`[Chat API] 📸 Data URL prefix: ${dataUrl.substring(0, 100)}...`);
+
+      // Create FileUIPart following official Vercel AI SDK v5 pattern
+      // FileUIPart is the correct format for multimodal UIMessages
+      // convertToModelMessages() will convert FileUIPart → FilePart for the model
+      fileParts.push({
+        type: 'file',
+        mediaType: 'image/jpeg', // Always JPEG after resizing
+        url: dataUrl, // Base64 data URL
       });
 
-      console.log(`[Chat API] ✅ Added image: ${file.file_name} (${file.file_size} bytes, converted to base64)`);
+      console.log(`[Chat API] ✅ Added image: ${file.file_name} (original: ${Math.round(originalSize / 1024)}KB, resized: ${Math.round(resizedSize / 1024)}KB)`);
 
     } catch (error) {
       console.error(`[Chat API] ❌ Error processing file ${fileId}:`, error);
@@ -186,9 +222,9 @@ async function processFileAttachments(
     }
   }
 
-  console.log(`[Chat API] 📎 Successfully processed ${imageParts.length}/${fileIds.length} file attachments`);
+  console.log(`[Chat API] 📎 Successfully processed ${fileParts.length}/${fileIds.length} file attachments`);
 
-  return imageParts;
+  return fileParts;
 }
 
 /**
@@ -321,14 +357,14 @@ export async function POST(request: NextRequest) {
       const lastUserMessage = (clientMessages as UIMessage[]).slice().reverse().find(m => m.role === 'user');
       const messageId = lastUserMessage?.id || randomUUID();
 
-      const imageParts = await processFileAttachments(requestFileIds, userId, chatId!, messageId);
+      const fileParts = await processFileAttachments(requestFileIds, userId, chatId!, messageId);
 
-      // Add image parts to the last user message
-      // Type assertion needed because AI SDK's UIMessagePart type doesn't properly recognize image parts
-      if (imageParts.length > 0 && lastUserMessage) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        lastUserMessage.parts.push(...(imageParts as any));
-        console.log(`[Chat API] 📎 Added ${imageParts.length} images to user message`);
+      // Add FileUIParts to the last user message
+      // FileUIPart is the correct UIMessage format for file attachments
+      // convertToModelMessages() will convert FileUIPart → FilePart for the model
+      if (fileParts.length > 0 && lastUserMessage) {
+        lastUserMessage.parts.push(...fileParts);
+        console.log(`[Chat API] 📎 Added ${fileParts.length} file attachments to user message`);
         console.log(`[Chat API] 🔍 Last user message parts:`, JSON.stringify(lastUserMessage.parts, null, 2));
       }
     }
@@ -398,14 +434,29 @@ export async function POST(request: NextRequest) {
     console.log(`[Chat API] Chat: ${chatId}, Model: ${modelId}, Locale: ${locale}, Messages: ${truncatedMessages.length}/${allMessages.length}`);
     console.log(`[Chat API] 🔧 Location agent tools enabled for user ${userId}`);
 
-    // Debug: Log the last user message to see if images are included
+    // Debug: Log the last user message to see if files/images are included
     const lastUserMsg = messagesWithSystem.filter(m => m.role === 'user').slice(-1)[0];
     if (lastUserMsg) {
+      // Type-safe part inspection using official FileUIPart type
+      type MessagePart = typeof lastUserMsg.parts[number] | FileUIPart;
+
       console.log(`[Chat API] 🔍 Last user message before sending to model:`, JSON.stringify({
         role: lastUserMsg.role,
         id: lastUserMsg.id,
         partsCount: lastUserMsg.parts?.length,
-        partTypes: lastUserMsg.parts?.map(p => p.type)
+        partTypes: lastUserMsg.parts?.map(p => p.type),
+        partSummary: lastUserMsg.parts?.map((p: MessagePart) => {
+          if (p.type === 'text') return { type: 'text', preview: ('text' in p ? p.text?.substring(0, 50) : '') || '' };
+          if (p.type === 'file' && 'url' in p) return {
+            type: 'file',
+            mediaType: 'mediaType' in p ? p.mediaType : 'unknown',
+            urlType: (typeof p.url === 'string') ?
+              (p.url.startsWith('data:') ? 'data-url' : 'http-url') :
+              'unknown',
+            urlPrefix: (typeof p.url === 'string') ? p.url.substring(0, 50) : 'N/A'
+          };
+          return { type: p.type };
+        })
       }, null, 2));
     }
 
@@ -820,9 +871,34 @@ export async function POST(request: NextRequest) {
     };
 
     // Stream the response with location agent tools
+    // Two-step conversion for proper Anthropic image handling:
+    // 1. Use convertToModelMessages() to get correct message structure
+    // 2. Post-process to convert FilePart → ImagePart for images
+    const modelMessages = convertToModelMessages(messagesWithSystem);
+
+    // Fix image parts: Anthropic needs type 'image' for visual analysis, not 'file'
+    const convertedMessages = modelMessages.map(msg => {
+      if (msg.role === 'user' && Array.isArray(msg.content)) {
+        return {
+          ...msg,
+          content: msg.content.map((part: any) => {
+            // Convert FilePart with image data → ImagePart for visual analysis
+            if (part.type === 'file' && part.mimeType?.startsWith('image/')) {
+              return {
+                type: 'image',
+                image: part.data, // Base64 data URL
+              };
+            }
+            return part;
+          })
+        };
+      }
+      return msg;
+    });
+
     const result = streamText({
       model,
-      messages: convertToModelMessages(messagesWithSystem),
+      messages: convertedMessages,
       temperature,
       // Location agent tools with userId injected
       tools: locationTools,
