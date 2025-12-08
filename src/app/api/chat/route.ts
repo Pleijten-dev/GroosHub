@@ -1343,7 +1343,7 @@ export async function POST(request: NextRequest) {
         if (toolCalls.length > 0) {
           toolCalls.forEach((call, index) => {
             console.log(`[Chat API] 🔨 Tool ${index + 1}: ${call.toolName}`);
-            console.log(`[Chat API] 📥 Args: ${JSON.stringify(call.args).substring(0, 100)}`);
+            console.log(`[Chat API] 📋 Tool call ID: ${call.toolCallId}`);
           });
         }
         if (toolResults.length > 0) {
