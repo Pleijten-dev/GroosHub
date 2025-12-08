@@ -9,7 +9,8 @@ import { Button } from '../../../../shared/components/UI';
 import { cn } from '../../../../shared/utils/cn';
 import { AddressAutocomplete } from '../AddressAutocomplete/AddressAutocomplete';
 import { locationDataCache } from '../../data/cache/locationDataCache';
-import { SaveLocationSection, SavedLocationsList } from '../SavedLocations';
+import { SaveLocationToProject } from '../SavedLocations/SaveLocationToProject';
+import { ProjectSnapshotsList } from '../SavedLocations/ProjectSnapshotsList';
 import type { UnifiedLocationData } from '../../data/aggregator/multiLevelAggregator';
 import type { AmenityMultiCategoryResponse } from '../../data/sources/google-places/types';
 import type { AccessibleLocation } from '../../types/saved-locations';
@@ -290,51 +291,29 @@ export const useLocationSidebarSections = ({
     </div>
   );
 
-  // TODO: MIGRATION IN PROGRESS - Saved Locations Feature Temporarily Disabled
-  // The old user-centric "saved locations" system has been replaced with project-based location snapshots.
-  // These components need to be refactored to work with the new /api/location/snapshots endpoints
-  // which require project_id parameters. The new system uses project membership for access control
-  // instead of user ownership + sharing.
-  //
-  // Migration steps needed:
-  // 1. Add project selector to save location UI
-  // 2. Update SaveLocationSection to call /api/location/snapshots with project_id
-  // 3. Update SavedLocationsList to fetch from /api/location/snapshots?user_id=X
-  // 4. Update access control logic to check project membership
-  //
-  // Old endpoints (deleted): /api/location/saved, /api/location/share
-  // New endpoints: /api/location/snapshots (already exist)
-
-  // Save location section content (TEMPORARILY DISABLED)
+  // Save location to project section (NEW: Project-based system)
   const saveLocationSection = (
-    <div className="p-base text-sm text-gray-600">
-      <div className="bg-yellow-50 border border-yellow-200 rounded-md p-sm">
-        <p className="font-medium text-yellow-800 mb-xs">
-          {locale === 'nl' ? '⚠️ Functie tijdelijk niet beschikbaar' : '⚠️ Feature Temporarily Unavailable'}
-        </p>
-        <p className="text-xs text-yellow-700">
-          {locale === 'nl'
-            ? 'De "Locatie Opslaan" functie wordt gemigreerd naar het nieuwe project-gebaseerde systeem.'
-            : 'The "Save Location" feature is being migrated to the new project-based system.'}
-        </p>
-      </div>
-    </div>
+    <SaveLocationToProject
+      locale={locale}
+      address={currentAddress}
+      latitude={currentLocation?.lat || 0}
+      longitude={currentLocation?.lng || 0}
+      locationData={locationData}
+      amenitiesData={amenitiesData}
+      onSaveSuccess={() => {
+        // Refresh the snapshots list
+        setSavedLocationsRefresh(prev => prev + 1);
+      }}
+    />
   );
 
-  // Saved locations list section content (TEMPORARILY DISABLED)
+  // Project snapshots list section (NEW: Project-based with version control)
   const savedLocationsListSection = (
-    <div className="p-base text-sm text-gray-600">
-      <div className="bg-yellow-50 border border-yellow-200 rounded-md p-sm">
-        <p className="font-medium text-yellow-800 mb-xs">
-          {locale === 'nl' ? '⚠️ Functie tijdelijk niet beschikbaar' : '⚠️ Feature Temporarily Unavailable'}
-        </p>
-        <p className="text-xs text-yellow-700">
-          {locale === 'nl'
-            ? 'Opgeslagen locaties zijn nu gekoppeld aan projecten. Gebruik de project interface om locaties te beheren.'
-            : 'Saved locations are now linked to projects. Use the project interface to manage locations.'}
-        </p>
-      </div>
-    </div>
+    <ProjectSnapshotsList
+      locale={locale}
+      onLoadSnapshot={handleLoadSavedLocation}
+      refreshTrigger={savedLocationsRefresh}
+    />
   );
 
   // Define sidebar sections
@@ -354,18 +333,18 @@ export const useLocationSidebarSections = ({
     },
     {
       id: 'save-location',
-      title: locale === 'nl' ? 'Locatie Opslaan' : 'Save Location',
+      title: locale === 'nl' ? 'Opslaan naar Project' : 'Save to Project',
       description: locale === 'nl'
-        ? 'Sla deze locatie op voor later gebruik.'
-        : 'Save this location for later use.',
+        ? 'Sla deze locatie op in een project voor versiecontrole.'
+        : 'Save this location to a project for version control.',
       content: saveLocationSection,
     },
     {
       id: 'saved-locations',
-      title: locale === 'nl' ? 'Opgeslagen Locaties' : 'Saved Locations',
+      title: locale === 'nl' ? 'Project Snapshots' : 'Project Snapshots',
       description: locale === 'nl'
-        ? 'Bekijk en laad uw opgeslagen locaties.'
-        : 'View and load your saved locations.',
+        ? 'Bekijk en laad opgeslagen locatie snapshots per project.'
+        : 'View and load saved location snapshots by project.',
       content: savedLocationsListSection,
     },
   ];

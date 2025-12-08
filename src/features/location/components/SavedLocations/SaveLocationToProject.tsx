@@ -1,0 +1,239 @@
+// src/features/location/components/SavedLocations/SaveLocationToProject.tsx
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/shared/components/UI/Button/Button';
+import { AlertDialog } from '@/shared/components/UI/Modal/AlertDialog';
+import type { Locale } from '@/lib/i18n/config';
+
+interface Project {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+interface SaveLocationToProjectProps {
+  locale: Locale;
+  address: string;
+  latitude: number;
+  longitude: number;
+  locationData?: any;
+  amenitiesData?: any;
+  onSaveSuccess?: () => void;
+}
+
+export const SaveLocationToProject: React.FC<SaveLocationToProjectProps> = ({
+  locale,
+  address,
+  latitude,
+  longitude,
+  locationData,
+  amenitiesData,
+  onSaveSuccess,
+}) => {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [errorDialog, setErrorDialog] = useState<{ isOpen: boolean; message: string }>({
+    isOpen: false,
+    message: '',
+  });
+  const [successDialog, setSuccessDialog] = useState<{ isOpen: boolean; message: string }>({
+    isOpen: false,
+    message: '',
+  });
+
+  // Load user's projects
+  useEffect(() => {
+    loadProjects();
+  }, []);
+
+  const loadProjects = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/projects');
+      const result = await response.json();
+
+      if (result.success) {
+        setProjects(result.data || []);
+        // Auto-select first project if available
+        if (result.data && result.data.length > 0) {
+          setSelectedProjectId(result.data[0].id);
+        }
+      } else {
+        setErrorDialog({
+          isOpen: true,
+          message: result.error || (locale === 'nl' ? 'Kan projecten niet laden' : 'Failed to load projects'),
+        });
+      }
+    } catch (err) {
+      setErrorDialog({
+        isOpen: true,
+        message: err instanceof Error ? err.message : (locale === 'nl' ? 'Kan projecten niet laden' : 'Failed to load projects'),
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!selectedProjectId) {
+      setErrorDialog({
+        isOpen: true,
+        message: locale === 'nl' ? 'Selecteer een project' : 'Please select a project',
+      });
+      return;
+    }
+
+    if (!address || latitude === undefined || longitude === undefined) {
+      setErrorDialog({
+        isOpen: true,
+        message: locale === 'nl' ? 'Geen geldige locatie geselecteerd' : 'No valid location selected',
+      });
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const response = await fetch('/api/location/snapshots', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          project_id: selectedProjectId,
+          address,
+          latitude,
+          longitude,
+          demographics_data: locationData?.demographics || {},
+          health_data: locationData?.health || {},
+          safety_data: locationData?.safety || {},
+          livability_data: locationData?.livability || {},
+          amenities_data: amenitiesData || [],
+          housing_data: locationData?.residential || {},
+          notes: null,
+          tags: [],
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setSuccessDialog({
+          isOpen: true,
+          message: locale === 'nl' ? 'Locatie succesvol opgeslagen!' : 'Location saved successfully!',
+        });
+        onSaveSuccess?.();
+      } else {
+        setErrorDialog({
+          isOpen: true,
+          message: result.error || (locale === 'nl' ? 'Opslaan mislukt' : 'Failed to save location'),
+        });
+      }
+    } catch (err) {
+      setErrorDialog({
+        isOpen: true,
+        message: err instanceof Error ? err.message : (locale === 'nl' ? 'Opslaan mislukt' : 'Failed to save location'),
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-base text-sm text-gray-600">
+        {locale === 'nl' ? 'Projecten laden...' : 'Loading projects...'}
+      </div>
+    );
+  }
+
+  if (projects.length === 0) {
+    return (
+      <div className="p-base">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-sm mb-sm">
+          <p className="text-sm font-medium text-yellow-800 mb-xs">
+            {locale === 'nl' ? '⚠️ Geen projecten beschikbaar' : '⚠️ No projects available'}
+          </p>
+          <p className="text-xs text-yellow-700">
+            {locale === 'nl'
+              ? 'Maak eerst een project aan om locaties op te slaan.'
+              : 'Please create a project first to save locations.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-base space-y-sm">
+      {/* Project Selector */}
+      <div>
+        <label className="block text-xs font-medium text-gray-700 mb-xs">
+          {locale === 'nl' ? 'Selecteer Project' : 'Select Project'}
+        </label>
+        <select
+          value={selectedProjectId || ''}
+          onChange={(e) => setSelectedProjectId(e.target.value)}
+          className="w-full px-sm py-xs text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+        >
+          {projects.map((project) => (
+            <option key={project.id} value={project.id}>
+              {project.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Location Info */}
+      <div className="bg-gray-50 rounded-md p-sm">
+        <p className="text-xs font-medium text-gray-700 mb-xs">
+          {locale === 'nl' ? 'Locatie' : 'Location'}
+        </p>
+        <p className="text-xs text-gray-600">{address}</p>
+        <p className="text-xs text-gray-500 mt-xs">
+          {latitude.toFixed(6)}, {longitude.toFixed(6)}
+        </p>
+      </div>
+
+      {/* Save Button */}
+      <Button
+        onClick={handleSave}
+        variant="primary"
+        size="base"
+        className="w-full"
+        disabled={!selectedProjectId || isSaving}
+      >
+        {isSaving
+          ? (locale === 'nl' ? 'Opslaan...' : 'Saving...')
+          : (locale === 'nl' ? 'Locatie Opslaan' : 'Save Location')}
+      </Button>
+
+      {/* Error Alert Dialog */}
+      <AlertDialog
+        isOpen={errorDialog.isOpen}
+        onClose={() => setErrorDialog({ isOpen: false, message: '' })}
+        title={locale === 'nl' ? 'Fout' : 'Error'}
+        message={errorDialog.message}
+        closeText={locale === 'nl' ? 'Sluiten' : 'Close'}
+        variant="error"
+      />
+
+      {/* Success Alert Dialog */}
+      <AlertDialog
+        isOpen={successDialog.isOpen}
+        onClose={() => {
+          setSuccessDialog({ isOpen: false, message: '' });
+        }}
+        title={locale === 'nl' ? 'Gelukt!' : 'Success!'}
+        message={successDialog.message}
+        closeText={locale === 'nl' ? 'Sluiten' : 'Close'}
+        variant="success"
+      />
+    </div>
+  );
+};
+
+export default SaveLocationToProject;
