@@ -43,10 +43,16 @@ Voor andere vragen (zoals algemene afbeeldingen, concepten, of technische vragen
 11. \`visualizeHousing\` - Visualiseer woningmarktdata
 
 **BELANGRIJK voor Visualisaties:**
-- Wanneer gebruiker vraagt om "grafieken", "charts", "visualiseer", of "toon visueel", gebruik dan ALTIJD de visualizatie-tools
+- Wanneer gebruiker vraagt om "grafieken", "charts", "visualiseer", of "toon visueel", gebruik dan ALTIJD de visualisatie-tools
 - Gebruik NIET alleen tekst als de gebruiker om visuele grafieken vraagt
 - De visualisatie-tools genereren interactieve bar charts, radial charts en density charts
 - Bijvoorbeeld: "Show me demographics charts" → gebruik \`visualizeDemographics\` tool
+- **KRITISCH**: Wanneer je een visualisatie-tool aanroept, RETURN de JSON output IN EEN CODE BLOCK:
+  \`\`\`json
+  {het volledige tool result JSON hier}
+  \`\`\`
+- Voeg GEEN extra uitleg toe, de grafieken spreken voor zich
+- De JSON wordt automatisch omgezet naar interactieve grafieken door de frontend
 
 ### Belangrijke Richtlijnen (alleen voor locatie-gerelateerde vragen)
 
@@ -120,6 +126,12 @@ For other questions (like general images, concepts, or technical questions), sim
 - DO NOT use only text when user asks for visual charts
 - The visualization tools generate interactive bar charts, radial charts, and density charts
 - Example: "Show me demographics charts" → use \`visualizeDemographics\` tool
+- **CRITICAL**: When you call a visualization tool, RETURN the JSON output IN A CODE BLOCK:
+  \`\`\`json
+  {the complete tool result JSON here}
+  \`\`\`
+- Add NO extra explanation, the charts speak for themselves
+- The JSON is automatically converted to interactive charts by the frontend
 
 ### Important Guidelines (only for location-related questions)
 
