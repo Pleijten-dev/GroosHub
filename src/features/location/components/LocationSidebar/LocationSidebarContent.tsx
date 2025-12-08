@@ -42,6 +42,19 @@ const RAPPORT_SUBSECTIONS = [
 
 type SectionId = typeof MAIN_SECTIONS[number]['id'] | typeof OMGEVING_SUBSECTIONS[number]['id'] | typeof RAPPORT_SUBSECTIONS[number]['id'];
 
+interface LocationSnapshot {
+  id: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  snapshot_date: Date | string;
+  version_number: number;
+  is_active: boolean;
+  created_at: Date | string;
+  updated_at: Date | string;
+  user_id: number;
+}
+
 interface LocationSidebarContentProps {
   locale: Locale;
   activeTab: SectionId;
@@ -157,9 +170,12 @@ export const useLocationSidebarSections = ({
     setSavedLocationsRefresh(prev => prev + 1);
   };
 
-  // Handle load saved location
-  const handleLoadSavedLocation = (location: AccessibleLocation): void => {
-    onLoadSavedLocation?.(location);
+  // Handle load saved location snapshot
+  // Triggers a new search for the snapshot's address
+  const handleLoadSavedLocation = (snapshot: LocationSnapshot): void => {
+    if (onAddressSearch && snapshot.address) {
+      onAddressSearch(snapshot.address);
+    }
   };
 
   // Search section content
@@ -296,8 +312,8 @@ export const useLocationSidebarSections = ({
     <SaveLocationToProject
       locale={locale}
       address={currentAddress}
-      latitude={currentLocation?.lat || 0}
-      longitude={currentLocation?.lng || 0}
+      latitude={locationData?.location?.coordinates?.wgs84?.latitude || 0}
+      longitude={locationData?.location?.coordinates?.wgs84?.longitude || 0}
       locationData={locationData}
       amenitiesData={amenitiesData}
       onSaveSuccess={() => {

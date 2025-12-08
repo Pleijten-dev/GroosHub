@@ -290,7 +290,11 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
       <ConfirmDialog
         isOpen={deleteDialog.isOpen}
         onClose={() => setDeleteDialog({ isOpen: false, snapshotId: null })}
-        onConfirm={() => deleteDialog.snapshotId && handleDelete(deleteDialog.snapshotId)}
+        onConfirm={() => {
+          if (deleteDialog.snapshotId) {
+            handleDelete(deleteDialog.snapshotId);
+          }
+        }}
         title={locale === 'nl' ? 'Snapshot verwijderen' : 'Delete Snapshot'}
         message={locale === 'nl'
           ? 'Weet u zeker dat u deze snapshot wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.'
