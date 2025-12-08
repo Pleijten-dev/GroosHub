@@ -1335,6 +1335,23 @@ export async function POST(request: NextRequest) {
       tools: locationTools,
       // Allow multi-step tool calling (up to 10 steps)
       stopWhen: stepCountIs(10),
+      // Log each step to debug tool calls
+      onStepFinish({ text, toolCalls, toolResults, usage, finishReason }) {
+        console.log(`[Chat API] 🔧 Step finished`);
+        console.log(`[Chat API] 📝 Text length: ${text.length}`);
+        console.log(`[Chat API] 🛠️  Tool calls: ${toolCalls.length}`);
+        if (toolCalls.length > 0) {
+          toolCalls.forEach((call, index) => {
+            console.log(`[Chat API] 🔨 Tool ${index + 1}: ${call.toolName}`);
+            console.log(`[Chat API] 📥 Args: ${JSON.stringify(call.args).substring(0, 100)}`);
+          });
+        }
+        if (toolResults.length > 0) {
+          toolResults.forEach((result, index) => {
+            console.log(`[Chat API] ✅ Tool result ${index + 1}: ${JSON.stringify(result).substring(0, 200)}`);
+          });
+        }
+      },
       async onFinish({ text, usage }) {
         try {
           const responseTime = Date.now() - startTime;
