@@ -31,22 +31,20 @@ export function ChartVisualization({ address, charts, visualizationType }: Chart
   const chartEntries = Object.entries(charts);
 
   const typeLabels: Record<string, string> = {
-    demographics: '📊 Demographics',
-    safety: '🚨 Safety',
-    health: '🏥 Health',
-    livability: '🏡 Livability',
-    housing: '🏘️ Housing Market',
+    demographics: 'Demographics',
+    safety: 'Safety',
+    health: 'Health',
+    livability: 'Livability',
+    housing: 'Housing Market',
   };
 
   return (
-    <div className="my-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
-      {/* Header */}
+    <div className="my-4">
+      {/* Header - no border, integrated into message */}
       <div className="mb-4 pb-3 border-b border-gray-200">
-        <div className="flex items-center gap-2 mb-1">
-          <h3 className="text-lg font-semibold text-gray-900">
-            {typeLabels[visualizationType]}
-          </h3>
-        </div>
+        <h3 className="text-lg font-semibold text-gray-900">
+          {typeLabels[visualizationType]}
+        </h3>
         <p className="text-sm text-gray-600">{address}</p>
       </div>
 

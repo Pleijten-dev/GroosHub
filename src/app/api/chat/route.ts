@@ -1328,6 +1328,9 @@ export async function POST(request: NextRequest) {
       return msg;
     });
 
+    // Track visualization tool results to inject into database-saved message
+    const visualizationResults: any[] = [];
+
     const result = streamText({
       model,
       messages: convertedMessages,
@@ -1336,7 +1339,7 @@ export async function POST(request: NextRequest) {
       tools: locationTools,
       // Allow multi-step tool calling (up to 10 steps)
       stopWhen: stepCountIs(10),
-      // Log each step to debug tool calls
+      // Log each step and capture visualization results
       onStepFinish({ text, toolCalls, toolResults, usage, finishReason }) {
         console.log(`[Chat API] 🔧 Step finished`);
         console.log(`[Chat API] 📝 Text length: ${text.length}`);
@@ -1346,6 +1349,16 @@ export async function POST(request: NextRequest) {
           toolCalls.forEach((call, index) => {
             console.log(`[Chat API] 🔨 Tool ${index + 1}: ${call.toolName}`);
             console.log(`[Chat API] 📋 Tool call ID: ${call.toolCallId}`);
+
+            // Capture visualization tool results
+            const vizTools = ['visualizeDemographics', 'visualizeSafety', 'visualizeHealth', 'visualizeLivability', 'visualizeHousing'];
+            if (vizTools.includes(call.toolName)) {
+              const result = toolResults.find(r => 'toolCallId' in r && r.toolCallId === call.toolCallId);
+              if (result && 'output' in result) {
+                console.log(`[Chat API] 📊 Captured ${call.toolName} result for database injection`);
+                visualizationResults.push(result.output);
+              }
+            }
           });
         }
 
@@ -1362,11 +1375,21 @@ export async function POST(request: NextRequest) {
           console.log(`[Chat API] 🎯 onFinish callback triggered`);
           console.log(`[Chat API] 📊 Response - Chat: ${chatId}, Tokens: ${usage.totalTokens}, Length: ${text.length}, Time: ${responseTime}ms`);
 
-          // Save assistant message to database
+          // Inject visualization JSON into message for database (frontend will reload to see it)
+          let finalText = text;
+          if (visualizationResults.length > 0) {
+            console.log(`[Chat API] 💉 Injecting ${visualizationResults.length} visualization(s) into database message`);
+            visualizationResults.forEach((vizData) => {
+              finalText += `\n\n\`\`\`json\n${JSON.stringify(vizData, null, 2)}\n\`\`\``;
+            });
+            console.log(`[Chat API] ✅ Message size: ${text.length} → ${finalText.length} (+${finalText.length - text.length} chars)`);
+          }
+
+          // Save assistant message to database (with injected visualization JSON)
           const assistantMessage: UIMessage = {
             id: randomUUID(),
             role: 'assistant',
-            parts: [{ type: 'text', text }]
+            parts: [{ type: 'text', text: finalText }]
           };
 
           // Get token counts with defaults

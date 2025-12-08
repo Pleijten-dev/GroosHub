@@ -49,6 +49,7 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
   const [currentChatId, setCurrentChatId] = useState<string | undefined>(chatId);
   const currentChatIdRef = useRef<string | undefined>(chatId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const previousStatusRef = useRef<string>('idle');
 
   // File upload state
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
@@ -117,6 +118,45 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
       setMessages(initialMessages);
     }
   }, [initialMessages, setMessages]);
+
+  // Refetch messages after streaming completes (to get visualization JSON injected by backend)
+  useEffect(() => {
+    const refetchMessages = async () => {
+      // Only refetch if:
+      // 1. We just finished streaming (status changed from 'streaming' to something else)
+      // 2. We have a chatId to refetch from
+      // 3. We have messages (meaning a conversation exists)
+      if (
+        previousStatusRef.current === 'streaming' &&
+        status !== 'streaming' &&
+        currentChatIdRef.current &&
+        messages.length > 0
+      ) {
+        console.log('[ChatUI] 🔄 Streaming completed, refetching messages for visualization updates...');
+
+        // Wait briefly for backend to finish injecting JSON (500ms should be enough)
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        try {
+          const response = await fetch(`/api/chats/${currentChatIdRef.current}`);
+          const data = await response.json();
+
+          if (response.ok && data.messages) {
+            console.log(`[ChatUI] ✅ Refetched ${data.messages.length} messages with visualization data`);
+            setMessages(data.messages);
+          }
+        } catch (error) {
+          console.error('[ChatUI] ❌ Failed to refetch messages:', error);
+          // Non-critical error, don't show to user
+        }
+      }
+
+      // Update previous status for next comparison
+      previousStatusRef.current = status;
+    };
+
+    refetchMessages();
+  }, [status, messages.length, setMessages]);
 
   // Compute loading state from status
   const isLoading = status === 'submitted' || status === 'streaming';

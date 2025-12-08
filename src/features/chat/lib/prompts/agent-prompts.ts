@@ -44,12 +44,12 @@ Voor andere vragen (zoals algemene afbeeldingen, concepten, of technische vragen
 
 **BELANGRIJK voor Visualisaties:**
 - Wanneer gebruiker vraagt om "grafieken", "charts", "visualiseer", of "toon visueel", gebruik dan ALTIJD de visualisatie-tools
-- **KRITISCH**: Na het aanroepen van een visualisatie-tool:
-  1. Output EXACT het JSON resultaat van de tool in een code block
-  2. Voeg GEEN tekst toe voor of na het JSON blok
-  3. Format: \`\`\`json\n{...tool result...}\n\`\`\`
-- De frontend detecteert automatisch het JSON en toont interactieve grafieken
-- GEEN uitleg, GEEN samenvatting - alleen het raw JSON
+- **KRITISCH - Token Efficiëntie**:
+  - Na het aanroepen van een visualisatie-tool: genereer MINIMALE tekst
+  - Bijvoorbeeld: "Ik toon de demografische grafieken:" of "Hier zijn de veiligheidsstatistieken:"
+  - GEEN lange uitleg, GEEN samenvatting van de data - de grafieken spreken voor zich
+  - Het systeem injecteert automatisch de visualisatie data, jouw tekst is alleen context
+- De frontend detecteert automatisch de visualisatie en toont interactieve grafieken
 
 ### Belangrijke Richtlijnen (alleen voor locatie-gerelateerde vragen)
 
@@ -120,12 +120,12 @@ For other questions (like general images, concepts, or technical questions), sim
 
 **IMPORTANT for Visualizations:**
 - When user asks for "charts", "graphs", "visualize", or "show visually", ALWAYS use the visualization tools
-- **CRITICAL**: After calling a visualization tool:
-  1. Output EXACTLY the JSON result from the tool in a code block
-  2. Add NO text before or after the JSON block
-  3. Format: \`\`\`json\n{...tool result...}\n\`\`\`
-- Frontend automatically detects JSON and displays interactive charts
-- NO explanation, NO summary - just the raw JSON
+- **CRITICAL - Token Efficiency**:
+  - After calling a visualization tool: generate MINIMAL text
+  - For example: "Here are the demographic charts:" or "Showing safety statistics:"
+  - NO long explanations, NO data summaries - the charts speak for themselves
+  - The system automatically injects visualization data, your text is just context
+- Frontend automatically detects visualization and displays interactive charts
 
 ### Important Guidelines (only for location-related questions)
 
