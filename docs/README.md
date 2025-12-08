@@ -101,6 +101,24 @@ Historical and outdated documentation
 
 ---
 
+## 📚 External Reference Documentation
+
+**Location**: [`/references/`](../references/) (in project root)
+
+Official vendor documentation for external services:
+- **CloudFlareR2_Documentation.md** (517 KB) - Complete Cloudflare R2 API reference
+- **vercelAISDKv5.md** (1.1 MB) - Complete Vercel AI SDK v5 documentation
+
+**When to Use**:
+- Implementing file upload/storage features → Reference Cloudflare R2 docs
+- Working on AI chat/streaming → Reference Vercel AI SDK docs
+- Checking API method signatures → Search these files
+- Verifying correct implementation patterns → Follow vendor examples
+
+**Note**: These are external reference materials, not project-specific documentation. They are preserved for offline reference and match the versions currently implemented in the project.
+
+---
+
 ## Documentation Organization
 
 ### File Naming Conventions

@@ -61,6 +61,14 @@
 | **API Reference** | `/docs/04-api-reference/endpoints.md` |
 | **Testing Strategy** | `/docs/08-testing/testing-strategy.md` |
 
+### 📚 External Reference Documentation
+
+**[`/references/`](references/)** - Official vendor documentation (Cloudflare R2, Vercel AI SDK)
+
+These are complete API references from external services - essential for implementing features correctly:
+- **CloudFlareR2_Documentation.md** (517 KB) - R2 storage API reference
+- **vercelAISDKv5.md** (1.1 MB) - Vercel AI SDK v5 complete guide
+
 ---
 
 ## Project Overview
