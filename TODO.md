@@ -2,7 +2,7 @@
 
 > **Last Updated**: 2025-12-08
 > **Status**: Organized by feature area with priorities
-> **Total Items**: ~150 actionable tasks
+> **Total Items**: ~200+ actionable tasks (expanded AI Assistant section)
 
 ---
 
@@ -209,8 +209,9 @@
 
 > **Priority**: HIGH - Core feature that needs completion
 > **Reference**: [/docs/03-features/ai-chatbot/](docs/03-features/ai-chatbot/)
+> **Roadmap**: [rebuild-roadmap.md](docs/03-features/ai-chatbot/rebuild-roadmap.md) - Week 4-8
 
-### 🔥 HIGH: Multimodal Support
+### 🔥 HIGH: Multimodal Support (Week 3 - ✅ Infrastructure Complete)
 
 #### File Upload Testing
 - [ ] Test single image upload (PNG, JPG < 10MB)
@@ -236,19 +237,209 @@
 - [ ] Test Gemini with images
 - [ ] Show warning for non-vision models
 
+### 🔥 HIGH: RAG System for Project Documents (Week 4)
+
+> **Goal**: Vector-based retrieval system with citations
+> **Status**: 🔲 Not Started
+
+#### Document Ingestion Pipeline
+- [ ] Install required libraries (pdf-parse, mammoth, tiktoken)
+- [ ] Create document processor (`lib/ai/document-processor.ts`)
+  - [ ] Text extraction from PDFs
+  - [ ] Text extraction from DOCX
+  - [ ] Plain text and Markdown support
+- [ ] Implement chunking strategy
+  - [ ] Choose chunk size (500-1000 tokens) and overlap (100-200 tokens)
+  - [ ] Semantic chunking (respect paragraphs, sections)
+  - [ ] Store chunk metadata (source, page, section)
+- [ ] Create chunking utility (`lib/ai/text-chunker.ts`)
+
+#### Embeddings Generation
+- [ ] Choose embedding model (OpenAI text-embedding-3-small vs large)
+- [ ] Install pgvector extension in PostgreSQL
+- [ ] Create `project_doc_chunks` table with vector column
+- [ ] Create vector index for similarity search
+- [ ] Create embedding pipeline (`lib/ai/embedder.ts`)
+  - [ ] Use AI SDK's `embedMany()` for batch processing
+  - [ ] Handle rate limiting and progress tracking
+- [ ] Create embedding script (`scripts/embed-project-docs.ts`)
+
+#### Retrieval System
+- [ ] Create RAG utility (`lib/ai/rag.ts`)
+  - [ ] `retrieveProjectContext(projectId, query, k)` function
+  - [ ] Embed user query and perform vector similarity search
+  - [ ] Return top-k most relevant chunks with metadata
+- [ ] Implement hybrid search (vector + keyword search)
+- [ ] Add relevance filtering (minimum similarity threshold)
+
+#### RAG Integration into Chat
+- [ ] Update `/api/chat` route for RAG
+  - [ ] Accept `projectId` in request body
+  - [ ] Retrieve relevant chunks before LLM call
+  - [ ] Inject chunks into context with formatting
+- [ ] Prompt engineering for RAG
+  - [ ] "Only use provided context" in system prompt
+  - [ ] Instruct to quote sources and cite chunk IDs
+- [ ] Citation system
+  - [ ] Parse chunk IDs from LLM response
+  - [ ] Link to original documents
+  - [ ] Show exact quoted text with page numbers
+- [ ] RAG UI components
+  - [ ] Project selector in chat settings
+  - [ ] Display retrieved context (collapsible)
+  - [ ] Show source citations inline
+  - [ ] "View source document" links
+
+### 🔥 HIGH: Image Generation (Week 5)
+
+> **Goal**: AI-powered image generation integrated into chat
+> **Status**: 🔲 Not Started
+
+#### Image Generation Setup
+- [ ] Choose provider (OpenAI DALL-E 3, Stability AI, etc.)
+- [ ] Create `image_generations` table
+- [ ] Create image generation endpoint (`/api/generate-image`)
+  - [ ] Use AI SDK's `generateImage`
+  - [ ] Accept prompt, size, style parameters
+  - [ ] Upload image to R2 storage
+  - [ ] Track generation in database
+
+#### Tool-Based Image Generation
+- [ ] Define image generation tool (`lib/ai/tools/image-generation.ts`)
+  - [ ] Tool name: `generateImage`
+  - [ ] Input schema: `{ prompt, style?, size? }`
+  - [ ] Execute function calls `/api/generate-image`
+- [ ] Update `/api/chat` to support tools
+  - [ ] Add `tools` parameter to `streamText()`
+  - [ ] Include `generateImage` tool
+  - [ ] Handle tool results
+- [ ] Update model registry with tool capability flags
+
+#### Image Generation UI
+- [ ] Image prompt input with suggestions
+- [ ] Parameter controls (size, style, quality)
+- [ ] Loading states (generation takes 10-30 seconds)
+- [ ] Display generated images in chat
+- [ ] Save images to chat history
+- [ ] Download and regenerate buttons
+- [ ] Cost tracking for image generation
+
+### 🔥 HIGH: Agent System with Tools (Week 6)
+
+> **Goal**: Multi-step autonomous agents with tools
+> **Status**: 🔲 Not Started
+
+#### Agent Architecture
+- [ ] Define agent types needed:
+  - [ ] **Project Research Agent** - RAG + web search + data analysis
+  - [ ] **LCA Analysis Agent** - Fetch and calculate LCA data
+  - [ ] **Multi-modal Document Agent** - Process files, summarize
+  - [ ] **Creative Agent** - Image generation + text generation
+- [ ] Define agent capabilities matrix (which tools for each agent)
+- [ ] Design agent selection logic (user select vs auto-select)
+
+#### Tool Library
+- [ ] Create tool library (`lib/ai/tools/`)
+  - [ ] `getProjectContext.ts` - RAG retrieval
+  - [ ] `getLcaData.ts` - Fetch LCA data from PostgreSQL
+  - [ ] `searchWeb.ts` - Web search (Tavily, Brave, or Google)
+  - [ ] `generateImage.ts` - Image generation (from Week 5)
+  - [ ] `analyzeDocument.ts` - Document analysis
+  - [ ] `calculateMetrics.ts` - Custom calculations
+  - [ ] `queryDatabase.ts` - SQL query executor (with safety)
+- [ ] Tool schemas with Zod
+  - [ ] Define input/output schemas
+  - [ ] Add clear descriptions for LLM
+  - [ ] Include examples
+- [ ] Tool execution framework
+  - [ ] Error handling per tool
+  - [ ] Retry logic and timeout handling
+  - [ ] Result caching
+
+#### Agent Implementation
+- [ ] Create agents (`lib/ai/agents/`)
+  - [ ] `projectResearchAgent.ts` (RAG + web search + DB)
+  - [ ] `lcaAnalysisAgent.ts` (LCA data + calculations)
+  - [ ] `documentAgent.ts` (file processing + summarization)
+  - [ ] `creativeAgent.ts` (image generation)
+- [ ] Configure agents with tools, prompts, stop conditions
+- [ ] Create agent endpoint (`/api/agent-chat`)
+  - [ ] Accept agent type in request
+  - [ ] Stream intermediate results
+  - [ ] Handle multi-step execution
+
+#### Agent UI
+- [ ] Agent picker in chat settings
+- [ ] Show agent capabilities and suggestions
+- [ ] Agent transparency UI (show reasoning and tool calls)
+- [ ] "Thinking..." indicators for intermediate steps
+- [ ] Agent controls (stop execution, set max steps)
+
+### 🔥 HIGH: UI Improvements for Project Overview
+
+> **Critical for project management within AI Assistant**
+
+#### Project Sidebar UI
+- [ ] Create project list sidebar in AI Assistant
+- [ ] Project search and filter functionality
+- [ ] Quick project switcher
+- [ ] Show active project indicator
+
+#### Project Context Display
+- [ ] Display current project context in chat header
+- [ ] Show project metadata (name, type, documents)
+- [ ] Project document browser in sidebar
+- [ ] Visual indicator when RAG is active for project
+
+#### Project Integration
+- [ ] Connect project selector to RAG system
+- [ ] Load project documents when project selected
+- [ ] Filter chat history by project
+- [ ] @mention projects to switch context
+
 ### 🔥 HIGH: Memory System Improvements
+
+> **✅ Core Memory System Completed (Week 7)** - See rebuild-roadmap.md
 
 - [ ] Add memory summarization when > 2000 tokens
 - [ ] Implement memory correction UI
 - [ ] Add user control over memory (view/edit/delete)
 - [ ] Improve memory extraction accuracy
-- [ ] Add project memory isolation
+- [ ] Add project-specific memory isolation
+- [ ] Create memory management dashboard
 
-### 🔥 HIGH: Chat Features
+### 🔥 HIGH: Advanced Chat Features (Week 7)
 
-- [ ] Add conversation search
-- [ ] Implement message editing
-- [ ] Add conversation export (PDF, Markdown)
+#### Message Editing & Regeneration
+- [ ] Edit previous user messages
+- [ ] Regenerate AI responses
+- [ ] Branch conversations from edited messages
+- [ ] Preserve original in history
+
+#### Conversation Search
+- [ ] Full-text search across all messages
+- [ ] Semantic search using embeddings
+- [ ] Filter by date, model, project
+- [ ] Search results UI with highlighting
+
+#### Message Actions
+- [ ] Copy to clipboard (plain text, markdown, code)
+- [ ] Pin important messages
+- [ ] Bookmark/star messages
+- [ ] Add private notes to messages
+- [ ] Share specific message (generate link)
+
+#### Smart Suggestions
+- [ ] Suggested prompts based on context
+- [ ] Prompt templates for common tasks
+- [ ] Auto-complete project names and documents
+- [ ] Follow-up suggestions after response
+
+#### Conversation Features
+- [ ] Conversation branching (fork from any message)
+- [ ] Visual tree view of branches
+- [ ] Compare branches side-by-side
+- [ ] Conversation export (PDF, Markdown, JSON)
 - [ ] Improve streaming response handling
 - [ ] Add code syntax highlighting
 - [ ] Support for @mentions (reference saved locations, LCA projects)
@@ -256,18 +447,75 @@
 ### ⚙️ MEDIUM: Model Management
 
 - [ ] Add model selection UI
-- [ ] Show model capabilities (vision, function calling)
+- [ ] Show model capabilities (vision, function calling, tools)
 - [ ] Display token usage and costs per conversation
 - [ ] Add conversation cost tracking
 - [ ] Model comparison feature
+- [ ] Cost optimization with model routing (simple → cheap, complex → advanced)
+- [ ] Dashboard for cost monitoring with alerts
 
-### ⚙️ MEDIUM: Performance
+### ⚙️ MEDIUM: Performance Optimization (Week 7)
 
+#### Caching Strategy
+- [ ] Implement Redis for API response caching
+- [ ] Cache embeddings (already in DB)
+- [ ] Cache retrieved contexts for similar queries
+- [ ] Set appropriate TTLs
+
+#### Database Optimization
+- [ ] Add indexes on vector columns
+- [ ] Add indexes on chat_id, user_id, created_at
+- [ ] Optimize message retrieval queries
+- [ ] Analyze slow queries and optimize
+
+#### Frontend Optimization
+- [ ] Lazy load chat history (infinite scroll)
+- [ ] Virtualize long message lists
+- [ ] Optimize image loading
+- [ ] Code splitting for heavy components
 - [ ] Optimize memory loading time
 - [ ] Reduce latency for first message
 - [ ] Implement conversation pagination
 - [ ] Add message caching
-- [ ] Optimize database queries
+
+### ⚙️ MEDIUM: Voice Input/Output (Optional - Week 7)
+
+- [ ] Speech-to-text for message input
+- [ ] Text-to-speech for responses
+- [ ] Voice control toggle
+- [ ] Language detection (nl/en)
+
+### ⚙️ MEDIUM: Testing (Week 8)
+
+#### Unit Tests
+- [ ] Test model registry functions
+- [ ] Test persistence layer (chat-store)
+- [ ] Test RAG retrieval functions
+- [ ] Test tool functions
+- [ ] Test chunking and embedding functions
+- [ ] Target: 80%+ code coverage
+
+#### Integration Tests
+- [ ] Test full chat flow (send message → receive response)
+- [ ] Test file uploads (PDF, images)
+- [ ] Test agent workflows
+- [ ] Test RAG with real documents
+- [ ] Test model switching
+- [ ] Test error scenarios
+
+#### E2E Tests
+- [ ] User creates chat → sends message → receives response
+- [ ] User uploads document → asks question → gets citation
+- [ ] User requests image generation → image displayed
+- [ ] User uses agent → multi-step task completes
+
+#### Load & Security Testing
+- [ ] Concurrent users (simulate 100+ users)
+- [ ] Large file processing (50MB PDFs)
+- [ ] Long conversations (100+ messages)
+- [ ] Authentication and authorization tests
+- [ ] File upload security (malicious files)
+- [ ] SQL injection and XSS protection tests
 
 ---
 
