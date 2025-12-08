@@ -2,7 +2,8 @@
 
 > **Last Updated**: 2025-12-08
 > **Status**: Organized by feature area with priorities
-> **Total Items**: ~200+ actionable tasks (expanded AI Assistant section)
+> **Total Items**: ~230+ actionable tasks (complete AI Assistant Week 4-8 roadmap)
+> **Verification**: See [/docs/AI-ASSISTANT-TODO-VERIFICATION.md](docs/AI-ASSISTANT-TODO-VERIFICATION.md)
 
 ---
 
@@ -516,6 +517,58 @@
 - [ ] Authentication and authorization tests
 - [ ] File upload security (malicious files)
 - [ ] SQL injection and XSS protection tests
+
+### ⚙️ MEDIUM: Documentation (Week 8 - Day 4-5)
+
+#### Developer Documentation
+- [ ] Create architecture overview with diagrams
+- [ ] Write model registry guide
+- [ ] Document how to add new models
+- [ ] Document how to add new tools/agents
+- [ ] Update database schema documentation
+- [ ] Create API reference for all chat endpoints
+- [ ] Write deployment guide for AI features
+- [ ] Create troubleshooting guide for common issues
+
+#### User Documentation
+- [ ] Write getting started guide for AI Assistant
+- [ ] Document how to use different features (RAG, agents, image gen)
+- [ ] Create model selection guide
+- [ ] Write best practices for RAG queries
+- [ ] Create FAQ section
+- [ ] Create video tutorials (optional)
+
+#### Code Documentation
+- [ ] Add JSDoc comments on all AI functions
+- [ ] Create README files in ai/ directories
+- [ ] Add inline comments for complex logic
+
+### ⚙️ MEDIUM: Deployment & Monitoring (Week 8 - Day 6-7)
+
+#### Production Deployment
+- [ ] Set up production environment variables for AI providers
+- [ ] Run database migrations (pgvector, embeddings tables)
+- [ ] Configure R2 for file storage with proper permissions
+- [ ] Verify SSL certificates for secure uploads
+- [ ] Set up backup strategy for chat data and embeddings
+- [ ] Configure rate limiting for AI API calls
+
+#### Monitoring & Observability
+- [ ] Set up error tracking (Sentry or similar) for AI endpoints
+- [ ] Set up performance monitoring (Vercel Analytics)
+- [ ] Create cost tracking dashboard for AI usage
+- [ ] Set up usage analytics (tokens, models, features)
+- [ ] Set up LLM observability (LangSmith, Helicone, or similar)
+- [ ] Configure alerts (high costs, errors, API failures)
+
+#### Launch Checklist
+- [ ] All AI tests passing (unit, integration, E2E)
+- [ ] Documentation complete and published
+- [ ] Monitoring configured and tested
+- [ ] Backup strategy in place and tested
+- [ ] Rollback plan prepared for AI features
+- [ ] Team trained on AI Assistant features
+- [ ] User communication prepared (feature announcements)
 
 ---
 
