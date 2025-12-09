@@ -21,6 +21,7 @@ import {
   MODEL_CAPABILITIES,
   type ModelId
 } from '@/lib/ai/models';
+import { type FileType } from '@/lib/storage/file-validation';
 import { FileUploadZone } from './FileUploadZone';
 import { ImageAttachment } from './ImageAttachment';
 import { ImageLightbox } from './ImageLightbox';
@@ -30,7 +31,7 @@ import { ChartVisualization, type ChartVisualizationProps } from './ChartVisuali
 interface UploadedFile {
   id: string;
   name: string;
-  type: 'image' | 'pdf';
+  type: FileType;
   mimeType: string;
   size: number;
   previewUrl?: string;

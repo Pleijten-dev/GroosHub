@@ -134,7 +134,7 @@ export function MarkdownEditor({
     html = html.replace(/^> (.+)$/gm, '<blockquote class="border-l-4 border-gray-300 pl-base italic text-gray-600 my-sm">$1</blockquote>');
 
     // Code blocks
-    html = html.replace(/```(.+?)```/gs, '<pre class="bg-gray-100 p-sm rounded-lg overflow-x-auto my-sm"><code>$1</code></pre>');
+    html = html.replace(/```([\s\S]+?)```/g, '<pre class="bg-gray-100 p-sm rounded-lg overflow-x-auto my-sm"><code>$1</code></pre>');
     html = html.replace(/`(.+?)`/g, '<code class="bg-gray-100 px-xs py-xs rounded text-sm">$1</code>');
 
     // Line breaks
