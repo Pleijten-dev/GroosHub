@@ -25,6 +25,7 @@ import { FileUploadZone } from './FileUploadZone';
 import { ImageAttachment } from './ImageAttachment';
 import { ImageLightbox } from './ImageLightbox';
 import { MarkdownMessage } from './MarkdownMessage';
+import { ChartVisualization, type ChartVisualizationProps } from './ChartVisualization';
 
 interface UploadedFile {
   id: string;
@@ -48,6 +49,7 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
   const [currentChatId, setCurrentChatId] = useState<string | undefined>(chatId);
   const currentChatIdRef = useRef<string | undefined>(chatId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const previousStatusRef = useRef<string>('idle');
 
   // File upload state
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
@@ -116,6 +118,45 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
       setMessages(initialMessages);
     }
   }, [initialMessages, setMessages]);
+
+  // Refetch messages after streaming completes (to get visualization JSON injected by backend)
+  useEffect(() => {
+    const refetchMessages = async () => {
+      // Only refetch if:
+      // 1. We just finished streaming (status changed from 'streaming' to something else)
+      // 2. We have a chatId to refetch from
+      // 3. We have messages (meaning a conversation exists)
+      if (
+        previousStatusRef.current === 'streaming' &&
+        status !== 'streaming' &&
+        currentChatIdRef.current &&
+        messages.length > 0
+      ) {
+        console.log('[ChatUI] 🔄 Streaming completed, refetching messages for visualization updates...');
+
+        // Wait briefly for backend to finish injecting JSON (500ms should be enough)
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        try {
+          const response = await fetch(`/api/chats/${currentChatIdRef.current}`);
+          const data = await response.json();
+
+          if (response.ok && data.messages) {
+            console.log(`[ChatUI] ✅ Refetched ${data.messages.length} messages with visualization data`);
+            setMessages(data.messages);
+          }
+        } catch (error) {
+          console.error('[ChatUI] ❌ Failed to refetch messages:', error);
+          // Non-critical error, don't show to user
+        }
+      }
+
+      // Update previous status for next comparison
+      previousStatusRef.current = status;
+    };
+
+    refetchMessages();
+  }, [status, messages.length, setMessages]);
 
   // Compute loading state from status
   const isLoading = status === 'submitted' || status === 'streaming';
@@ -214,10 +255,46 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
   const selectedModelCapabilities = MODEL_CAPABILITIES[selectedModel];
   const modelSupportsVision = selectedModelCapabilities?.supportsVision ?? false;
 
+  // Helper function to detect and parse chart visualization data
+  const tryParseChartData = (text: string): ChartVisualizationProps | null => {
+    try {
+      // Look for JSON blocks in the text (tool call results)
+      const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/);
+      const jsonText = jsonMatch ? jsonMatch[1] : text;
+
+      const parsed = JSON.parse(jsonText);
+
+      // Check if this is chart visualization data
+      if (parsed.success && parsed.visualizationType && parsed.charts) {
+        return {
+          address: parsed.address,
+          charts: parsed.charts,
+          visualizationType: parsed.visualizationType,
+        };
+      }
+    } catch (e) {
+      // Not valid JSON or not chart data, that's okay
+    }
+    return null;
+  };
+
   // Render message content from parts array (AI SDK v5)
   const renderMessageContent = (message: typeof messages[0]) => {
     return message.parts.map((part, index) => {
       if (part.type === 'text') {
+        // Try to parse as chart visualization data
+        const chartData = tryParseChartData(part.text);
+
+        if (chartData) {
+          return (
+            <ChartVisualization
+              key={`${message.id}-chart-${index}`}
+              {...chartData}
+            />
+          );
+        }
+
+        // Regular markdown rendering
         return (
           <MarkdownMessage
             key={`${message.id}-text-${index}`}

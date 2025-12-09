@@ -9,7 +9,8 @@ import { Button } from '../../../../shared/components/UI';
 import { cn } from '../../../../shared/utils/cn';
 import { AddressAutocomplete } from '../AddressAutocomplete/AddressAutocomplete';
 import { locationDataCache } from '../../data/cache/locationDataCache';
-import { SaveLocationSection, SavedLocationsList } from '../SavedLocations';
+import { SaveLocationToProject } from '../SavedLocations/SaveLocationToProject';
+import { ProjectSnapshotsList } from '../SavedLocations/ProjectSnapshotsList';
 import type { UnifiedLocationData } from '../../data/aggregator/multiLevelAggregator';
 import type { AmenityMultiCategoryResponse } from '../../data/sources/google-places/types';
 import type { AccessibleLocation } from '../../types/saved-locations';
@@ -40,6 +41,19 @@ const RAPPORT_SUBSECTIONS = [
 ] as const;
 
 type SectionId = typeof MAIN_SECTIONS[number]['id'] | typeof OMGEVING_SUBSECTIONS[number]['id'] | typeof RAPPORT_SUBSECTIONS[number]['id'];
+
+interface LocationSnapshot {
+  id: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  snapshot_date: Date | string;
+  version_number: number;
+  is_active: boolean;
+  created_at: Date | string;
+  updated_at: Date | string;
+  user_id: number;
+}
 
 interface LocationSidebarContentProps {
   locale: Locale;
@@ -156,9 +170,12 @@ export const useLocationSidebarSections = ({
     setSavedLocationsRefresh(prev => prev + 1);
   };
 
-  // Handle load saved location
-  const handleLoadSavedLocation = (location: AccessibleLocation): void => {
-    onLoadSavedLocation?.(location);
+  // Handle load saved location snapshot
+  // Triggers a new search for the snapshot's address
+  const handleLoadSavedLocation = (snapshot: LocationSnapshot): void => {
+    if (onAddressSearch && snapshot.address) {
+      onAddressSearch(snapshot.address);
+    }
   };
 
   // Search section content
@@ -290,22 +307,27 @@ export const useLocationSidebarSections = ({
     </div>
   );
 
-  // Save location section content
+  // Save location to project section (NEW: Project-based system)
   const saveLocationSection = (
-    <SaveLocationSection
+    <SaveLocationToProject
       locale={locale}
       address={currentAddress}
+      latitude={locationData?.location?.coordinates?.wgs84?.latitude || 0}
+      longitude={locationData?.location?.coordinates?.wgs84?.longitude || 0}
       locationData={locationData}
       amenitiesData={amenitiesData}
-      onSave={handleSaveLocation}
+      onSaveSuccess={() => {
+        // Refresh the snapshots list
+        setSavedLocationsRefresh(prev => prev + 1);
+      }}
     />
   );
 
-  // Saved locations list section content
+  // Project snapshots list section (NEW: Project-based with version control)
   const savedLocationsListSection = (
-    <SavedLocationsList
+    <ProjectSnapshotsList
       locale={locale}
-      onLoadLocation={handleLoadSavedLocation}
+      onLoadSnapshot={handleLoadSavedLocation}
       refreshTrigger={savedLocationsRefresh}
     />
   );
@@ -327,18 +349,18 @@ export const useLocationSidebarSections = ({
     },
     {
       id: 'save-location',
-      title: locale === 'nl' ? 'Locatie Opslaan' : 'Save Location',
+      title: locale === 'nl' ? 'Opslaan naar Project' : 'Save to Project',
       description: locale === 'nl'
-        ? 'Sla deze locatie op voor later gebruik.'
-        : 'Save this location for later use.',
+        ? 'Sla deze locatie op in een project voor versiecontrole.'
+        : 'Save this location to a project for version control.',
       content: saveLocationSection,
     },
     {
       id: 'saved-locations',
-      title: locale === 'nl' ? 'Opgeslagen Locaties' : 'Saved Locations',
+      title: locale === 'nl' ? 'Project Snapshots' : 'Project Snapshots',
       description: locale === 'nl'
-        ? 'Bekijk en laad uw opgeslagen locaties.'
-        : 'View and load your saved locations.',
+        ? 'Bekijk en laad opgeslagen locatie snapshots per project.'
+        : 'View and load saved location snapshots by project.',
       content: savedLocationsListSection,
     },
   ];
