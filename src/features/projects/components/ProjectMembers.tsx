@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/shared/components/UI/Button/Button';
 import { cn } from '@/shared/utils/cn';
+import { AddMemberModal } from './AddMemberModal';
 
 interface ProjectMembersProps {
   projectId: string;
@@ -41,6 +42,7 @@ export function ProjectMembers({ projectId, locale, canManageMembers }: ProjectM
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'member' | 'admin' | 'viewer'>('member');
   const [inviteMessage, setInviteMessage] = useState('');
@@ -52,6 +54,7 @@ export function ProjectMembers({ projectId, locale, canManageMembers }: ProjectM
       members: 'Leden',
       invitations: 'Uitnodigingen',
       inviteMember: 'Lid Uitnodigen',
+      addMember: 'Lid Toevoegen',
       email: 'E-mail',
       role: 'Rol',
       message: 'Bericht (optioneel)',
@@ -80,6 +83,7 @@ export function ProjectMembers({ projectId, locale, canManageMembers }: ProjectM
       members: 'Members',
       invitations: 'Invitations',
       inviteMember: 'Invite Member',
+      addMember: 'Add Member',
       email: 'Email',
       role: 'Role',
       message: 'Message (optional)',
@@ -209,17 +213,26 @@ export function ProjectMembers({ projectId, locale, canManageMembers }: ProjectM
 
   return (
     <div className="space-y-lg">
-      {/* Header with Invite Button */}
+      {/* Header with Action Buttons */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">{t.members}</h2>
         {canManageMembers && (
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setShowInviteModal(true)}
-          >
-            {t.inviteMember}
-          </Button>
+          <div className="flex gap-sm">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowInviteModal(true)}
+            >
+              {t.inviteMember}
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setShowAddMemberModal(true)}
+            >
+              {t.addMember}
+            </Button>
+          </div>
         )}
       </div>
 
@@ -384,6 +397,15 @@ export function ProjectMembers({ projectId, locale, canManageMembers }: ProjectM
           </div>
         </div>
       )}
+
+      {/* Add Member Modal (from organization users) */}
+      <AddMemberModal
+        projectId={projectId}
+        isOpen={showAddMemberModal}
+        onClose={() => setShowAddMemberModal(false)}
+        onMemberAdded={fetchMembers}
+        locale={locale as 'nl' | 'en'}
+      />
     </div>
   );
 }
