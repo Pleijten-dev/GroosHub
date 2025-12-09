@@ -115,18 +115,31 @@ export async function PATCH(
 
     const { id } = await context.params;
 
-    // Check if user is admin of project
-    const isAdmin = await isProjectAdmin(id, session.user.id);
+    const body = await request.json();
+    const { name, description, project_number, settings, status, is_pinned } = body;
 
-    if (!isAdmin) {
+    // Check if user is at least a member of the project
+    const isMember = await isProjectMember(id, session.user.id);
+
+    if (!isMember) {
+      return NextResponse.json(
+        { error: 'You do not have access to this project' },
+        { status: 403 }
+      );
+    }
+
+    // For non-pin updates, require admin permission
+    const isAdmin = await isProjectAdmin(id, session.user.id);
+    const hasNonPinUpdates = name !== undefined || description !== undefined ||
+                             project_number !== undefined || settings !== undefined ||
+                             status !== undefined;
+
+    if (hasNonPinUpdates && !isAdmin) {
       return NextResponse.json(
         { error: 'You do not have permission to update this project' },
         { status: 403 }
       );
     }
-
-    const body = await request.json();
-    const { name, description, project_number, settings, status, is_pinned } = body;
 
     // Check if at least one field is provided
     if (
@@ -160,6 +173,15 @@ export async function PATCH(
         WHERE project_id = ${id}
           AND user_id = ${session.user.id}
       `;
+    }
+
+    // If only is_pinned was updated, return early
+    if (!hasNonPinUpdates) {
+      return NextResponse.json({
+        success: true,
+        message: 'Pin status updated successfully',
+        data: currentProject
+      });
     }
 
     // Use provided values or keep current values

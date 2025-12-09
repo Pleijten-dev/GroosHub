@@ -64,7 +64,11 @@ export async function getUserProjects(userId: number): Promise<ProjectWithMember
       p.id, p.org_id, p.name, p.description, p.project_number, p.settings, p.metadata,
       p.status, p.is_template, p.deleted_at, p.created_at, p.updated_at, p.last_accessed_at,
       pm.role as user_role,
-      pm.permissions as user_permissions
+      pm.permissions as user_permissions,
+      pm.is_pinned,
+      (SELECT COUNT(*) FROM project_members WHERE project_id = p.id AND left_at IS NULL) as member_count,
+      (SELECT COUNT(*) FROM chat_conversations WHERE project_id = p.id) as chat_count,
+      (SELECT COUNT(*) FROM file_uploads WHERE project_id = p.id AND deleted_at IS NULL) as file_count
     FROM project_projects p
     INNER JOIN project_members pm ON p.id = pm.project_id
     WHERE pm.user_id = ${userId}
@@ -78,7 +82,7 @@ export async function getUserProjects(userId: number): Promise<ProjectWithMember
 
 /**
  * Get pinned projects for a user
- * Note: Pin status stored in settings JSONB field
+ * Note: Pin status stored per-user in project_members.is_pinned
  */
 export async function getUserPinnedProjects(userId: number): Promise<ProjectWithMemberRole[]> {
   const db = getDbConnection();
@@ -88,12 +92,16 @@ export async function getUserPinnedProjects(userId: number): Promise<ProjectWith
       p.id, p.org_id, p.name, p.description, p.project_number, p.settings, p.metadata,
       p.status, p.is_template, p.deleted_at, p.created_at, p.updated_at, p.last_accessed_at,
       pm.role as user_role,
-      pm.permissions as user_permissions
+      pm.permissions as user_permissions,
+      pm.is_pinned,
+      (SELECT COUNT(*) FROM project_members WHERE project_id = p.id AND left_at IS NULL) as member_count,
+      (SELECT COUNT(*) FROM chat_conversations WHERE project_id = p.id) as chat_count,
+      (SELECT COUNT(*) FROM file_uploads WHERE project_id = p.id AND deleted_at IS NULL) as file_count
     FROM project_projects p
     INNER JOIN project_members pm ON p.id = pm.project_id
     WHERE pm.user_id = ${userId}
     AND p.deleted_at IS NULL
-    AND (p.settings->>'is_pinned')::boolean = true
+    AND pm.is_pinned = true
     AND pm.left_at IS NULL
     ORDER BY p.name ASC
   `;
@@ -103,7 +111,7 @@ export async function getUserPinnedProjects(userId: number): Promise<ProjectWith
 
 /**
  * Get recent projects for a user (not pinned)
- * Note: Pin status stored in settings JSONB field
+ * Note: Pin status stored per-user in project_members.is_pinned
  */
 export async function getUserRecentProjects(
   userId: number,
@@ -116,12 +124,16 @@ export async function getUserRecentProjects(
       p.id, p.org_id, p.name, p.description, p.project_number, p.settings, p.metadata,
       p.status, p.is_template, p.deleted_at, p.created_at, p.updated_at, p.last_accessed_at,
       pm.role as user_role,
-      pm.permissions as user_permissions
+      pm.permissions as user_permissions,
+      pm.is_pinned,
+      (SELECT COUNT(*) FROM project_members WHERE project_id = p.id AND left_at IS NULL) as member_count,
+      (SELECT COUNT(*) FROM chat_conversations WHERE project_id = p.id) as chat_count,
+      (SELECT COUNT(*) FROM file_uploads WHERE project_id = p.id AND deleted_at IS NULL) as file_count
     FROM project_projects p
     INNER JOIN project_members pm ON p.id = pm.project_id
     WHERE pm.user_id = ${userId}
     AND p.deleted_at IS NULL
-    AND COALESCE((p.settings->>'is_pinned')::boolean, false) = false
+    AND (pm.is_pinned = false OR pm.is_pinned IS NULL)
     AND pm.left_at IS NULL
     ORDER BY p.last_accessed_at DESC
     LIMIT ${limit}
