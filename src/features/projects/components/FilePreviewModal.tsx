@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/shared/components/UI/Button/Button';
+import { useSidebar } from '@/shared/hooks/useSidebar';
 
 interface FilePreviewModalProps {
   fileId: string;
@@ -52,6 +53,10 @@ export function FilePreviewModal({
   const [error, setError] = useState<string | null>(null);
 
   const t = translations[locale];
+  const { isCollapsed } = useSidebar();
+
+  // Sidebar dimensions (matching Sidebar component defaults)
+  const sidebarWidth = isCollapsed ? 60 : 320;
 
   useEffect(() => {
     if (isOpen) {
@@ -92,17 +97,24 @@ export function FilePreviewModal({
 
   if (!isOpen) return null;
 
+  // Dynamic max-width based on sidebar state
+  const maxWidth = isCollapsed ? 'max-w-6xl' : 'max-w-4xl';
+
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop - respects sidebar */}
       <div
-        className="fixed inset-0 bg-black/80 z-40"
+        className="fixed top-0 right-0 bottom-0 bg-black/80 z-40"
+        style={{ left: `${sidebarWidth}px` }}
         onClick={onClose}
       />
 
-      {/* Modal */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-lg">
-        <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+      {/* Modal - respects sidebar */}
+      <div
+        className="fixed top-0 right-0 bottom-0 z-50 flex items-center justify-center p-lg"
+        style={{ left: `${sidebarWidth}px` }}
+      >
+        <div className={`bg-white rounded-lg shadow-xl w-full ${maxWidth} max-h-[90vh] flex flex-col`}>
           {/* Header */}
           <div className="flex items-center justify-between p-base border-b border-gray-200">
             <div className="flex-1 min-w-0">
