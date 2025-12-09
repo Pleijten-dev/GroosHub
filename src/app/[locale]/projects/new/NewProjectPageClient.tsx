@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ProjectsSidebar } from '@/features/projects/components/ProjectsSidebar';
+import { ProjectsSidebarEnhanced } from '@/features/projects/components/ProjectsSidebarEnhanced';
 import { NewProjectForm } from '@/features/projects/components/NewProjectForm';
 import { useProjectsSidebar } from '@/features/projects/hooks/useProjectsSidebar';
 
@@ -28,7 +28,7 @@ export function NewProjectPageClient({
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <ProjectsSidebar
+      <ProjectsSidebarEnhanced
         isCollapsed={isCollapsed}
         onToggle={toggleSidebar}
         locale={locale}
