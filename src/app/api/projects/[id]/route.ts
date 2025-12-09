@@ -126,7 +126,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { name, description, project_number, settings, status } = body;
+    const { name, description, project_number, settings, status, is_pinned } = body;
 
     // Check if at least one field is provided
     if (
@@ -134,7 +134,8 @@ export async function PATCH(
       description === undefined &&
       project_number === undefined &&
       settings === undefined &&
-      status === undefined
+      status === undefined &&
+      is_pinned === undefined
     ) {
       return NextResponse.json(
         { success: false, error: 'No fields to update' },
@@ -149,6 +150,16 @@ export async function PATCH(
 
     if (!currentProject) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
+
+    // Handle is_pinned - update it in the member record
+    if (is_pinned !== undefined) {
+      await db`
+        UPDATE project_members
+        SET is_pinned = ${is_pinned}
+        WHERE project_id = ${id}
+          AND user_id = ${session.user.id}
+      `;
     }
 
     // Use provided values or keep current values
@@ -223,6 +234,7 @@ export async function DELETE(
     await db`
       UPDATE project_projects
       SET deleted_at = CURRENT_TIMESTAMP,
+          deleted_by_user_id = ${session.user.id},
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ${id}
     `;
