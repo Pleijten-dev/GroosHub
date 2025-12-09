@@ -125,7 +125,19 @@ export function ProjectMembers({ projectId, locale, canManageMembers }: ProjectM
       const res = await fetch(`/api/projects/${projectId}/members`);
       if (res.ok) {
         const data = await res.json();
-        setMembers(data.members || []);
+        // API returns data.data with fields: user_name, user_email, user_avatar
+        // Map to component's expected format
+        const mappedMembers = (data.data || []).map((m: any) => ({
+          id: m.id,
+          user_id: m.user_id,
+          name: m.user_name,
+          email: m.user_email,
+          avatar_url: m.user_avatar,
+          role: m.role,
+          permissions: m.permissions,
+          joined_at: m.joined_at
+        }));
+        setMembers(mappedMembers);
       }
     } catch (error) {
       console.error('Failed to fetch members:', error);
@@ -217,22 +229,13 @@ export function ProjectMembers({ projectId, locale, canManageMembers }: ProjectM
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">{t.members}</h2>
         {canManageMembers && (
-          <div className="flex gap-sm">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setShowInviteModal(true)}
-            >
-              {t.inviteMember}
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => setShowAddMemberModal(true)}
-            >
-              {t.addMember}
-            </Button>
-          </div>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setShowAddMemberModal(true)}
+          >
+            {t.addMember}
+          </Button>
         )}
       </div>
 

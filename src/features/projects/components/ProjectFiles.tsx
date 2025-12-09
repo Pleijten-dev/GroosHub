@@ -278,7 +278,7 @@ export function ProjectFiles({ projectId, locale, canManageFiles }: ProjectFiles
           <p className="text-gray-600">{t.noFiles}</p>
         </div>
       ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-base">
+        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-base">
           {files.map(file => (
             <div
               key={file.id}
@@ -286,7 +286,7 @@ export function ProjectFiles({ projectId, locale, canManageFiles }: ProjectFiles
             >
               {/* Thumbnail/Icon */}
               <div
-                className="aspect-square bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center cursor-pointer"
+                className="h-32 bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center cursor-pointer"
                 onClick={() => setPreviewFile(file)}
               >
                 <div className="text-blue-600">
