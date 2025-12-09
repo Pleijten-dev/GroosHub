@@ -7,6 +7,7 @@ import { cn } from '@/shared/utils/cn';
 import { ProjectMembers } from './ProjectMembers';
 import { ProjectFiles } from './ProjectFiles';
 import { ProjectChats } from './ProjectChats';
+import { ProjectLocations } from './ProjectLocations';
 
 interface ProjectOverviewProps {
   projectId: string;
@@ -305,8 +306,10 @@ export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
 
         {activeTab === 'locations' && (
           <Card>
-            <h2 className="text-xl font-semibold mb-base">{t.locations}</h2>
-            <p className="text-gray-600">Location snapshots coming soon...</p>
+            <ProjectLocations
+              projectId={projectId}
+              locale={locale}
+            />
           </Card>
         )}
 
