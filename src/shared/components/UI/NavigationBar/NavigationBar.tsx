@@ -13,6 +13,7 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { localeConfig, Locale } from '../../../../lib/i18n/config';
 import { useDesignSystem, COMMON_CLASSES } from '../../../hooks/useDesignSystem';
 import { Button } from '../Button/Button';
+import { NotificationDropdown } from '../NotificationDropdown/NotificationDropdown';
 import { cn } from '../../../utils/cn';
 
 const NavigationBar: React.FC<NavigationBarProps> = ({
@@ -154,8 +155,11 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
       </div>
 
       {/* User Section - Right */}
-      <div className="flex items-center flex-shrink-0 relative">
-        
+      <div className="flex items-center flex-shrink-0 relative gap-xs">
+
+        {/* Notification Dropdown */}
+        <NotificationDropdown locale={locale as 'nl' | 'en'} />
+
         {/* User Profile Button */}
         <Button
           ref={userButtonRef}
