@@ -49,8 +49,11 @@ interface UploadedFile {
  *
  * Body (multipart/form-data):
  * - files: File[] (1-10 files)
- * - chatId: string (required)
+ * - chatId?: string (optional, for chat uploads)
+ * - projectId?: string (optional, for project uploads)
  * - messageId?: string (optional, for attaching to specific message)
+ *
+ * Note: Either chatId or projectId must be provided
  */
 export async function POST(request: NextRequest) {
   try {
@@ -68,14 +71,36 @@ export async function POST(request: NextRequest) {
 
     // 2. Parse form data
     const formData = await request.formData();
-    const chatId = formData.get('chatId') as string;
+    const chatId = (formData.get('chatId') as string) || null;
+    const projectId = (formData.get('projectId') as string) || null;
     const messageId = (formData.get('messageId') as string) || null;
 
-    if (!chatId) {
+    // Require either chatId or projectId
+    if (!chatId && !projectId) {
       return NextResponse.json(
-        { error: 'Missing required field: chatId' },
+        { error: 'Missing required field: chatId or projectId' },
         { status: 400 }
       );
+    }
+
+    // For project uploads, verify user is a member
+    const sql = neon(process.env.POSTGRES_URL!);
+
+    if (projectId) {
+      const membership = await sql`
+        SELECT id FROM project_members
+        WHERE project_id = ${projectId}
+        AND user_id = ${userId}
+        AND left_at IS NULL
+        LIMIT 1;
+      `;
+
+      if (membership.length === 0) {
+        return NextResponse.json(
+          { error: 'You are not a member of this project' },
+          { status: 403 }
+        );
+      }
     }
 
     // 3. Extract files from form data
@@ -121,30 +146,31 @@ export async function POST(request: NextRequest) {
 
     // 5. Ensure chat exists in database (create if needed)
     // This handles the case where user uploads files before sending first message
-    const sql = neon(process.env.POSTGRES_URL!);
+    // Skip this check for project uploads
+    if (chatId) {
+      try {
+        // Check if chat exists
+        const existingChat = await sql`
+          SELECT id FROM chat_conversations WHERE id = ${chatId} LIMIT 1;
+        `;
 
-    try {
-      // Check if chat exists
-      const existingChat = await sql`
-        SELECT id FROM chat_conversations WHERE id = ${chatId} LIMIT 1;
-      `;
-
-      if (existingChat.length === 0) {
-        // Chat doesn't exist, create it
-        console.log(`[Upload] Chat ${chatId} doesn't exist, creating it for user ${userId}`);
-        await createChat({
-          userId: Number(userId),
-          chatId: chatId,
-          title: 'New Chat', // Will be updated when first message is sent
-        });
-        console.log(`[Upload] Chat ${chatId} created successfully`);
+        if (existingChat.length === 0) {
+          // Chat doesn't exist, create it
+          console.log(`[Upload] Chat ${chatId} doesn't exist, creating it for user ${userId}`);
+          await createChat({
+            userId: Number(userId),
+            chatId: chatId,
+            title: 'New Chat', // Will be updated when first message is sent
+          });
+          console.log(`[Upload] Chat ${chatId} created successfully`);
+        }
+      } catch (error) {
+        console.error('[Upload] Error checking/creating chat:', error);
+        return NextResponse.json(
+          { error: 'Failed to prepare chat for file upload' },
+          { status: 500 }
+        );
       }
-    } catch (error) {
-      console.error('[Upload] Error checking/creating chat:', error);
-      return NextResponse.json(
-        { error: 'Failed to prepare chat for file upload' },
-        { status: 500 }
-      );
     }
 
     // 6. Upload files to R2 and store metadata
@@ -161,12 +187,13 @@ export async function POST(request: NextRequest) {
 
         // Generate storage key
         const sanitized = sanitizeFilename(file.name);
-        const storageKey = generateFileKey(
-          String(userId),
-          chatId,
-          messageId || 'temp',
-          sanitized
-        );
+        const timestamp = Date.now();
+        const environment = process.env.NODE_ENV || 'development';
+
+        // Different paths for chat vs project files
+        const storageKey = projectId
+          ? `${environment}/projects/${projectId}/files/${timestamp}-${sanitized}`
+          : generateFileKey(String(userId), chatId!, messageId || 'temp', sanitized);
 
         // Convert file to buffer
         const arrayBuffer = await file.arrayBuffer();
@@ -179,6 +206,7 @@ export async function POST(request: NextRequest) {
         const result = await sql`
           INSERT INTO file_uploads (
             chat_id,
+            project_id,
             user_id,
             filename,
             original_filename,
@@ -190,6 +218,7 @@ export async function POST(request: NextRequest) {
             storage_url
           ) VALUES (
             ${chatId},
+            ${projectId},
             ${userId},
             ${sanitized},
             ${file.name},
@@ -214,7 +243,7 @@ export async function POST(request: NextRequest) {
           createdAt: uploadedFile.created_at,
         });
 
-        console.log(`[Upload] File uploaded: ${file.name} (${fileType}) for user ${userId}`);
+        console.log(`[Upload] File uploaded: ${file.name} (${fileType}) for user ${userId} ${projectId ? `to project ${projectId}` : `to chat ${chatId}`}`);
 
       } catch (error) {
         console.error(`[Upload] Failed to upload file ${file.name}:`, error);
