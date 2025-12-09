@@ -6,6 +6,7 @@ import { cn } from '@/shared/utils/cn';
 import { FileUploadZone } from './FileUploadZone';
 import { FileRenameModal } from './FileRenameModal';
 import { FilePreviewModal } from './FilePreviewModal';
+import { NoteEditorModal } from './NoteEditorModal';
 
 interface ProjectFilesProps {
   projectId: string;
@@ -39,11 +40,14 @@ export function ProjectFiles({ projectId, locale, canManageFiles }: ProjectFiles
   // Modal states
   const [previewFile, setPreviewFile] = useState<FileUpload | null>(null);
   const [renameFile, setRenameFile] = useState<FileUpload | null>(null);
+  const [editNoteFile, setEditNoteFile] = useState<FileUpload | null>(null);
+  const [showNewNote, setShowNewNote] = useState(false);
 
   const translations = {
     nl: {
       files: 'Bestanden',
       uploadFile: 'Bestand Uploaden',
+      createNote: 'Notitie Maken',
       noFiles: 'Nog geen bestanden',
       uploadedBy: 'Geüpload door',
       confirmDelete: 'Weet je zeker dat je dit bestand wilt verwijderen? Het kan binnen 30 dagen worden hersteld.',
@@ -52,6 +56,7 @@ export function ProjectFiles({ projectId, locale, canManageFiles }: ProjectFiles
       gridView: 'Roosterweergave',
       listView: 'Lijstweergave',
       preview: 'Voorbeeld',
+      edit: 'Bewerken',
       rename: 'Hernoemen',
       delete: 'Verwijderen',
       download: 'Downloaden'
@@ -59,6 +64,7 @@ export function ProjectFiles({ projectId, locale, canManageFiles }: ProjectFiles
     en: {
       files: 'Files',
       uploadFile: 'Upload File',
+      createNote: 'Create Note',
       noFiles: 'No files yet',
       uploadedBy: 'Uploaded by',
       confirmDelete: 'Are you sure you want to delete this file? It can be restored within 30 days.',
@@ -67,6 +73,7 @@ export function ProjectFiles({ projectId, locale, canManageFiles }: ProjectFiles
       gridView: 'Grid View',
       listView: 'List View',
       preview: 'Preview',
+      edit: 'Edit',
       rename: 'Rename',
       delete: 'Delete',
       download: 'Download'
@@ -235,13 +242,22 @@ export function ProjectFiles({ projectId, locale, canManageFiles }: ProjectFiles
           </div>
 
           {canManageFiles && (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => setShowUpload(!showUpload)}
-            >
-              {t.uploadFile}
-            </Button>
+            <>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowNewNote(true)}
+              >
+                {t.createNote}
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setShowUpload(!showUpload)}
+              >
+                {t.uploadFile}
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -307,6 +323,17 @@ export function ProjectFiles({ projectId, locale, canManageFiles }: ProjectFiles
               {/* Actions Overlay */}
               {canManageFiles && (
                 <div className="absolute top-sm right-sm flex gap-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                  {file.mime_type === 'text/plain' && (
+                    <button
+                      onClick={() => setEditNoteFile(file)}
+                      className="p-xs bg-white rounded shadow hover:bg-blue-50"
+                      title={t.edit}
+                    >
+                      <svg className="w-4 h-4 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                  )}
                   <button
                     onClick={() => setRenameFile(file)}
                     className="p-xs bg-white rounded shadow hover:bg-gray-100"
@@ -382,6 +409,19 @@ export function ProjectFiles({ projectId, locale, canManageFiles }: ProjectFiles
 
                 {canManageFiles && (
                   <>
+                    {file.mime_type === 'text/plain' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditNoteFile(file)}
+                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        title={t.edit}
+                      >
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
@@ -439,6 +479,31 @@ export function ProjectFiles({ projectId, locale, canManageFiles }: ProjectFiles
           locale={locale as 'nl' | 'en'}
         />
       )}
+
+      {/* Note Editor Modals */}
+      <NoteEditorModal
+        projectId={projectId}
+        fileId={editNoteFile?.id || null}
+        fileName={editNoteFile?.file_name || ''}
+        isOpen={!!editNoteFile}
+        onClose={() => setEditNoteFile(null)}
+        onSaved={() => {
+          fetchFiles();
+          setEditNoteFile(null);
+        }}
+        locale={locale as 'nl' | 'en'}
+      />
+
+      <NoteEditorModal
+        projectId={projectId}
+        isOpen={showNewNote}
+        onClose={() => setShowNewNote(false)}
+        onSaved={() => {
+          fetchFiles();
+          setShowNewNote(false);
+        }}
+        locale={locale as 'nl' | 'en'}
+      />
     </div>
   );
 }
