@@ -7,6 +7,29 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getDbConnection } from '@/lib/db/connection';
 
+interface ArchivedProject {
+  id: string;
+  name: string;
+  description: string | null;
+  deleted_at: Date;
+  deleted_by_user_id: number | null;
+  role: string;
+  days_until_permanent_delete: number;
+  chat_count: number;
+  file_count: number;
+}
+
+interface ArchivedChat {
+  id: string;
+  title: string | null;
+  project_id: string | null;
+  deleted_at: Date;
+  deleted_by_user_id: number | null;
+  days_until_permanent_delete: number;
+  message_count: number;
+  project_name: string | null;
+}
+
 /**
  * GET /api/archive
  * List archived (soft-deleted) projects and chats for the authenticated user
@@ -24,8 +47,8 @@ export async function GET(request: NextRequest) {
 
     const db = getDbConnection();
 
-    let projects = [];
-    let chats = [];
+    let projects: ArchivedProject[] = [];
+    let chats: ArchivedChat[] = [];
 
     // Get archived projects
     if (!type || type === 'projects') {
@@ -54,7 +77,7 @@ export async function GET(request: NextRequest) {
           AND pp.deleted_at IS NOT NULL
           AND pp.deleted_at > CURRENT_TIMESTAMP - INTERVAL '30 days'
         ORDER BY pp.deleted_at DESC
-      `;
+      ` as ArchivedProject[];
     }
 
     // Get archived chats
@@ -79,7 +102,7 @@ export async function GET(request: NextRequest) {
           AND cc.deleted_at IS NOT NULL
           AND cc.deleted_at > CURRENT_TIMESTAMP - INTERVAL '30 days'
         ORDER BY cc.deleted_at DESC
-      `;
+      ` as ArchivedChat[];
     }
 
     return NextResponse.json({
