@@ -34,6 +34,7 @@ export function ProjectFiles({ projectId, locale, canManageFiles }: ProjectFiles
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [showUpload, setShowUpload] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   // Modal states
   const [previewFile, setPreviewFile] = useState<FileUpload | null>(null);
@@ -142,6 +143,38 @@ export function ProjectFiles({ projectId, locale, canManageFiles }: ProjectFiles
     );
   }
 
+  // Drag and drop handlers for the entire files section
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Only activate if user can manage files and files are being dragged
+    if (canManageFiles && e.dataTransfer.types.includes('Files')) {
+      setIsDragOver(true);
+      setShowUpload(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Only set dragOver false, keep showUpload true so zone stays visible
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+
+    // Check if mouse left the container bounds
+    if (x <= rect.left || x >= rect.right || y <= rect.top || y >= rect.bottom) {
+      setIsDragOver(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
   if (isLoading) {
     return (
       <div className="text-center py-lg">
@@ -163,7 +196,12 @@ export function ProjectFiles({ projectId, locale, canManageFiles }: ProjectFiles
   }
 
   return (
-    <div className="space-y-base">
+    <div
+      className="space-y-base"
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+    >
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">{t.files}</h2>
@@ -215,6 +253,7 @@ export function ProjectFiles({ projectId, locale, canManageFiles }: ProjectFiles
           onUploadComplete={() => {
             fetchFiles();
             setShowUpload(false);
+            setIsDragOver(false);
           }}
           locale={locale as 'nl' | 'en'}
         />
