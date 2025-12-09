@@ -75,9 +75,10 @@ export async function GET(
       );
     }
 
-    // 4. Get file from database and verify ownership
+    // 4. Get file from database and verify ownership/access
     const sql = neon(process.env.POSTGRES_URL!);
 
+    // Handle both project and chat files
     const files = await sql`
       SELECT
         fu.id,
@@ -86,11 +87,26 @@ export async function GET(
         fu.file_category as file_type,
         fu.mime_type,
         fu.file_size_bytes as file_size,
+        fu.project_id,
         fu.chat_id,
-        cc.user_id
+        fu.user_id as file_user_id,
+        CASE
+          WHEN fu.project_id IS NOT NULL THEN (
+            SELECT COUNT(*) FROM project_members pm
+            WHERE pm.project_id = fu.project_id
+            AND pm.user_id = ${userId}
+            AND pm.left_at IS NULL
+          )
+          WHEN fu.chat_id IS NOT NULL THEN (
+            SELECT CASE WHEN cc.user_id = ${userId} THEN 1 ELSE 0 END
+            FROM chat_conversations cc
+            WHERE cc.id = fu.chat_id
+          )
+          ELSE CASE WHEN fu.user_id = ${userId} THEN 1 ELSE 0 END
+        END as has_access
       FROM file_uploads fu
-      JOIN chat_conversations cc ON cc.id = fu.chat_id
-      WHERE fu.id = ${fileId};
+      WHERE fu.id = ${fileId}
+      AND fu.deleted_at IS NULL;
     `;
 
     if (files.length === 0) {
@@ -102,9 +118,8 @@ export async function GET(
 
     const file = files[0];
 
-    // 5. Verify user owns the chat containing this file
-    // Convert both to numbers for comparison (file.user_id is INTEGER, userId is string from session)
-    if (Number(file.user_id) !== Number(userId)) {
+    // 5. Verify user has access to this file
+    if (Number(file.has_access) === 0) {
       return NextResponse.json(
         { error: 'Forbidden. You do not have access to this file.' },
         { status: 403 }
