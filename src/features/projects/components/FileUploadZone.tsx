@@ -126,7 +126,7 @@ export function FileUploadZone({ projectId, onUploadComplete, locale }: FileUplo
           multiple
           onChange={handleFileSelect}
           className="hidden"
-          accept="image/*,.pdf,.csv,.txt"
+          accept="image/*,.pdf,.csv,.txt,text/plain,text/csv"
           disabled={isUploading}
         />
 

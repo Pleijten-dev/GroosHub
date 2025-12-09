@@ -27,6 +27,16 @@ export const FILE_CONFIGS = {
     allowedExtensions: ['.pdf'] as string[],
     allowedMimeTypes: ['application/pdf'] as string[],
   },
+  text: {
+    maxSize: 5 * 1024 * 1024, // 5MB
+    allowedExtensions: ['.txt'] as string[],
+    allowedMimeTypes: ['text/plain'] as string[],
+  },
+  csv: {
+    maxSize: 10 * 1024 * 1024, // 10MB
+    allowedExtensions: ['.csv'] as string[],
+    allowedMimeTypes: ['text/csv', 'application/csv'] as string[],
+  },
 };
 
 export type FileType = keyof typeof FILE_CONFIGS;
@@ -106,6 +116,12 @@ export function detectFileType(mimeType: string): FileType | null {
   if (FILE_CONFIGS.pdf.allowedMimeTypes.includes(mimeType)) {
     return 'pdf';
   }
+  if (FILE_CONFIGS.text.allowedMimeTypes.includes(mimeType)) {
+    return 'text';
+  }
+  if (FILE_CONFIGS.csv.allowedMimeTypes.includes(mimeType)) {
+    return 'csv';
+  }
   return null;
 }
 
@@ -126,7 +142,7 @@ export function validateFile(file: {
 
   if (!fileType) {
     throw new FileValidationError(
-      `Unsupported file type: ${file.type}. Only images (PNG, JPG, WEBP, GIF) and PDFs are allowed.`,
+      `Unsupported file type: ${file.type}. Only images (PNG, JPG, WEBP, GIF), PDFs, CSV, and TXT files are allowed.`,
       'UNSUPPORTED_FILE_TYPE'
     );
   }
