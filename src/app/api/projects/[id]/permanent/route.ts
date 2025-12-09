@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getDbConnection } from '@/lib/db/connection';
-import { r2Client } from '@/lib/storage/r2-client';
+import { deleteFileFromR2 } from '@/lib/storage/r2-client';
 
 /**
  * DELETE /api/projects/[id]/permanent
@@ -67,7 +67,7 @@ export async function DELETE(
     for (const file of files) {
       if (file.storage_provider === 'r2' && file.file_path) {
         try {
-          await r2Client.delete(file.file_path);
+          await deleteFileFromR2(file.file_path);
         } catch (error) {
           console.error(`Failed to delete file from R2: ${file.file_path}`, error);
           // Continue with deletion even if R2 cleanup fails
