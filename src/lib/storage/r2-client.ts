@@ -159,6 +159,38 @@ export async function getPresignedUrl(
 }
 
 /**
+ * Get file as buffer from R2 storage
+ *
+ * @param key - Storage key
+ * @returns File contents as Buffer
+ */
+export async function getFileBuffer(key: string): Promise<Buffer> {
+  try {
+    const command = new GetObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: key,
+    });
+
+    const response = await r2Client.send(command);
+
+    if (!response.Body) {
+      throw new Error('No file body in response');
+    }
+
+    // Convert stream to buffer
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of response.Body as any) {
+      chunks.push(chunk);
+    }
+
+    return Buffer.concat(chunks);
+  } catch (error) {
+    console.error('[R2] Get file buffer error:', error);
+    throw new Error(`Failed to get file buffer: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
  * Check if a file exists in R2
  *
  * @param key - Storage key to check

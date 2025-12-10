@@ -301,13 +301,14 @@ export async function POST(request: NextRequest) {
     // Handle chat persistence
     let chatId = requestChatId;
     let existingMessages: UIMessage[] = [];
+    let existingChat: any = null; // Will store chat object for RAG lookup
 
     console.log(`[Chat API] 🔍 Received ${clientMessages.length} messages from client`);
     console.log(`[Chat API] 📝 Client message roles:`, (clientMessages as UIMessage[]).map(m => m.role).join(', '));
 
     if (chatId) {
       // Check if chat exists in database
-      const existingChat = await getChat(chatId);
+      existingChat = await getChat(chatId);
 
       if (existingChat) {
         // Chat exists - load existing messages

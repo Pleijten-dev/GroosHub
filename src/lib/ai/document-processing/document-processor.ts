@@ -11,7 +11,7 @@
 
 import { TextExtractor } from './text-extractor';
 import { TextChunker, type TextChunk } from './text-chunker';
-import { R2Client } from '@/lib/storage/r2-client';
+import { getFileBuffer } from '@/lib/storage/r2-client';
 
 export interface ProcessedDocument {
   fileId: string;
@@ -29,7 +29,6 @@ export interface ProcessedDocument {
 export class DocumentProcessor {
   private extractor = new TextExtractor();
   private chunker = new TextChunker();
-  private r2Client = new R2Client();
 
   /**
    * Process a file: download → extract text → chunk → return chunks
@@ -53,7 +52,7 @@ export class DocumentProcessor {
     try {
       // Step 1: Download file from R2
       console.log(`Processing file: ${filename} (${mimeType})`);
-      const buffer = await this.r2Client.getFileBuffer(filePath);
+      const buffer = await getFileBuffer(filePath);
 
       // Step 2: Extract text
       const extracted = await this.extractor.extract(buffer, mimeType, filename);
@@ -159,7 +158,7 @@ export class DocumentProcessor {
   }> {
     try {
       // Download and extract (but don't chunk yet)
-      const buffer = await this.r2Client.getFileBuffer(filePath);
+      const buffer = await getFileBuffer(filePath);
       const extracted = await this.extractor.extract(buffer, mimeType, 'estimate');
 
       // Estimate chunks

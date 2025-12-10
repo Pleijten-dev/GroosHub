@@ -25,7 +25,8 @@
  * - ~70% of typical use cases
  */
 
-import pdf from 'pdf-parse';
+// @ts-ignore - pdf-parse doesn't have proper TypeScript definitions
+import pdfParse from 'pdf-parse';
 
 export interface ExtractedText {
   text: string;
@@ -63,11 +64,11 @@ export class TextExtractor {
    */
   async extractFromPDF(buffer: Buffer): Promise<ExtractedText> {
     try {
-      const data = await pdf(buffer);
+      const data = await pdfParse(buffer);
 
       // Split text by form feed character (page separator)
       const pageTexts = data.text.split('\f');
-      const pages = pageTexts.map((pageText, i) => ({
+      const pages = pageTexts.map((pageText: string, i: number) => ({
         pageNumber: i + 1,
         text: pageText.trim()
       }));

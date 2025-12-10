@@ -395,11 +395,12 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
 
                     {/* RAG Sources - Only show for assistant messages with sources */}
                     {message.role === 'assistant' &&
-                     message.metadata?.ragSources &&
-                     Array.isArray(message.metadata.ragSources) &&
-                     message.metadata.ragSources.length > 0 && (
+                     message.metadata &&
+                     (message.metadata as any).ragSources &&
+                     Array.isArray((message.metadata as any).ragSources) &&
+                     (message.metadata as any).ragSources.length > 0 && (
                       <MessageSources
-                        sources={message.metadata.ragSources as RAGSource[]}
+                        sources={(message.metadata as any).ragSources as RAGSource[]}
                         locale={locale}
                       />
                     )}
