@@ -259,10 +259,9 @@ export async function POST(request: NextRequest) {
               filePath: storageKey,
               filename: sanitized,
               mimeType: file.type,
-              onProgress: (progress) => {
+              onProgress: (step, progress) => {
                 console.log(
-                  `[Auto-RAG] ${file.name}: ${progress.processedChunks}/${progress.totalChunks} ` +
-                  `chunks (${progress.percentage}%)`
+                  `[Auto-RAG] ${file.name} - ${step}: ${(progress * 100).toFixed(0)}%`
                 );
               }
             }).then(result => {

@@ -62,7 +62,9 @@ export class TextExtractor {
   async extractFromPDF(buffer: Buffer): Promise<ExtractedText> {
     try {
       // Dynamic import for pdf-parse (CommonJS module)
-      const pdfParse = (await import('pdf-parse')).default;
+      const pdfParseModule = await import('pdf-parse');
+      // @ts-ignore - pdf-parse has CommonJS exports that TypeScript doesn't recognize
+      const pdfParse = pdfParseModule.default || pdfParseModule;
       const data = await pdfParse(buffer);
 
       // Split text by form feed character (page separator)

@@ -53,7 +53,7 @@ export async function POST(
         {
           success: false,
           error: 'Invalid request parameters',
-          details: validation.error.errors
+          details: validation.error.issues
         },
         { status: 400 }
       );

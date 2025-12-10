@@ -129,10 +129,9 @@ export async function POST(
       filePath: file.file_path,
       filename: file.filename,
       mimeType: file.mime_type,
-      onProgress: (progress) => {
+      onProgress: (step, progress) => {
         console.log(
-          `[Process File] Progress: ${progress.processedChunks}/${progress.totalChunks} chunks ` +
-          `(${progress.percentage}%)`
+          `[Process File] ${step}: ${(progress * 100).toFixed(0)}%`
         );
       }
     });
