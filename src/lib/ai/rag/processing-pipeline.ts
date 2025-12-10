@@ -61,21 +61,27 @@ export interface ProcessingResult {
 export async function processFile(options: ProcessFileOptions): Promise<ProcessingResult> {
   const { fileId, filePath, filename, mimeType, projectId, onProgress } = options;
 
-  console.log(`Starting RAG processing for ${filename} (${mimeType})`);
+  console.log(`[Pipeline] Step 1: Starting RAG processing for ${filename} (${mimeType})`);
+  console.log(`[Pipeline] Step 2: File path = ${filePath}, Project = ${projectId}`);
 
   try {
     // Update status to processing
+    console.log(`[Pipeline] Step 3: Updating file status to processing`);
     await updateFileEmbeddingStatus(fileId, 'processing');
+    console.log(`[Pipeline] Step 4: Status updated successfully`);
 
     // Step 1: Process document (extract + chunk)
+    console.log(`[Pipeline] Step 5: About to process document`);
     onProgress?.('Processing document', 0.2);
     const processor = new DocumentProcessor();
+    console.log(`[Pipeline] Step 6: DocumentProcessor created, calling processFile`);
     const processed = await processor.processFile(
       fileId,
       filePath,
       filename,
       mimeType
     );
+    console.log(`[Pipeline] Step 7: Document processed successfully`);
 
     console.log(
       `Processed ${filename}: ${processed.chunks.length} chunks, ` +
@@ -83,8 +89,9 @@ export async function processFile(options: ProcessFileOptions): Promise<Processi
     );
 
     // Step 2: Generate embeddings using Vercel AI SDK
-    onProgress?.('Generating embeddings', 0.5);
     const chunkTexts = processed.chunks.map(c => c.text);
+    console.log(`[Pipeline] Step 8: About to generate embeddings for ${chunkTexts.length} chunks`);
+    onProgress?.('Generating embeddings', 0.5);
     const embeddingResults = await generateEmbeddingsWithProgress(
       chunkTexts,
       (completed, total) => {
@@ -145,9 +152,15 @@ export async function processFile(options: ProcessFileOptions): Promise<Processi
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`❌ Failed to process ${filename}:`, errorMessage);
+    console.error(`[Pipeline] ❌ FAILED at some step while processing ${filename}`);
+    console.error(`[Pipeline] Error message: ${errorMessage}`);
+    console.error(`[Pipeline] Full error:`, error);
+    if (error instanceof Error && error.stack) {
+      console.error(`[Pipeline] Stack trace:`, error.stack);
+    }
 
     // Update status to failed
+    console.log(`[Pipeline] Updating file status to failed`);
     await updateFileEmbeddingStatus(fileId, 'failed', errorMessage);
 
     return {

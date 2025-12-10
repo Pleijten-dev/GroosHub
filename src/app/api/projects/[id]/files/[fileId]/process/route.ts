@@ -34,10 +34,11 @@ export async function POST(
     const { id: projectId, fileId } = await context.params;
     const userId = session.user.id;
 
-    console.log(`[Process File] Processing file ${fileId} in project ${projectId}`);
+    console.log(`[Process File] Step 1: Processing file ${fileId} in project ${projectId}`);
 
     // Initialize database connection
     const sql = neon(process.env.POSTGRES_URL!);
+    console.log(`[Process File] Step 2: Database connection initialized`);
 
     // 2. Verify project exists and user has access
     const project = await sql`
@@ -47,6 +48,7 @@ export async function POST(
       WHERE p.id = ${projectId}
       LIMIT 1
     `;
+    console.log(`[Process File] Step 3: Project access verified (found: ${project.length > 0})`);
 
     if (project.length === 0) {
       return NextResponse.json(
@@ -56,6 +58,7 @@ export async function POST(
     }
 
     // 3. Verify file exists and belongs to project
+    console.log(`[Process File] Step 4: Fetching file record for ${fileId}`);
     const fileRecord = await sql`
       SELECT id, project_id, file_path, filename, mime_type, embedding_status
       FROM file_uploads
@@ -63,6 +66,7 @@ export async function POST(
       AND project_id = ${projectId}
       LIMIT 1
     `;
+    console.log(`[Process File] Step 5: File record fetched (found: ${fileRecord.length > 0})`);
 
     if (fileRecord.length === 0) {
       return NextResponse.json(
@@ -72,9 +76,12 @@ export async function POST(
     }
 
     const file = fileRecord[0];
+    console.log(`[Process File] Step 6: File status = ${file.embedding_status}, type = ${file.mime_type}`);
 
     // 4. Check if already processing or completed
     if (file.embedding_status === 'processing') {
+      console.log(`[Process File] Step 7: File already processing, aborting`);
+
       return NextResponse.json(
         {
           success: false,
@@ -86,6 +93,7 @@ export async function POST(
     }
 
     if (file.embedding_status === 'completed') {
+      console.log(`[Process File] Step 8: File already completed, returning existing data`);
       // Get existing chunk count
       const chunks = await sql`
         SELECT COUNT(*) as count
@@ -103,6 +111,7 @@ export async function POST(
     }
 
     // 5. Check if file type is supported
+    console.log(`[Process File] Step 9: Checking file type support for ${file.mime_type}`);
     const supportedTypes = [
       'text/plain',
       'text/markdown',
@@ -110,6 +119,8 @@ export async function POST(
     ];
 
     if (!supportedTypes.includes(file.mime_type)) {
+      console.log(`[Process File] Step 10: File type ${file.mime_type} not supported`);
+
       return NextResponse.json(
         {
           success: false,
@@ -120,7 +131,8 @@ export async function POST(
     }
 
     // 6. Process the file
-    console.log(`[Process File] Starting processing for ${file.filename} (${file.mime_type})`);
+    console.log(`[Process File] Step 11: Starting processing for ${file.filename} (${file.mime_type})`);
+    console.log(`[Process File] Step 12: File path = ${file.file_path}`);
 
     const result = await processFile({
       fileId: file.id,
