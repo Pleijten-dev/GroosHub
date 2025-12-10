@@ -35,6 +35,9 @@ import type { UnifiedLocationData, UnifiedDataRow } from '@/features/location/da
 import type { ResidentialData } from '@/features/location/data/sources/altum-ai/types';
 import personasData from '@/features/location/data/sources/housing-personas.json';
 import { randomUUID } from 'crypto';
+// RAG System imports
+import { findRelevantContent, type RetrievedChunk } from '@/lib/ai/rag/retriever';
+import { getChunkCountByProjectId } from '@/lib/db/queries/project-doc-chunks';
 
 // Request schema validation
 const chatRequestSchema = z.object({
@@ -420,6 +423,78 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.error('[Chat API] ⚠️  Failed to load user memory:', error);
       // Continue without memory if there's an error
+    }
+
+    // RAG System: Retrieve relevant chunks from project documents
+    let retrievedChunks: RetrievedChunk[] = [];
+    if (existingChat && existingChat.project_id) {
+      try {
+        // Check if project has any embedded documents
+        const chunkCount = await getChunkCountByProjectId(existingChat.project_id);
+
+        if (chunkCount > 0) {
+          // Get the last user message for RAG query
+          const lastUserMessage = truncatedMessages
+            .filter(m => m.role === 'user')
+            .slice(-1)[0];
+
+          if (lastUserMessage) {
+            const queryText = lastUserMessage.parts
+              .filter(p => p.type === 'text')
+              .map(p => ('text' in p ? p.text : ''))
+              .join(' ');
+
+            if (queryText) {
+              console.log(`[Chat API] 📚 Retrieving RAG context for project ${existingChat.project_id}`);
+
+              retrievedChunks = await findRelevantContent({
+                projectId: existingChat.project_id,
+                query: queryText,
+                topK: 5,
+                similarityThreshold: 0.7,
+                useHybridSearch: true
+              });
+
+              if (retrievedChunks.length > 0) {
+                console.log(
+                  `[Chat API] ✅ Retrieved ${retrievedChunks.length} relevant chunks ` +
+                  `(avg similarity: ${(retrievedChunks.reduce((sum, c) => sum + c.similarity, 0) / retrievedChunks.length).toFixed(3)})`
+                );
+
+                // Build RAG context to inject into system prompt
+                let ragContext = '\n\n---\n\nRELEVANT CONTEXT FROM PROJECT DOCUMENTS:\n\n';
+
+                retrievedChunks.forEach((chunk, i) => {
+                  ragContext += `[Source ${i + 1}: ${chunk.sourceFile}`;
+                  if (chunk.pageNumber) ragContext += `, Page ${chunk.pageNumber}`;
+                  ragContext += ` - Relevance: ${(chunk.similarity * 100).toFixed(0)}%]\n`;
+                  ragContext += `${chunk.chunkText}\n\n`;
+                });
+
+                ragContext += '---\n\n';
+                ragContext += 'INSTRUCTIONS FOR USING PROJECT DOCUMENTS:\n';
+                ragContext += '- Answer the user\'s question using the context provided above when relevant\n';
+                ragContext += '- Quote relevant sections verbatim and cite the source number (e.g., [Source 1])\n';
+                ragContext += '- If the context contains relevant information, use it in your answer\n';
+                ragContext += '- If the context does not contain relevant information, answer normally without citing sources\n';
+                ragContext += '- Always provide both a summary AND exact quotes from sources when using the context\n\n';
+
+                // Inject RAG context into system prompt
+                systemPrompt = systemPrompt + ragContext;
+
+                console.log(`[Chat API] 📝 Enhanced system prompt with RAG context (${retrievedChunks.length} sources)`);
+              } else {
+                console.log(`[Chat API] ℹ️  No relevant chunks found (similarity threshold: 0.7)`);
+              }
+            }
+          }
+        } else {
+          console.log(`[Chat API] ℹ️  Project ${existingChat.project_id} has no embedded documents`);
+        }
+      } catch (error) {
+        console.error('[Chat API] ⚠️  RAG retrieval failed:', error);
+        // Continue without RAG if there's an error
+      }
     }
 
     const messagesWithSystem: UIMessage[] = [
@@ -1400,11 +1475,26 @@ export async function POST(request: NextRequest) {
           console.log(`[Chat API] 💾 Assistant text preview: "${text.substring(0, 50)}..."`);
           console.log(`[Chat API] 💾 Tokens - Input: ${inputTokens}, Output: ${outputTokens}`);
 
-          await saveChatMessage(chatId!, assistantMessage, {
+          // Add RAG sources to metadata if chunks were retrieved
+          const messageMetadata: Record<string, any> = {
             modelId,
             inputTokens,
             outputTokens
-          });
+          };
+
+          if (retrievedChunks.length > 0) {
+            messageMetadata.ragSources = retrievedChunks.map(chunk => ({
+              id: chunk.id,
+              sourceFile: chunk.sourceFile,
+              pageNumber: chunk.pageNumber,
+              chunkText: chunk.chunkText,
+              similarity: chunk.similarity,
+              fileId: chunk.fileId
+            }));
+            console.log(`[Chat API] 📚 Saving ${retrievedChunks.length} RAG sources with assistant message`);
+          }
+
+          await saveChatMessage(chatId!, assistantMessage, messageMetadata);
 
           console.log(`[Chat API] ✅ Assistant message saved successfully!`);
 
