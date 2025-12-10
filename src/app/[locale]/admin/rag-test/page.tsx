@@ -120,8 +120,15 @@ export default function RAGTestPage({ params }: { params: Promise<{ locale: stri
     try {
       const res = await fetch('/api/projects');
       const data = await res.json();
-      setProjects(data.projects || []);
-      setStatus(`Loaded ${data.projects?.length || 0} projects`);
+
+      if (!res.ok || !data.success) {
+        setError(data.error || 'Failed to load projects');
+        setProjects([]);
+        return;
+      }
+
+      setProjects(data.data || []);
+      setStatus(`Loaded ${data.data?.length || 0} projects`);
     } catch (err) {
       setError('Failed to load projects');
       console.error(err);
