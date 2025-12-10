@@ -57,11 +57,23 @@ export async function generateEmbedding(value: string): Promise<number[]> {
     throw new Error('Cannot generate embedding for empty text');
   }
 
+  // Check if API key is set
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY environment variable is not set');
+  }
+
+  console.log(`[Embedder] Generating embedding for query: "${input.substring(0, 50)}..."`);
+  console.log(`[Embedder] API key present: ${process.env.OPENAI_API_KEY ? 'YES (length: ' + process.env.OPENAI_API_KEY.length + ')' : 'NO'}`);
+
   try {
     const { embedding } = await embed({
       model: embeddingModel,
       value: input
     });
+
+    console.log(`[Embedder] ✅ Generated embedding with ${embedding.length} dimensions`);
+    console.log(`[Embedder] First 5 values: [${embedding.slice(0, 5).map(v => v.toFixed(6)).join(', ')}]`);
+    console.log(`[Embedder] Embedding magnitude: ${Math.sqrt(embedding.reduce((sum, v) => sum + v * v, 0)).toFixed(6)}`);
 
     return embedding;
   } catch (error) {
@@ -132,12 +144,21 @@ export async function generateEmbeddingsWithProgress(
   const BATCH_SIZE = 100; // OpenAI allows up to 100 per request
   const allResults: EmbeddingResult[] = [];
 
+  // Check if API key is set
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY environment variable is not set');
+  }
+
+  console.log(`[Embedder] API key status: ${process.env.OPENAI_API_KEY ? 'Present (length: ' + process.env.OPENAI_API_KEY.length + ')' : 'MISSING'}`);
+
   // Filter out empty chunks
   const validChunks = chunks.filter(chunk => chunk.trim().length > 0);
 
   if (validChunks.length === 0) {
     throw new Error('No valid text chunks to embed');
   }
+
+  console.log(`[Embedder] Generating embeddings for ${validChunks.length} chunks in batches of ${BATCH_SIZE}`);
 
   for (let i = 0; i < validChunks.length; i += BATCH_SIZE) {
     const batch = validChunks.slice(i, i + BATCH_SIZE);
@@ -155,10 +176,16 @@ export async function generateEmbeddingsWithProgress(
 
       allResults.push(...results);
 
-      console.log(
-        `Batch ${Math.floor(i / BATCH_SIZE) + 1}: Generated ${batch.length} embeddings ` +
-        `using ${usage.tokens} tokens (~$${((usage.tokens / 1_000_000) * 0.02).toFixed(6)})`
-      );
+      // Log first embedding in batch for verification
+      if (embeddings.length > 0) {
+        const firstEmbed = embeddings[0];
+        const magnitude = Math.sqrt(firstEmbed.reduce((sum: number, v: number) => sum + v * v, 0));
+        console.log(
+          `Batch ${Math.floor(i / BATCH_SIZE) + 1}: Generated ${batch.length} embeddings ` +
+          `using ${usage.tokens} tokens (~$${((usage.tokens / 1_000_000) * 0.02).toFixed(6)})`
+        );
+        console.log(`  Sample: ${firstEmbed.length} dims, first 5: [${firstEmbed.slice(0, 5).map((v: number) => v.toFixed(4)).join(', ')}], magnitude: ${magnitude.toFixed(6)}`);
+      }
 
       if (onProgress) {
         onProgress(Math.min(i + batch.length, validChunks.length), validChunks.length);
