@@ -27,6 +27,7 @@ import { ImageAttachment } from './ImageAttachment';
 import { ImageLightbox } from './ImageLightbox';
 import { MarkdownMessage } from './MarkdownMessage';
 import { ChartVisualization, type ChartVisualizationProps } from './ChartVisualization';
+import { MessageSources, type RAGSource } from './MessageSources';
 
 interface UploadedFile {
   id: string;
@@ -391,6 +392,17 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
                     <div className="text-sm">
                       {renderMessageContent(message)}
                     </div>
+
+                    {/* RAG Sources - Only show for assistant messages with sources */}
+                    {message.role === 'assistant' &&
+                     message.metadata?.ragSources &&
+                     Array.isArray(message.metadata.ragSources) &&
+                     message.metadata.ragSources.length > 0 && (
+                      <MessageSources
+                        sources={message.metadata.ragSources as RAGSource[]}
+                        locale={locale}
+                      />
+                    )}
                   </div>
                 </div>
               ))}
