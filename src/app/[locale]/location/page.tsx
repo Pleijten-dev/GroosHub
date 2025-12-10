@@ -128,6 +128,26 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     });
   }, [params]);
 
+  // Check for snapshot data in sessionStorage and load it
+  React.useEffect(() => {
+    const snapshotDataStr = sessionStorage.getItem('grooshub_load_snapshot');
+    if (snapshotDataStr) {
+      try {
+        const { address, locationData, amenitiesData } = JSON.parse(snapshotDataStr);
+        // Clear from sessionStorage after reading
+        sessionStorage.removeItem('grooshub_load_snapshot');
+        // Load the snapshot data
+        loadSavedData(locationData, amenitiesData, address);
+        // Expand sidebar to show data
+        setCollapsed(false);
+        // Set to result stage
+        setAnimationStage('result');
+      } catch (error) {
+        console.error('Failed to load snapshot from sessionStorage:', error);
+      }
+    }
+  }, [loadSavedData, setCollapsed]);
+
   // Update map zoom when WMS layer changes
   React.useEffect(() => {
     if (selectedWMSLayer?.config?.recommendedZoom) {

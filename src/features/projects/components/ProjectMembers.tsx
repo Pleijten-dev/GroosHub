@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/shared/components/UI/Button/Button';
 import { cn } from '@/shared/utils/cn';
+import { AddMemberModal } from './AddMemberModal';
 
 interface ProjectMembersProps {
   projectId: string;
@@ -41,6 +42,7 @@ export function ProjectMembers({ projectId, locale, canManageMembers }: ProjectM
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'member' | 'admin' | 'viewer'>('member');
   const [inviteMessage, setInviteMessage] = useState('');
@@ -52,6 +54,7 @@ export function ProjectMembers({ projectId, locale, canManageMembers }: ProjectM
       members: 'Leden',
       invitations: 'Uitnodigingen',
       inviteMember: 'Lid Uitnodigen',
+      addMember: 'Lid Toevoegen',
       email: 'E-mail',
       role: 'Rol',
       message: 'Bericht (optioneel)',
@@ -80,6 +83,7 @@ export function ProjectMembers({ projectId, locale, canManageMembers }: ProjectM
       members: 'Members',
       invitations: 'Invitations',
       inviteMember: 'Invite Member',
+      addMember: 'Add Member',
       email: 'Email',
       role: 'Role',
       message: 'Message (optional)',
@@ -121,7 +125,19 @@ export function ProjectMembers({ projectId, locale, canManageMembers }: ProjectM
       const res = await fetch(`/api/projects/${projectId}/members`);
       if (res.ok) {
         const data = await res.json();
-        setMembers(data.members || []);
+        // API returns data.data with fields: user_name, user_email, user_avatar
+        // Map to component's expected format
+        const mappedMembers = (data.data || []).map((m: any) => ({
+          id: m.id,
+          user_id: m.user_id,
+          name: m.user_name,
+          email: m.user_email,
+          avatar_url: m.user_avatar,
+          role: m.role,
+          permissions: m.permissions,
+          joined_at: m.joined_at
+        }));
+        setMembers(mappedMembers);
       }
     } catch (error) {
       console.error('Failed to fetch members:', error);
@@ -209,16 +225,16 @@ export function ProjectMembers({ projectId, locale, canManageMembers }: ProjectM
 
   return (
     <div className="space-y-lg">
-      {/* Header with Invite Button */}
+      {/* Header with Action Buttons */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">{t.members}</h2>
         {canManageMembers && (
           <Button
             variant="primary"
             size="sm"
-            onClick={() => setShowInviteModal(true)}
+            onClick={() => setShowAddMemberModal(true)}
           >
-            {t.inviteMember}
+            {t.addMember}
           </Button>
         )}
       </div>
@@ -384,6 +400,15 @@ export function ProjectMembers({ projectId, locale, canManageMembers }: ProjectM
           </div>
         </div>
       )}
+
+      {/* Add Member Modal (from organization users) */}
+      <AddMemberModal
+        projectId={projectId}
+        isOpen={showAddMemberModal}
+        onClose={() => setShowAddMemberModal(false)}
+        onMemberAdded={fetchMembers}
+        locale={locale as 'nl' | 'en'}
+      />
     </div>
   );
 }

@@ -62,46 +62,20 @@ export async function GET(request: NextRequest) {
 
     const sql = getDbConnection();
 
-    // 3. Build WHERE conditions using Neon's tagged template syntax
-    const conditions = [];
-
-    if (dutchOnly) {
-      conditions.push(sql`dutch_availability = true`);
-    }
-
-    if (category) {
-      conditions.push(sql`category = ${category}`);
-    }
-
-    if (minQuality) {
-      const minQualityNum = parseInt(minQuality);
-      conditions.push(sql`quality_rating >= ${minQualityNum}`);
-    }
-
-    if (search) {
-      const searchPattern = `%${search}%`;
-      conditions.push(sql`(name_nl ILIKE ${searchPattern} OR name_en ILIKE ${searchPattern} OR name_de ILIKE ${searchPattern})`);
-    }
-
-    // 4. Count total results
-    let countResult;
-    if (conditions.length > 0) {
-      countResult = await sql`
-        SELECT COUNT(*) as total
-        FROM lca_materials
-        WHERE (${conditions.length > 0 ? sql`true` : sql`true`})
-        ${dutchOnly ? sql`AND dutch_availability = true` : sql``}
-        ${category ? sql`AND category = ${category}` : sql``}
-        ${minQuality ? sql`AND quality_rating >= ${parseInt(minQuality)}` : sql``}
-        ${search ? sql`AND (name_nl ILIKE ${`%${search}%`} OR name_en ILIKE ${`%${search}%`} OR name_de ILIKE ${`%${search}%`})` : sql``}
-      `;
-    } else {
-      countResult = await sql`SELECT COUNT(*) as total FROM lca_materials`;
-    }
+    // 3. Count total results
+    const countResult = await sql`
+      SELECT COUNT(*) as total
+      FROM lca_materials
+      WHERE true
+      ${dutchOnly ? sql`AND dutch_availability = true` : sql``}
+      ${category ? sql`AND category = ${category}` : sql``}
+      ${minQuality ? sql`AND quality_rating >= ${parseInt(minQuality)}` : sql``}
+      ${search ? sql`AND (name_nl ILIKE ${`%${search}%`} OR name_en ILIKE ${`%${search}%`} OR name_de ILIKE ${`%${search}%`})` : sql``}
+    `;
 
     const total = parseInt(String(countResult[0].total));
 
-    // 5. Fetch materials
+    // 4. Fetch materials
     const materials = await sql`
       SELECT
         id,
@@ -143,7 +117,7 @@ export async function GET(request: NextRequest) {
       OFFSET ${offset}
     `;
 
-    // 6. Return results
+    // 5. Return results
     return NextResponse.json({
       success: true,
       data: materials,

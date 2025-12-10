@@ -7,6 +7,8 @@ import { cn } from '@/shared/utils/cn';
 import { ProjectMembers } from './ProjectMembers';
 import { ProjectFiles } from './ProjectFiles';
 import { ProjectChats } from './ProjectChats';
+import { ProjectLocations } from './ProjectLocations';
+import { ProjectTrash } from './ProjectTrash';
 
 interface ProjectOverviewProps {
   projectId: string;
@@ -38,7 +40,7 @@ interface Project {
   last_accessed_at: string;
 }
 
-type Tab = 'overview' | 'files' | 'members' | 'chats' | 'locations' | 'lca';
+type Tab = 'overview' | 'files' | 'members' | 'chats' | 'locations' | 'lca' | 'trash';
 
 export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
   const [project, setProject] = useState<Project | null>(null);
@@ -54,6 +56,7 @@ export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
       chats: 'Chats',
       locations: 'Locaties',
       lca: 'LCA',
+      trash: 'Prullenbak',
       settings: 'Instellingen',
       projectStatistics: 'Projectstatistieken',
       messages: 'Berichten',
@@ -75,6 +78,7 @@ export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
       chats: 'Chats',
       locations: 'Locations',
       lca: 'LCA',
+      trash: 'Trash',
       settings: 'Settings',
       projectStatistics: 'Project Statistics',
       messages: 'Messages',
@@ -152,7 +156,8 @@ export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
     { id: 'files', label: t.files, count: project.file_count },
     { id: 'locations', label: t.locations, count: project.location_count },
     { id: 'lca', label: t.lca, count: project.lca_count },
-    { id: 'members', label: t.members, count: project.member_count }
+    { id: 'members', label: t.members, count: project.member_count },
+    { id: 'trash', label: t.trash }
   ];
 
   return (
@@ -305,8 +310,10 @@ export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
 
         {activeTab === 'locations' && (
           <Card>
-            <h2 className="text-xl font-semibold mb-base">{t.locations}</h2>
-            <p className="text-gray-600">Location snapshots coming soon...</p>
+            <ProjectLocations
+              projectId={projectId}
+              locale={locale}
+            />
           </Card>
         )}
 
@@ -314,6 +321,15 @@ export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
           <Card>
             <h2 className="text-xl font-semibold mb-base">{t.lca}</h2>
             <p className="text-gray-600">LCA snapshots coming soon...</p>
+          </Card>
+        )}
+
+        {activeTab === 'trash' && (
+          <Card>
+            <ProjectTrash
+              projectId={projectId}
+              locale={locale}
+            />
           </Card>
         )}
       </div>

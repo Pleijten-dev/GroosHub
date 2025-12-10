@@ -184,12 +184,12 @@ export async function DELETE(
       );
     }
 
-    // Delete chat (CASCADE will delete messages)
-    await deleteChat(chatId);
+    // Soft delete chat (30-day recovery window)
+    await deleteChat(chatId, sessionUserId);
 
     return NextResponse.json({
       success: true,
-      message: 'Chat deleted successfully'
+      message: 'Chat deleted successfully. Can be restored within 30 days.'
     });
 
   } catch (error) {

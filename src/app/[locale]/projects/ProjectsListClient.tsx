@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ProjectsSidebar } from '@/features/projects/components/ProjectsSidebar';
+import { ProjectsSidebarEnhanced } from '@/features/projects/components/ProjectsSidebarEnhanced';
 import { useProjectsSidebar } from '@/features/projects/hooks/useProjectsSidebar';
 import { Card } from '@/shared/components/UI/Card/Card';
 import { Button } from '@/shared/components/UI/Button/Button';
@@ -114,7 +114,7 @@ export function ProjectsListClient({
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <ProjectsSidebar
+      <ProjectsSidebarEnhanced
         isCollapsed={isCollapsed}
         onToggle={toggleSidebar}
         locale={locale}

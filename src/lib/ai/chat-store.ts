@@ -138,6 +138,7 @@ export async function getChat(chatId: string): Promise<Chat | null> {
       id, user_id, title, project_id, model_id, metadata, created_at, updated_at
     FROM chat_conversations
     WHERE id = ${chatId}
+    AND deleted_at IS NULL
     LIMIT 1
   `;
 
@@ -197,18 +198,20 @@ export async function updateChatModel(chatId: string, modelId: string): Promise<
 }
 
 /**
- * Delete a chat (soft delete - you could add a deleted_at column if needed)
+ * Delete a chat (soft delete with 30-day recovery window)
  */
-export async function deleteChat(chatId: string): Promise<void> {
+export async function deleteChat(chatId: string, userId: number): Promise<void> {
   const db = getDbConnection();
 
-  // This will cascade delete all messages due to ON DELETE CASCADE
+  // Soft delete: set deleted_at and deleted_by_user_id for 30-day recovery window
   await db`
-    DELETE FROM chat_conversations
+    UPDATE chat_conversations
+    SET deleted_at = CURRENT_TIMESTAMP,
+        deleted_by_user_id = ${userId}
     WHERE id = ${chatId}
   `;
 
-  console.log(`[ChatStore] Deleted chat ${chatId}`);
+  console.log(`[ChatStore] Soft deleted chat ${chatId} by user ${userId}`);
 }
 
 // ============================================

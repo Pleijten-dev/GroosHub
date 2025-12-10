@@ -466,7 +466,13 @@ function getLayerTemplates(
 
   // Determine template key and apply facade cladding choice
   const templateKey = category;
-  let layerTemplate = [];
+  let layerTemplate: Array<{
+    position: number;
+    material_category: string;
+    material_search: string;
+    thickness: number;
+    coverage: number;
+  }> = [];
 
   if (category === 'exterior_wall') {
     // Base structure from construction system

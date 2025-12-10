@@ -42,13 +42,14 @@ export async function getChatById(chatId: string): Promise<ChatConversation | nu
            created_at, updated_at, last_message_at
     FROM chat_conversations
     WHERE id = ${chatId}
+    AND deleted_at IS NULL
   `;
 
   return result.length > 0 ? (result[0] as ChatConversation) : null;
 }
 
 /**
- * Get all chats for a user
+ * Get all chats for a user (excludes soft-deleted)
  */
 export async function getUserChats(userId: number): Promise<ChatConversation[]> {
   const db = getDbConnection();
@@ -58,6 +59,7 @@ export async function getUserChats(userId: number): Promise<ChatConversation[]> 
            created_at, updated_at, last_message_at
     FROM chat_conversations
     WHERE user_id = ${userId}
+    AND deleted_at IS NULL
     ORDER BY last_message_at DESC
   `;
 
@@ -65,7 +67,7 @@ export async function getUserChats(userId: number): Promise<ChatConversation[]> 
 }
 
 /**
- * Get private chats for a user (not linked to projects)
+ * Get private chats for a user (not linked to projects, excludes soft-deleted)
  */
 export async function getUserPrivateChats(userId: number): Promise<ChatConversation[]> {
   const db = getDbConnection();
@@ -76,6 +78,7 @@ export async function getUserPrivateChats(userId: number): Promise<ChatConversat
     FROM chat_conversations
     WHERE user_id = ${userId}
     AND project_id IS NULL
+    AND deleted_at IS NULL
     ORDER BY last_message_at DESC
   `;
 
@@ -83,7 +86,7 @@ export async function getUserPrivateChats(userId: number): Promise<ChatConversat
 }
 
 /**
- * Get project chats for a user
+ * Get project chats for a user (excludes soft-deleted)
  */
 export async function getUserProjectChats(userId: number, projectId: string): Promise<ChatConversation[]> {
   const db = getDbConnection();
@@ -94,6 +97,7 @@ export async function getUserProjectChats(userId: number, projectId: string): Pr
     FROM chat_conversations
     WHERE user_id = ${userId}
     AND project_id = ${projectId}
+    AND deleted_at IS NULL
     ORDER BY last_message_at DESC
   `;
 
@@ -101,7 +105,7 @@ export async function getUserProjectChats(userId: number, projectId: string): Pr
 }
 
 /**
- * Get all chats for a project (from all members)
+ * Get all chats for a project (from all members, excludes soft-deleted)
  */
 export async function getProjectChats(projectId: string): Promise<ChatConversation[]> {
   const db = getDbConnection();
@@ -111,6 +115,7 @@ export async function getProjectChats(projectId: string): Promise<ChatConversati
            created_at, updated_at, last_message_at
     FROM chat_conversations
     WHERE project_id = ${projectId}
+    AND deleted_at IS NULL
     ORDER BY last_message_at DESC
   `;
 

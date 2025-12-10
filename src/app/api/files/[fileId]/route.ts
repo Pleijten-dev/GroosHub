@@ -75,9 +75,10 @@ export async function GET(
       );
     }
 
-    // 4. Get file from database and verify ownership
+    // 4. Get file from database and verify ownership/access
     const sql = neon(process.env.POSTGRES_URL!);
 
+    // Handle both project and chat files
     const files = await sql`
       SELECT
         fu.id,
@@ -86,11 +87,26 @@ export async function GET(
         fu.file_category as file_type,
         fu.mime_type,
         fu.file_size_bytes as file_size,
+        fu.project_id,
         fu.chat_id,
-        cc.user_id
+        fu.user_id as file_user_id,
+        CASE
+          WHEN fu.project_id IS NOT NULL THEN (
+            SELECT COUNT(*) FROM project_members pm
+            WHERE pm.project_id = fu.project_id
+            AND pm.user_id = ${userId}
+            AND pm.left_at IS NULL
+          )
+          WHEN fu.chat_id IS NOT NULL THEN (
+            SELECT CASE WHEN cc.user_id = ${userId} THEN 1 ELSE 0 END
+            FROM chat_conversations cc
+            WHERE cc.id = fu.chat_id
+          )
+          ELSE CASE WHEN fu.user_id = ${userId} THEN 1 ELSE 0 END
+        END as has_access
       FROM file_uploads fu
-      JOIN chat_conversations cc ON cc.id = fu.chat_id
-      WHERE fu.id = ${fileId};
+      WHERE fu.id = ${fileId}
+      AND fu.deleted_at IS NULL;
     `;
 
     if (files.length === 0) {
@@ -102,9 +118,8 @@ export async function GET(
 
     const file = files[0];
 
-    // 5. Verify user owns the chat containing this file
-    // Convert both to numbers for comparison (file.user_id is INTEGER, userId is string from session)
-    if (Number(file.user_id) !== Number(userId)) {
+    // 5. Verify user has access to this file
+    if (Number(file.has_access) === 0) {
       return NextResponse.json(
         { error: 'Forbidden. You do not have access to this file.' },
         { status: 403 }
@@ -149,7 +164,7 @@ export async function GET(
 /**
  * DELETE /api/files/[fileId]
  *
- * Delete a file from storage and database
+ * Soft delete a file (30-day recovery window)
  */
 export async function DELETE(
   request: NextRequest,
@@ -178,17 +193,34 @@ export async function DELETE(
       );
     }
 
-    // 3. Get file and verify ownership
+    // 3. Get file and verify ownership/access
     const sql = neon(process.env.POSTGRES_URL!);
 
+    // For project files, check project membership; for chat files, check chat ownership
     const files = await sql`
       SELECT
         fu.id,
         fu.file_path as storage_key,
-        cc.user_id
+        fu.user_id as file_user_id,
+        fu.project_id,
+        fu.chat_id,
+        CASE
+          WHEN fu.project_id IS NOT NULL THEN (
+            SELECT COUNT(*) FROM project_members pm
+            WHERE pm.project_id = fu.project_id
+            AND pm.user_id = ${userId}
+            AND pm.left_at IS NULL
+          )
+          WHEN fu.chat_id IS NOT NULL THEN (
+            SELECT CASE WHEN cc.user_id = ${userId} THEN 1 ELSE 0 END
+            FROM chat_conversations cc
+            WHERE cc.id = fu.chat_id
+          )
+          ELSE CASE WHEN fu.user_id = ${userId} THEN 1 ELSE 0 END
+        END as has_access
       FROM file_uploads fu
-      JOIN chat_conversations cc ON cc.id = fu.chat_id
-      WHERE fu.id = ${fileId};
+      WHERE fu.id = ${fileId}
+      AND fu.deleted_at IS NULL;
     `;
 
     if (files.length === 0) {
@@ -200,36 +232,145 @@ export async function DELETE(
 
     const file = files[0];
 
-    // 4. Verify ownership
-    // Convert both to numbers for comparison (file.user_id is INTEGER, userId is string from session)
-    if (Number(file.user_id) !== Number(userId)) {
+    // 4. Verify access
+    if (Number(file.has_access) === 0) {
       return NextResponse.json(
-        { error: 'Forbidden' },
+        { error: 'Forbidden. You do not have access to this file.' },
         { status: 403 }
       );
     }
 
-    // 5. Delete from R2 (import dynamically to avoid loading on every request)
-    const { deleteFileFromR2 } = await import('@/lib/storage/r2-client');
-    await deleteFileFromR2(file.storage_key);
-
-    // 6. Delete from database
+    // 5. Soft delete file (set deleted_at timestamp)
     await sql`
-      DELETE FROM file_uploads
+      UPDATE file_uploads
+      SET deleted_at = CURRENT_TIMESTAMP,
+          deleted_by_user_id = ${userId}
       WHERE id = ${fileId};
     `;
 
-    console.log(`[Files API] Deleted file ${fileId} (user: ${userId})`);
+    console.log(`[Files API] Soft deleted file ${fileId} (user: ${userId})`);
 
     return NextResponse.json({
       success: true,
-      message: 'File deleted successfully',
+      message: 'File deleted successfully. Can be restored within 30 days.',
     });
 
   } catch (error) {
     console.error('[Files API DELETE] Error:', error);
     return NextResponse.json(
       { error: 'Failed to delete file' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * PATCH /api/files/[fileId]
+ *
+ * Update file metadata (rename)
+ */
+export async function PATCH(
+  request: NextRequest,
+  context: RouteContext
+) {
+  try {
+    // 1. Check authentication
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const userId = session.user.id;
+
+    // 2. Get fileId from route params
+    const { fileId } = await context.params;
+
+    if (!fileId) {
+      return NextResponse.json(
+        { error: 'Missing file ID' },
+        { status: 400 }
+      );
+    }
+
+    // 3. Parse request body
+    const body = await request.json();
+    const { original_filename } = body;
+
+    if (!original_filename || !original_filename.trim()) {
+      return NextResponse.json(
+        { error: 'Filename is required' },
+        { status: 400 }
+      );
+    }
+
+    // 4. Get file and verify ownership/access
+    const sql = neon(process.env.POSTGRES_URL!);
+
+    const files = await sql`
+      SELECT
+        fu.id,
+        fu.project_id,
+        fu.chat_id,
+        fu.user_id as file_user_id,
+        CASE
+          WHEN fu.project_id IS NOT NULL THEN (
+            SELECT COUNT(*) FROM project_members pm
+            WHERE pm.project_id = fu.project_id
+            AND pm.user_id = ${userId}
+            AND pm.left_at IS NULL
+          )
+          WHEN fu.chat_id IS NOT NULL THEN (
+            SELECT CASE WHEN cc.user_id = ${userId} THEN 1 ELSE 0 END
+            FROM chat_conversations cc
+            WHERE cc.id = fu.chat_id
+          )
+          ELSE CASE WHEN fu.user_id = ${userId} THEN 1 ELSE 0 END
+        END as has_access
+      FROM file_uploads fu
+      WHERE fu.id = ${fileId}
+      AND fu.deleted_at IS NULL;
+    `;
+
+    if (files.length === 0) {
+      return NextResponse.json(
+        { error: 'File not found' },
+        { status: 404 }
+      );
+    }
+
+    const file = files[0];
+
+    // 5. Verify access
+    if (Number(file.has_access) === 0) {
+      return NextResponse.json(
+        { error: 'Forbidden. You do not have access to this file.' },
+        { status: 403 }
+      );
+    }
+
+    // 6. Update file metadata
+    await sql`
+      UPDATE file_uploads
+      SET original_filename = ${original_filename.trim()},
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${fileId};
+    `;
+
+    console.log(`[Files API] Renamed file ${fileId} (user: ${userId})`);
+
+    return NextResponse.json({
+      success: true,
+      message: 'File renamed successfully',
+    });
+
+  } catch (error) {
+    console.error('[Files API PATCH] Error:', error);
+    return NextResponse.json(
+      { error: 'Failed to update file' },
       { status: 500 }
     );
   }
