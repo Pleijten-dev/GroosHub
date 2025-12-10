@@ -158,16 +158,41 @@ export function ProjectLocations({ projectId, locale }: ProjectLocationsProps) {
     }
   }
 
-  function handleLoadToPage(snapshot: LocationSnapshot) {
-    // Navigate to location page with snapshot data in URL params
-    const params = new URLSearchParams({
-      address: snapshot.address,
-      lat: snapshot.latitude.toString(),
-      lng: snapshot.longitude.toString(),
-      snapshotId: snapshot.id
-    });
+  async function handleLoadToPage(snapshot: LocationSnapshot) {
+    try {
+      // Fetch full snapshot data
+      const res = await fetch(`/api/location/snapshots/${snapshot.id}`);
+      if (!res.ok) {
+        console.error('Failed to fetch snapshot data');
+        return;
+      }
 
-    router.push(`/${locale}/location?${params.toString()}`);
+      const { data: snapshotData } = await res.json();
+
+      // Store snapshot data in sessionStorage for the location page to retrieve
+      sessionStorage.setItem('grooshub_load_snapshot', JSON.stringify({
+        address: snapshotData.address,
+        locationData: {
+          address: snapshotData.address,
+          latitude: snapshotData.latitude,
+          longitude: snapshotData.longitude,
+          neighborhood: snapshotData.neighborhood_code ? { statcode: snapshotData.neighborhood_code } : null,
+          district: snapshotData.district_code ? { statcode: snapshotData.district_code } : null,
+          municipality: snapshotData.municipality_code ? { statcode: snapshotData.municipality_code } : null,
+          demographics: snapshotData.demographics_data || {},
+          health: snapshotData.health_data || {},
+          safety: snapshotData.safety_data || {},
+          livability: snapshotData.livability_data || {},
+          residential: snapshotData.housing_data || {}
+        },
+        amenitiesData: snapshotData.amenities_data || null
+      }));
+
+      // Navigate to location page
+      router.push(`/${locale}/location`);
+    } catch (error) {
+      console.error('Failed to load snapshot:', error);
+    }
   }
 
   function getCategoryDataCount(data: Record<string, unknown>): number {
