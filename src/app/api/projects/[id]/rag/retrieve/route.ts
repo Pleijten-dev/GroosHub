@@ -1,6 +1,6 @@
 /**
  * RAG Retrieval API Endpoint
- * POST /api/projects/[projectId]/rag/retrieve
+ * POST /api/projects/[id]/rag/retrieve
  *
  * Directly retrieves relevant document chunks for a given query.
  * Useful for:
@@ -29,7 +29,7 @@ const retrieveSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ projectId: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     // 1. Authenticate user
@@ -41,7 +41,7 @@ export async function POST(
       );
     }
 
-    const { projectId } = await context.params;
+    const { id: projectId } = await context.params;
     const userId = session.user.id;
 
     // 2. Parse and validate request body
@@ -153,12 +153,12 @@ export async function POST(
 }
 
 /**
- * GET /api/projects/[projectId]/rag/retrieve
+ * GET /api/projects/[id]/rag/retrieve
  * Get RAG statistics for a project
  */
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ projectId: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -169,7 +169,7 @@ export async function GET(
       );
     }
 
-    const { projectId } = await context.params;
+    const { id: projectId } = await context.params;
     const userId = session.user.id;
 
     // Initialize database connection

@@ -1,6 +1,6 @@
 /**
  * File Processing API Endpoint
- * POST /api/projects/[projectId]/files/[fileId]/process
+ * POST /api/projects/[id]/files/[fileId]/process
  *
  * Processes an uploaded file for RAG:
  * 1. Extract text from file (TXT, MD, PDF)
@@ -19,7 +19,7 @@ import { neon } from '@neondatabase/serverless';
 
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ projectId: string; fileId: string }> }
+  context: { params: Promise<{ id: string; fileId: string }> }
 ) {
   try {
     // 1. Authenticate user
@@ -31,7 +31,7 @@ export async function POST(
       );
     }
 
-    const { projectId, fileId } = await context.params;
+    const { id: projectId, fileId } = await context.params;
     const userId = session.user.id;
 
     console.log(`[Process File] Processing file ${fileId} in project ${projectId}`);
@@ -180,12 +180,12 @@ export async function POST(
 }
 
 /**
- * GET /api/projects/[projectId]/files/[fileId]/process
+ * GET /api/projects/[id]/files/[fileId]/process
  * Get processing status for a file
  */
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ projectId: string; fileId: string }> }
+  context: { params: Promise<{ id: string; fileId: string }> }
 ) {
   try {
     const session = await auth();
@@ -196,7 +196,7 @@ export async function GET(
       );
     }
 
-    const { projectId, fileId } = await context.params;
+    const { id: projectId, fileId } = await context.params;
 
     // Initialize database connection
     const sql = neon(process.env.POSTGRES_URL!);
