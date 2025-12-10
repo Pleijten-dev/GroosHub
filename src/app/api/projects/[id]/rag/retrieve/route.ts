@@ -68,11 +68,10 @@ export async function POST(
 
     // 3. Verify project exists and user has access
     const project = await sql`
-      SELECT p.id, p.user_id, pm.user_id as member_id, pm.role
+      SELECT p.id, pm.user_id as member_id, pm.role
       FROM project_projects p
-      LEFT JOIN project_members pm ON p.id = pm.project_id AND pm.user_id = ${userId}
+      INNER JOIN project_members pm ON p.id = pm.project_id AND pm.user_id = ${userId}
       WHERE p.id = ${projectId}
-      AND (p.user_id = ${userId} OR pm.user_id = ${userId})
       LIMIT 1
     `;
 
@@ -179,9 +178,8 @@ export async function GET(
     const project = await sql`
       SELECT p.id
       FROM project_projects p
-      LEFT JOIN project_members pm ON p.id = pm.project_id AND pm.user_id = ${userId}
+      INNER JOIN project_members pm ON p.id = pm.project_id AND pm.user_id = ${userId}
       WHERE p.id = ${projectId}
-      AND (p.user_id = ${userId} OR pm.user_id = ${userId})
       LIMIT 1
     `;
 
