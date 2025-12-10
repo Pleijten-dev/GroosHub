@@ -74,16 +74,21 @@ export async function findRelevantContent(
       source_file,
       chunk_text,
       chunk_index,
-      array_length(embedding::real[], 1) as embed_dims,
-      (SELECT string_agg(val::text, ', ') FROM unnest(embedding::real[1:5]) as val) as first_5_vals
+      embedding
     FROM project_doc_chunks
     WHERE project_id = ${projectId}
     LIMIT 3
   `;
   console.log(`[Retriever] Database has ${sampleCheck.length} sample chunks:`);
   sampleCheck.forEach((row, i) => {
-    console.log(`  [${i}] File: ${row.source_file}, Index: ${row.chunk_index}, Dims: ${row.embed_dims}, First 5: [${row.first_5_vals}]`);
-    console.log(`      Text preview: "${row.chunk_text.substring(0, 80)}..."`);
+    const embedding = row.embedding;
+    const embeddingArray = Array.isArray(embedding) ? embedding : [];
+    const dims = embeddingArray.length;
+    const first5 = embeddingArray.slice(0, 5).map((v: number) => v.toFixed(4)).join(', ');
+    const magnitude = dims > 0 ? Math.sqrt(embeddingArray.reduce((sum: number, v: number) => sum + v * v, 0)) : 0;
+
+    console.log(`  [${i}] File: ${row.source_file}, Index: ${row.chunk_index}, Dims: ${dims}, First 5: [${first5}]`);
+    console.log(`      Magnitude: ${magnitude.toFixed(6)}, Text: "${row.chunk_text.substring(0, 80)}..."`);
   });
 
   // 1. Generate embedding for the user's query
