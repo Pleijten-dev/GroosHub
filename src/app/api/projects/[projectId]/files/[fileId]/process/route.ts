@@ -15,7 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { processFile } from '@/lib/ai/rag/processing-pipeline';
-import { db } from '@/lib/db';
+import { neon } from '@neondatabase/serverless';
 
 export async function POST(
   request: NextRequest,
@@ -36,8 +36,11 @@ export async function POST(
 
     console.log(`[Process File] Processing file ${fileId} in project ${projectId}`);
 
+    // Initialize database connection
+    const sql = neon(process.env.POSTGRES_URL!);
+
     // 2. Verify project exists and user has access
-    const project = await db`
+    const project = await sql`
       SELECT p.id, p.user_id, pm.user_id as member_id, pm.role
       FROM project_projects p
       LEFT JOIN project_members pm ON p.id = pm.project_id AND pm.user_id = ${userId}
@@ -54,7 +57,7 @@ export async function POST(
     }
 
     // 3. Verify file exists and belongs to project
-    const fileRecord = await db`
+    const fileRecord = await sql`
       SELECT id, project_id, file_path, filename, mime_type, embedding_status
       FROM file_uploads
       WHERE id = ${fileId}
@@ -85,7 +88,7 @@ export async function POST(
 
     if (file.embedding_status === 'completed') {
       // Get existing chunk count
-      const chunks = await db`
+      const chunks = await sql`
         SELECT COUNT(*) as count
         FROM project_doc_chunks
         WHERE file_id = ${fileId}
@@ -196,8 +199,11 @@ export async function GET(
 
     const { projectId, fileId } = await context.params;
 
+    // Initialize database connection
+    const sql = neon(process.env.POSTGRES_URL!);
+
     // Get file status
-    const fileRecord = await db`
+    const fileRecord = await sql`
       SELECT
         id,
         filename,

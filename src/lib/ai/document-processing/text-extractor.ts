@@ -25,9 +25,6 @@
  * - ~70% of typical use cases
  */
 
-// @ts-ignore - pdf-parse doesn't have proper TypeScript definitions
-import pdfParse from 'pdf-parse';
-
 export interface ExtractedText {
   text: string;
   pageCount?: number;
@@ -64,6 +61,8 @@ export class TextExtractor {
    */
   async extractFromPDF(buffer: Buffer): Promise<ExtractedText> {
     try {
+      // Dynamic import for pdf-parse (CommonJS module)
+      const pdfParse = (await import('pdf-parse')).default;
       const data = await pdfParse(buffer);
 
       // Split text by form feed character (page separator)

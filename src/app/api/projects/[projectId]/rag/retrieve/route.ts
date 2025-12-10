@@ -16,7 +16,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { findRelevantContent } from '@/lib/ai/rag/retriever';
 import { getChunkCountByProjectId } from '@/lib/db/queries/project-doc-chunks';
-import { db } from '@/lib/db';
+import { neon } from '@neondatabase/serverless';
 import { z } from 'zod';
 
 // Request validation schema
@@ -63,8 +63,11 @@ export async function POST(
 
     console.log(`[RAG Retrieve] Query: "${query}" in project ${projectId}`);
 
+    // Initialize database connection
+    const sql = neon(process.env.POSTGRES_URL!);
+
     // 3. Verify project exists and user has access
-    const project = await db`
+    const project = await sql`
       SELECT p.id, p.user_id, pm.user_id as member_id, pm.role
       FROM project_projects p
       LEFT JOIN project_members pm ON p.id = pm.project_id AND pm.user_id = ${userId}
@@ -169,8 +172,11 @@ export async function GET(
     const { projectId } = await context.params;
     const userId = session.user.id;
 
+    // Initialize database connection
+    const sql = neon(process.env.POSTGRES_URL!);
+
     // Verify access
-    const project = await db`
+    const project = await sql`
       SELECT p.id
       FROM project_projects p
       LEFT JOIN project_members pm ON p.id = pm.project_id AND pm.user_id = ${userId}
@@ -189,7 +195,7 @@ export async function GET(
     // Get statistics
     const chunkCount = await getChunkCountByProjectId(projectId);
 
-    const files = await db`
+    const files = await sql`
       SELECT
         id,
         filename,
@@ -202,7 +208,7 @@ export async function GET(
       ORDER BY embedded_at DESC
     `;
 
-    const totalTokens = await db`
+    const totalTokens = await sql`
       SELECT SUM(token_count) as total
       FROM project_doc_chunks
       WHERE project_id = ${projectId}
