@@ -29,6 +29,7 @@ import {
   MAX_FILES_PER_UPLOAD,
 } from '@/lib/storage/file-validation';
 import { createChat } from '@/lib/ai/chat-store';
+import { processFile } from '@/lib/ai/rag/processing-pipeline';
 
 export const runtime = 'nodejs'; // Required for file uploads
 
@@ -244,6 +245,42 @@ export async function POST(request: NextRequest) {
         });
 
         console.log(`[Upload] File uploaded: ${file.name} (${fileType}) for user ${userId} ${projectId ? `to project ${projectId}` : `to chat ${chatId}`}`);
+
+        // Automatically process for RAG if this is a project file and supported type
+        if (projectId) {
+          const supportedTypes = ['text/plain', 'text/markdown', 'application/pdf'];
+          if (supportedTypes.includes(file.type)) {
+            console.log(`[Upload] 🚀 Auto-triggering RAG processing for ${file.name}`);
+
+            // Trigger processing asynchronously (non-blocking)
+            processFile({
+              fileId: uploadedFile.id,
+              projectId: projectId,
+              filePath: storageKey,
+              filename: sanitized,
+              mimeType: file.type,
+              onProgress: (progress) => {
+                console.log(
+                  `[Auto-RAG] ${file.name}: ${progress.processedChunks}/${progress.totalChunks} ` +
+                  `chunks (${progress.percentage}%)`
+                );
+              }
+            }).then(result => {
+              if (result.success) {
+                console.log(
+                  `[Auto-RAG] ✅ ${file.name} processed: ` +
+                  `${result.chunkCount} chunks, ${result.totalTokens} tokens`
+                );
+              } else {
+                console.error(`[Auto-RAG] ❌ ${file.name} failed:`, result.error);
+              }
+            }).catch(error => {
+              console.error(`[Auto-RAG] ❌ ${file.name} processing error:`, error);
+            });
+          } else {
+            console.log(`[Upload] ℹ️  Skipping RAG processing for ${file.name} (unsupported type: ${file.type})`);
+          }
+        }
 
       } catch (error) {
         console.error(`[Upload] Failed to upload file ${file.name}:`, error);
