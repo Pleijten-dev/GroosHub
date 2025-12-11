@@ -90,31 +90,46 @@ export async function processFile(options: ProcessFileOptions): Promise<Processi
     );
 
     // Step 1.5: Enrich chunks with synthetic sentences (Phase 1: Legal RAG)
-    console.log(`[Pipeline] Step 7.5: Enriching chunks for legal documents`);
-    const enhancer = new LegalDocumentEnhancer();
-    const enrichedChunks = [];
+    // Skip for XML files - they're already enriched by XMLDocumentProcessor!
+    let enrichedChunks;
+    const isXML = mimeType === 'application/xml' || mimeType === 'text/xml' || filename.endsWith('.xml');
 
-    for (let i = 0; i < processed.chunks.length; i++) {
-      const chunk = processed.chunks[i];
-      const enriched = await enhancer.enrichChunk(chunk.text);
+    if (isXML) {
+      console.log(`[Pipeline] Step 7.5: XML file detected - using pre-enriched chunks (skipping hard-coded enhancer)`);
+      enrichedChunks = processed.chunks;
 
-      // Log if table was detected
-      if (enriched.metadata.hasTable) {
-        console.log(`[Pipeline] Chunk ${i}: Detected ${enriched.metadata.tableName}, added ${enriched.metadata.syntheticSentences?.length || 0} synthetic sentences`);
+      // Log enrichment stats
+      const tablesCount = enrichedChunks.filter(c => c.metadata?.hasTable).length;
+      const llmEnrichedCount = enrichedChunks.filter(c => c.metadata?.enrichedByLLM).length;
+      console.log(`[Pipeline] XML enrichment stats: ${tablesCount} table chunks, ${llmEnrichedCount} LLM-enriched`);
+
+    } else {
+      console.log(`[Pipeline] Step 7.5: Enriching chunks with hard-coded legal enhancer (for .txt files)`);
+      const enhancer = new LegalDocumentEnhancer();
+      enrichedChunks = [];
+
+      for (let i = 0; i < processed.chunks.length; i++) {
+        const chunk = processed.chunks[i];
+        const enriched = await enhancer.enrichChunk(chunk.text);
+
+        // Log if table was detected
+        if (enriched.metadata.hasTable) {
+          console.log(`[Pipeline] Chunk ${i}: Detected ${enriched.metadata.tableName}, added ${enriched.metadata.syntheticSentences?.length || 0} synthetic sentences`);
+        }
+
+        enrichedChunks.push({
+          ...chunk,
+          text: enriched.enrichedText,  // Use enriched text for embedding
+          metadata: {
+            ...chunk.metadata,
+            ...enriched.metadata,
+            originalText: enriched.originalText
+          }
+        });
       }
 
-      enrichedChunks.push({
-        ...chunk,
-        text: enriched.enrichedText,  // Use enriched text for embedding
-        metadata: {
-          ...chunk.metadata,
-          ...enriched.metadata,
-          originalText: enriched.originalText
-        }
-      });
+      console.log(`[Pipeline] Enrichment complete: ${enrichedChunks.filter(c => c.metadata.hasTable).length}/${enrichedChunks.length} chunks contain tables`);
     }
-
-    console.log(`[Pipeline] Enrichment complete: ${enrichedChunks.filter(c => c.metadata.hasTable).length}/${enrichedChunks.length} chunks contain tables`);
 
     // Step 2: Generate embeddings using Vercel AI SDK
     const chunkTexts = enrichedChunks.map(c => c.text);  // Use enriched texts

@@ -71,7 +71,11 @@ export class DocumentProcessor {
       // Step 3: Chunk text
       let chunks: TextChunk[];
 
-      if (extracted.metadata.pages) {
+      if (extracted.metadata.enrichedChunks) {
+        // XML with LLM-enriched chunks - already pre-chunked!
+        console.log(`Using ${extracted.metadata.enrichedChunks.length} pre-enriched XML chunks`);
+        chunks = extracted.metadata.enrichedChunks;
+      } else if (extracted.metadata.pages) {
         // PDF with page metadata
         chunks = this.chunker.chunkPDF(extracted.metadata.pages);
       } else {

@@ -4,14 +4,21 @@
  * CURRENT STATUS:
  * ✅ Phase 1: TXT/MD files - Perfect quality
  * ✅ Phase 2: PDF with pdf-parse - BASIC quality (see limitations below)
- * 🚧 Phase 3: CSV with PapaParse - TODO
- * 🚧 Phase 4: Images with vision models - TODO
+ * ✅ Phase 3: XML with LLM enrichment - EXCELLENT quality for legal docs
+ * 🚧 Phase 4: CSV with PapaParse - TODO
+ * 🚧 Phase 5: Images with vision models - TODO
  *
  * PDF EXTRACTION LIMITATIONS (pdf-parse):
  * ⚠️ Tables: Column structure is lost, data appears as plain text
  * ⚠️ Formatting: No preservation of layout, headers, or styling
  * ⚠️ Scanned PDFs: Cannot extract text from images (no OCR)
  * ⚠️ Complex layouts: Multi-column text may be jumbled
+ *
+ * XML EXTRACTION (NEW - Phase 1 Legal RAG):
+ * ✅ Preserves table structure perfectly
+ * ✅ LLM-generated synthetic sentences for better retrieval
+ * ✅ Ideal for legal documents like Bouwbesluit
+ * ℹ️ Returns enriched chunks directly (skips regular chunking)
  *
  * FUTURE UPGRADES FOR PDF QUALITY:
  * - LlamaParse API ($0.003/page) - Excellent table extraction
@@ -25,6 +32,8 @@
  * - ~70% of typical use cases
  */
 
+import type { EnrichedXMLChunk } from './xml-document-processor';
+
 export interface ExtractedText {
   text: string;
   pageCount?: number;
@@ -34,6 +43,7 @@ export interface ExtractedText {
     columns?: string[];
     extractionMethod?: string; // Track which method was used
     warnings?: string[];       // Any quality warnings
+    enrichedChunks?: EnrichedXMLChunk[]; // For XML: pre-chunked with enrichment
   };
 }
 
@@ -112,14 +122,65 @@ export class TextExtractor {
   }
 
   /**
+   * Extract text from XML with LLM-based table enrichment
+   * ✅ EXCELLENT quality for legal documents (Bouwbesluit)
+   *
+   * This method:
+   * 1. Parses XML structure (articles, tables)
+   * 2. Uses LLM (GPT-4o-mini) to generate natural language descriptions of tables
+   * 3. Returns PRE-CHUNKED content with synthetic sentences appended
+   *
+   * IMPORTANT: This returns enriched chunks directly, skipping regular chunking.
+   * The pipeline should detect this and skip the chunking step.
+   */
+  async extractFromXML(buffer: Buffer, filename: string): Promise<ExtractedText> {
+    try {
+      // Dynamic import to avoid circular dependencies
+      const { XMLDocumentProcessor } = await import('./xml-document-processor');
+
+      const xmlContent = buffer.toString('utf-8');
+      const processor = new XMLDocumentProcessor();
+
+      console.log(`[XML Extractor] Processing XML file: ${filename}`);
+
+      // Process XML with LLM enrichment
+      const enrichedChunks = await processor.processXML(xmlContent, filename);
+
+      console.log(
+        `[XML Extractor] Created ${enrichedChunks.length} enriched chunks ` +
+        `(${enrichedChunks.filter(c => c.metadata.hasTable).length} with tables)`
+      );
+
+      // Combine all chunks into single text for fallback
+      const combinedText = enrichedChunks
+        .map(chunk => chunk.text)
+        .join('\n\n---\n\n');
+
+      return {
+        text: combinedText,
+        metadata: {
+          extractionMethod: 'xml-llm-enriched',
+          enrichedChunks, // Pass enriched chunks to pipeline
+          warnings: []
+        }
+      };
+    } catch (error) {
+      throw new Error(
+        `XML extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}. ` +
+        `The XML may be malformed or use an unsupported structure.`
+      );
+    }
+  }
+
+  /**
    * Extract text from CSV
-   * Phase 2: Add after .txt works
+   * Phase 4: Add after XML works
    * TODO: Install papaparse library first
    */
   async extractFromCSV(buffer: Buffer): Promise<ExtractedText> {
     throw new Error('CSV extraction not yet implemented. Install papaparse library first.');
 
-    // Phase 2 implementation:
+    // Phase 4 implementation:
     // const Papa = require('papaparse');
     // const csvString = buffer.toString('utf-8');
     // return new Promise((resolve, reject) => {
@@ -146,7 +207,7 @@ export class TextExtractor {
 
   /**
    * Main extraction router
-   * Supports: TXT, MD, PDF (basic quality)
+   * Supports: TXT, MD, PDF (basic quality), XML (excellent quality for legal docs)
    * Coming soon: CSV, Images
    */
   async extract(
@@ -157,6 +218,11 @@ export class TextExtractor {
     // Text files - Perfect quality
     if (mimeType === 'text/plain' || filename.endsWith('.txt') || filename.endsWith('.md')) {
       return this.extractFromText(buffer);
+    }
+
+    // XML files - Excellent quality for legal documents (with LLM enrichment)
+    if (mimeType === 'application/xml' || mimeType === 'text/xml' || filename.endsWith('.xml')) {
+      return this.extractFromXML(buffer, filename);
     }
 
     // PDF files - Basic quality (see header for limitations)
@@ -182,7 +248,7 @@ export class TextExtractor {
 
     throw new Error(
       `Unsupported file type: ${mimeType} (${filename}). ` +
-      `Currently supported: .txt, .md, .pdf (basic quality). ` +
+      `Currently supported: .txt, .md, .xml (legal docs), .pdf (basic quality). ` +
       `Coming soon: .csv, images.`
     );
   }
