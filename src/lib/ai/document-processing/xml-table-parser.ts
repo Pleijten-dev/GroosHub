@@ -1,5 +1,5 @@
 /**
- * XML Table Parser for Bouwbesluit
+ * XML Table Parser using fast-xml-parser
  *
  * Parses structured XML tables from legal documents and extracts:
  * - Table metadata (title, number)
@@ -7,8 +7,11 @@
  * - Row data with proper structure
  * - Cell values with context
  *
- * Works with the official Bouwbesluit XML format from overheid.nl
+ * Uses fast-xml-parser for robust, production-ready XML parsing.
+ * Works with various XML formats, not just Bouwbesluit.
  */
+
+import { XMLParser } from 'fast-xml-parser';
 
 export interface TableCell {
   value: string;
@@ -38,60 +41,92 @@ export interface ParsedTable {
 }
 
 export class XMLTableParser {
+  private parser: XMLParser;
+
+  constructor() {
+    // Configure fast-xml-parser with options for legal documents
+    this.parser = new XMLParser({
+      ignoreAttributes: false,
+      attributeNamePrefix: '@_',
+      textNodeName: '#text',
+      parseAttributeValue: true,
+      trimValues: true,
+      parseTrueNumberOnly: false,
+      // Preserve tag order for proper table structure
+      preserveOrder: false,
+      // Always return arrays for repeated elements
+      isArray: (name) => ['row', 'entry', 'table'].includes(name)
+    });
+  }
+
   /**
    * Parse XML document and extract all tables
    */
   parseXML(xmlContent: string): ParsedTable[] {
-    // Use DOMParser for browser or xml2js for Node
-    const parser = typeof DOMParser !== 'undefined'
-      ? new DOMParser()
-      : this.getNodeXMLParser();
+    try {
+      const parsed = this.parser.parse(xmlContent);
+      const tables: ParsedTable[] = [];
 
-    const xmlDoc = typeof DOMParser !== 'undefined'
-      ? parser.parseFromString(xmlContent, 'text/xml')
-      : this.parseNodeXML(xmlContent);
+      // Recursively find all table elements
+      this.findTables(parsed, tables);
 
-    const tables: ParsedTable[] = [];
-    const tableElements = this.getElementsByTagName(xmlDoc, 'table');
+      console.log(`[XML Parser] Found ${tables.length} tables`);
+      return tables;
+    } catch (error) {
+      console.error('[XML Parser] Failed to parse XML:', error);
+      return [];
+    }
+  }
 
-    for (const tableEl of tableElements) {
-      const parsedTable = this.parseTable(tableEl);
-      if (parsedTable) {
-        tables.push(parsedTable);
+  /**
+   * Recursively find table elements in parsed XML
+   */
+  private findTables(obj: any, tables: ParsedTable[]): void {
+    if (!obj || typeof obj !== 'object') return;
+
+    // Check if current object has table(s)
+    if (obj.table) {
+      const tableArray = Array.isArray(obj.table) ? obj.table : [obj.table];
+      for (const tableData of tableArray) {
+        const parsed = this.parseTable(tableData);
+        if (parsed) {
+          tables.push(parsed);
+        }
       }
     }
 
-    return tables;
+    // Recursively search in all nested objects
+    for (const key in obj) {
+      if (typeof obj[key] === 'object') {
+        this.findTables(obj[key], tables);
+      }
+    }
   }
 
   /**
    * Parse a single table element
    */
-  private parseTable(tableElement: any): ParsedTable | null {
+  private parseTable(tableData: any): ParsedTable | null {
     try {
       // Extract title
-      const titleEl = this.getFirstElement(tableElement, 'title');
-      const title = titleEl ? this.getTextContent(titleEl) : '';
+      const title = this.extractText(tableData.title) || 'Untitled Table';
 
       // Extract table number from title (e.g., "Tabel 4.162")
       const tableNumberMatch = title.match(/\d+\.\d+/);
       const tableNumber = tableNumberMatch ? tableNumberMatch[0] : undefined;
 
-      // Find tgroup element (contains table structure)
-      const tgroup = this.getFirstElement(tableElement, 'tgroup');
-      if (!tgroup) return null;
-
-      const totalColumns = parseInt(tgroup.getAttribute?.('cols') || '0', 10);
+      // Find tgroup (contains table structure in Bouwbesluit format)
+      const tgroup = tableData.tgroup || tableData;
+      const totalColumns = parseInt(tgroup['@_cols'] || '0', 10) || this.guessColumnCount(tgroup);
 
       // Parse thead (header rows)
-      const thead = this.getFirstElement(tgroup, 'thead');
       const headers: TableRow[] = [];
       const columns: string[] = [];
-      const articleReferences: string[] = [];
+      const articleReferences = new Set<string>();
 
-      if (thead) {
-        const headerRows = this.getElementsByTagName(thead, 'row');
-        headerRows.forEach((row, rowIndex) => {
+      if (tgroup.thead) {
+        const headerRows = this.ensureArray(tgroup.thead.row);
+        headerRows.forEach((row: any, rowIndex: number) => {
           const cells = this.parseRowCells(row, rowIndex, true);
           headers.push({
             cells,
@@ -99,37 +134,36 @@ export class XMLTableParser {
             isHeader: true
           });
 
-          // Extract column names from first header row
+          // First header row becomes column names
           if (rowIndex === 0) {
             cells.forEach(cell => {
-              if (cell.value.trim()) {
-                columns.push(cell.value.trim());
+              const colName = cell.value.trim();
+              if (colName) {
+                columns.push(colName);
               }
             });
           }
-
-          // Extract article references
-          cells.forEach(cell => {
-            const articleMatch = cell.value.match(/\d+\.\d+/g);
-            if (articleMatch) {
-              articleReferences.push(...articleMatch);
-            }
-          });
         });
       }
 
       // Parse tbody (data rows)
-      const tbody = this.getFirstElement(tgroup, 'tbody');
       const dataRows: TableRow[] = [];
-
-      if (tbody) {
-        const bodyRows = this.getElementsByTagName(tbody, 'row');
-        bodyRows.forEach((row, rowIndex) => {
-          const cells = this.parseRowCells(row, rowIndex, false);
+      if (tgroup.tbody) {
+        const bodyRows = this.ensureArray(tgroup.tbody.row);
+        bodyRows.forEach((row: any, rowIndex: number) => {
+          const cells = this.parseRowCells(row, rowIndex + headers.length, false);
           dataRows.push({
             cells,
-            rowIndex,
+            rowIndex: rowIndex + headers.length,
             isHeader: false
+          });
+
+          // Extract article references from data cells
+          cells.forEach(cell => {
+            const refs = cell.value.match(/\b\d+\.\d+\b/g);
+            if (refs) {
+              refs.forEach(ref => articleReferences.add(ref));
+            }
           });
         });
       }
@@ -137,35 +171,37 @@ export class XMLTableParser {
       return {
         title,
         tableNumber,
-        columns,
+        columns: columns.length > 0 ? columns : this.generateColumnNames(totalColumns),
         headers,
         dataRows,
         metadata: {
-          totalColumns,
+          totalColumns: totalColumns || columns.length || this.guessColumnCount(tgroup),
           totalRows: headers.length + dataRows.length,
-          articleReferences: Array.from(new Set(articleReferences))
+          articleReferences: Array.from(articleReferences)
         }
       };
     } catch (error) {
-      console.error('[XMLTableParser] Error parsing table:', error);
+      console.error('[XML Parser] Failed to parse table:', error);
       return null;
     }
   }
 
   /**
-   * Parse cells in a row
+   * Parse cells from a row element
    */
-  private parseRowCells(rowElement: any, rowIndex: number, isHeader: boolean): TableCell[] {
+  private parseRowCells(row: any, rowIndex: number, isHeader: boolean): TableCell[] {
     const cells: TableCell[] = [];
-    const entryElements = this.getElementsByTagName(rowElement, 'entry');
 
-    entryElements.forEach((entry, colIndex) => {
-      const value = this.getTextContent(entry).trim();
-      const colspan = parseInt(entry.getAttribute?.('nameend') ? '2' : '1', 10);
-      const rowspan = parseInt(entry.getAttribute?.('morerows') ? String(parseInt(entry.getAttribute('morerows')) + 1) : '1', 10);
+    const entries = this.ensureArray(row.entry);
+    entries.forEach((entry: any, colIndex: number) => {
+      const value = this.extractText(entry);
+      const colspan = parseInt(entry['@_namest'] && entry['@_nameend']
+        ? this.calculateColspan(entry['@_namest'], entry['@_nameend'])
+        : '1', 10);
+      const rowspan = parseInt(entry['@_morerows'] || '1', 10);
 
       cells.push({
-        value,
+        value: value.trim(),
         colIndex,
         rowIndex,
         colspan: colspan > 1 ? colspan : undefined,
@@ -177,110 +213,106 @@ export class XMLTableParser {
   }
 
   /**
-   * Helper: Get text content from element
+   * Extract text content from XML element
    */
-  private getTextContent(element: any): string {
-    if (typeof element.textContent !== 'undefined') {
-      return element.textContent;
-    }
-    // For xml2js style objects
+  private extractText(element: any): string {
+    if (!element) return '';
     if (typeof element === 'string') return element;
-    if (element._) return element._;
-    if (element.$t) return element.$t;
-    return '';
-  }
+    if (element['#text']) return String(element['#text']);
 
-  /**
-   * Helper: Get elements by tag name (works for both browser and Node)
-   */
-  private getElementsByTagName(element: any, tagName: string): any[] {
-    if (element.getElementsByTagName) {
-      return Array.from(element.getElementsByTagName(tagName));
+    // Recursively extract text from nested elements
+    let text = '';
+    for (const key in element) {
+      if (key !== '@_' && key.startsWith('@_') === false) {
+        const childText = this.extractText(element[key]);
+        if (childText) {
+          text += (text ? ' ' : '') + childText;
+        }
+      }
     }
-    // For xml2js
-    if (element[tagName]) {
-      return Array.isArray(element[tagName]) ? element[tagName] : [element[tagName]];
+
+    return text.trim();
+  }
+
+  /**
+   * Ensure value is an array
+   */
+  private ensureArray(value: any): any[] {
+    if (!value) return [];
+    return Array.isArray(value) ? value : [value];
+  }
+
+  /**
+   * Calculate colspan from namest/nameend attributes
+   */
+  private calculateColspan(namest: string, nameend: string): string {
+    // Extract column numbers from names like "c1", "c3"
+    const start = parseInt(namest.replace(/\D/g, ''), 10) || 1;
+    const end = parseInt(nameend.replace(/\D/g, ''), 10) || 1;
+    return String(end - start + 1);
+  }
+
+  /**
+   * Guess column count from table structure
+   */
+  private guessColumnCount(tgroup: any): number {
+    // Try to count from first row
+    if (tgroup.thead?.row) {
+      const firstRow = Array.isArray(tgroup.thead.row) ? tgroup.thead.row[0] : tgroup.thead.row;
+      if (firstRow?.entry) {
+        const entries = Array.isArray(firstRow.entry) ? firstRow.entry : [firstRow.entry];
+        return entries.length;
+      }
     }
-    return [];
+
+    if (tgroup.tbody?.row) {
+      const firstRow = Array.isArray(tgroup.tbody.row) ? tgroup.tbody.row[0] : tgroup.tbody.row;
+      if (firstRow?.entry) {
+        const entries = Array.isArray(firstRow.entry) ? firstRow.entry : [firstRow.entry];
+        return entries.length;
+      }
+    }
+
+    return 0;
   }
 
   /**
-   * Helper: Get first element by tag name
+   * Generate default column names
    */
-  private getFirstElement(element: any, tagName: string): any | null {
-    const elements = this.getElementsByTagName(element, tagName);
-    return elements.length > 0 ? elements[0] : null;
-  }
-
-  /**
-   * Helper: Get XML parser for Node.js environment
-   */
-  private getNodeXMLParser(): any {
-    // Will be dynamically imported if needed
-    return null;
-  }
-
-  /**
-   * Helper: Parse XML in Node.js
-   */
-  private parseNodeXML(xmlContent: string): any {
-    // Fallback: simple regex-based parsing for Node environment
-    // In production, use xml2js or fast-xml-parser
-    return xmlContent;
+  private generateColumnNames(count: number): string[] {
+    return Array.from({ length: count }, (_, i) => `Column ${i + 1}`);
   }
 
   /**
    * Convert parsed table to markdown format
-   * Useful for debugging and LLM consumption
    */
   tableToMarkdown(table: ParsedTable): string {
-    let markdown = `# ${table.title}\n\n`;
+    const lines: string[] = [];
 
-    // Build header
-    const headerRow = table.headers[0];
-    if (headerRow) {
-      markdown += '| ' + headerRow.cells.map(c => c.value || '').join(' | ') + ' |\n';
-      markdown += '| ' + headerRow.cells.map(() => '---').join(' | ') + ' |\n';
+    // Title
+    if (table.title) {
+      lines.push(`# ${table.title}`);
+      lines.push('');
     }
 
-    // Build data rows
-    table.dataRows.forEach(row => {
-      markdown += '| ' + row.cells.map(c => c.value || '').join(' | ') + ' |\n';
-    });
+    // Headers
+    if (table.headers.length > 0) {
+      for (const header of table.headers) {
+        const row = header.cells.map(c => c.value || '').join(' | ');
+        lines.push(`| ${row} |`);
+      }
 
-    return markdown;
-  }
+      // Separator
+      const separator = table.columns.map(() => '---').join(' | ');
+      lines.push(`| ${separator} |`);
+    }
 
-  /**
-   * Convert parsed table to structured JSON
-   * Best for LLM consumption
-   */
-  tableToStructuredJSON(table: ParsedTable): any {
-    // Map column headers
-    const columnMap: Record<number, string> = {};
-    table.headers.forEach(header => {
-      header.cells.forEach(cell => {
-        if (cell.value.trim()) {
-          columnMap[cell.colIndex] = cell.value.trim();
-        }
-      });
-    });
+    // Data rows
+    for (const row of table.dataRows) {
+      const rowData = row.cells.map(c => c.value || '').join(' | ');
+      lines.push(`| ${rowData} |`);
+    }
 
-    // Build structured rows
-    const rows = table.dataRows.map(row => {
-      const rowData: Record<string, any> = {};
-      row.cells.forEach(cell => {
-        const columnName = columnMap[cell.colIndex] || `column_${cell.colIndex}`;
-        rowData[columnName] = cell.value;
-      });
-      return rowData;
-    });
-
-    return {
-      table: table.tableNumber || table.title,
-      columns: Object.values(columnMap),
-      rows,
-      metadata: table.metadata
-    };
+    return lines.join('\n');
   }
 }
