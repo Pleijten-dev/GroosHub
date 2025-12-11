@@ -37,6 +37,11 @@ export const FILE_CONFIGS = {
     allowedExtensions: ['.csv'] as string[],
     allowedMimeTypes: ['text/csv', 'application/csv'] as string[],
   },
+  xml: {
+    maxSize: 50 * 1024 * 1024, // 50MB (legal documents can be large)
+    allowedExtensions: ['.xml'] as string[],
+    allowedMimeTypes: ['application/xml', 'text/xml'] as string[],
+  },
 };
 
 export type FileType = keyof typeof FILE_CONFIGS;
@@ -122,6 +127,9 @@ export function detectFileType(mimeType: string): FileType | null {
   if (FILE_CONFIGS.csv.allowedMimeTypes.includes(mimeType)) {
     return 'csv';
   }
+  if (FILE_CONFIGS.xml.allowedMimeTypes.includes(mimeType)) {
+    return 'xml';
+  }
   return null;
 }
 
@@ -142,7 +150,7 @@ export function validateFile(file: {
 
   if (!fileType) {
     throw new FileValidationError(
-      `Unsupported file type: ${file.type}. Only images (PNG, JPG, WEBP, GIF), PDFs, CSV, and TXT files are allowed.`,
+      `Unsupported file type: ${file.type}. Only images (PNG, JPG, WEBP, GIF), PDFs, CSV, TXT, and XML files are allowed.`,
       'UNSUPPORTED_FILE_TYPE'
     );
   }
