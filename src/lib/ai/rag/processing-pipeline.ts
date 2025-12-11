@@ -29,6 +29,7 @@
  */
 
 import { DocumentProcessor } from '@/lib/ai/document-processing/document-processor';
+import { LegalDocumentEnhancer } from '@/lib/ai/document-processing/legal-enhancer';
 import { generateEmbeddingsWithProgress } from '@/lib/ai/embeddings/embedder';
 import { insertChunks, type ChunkInsert, updateFileEmbeddingStatus } from '@/lib/db/queries/project-doc-chunks';
 import { getDbConnection } from '@/lib/db/connection';
@@ -88,8 +89,35 @@ export async function processFile(options: ProcessFileOptions): Promise<Processi
       `${processed.metadata.totalTokens} tokens`
     );
 
+    // Step 1.5: Enrich chunks with synthetic sentences (Phase 1: Legal RAG)
+    console.log(`[Pipeline] Step 7.5: Enriching chunks for legal documents`);
+    const enhancer = new LegalDocumentEnhancer();
+    const enrichedChunks = [];
+
+    for (let i = 0; i < processed.chunks.length; i++) {
+      const chunk = processed.chunks[i];
+      const enriched = await enhancer.enrichChunk(chunk.text);
+
+      // Log if table was detected
+      if (enriched.metadata.hasTable) {
+        console.log(`[Pipeline] Chunk ${i}: Detected ${enriched.metadata.tableName}, added ${enriched.metadata.syntheticSentences?.length || 0} synthetic sentences`);
+      }
+
+      enrichedChunks.push({
+        ...chunk,
+        text: enriched.enrichedText,  // Use enriched text for embedding
+        metadata: {
+          ...chunk.metadata,
+          ...enriched.metadata,
+          originalText: enriched.originalText
+        }
+      });
+    }
+
+    console.log(`[Pipeline] Enrichment complete: ${enrichedChunks.filter(c => c.metadata.hasTable).length}/${enrichedChunks.length} chunks contain tables`);
+
     // Step 2: Generate embeddings using Vercel AI SDK
-    const chunkTexts = processed.chunks.map(c => c.text);
+    const chunkTexts = enrichedChunks.map(c => c.text);  // Use enriched texts
     console.log(`[Pipeline] Step 8: About to generate embeddings for ${chunkTexts.length} chunks`);
     onProgress?.('Generating embeddings', 0.5);
     const embeddingResults = await generateEmbeddingsWithProgress(
@@ -104,7 +132,7 @@ export async function processFile(options: ProcessFileOptions): Promise<Processi
 
     // Step 3: Prepare chunks for database
     onProgress?.('Storing chunks', 0.8);
-    const chunksToInsert: ChunkInsert[] = processed.chunks.map((chunk, i) => ({
+    const chunksToInsert: ChunkInsert[] = enrichedChunks.map((chunk, i) => ({
       projectId,
       fileId,
       chunkText: chunk.text,
