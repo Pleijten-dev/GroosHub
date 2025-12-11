@@ -127,8 +127,8 @@ Begin nu met redeneren!`;
     actionInput: string;
   } | null {
     try {
-      // Extract thought
-      const thoughtMatch = response.match(/Gedachte:\s*(.+?)(?=\nActie:|\Z)/is);
+      // Extract thought (use [\s\S] instead of . with s flag for ES2015 compatibility)
+      const thoughtMatch = response.match(/Gedachte:\s*([\s\S]+?)(?=\nActie:|$)/i);
       const thought = thoughtMatch ? thoughtMatch[1].trim() : '';
 
       // Extract action
@@ -136,7 +136,7 @@ Begin nu met redeneren!`;
       const action = actionMatch ? actionMatch[1].toLowerCase() : '';
 
       // Extract action input
-      const inputMatch = response.match(/Actie Input:\s*(.+?)$/is);
+      const inputMatch = response.match(/Actie Input:\s*([\s\S]+?)$/i);
       const actionInput = inputMatch ? inputMatch[1].trim() : '';
 
       if (!action) return null;
