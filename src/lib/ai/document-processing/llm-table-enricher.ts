@@ -56,8 +56,7 @@ export class LLMTableEnricher {
             content: prompt
           }
         ],
-        temperature: 0.1,  // Low temperature for consistent output
-        maxTokens: 2000
+        temperature: 0.1  // Low temperature for consistent output
       });
 
       // Parse LLM response into sentences

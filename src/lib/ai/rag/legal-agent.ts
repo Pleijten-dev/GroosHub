@@ -171,7 +171,7 @@ Begin nu met redeneren!`;
       const observation = chunks.length > 0
         ? `Gevonden ${chunks.length} relevante stukken:\n\n` +
           chunks.slice(0, 3).map((c, i) =>
-            `[${i + 1}] ${c.sourceFile}\n${c.text.substring(0, 300)}...\n`
+            `[${i + 1}] ${c.sourceFile}\n${c.chunkText.substring(0, 300)}...\n`
           ).join('\n')
         : 'Geen relevante informatie gevonden.';
 
@@ -188,7 +188,7 @@ Begin nu met redeneren!`;
       });
 
       const observation = chunks.length > 0
-        ? `Gevonden: ${actionInput}\n\n${chunks[0].text.substring(0, 500)}...`
+        ? `Gevonden: ${actionInput}\n\n${chunks[0].chunkText.substring(0, 500)}...`
         : `${actionInput} niet gevonden.`;
 
       return { observation, newChunks: chunks };

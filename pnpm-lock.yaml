@@ -74,6 +74,9 @@ importers:
       dotenv:
         specifier: ^17.2.3
         version: 17.2.3
+      fast-xml-parser:
+        specifier: ^5.3.2
+        version: 5.3.2
       gpt-tokenizer:
         specifier: ^3.4.0
         version: 3.4.0
@@ -2656,6 +2659,10 @@ packages:
 
   fast-xml-parser@5.2.5:
     resolution: {integrity: sha512-pfX9uG9Ki0yekDHx2SiuRIyFdyAr1kMIMitPvb0YBo8SUfKvia7w7FIyd/l6av85pFYRhZscS75MwMnbvY+hcQ==}
+    hasBin: true
+
+  fast-xml-parser@5.3.2:
+    resolution: {integrity: sha512-n8v8b6p4Z1sMgqRmqLJm3awW4NX7NkaKPfb3uJIBTSH7Pdvufi3PQ3/lJLQrvxcMYl7JI2jnDO90siPEpD8JBA==}
     hasBin: true
 
   fastq@1.19.1:
@@ -8086,6 +8093,10 @@ snapshots:
       pako: 2.1.0
 
   fast-xml-parser@5.2.5:
+    dependencies:
+      strnum: 2.1.1
+
+  fast-xml-parser@5.3.2:
     dependencies:
       strnum: 2.1.1
 

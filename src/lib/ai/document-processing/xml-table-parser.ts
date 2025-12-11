@@ -51,7 +51,6 @@ export class XMLTableParser {
       textNodeName: '#text',
       parseAttributeValue: true,
       trimValues: true,
-      parseTrueNumberOnly: false,
       // Preserve tag order for proper table structure
       preserveOrder: false,
       // Always return arrays for repeated elements

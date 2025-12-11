@@ -58,7 +58,7 @@ export class MultiHopRetriever {
     const tableRefs = new Set<string>();
 
     for (const chunk of chunks) {
-      const text = chunk.text;
+      const text = chunk.chunkText;
 
       // Extract article references
       const articlePattern = /\b(?:artikel|art\.)\s+(\d+\.\d+)/gi;
@@ -87,7 +87,7 @@ export class MultiHopRetriever {
     const refPattern = new RegExp(`\\b${reference}\\b`, 'i');
 
     return existingChunks.some(chunk =>
-      refPattern.test(chunk.text) ||
+      refPattern.test(chunk.chunkText) ||
       refPattern.test(chunk.sourceFile)
     );
   }
@@ -278,11 +278,7 @@ export class MultiHopRetriever {
 
       return {
         ...chunk,
-        similarity: adjustedScore,
-        metadata: {
-          ...chunk.metadata,
-          hopNumber
-        }
+        similarity: adjustedScore
       };
     });
 
@@ -292,7 +288,7 @@ export class MultiHopRetriever {
     console.log(`[Multi-Hop] Top 3 after reranking:`);
     for (let i = 0; i < Math.min(3, rankedChunks.length); i++) {
       const chunk = rankedChunks[i];
-      console.log(`  [${i}] ${chunk.sourceFile} (hop ${chunk.metadata?.hopNumber}, score: ${chunk.similarity.toFixed(3)})`);
+      console.log(`  [${i}] ${chunk.sourceFile} (score: ${chunk.similarity.toFixed(3)})`);
     }
 
     return rankedChunks;

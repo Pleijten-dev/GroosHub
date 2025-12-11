@@ -99,8 +99,8 @@ export async function processFile(options: ProcessFileOptions): Promise<Processi
       enrichedChunks = processed.chunks;
 
       // Log enrichment stats
-      const tablesCount = enrichedChunks.filter(c => c.metadata?.hasTable).length;
-      const llmEnrichedCount = enrichedChunks.filter(c => c.metadata?.enrichedByLLM).length;
+      const tablesCount = enrichedChunks.filter(c => (c.metadata as any)?.hasTable).length;
+      const llmEnrichedCount = enrichedChunks.filter(c => (c.metadata as any)?.enrichedByLLM).length;
       console.log(`[Pipeline] XML enrichment stats: ${tablesCount} table chunks, ${llmEnrichedCount} LLM-enriched`);
 
     } else {

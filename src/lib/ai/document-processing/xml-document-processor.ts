@@ -30,10 +30,14 @@ export interface XMLArticle {
 
 export interface EnrichedXMLChunk extends TextChunk {
   metadata: {
+    // Base TextChunk metadata
+    pageNumber?: number;
+    sectionTitle?: string;
+    // XML-specific metadata
     articleNumber?: string;
     tableName?: string;
-    hasTable: boolean;
-    hasSyntheticSentences: boolean;
+    hasTable?: boolean;
+    hasSyntheticSentences?: boolean;
     syntheticSentences?: string[];
     articleReferences?: string[];
     enrichedByLLM?: boolean;
