@@ -295,6 +295,16 @@ function mergeResults(
   const scores = new Map<string, number>();
   const chunks = new Map<string, any>();
 
+  console.log(`[Merge] Vector results: ${vectorResults.length}, Text results: ${textResults.length}`);
+
+  // Log first few vector scores
+  if (vectorResults.length > 0) {
+    console.log(`[Merge] Sample vector scores:`);
+    vectorResults.slice(0, 3).forEach((row, i) => {
+      console.log(`  [${i}] ${row.source_file}:${row.chunk_index} - vector_score: ${row.vector_score}, text: "${row.chunk_text.substring(0, 60)}..."`);
+    });
+  }
+
   // Add vector scores (using ranks)
   vectorResults.forEach((row, rank) => {
     const rrf = 1 / (k + rank + 1);
@@ -317,21 +327,29 @@ function mergeResults(
     .slice(0, topK);
 
   // Convert to RetrievedChunk format
-  return sorted
-    .map(([id, score]) => {
-      const chunk = chunks.get(id);
-      return {
-        id: chunk.id,
-        chunkText: chunk.chunk_text,
-        chunkIndex: chunk.chunk_index,
-        sourceFile: chunk.source_file,
-        pageNumber: chunk.page_number,
-        sectionTitle: chunk.section_title,
-        similarity: chunk.vector_score || score, // Use vector score if available
-        fileId: chunk.file_id
-      };
-    })
-    .filter(chunk => chunk.similarity >= threshold); // Filter by threshold
+  const results = sorted.map(([id, score]) => {
+    const chunk = chunks.get(id);
+    return {
+      id: chunk.id,
+      chunkText: chunk.chunk_text,
+      chunkIndex: chunk.chunk_index,
+      sourceFile: chunk.source_file,
+      pageNumber: chunk.page_number,
+      sectionTitle: chunk.section_title,
+      similarity: chunk.vector_score || score, // Use vector score if available
+      fileId: chunk.file_id
+    };
+  });
+
+  console.log(`[Merge] Top ${results.length} results before filtering:`);
+  results.slice(0, 3).forEach((chunk, i) => {
+    console.log(`  [${i}] ${chunk.sourceFile}:${chunk.chunkIndex} - similarity: ${chunk.similarity?.toFixed(4)} (threshold: ${threshold})`);
+  });
+
+  const filtered = results.filter(chunk => chunk.similarity >= threshold);
+  console.log(`[Merge] After threshold filter: ${filtered.length} results (threshold: ${threshold})`);
+
+  return filtered;
 }
 
 /**
