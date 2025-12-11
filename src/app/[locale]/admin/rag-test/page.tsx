@@ -387,13 +387,13 @@ export default function RAGTestPage({ params }: { params: Promise<{ locale: stri
               <div className="flex-1">
                 <input
                   type="file"
-                  accept=".txt,.md,.pdf"
+                  accept=".txt,.md,.pdf,.xml"
                   onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
                   className="w-full px-base py-sm border border-gray-300 rounded-base"
                   disabled={loading}
                 />
                 <p className="text-xs text-gray-500 mt-sm">
-                  Supported: TXT, MD, PDF (auto-processes after upload)
+                  Supported: TXT, MD, PDF, XML (auto-processes after upload)
                 </p>
               </div>
 
