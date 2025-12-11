@@ -32,6 +32,7 @@ import { createChat } from '@/lib/ai/chat-store';
 import { processFile } from '@/lib/ai/rag/processing-pipeline';
 
 export const runtime = 'nodejs'; // Required for file uploads
+export const maxDuration = 60; // Allow up to 60 seconds for large file uploads
 
 interface UploadedFile {
   id: string;
@@ -57,11 +58,17 @@ interface UploadedFile {
  * Note: Either chatId or projectId must be provided
  */
 export async function POST(request: NextRequest) {
+  console.log('[Upload API] === NEW UPLOAD REQUEST ===');
+  console.log('[Upload API] Request headers:', Object.fromEntries(request.headers.entries()));
+
   try {
     // 1. Check authentication
+    console.log('[Upload API] Step 1: Checking authentication...');
     const session = await auth();
+    console.log('[Upload API] Session:', session ? `User ID: ${session.user?.id}` : 'No session');
 
     if (!session?.user?.id) {
+      console.log('[Upload API] ❌ Authentication failed - no session');
       return NextResponse.json(
         { error: 'Unauthorized. Please log in.' },
         { status: 401 }
@@ -69,12 +76,16 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = session.user.id;
+    console.log('[Upload API] ✅ Authenticated as user:', userId);
 
     // 2. Parse form data
+    console.log('[Upload API] Step 2: Parsing form data...');
     const formData = await request.formData();
     const chatId = (formData.get('chatId') as string) || null;
     const projectId = (formData.get('projectId') as string) || null;
     const messageId = (formData.get('messageId') as string) || null;
+
+    console.log('[Upload API] Form data:', { chatId, projectId, messageId });
 
     // Require either chatId or projectId
     if (!chatId && !projectId) {
@@ -105,14 +116,24 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Extract files from form data
+    console.log('[Upload API] Step 3: Extracting files from form data...');
     const files: File[] = [];
     for (const [key, value] of formData.entries()) {
       if (value instanceof File) {
+        console.log('[Upload API] Found file:', {
+          key,
+          name: value.name,
+          type: value.type,
+          size: value.size
+        });
         files.push(value);
       }
     }
 
+    console.log('[Upload API] Total files found:', files.length);
+
     if (files.length === 0) {
+      console.log('[Upload API] ❌ No files provided');
       return NextResponse.json(
         { error: 'No files provided' },
         { status: 400 }
@@ -120,6 +141,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (files.length > MAX_FILES_PER_UPLOAD) {
+      console.log('[Upload API] ❌ Too many files:', files.length);
       return NextResponse.json(
         { error: `Maximum ${MAX_FILES_PER_UPLOAD} files allowed per upload` },
         { status: 400 }
@@ -127,21 +149,26 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Validate all files before uploading any
+    console.log('[Upload API] Step 4: Validating files...');
     try {
-      validateFiles(
-        files.map(f => ({
-          name: f.name,
-          type: f.type,
-          size: f.size,
-        }))
-      );
+      const fileInfos = files.map(f => ({
+        name: f.name,
+        type: f.type,
+        size: f.size,
+      }));
+      console.log('[Upload API] File infos to validate:', fileInfos);
+
+      validateFiles(fileInfos);
+      console.log('[Upload API] ✅ All files validated successfully');
     } catch (error) {
       if (error instanceof FileValidationError) {
+        console.log('[Upload API] ❌ Validation failed:', error.message, error.code);
         return NextResponse.json(
           { error: error.message, code: error.code },
           { status: 400 }
         );
       }
+      console.log('[Upload API] ❌ Unexpected validation error:', error);
       throw error;
     }
 
@@ -298,15 +325,19 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[Upload API] Error:', error);
+    console.error('[Upload API] ❌ CAUGHT ERROR:', error);
+    console.error('[Upload API] Error type:', error?.constructor?.name);
+    console.error('[Upload API] Error stack:', error instanceof Error ? error.stack : 'No stack');
 
     if (error instanceof FileValidationError) {
+      console.log('[Upload API] Returning validation error response');
       return NextResponse.json(
         { error: error.message, code: error.code },
         { status: 400 }
       );
     }
 
+    console.log('[Upload API] Returning generic error response');
     return NextResponse.json(
       {
         error: 'Failed to upload files',

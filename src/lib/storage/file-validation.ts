@@ -115,21 +115,30 @@ export function validateFileSize(size: number, fileType: FileType): void {
  * Detect file type from MIME type
  */
 export function detectFileType(mimeType: string): FileType | null {
+  console.log('[File Validation] Detecting file type for MIME:', mimeType);
+
   if (FILE_CONFIGS.image.allowedMimeTypes.includes(mimeType)) {
+    console.log('[File Validation] Detected as: image');
     return 'image';
   }
   if (FILE_CONFIGS.pdf.allowedMimeTypes.includes(mimeType)) {
+    console.log('[File Validation] Detected as: pdf');
     return 'pdf';
   }
   if (FILE_CONFIGS.text.allowedMimeTypes.includes(mimeType)) {
+    console.log('[File Validation] Detected as: text');
     return 'text';
   }
   if (FILE_CONFIGS.csv.allowedMimeTypes.includes(mimeType)) {
+    console.log('[File Validation] Detected as: csv');
     return 'csv';
   }
   if (FILE_CONFIGS.xml.allowedMimeTypes.includes(mimeType)) {
+    console.log('[File Validation] Detected as: xml');
     return 'xml';
   }
+
+  console.log('[File Validation] ❌ Unknown file type');
   return null;
 }
 
@@ -145,25 +154,38 @@ export function validateFile(file: {
   type: string;
   size: number;
 }): FileType {
+  console.log('[File Validation] Validating file:', {
+    name: file.name,
+    type: file.type,
+    size: file.size
+  });
+
   // Detect file type from MIME type
   const fileType = detectFileType(file.type);
 
   if (!fileType) {
+    console.log('[File Validation] ❌ Unsupported file type:', file.type);
     throw new FileValidationError(
       `Unsupported file type: ${file.type}. Only images (PNG, JPG, WEBP, GIF), PDFs, CSV, TXT, and XML files are allowed.`,
       'UNSUPPORTED_FILE_TYPE'
     );
   }
 
+  console.log('[File Validation] File type detected:', fileType);
+
   // Validate extension
+  console.log('[File Validation] Validating extension...');
   validateFileExtension(file.name, fileType);
 
   // Validate MIME type
+  console.log('[File Validation] Validating MIME type...');
   validateMimeType(file.type, fileType);
 
   // Validate size
+  console.log('[File Validation] Validating file size...');
   validateFileSize(file.size, fileType);
 
+  console.log('[File Validation] ✅ File validated successfully:', fileType);
   return fileType;
 }
 
