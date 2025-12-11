@@ -161,7 +161,15 @@ async function vectorSearch(
 
   // Using PostgreSQL pgvector's cosine distance operator (<=>)
   // Similarity = 1 - cosine_distance
-  const vectorLiteral = `[${queryEmbedding.join(',')}]`;
+
+  // Convert embedding array to PostgreSQL vector literal
+  const embeddingStr = `[${queryEmbedding.join(',')}]`;
+
+  console.log(`[Vector Search] Query embedding: ${embeddingStr.substring(0, 100)}...`);
+  console.log(`[Vector Search] Project: ${projectId}, topK: ${topK}, threshold: ${threshold}`);
+
+  // Use unsafe() for vector literal to avoid parameter escaping
+  const vectorExpr = db.unsafe(`'${embeddingStr}'::vector`);
 
   const result = await db`
     SELECT
@@ -172,14 +180,16 @@ async function vectorSearch(
       page_number,
       section_title,
       file_id,
-      1 - (embedding <=> ${vectorLiteral}::vector) as similarity
+      1 - (embedding <=> ${vectorExpr}) as similarity
     FROM project_doc_chunks
     WHERE
       project_id = ${projectId}
-      AND 1 - (embedding <=> ${vectorLiteral}::vector) >= ${threshold}
-    ORDER BY embedding <=> ${vectorLiteral}::vector
+      AND 1 - (embedding <=> ${vectorExpr}) >= ${threshold}
+    ORDER BY embedding <=> ${vectorExpr}
     LIMIT ${topK}
   `;
+
+  console.log(`[Vector Search] Returned ${result.length} results`);
 
   return result.map(row => ({
     id: row.id,
@@ -212,7 +222,13 @@ async function hybridSearch(
 ): Promise<RetrievedChunk[]> {
   const db = getDbConnection();
 
-  const vectorLiteral = `[${queryEmbedding.join(',')}]`;
+  const embeddingStr = `[${queryEmbedding.join(',')}]`;
+
+  console.log(`[Hybrid Search] Query embedding: ${embeddingStr.substring(0, 100)}...`);
+  console.log(`[Hybrid Search] Project: ${projectId}, topK: ${topK}, threshold: ${threshold}`);
+
+  // Use unsafe() for vector literal
+  const vectorExpr = db.unsafe(`'${embeddingStr}'::vector`);
 
   // Get vector results (semantic search)
   const vectorResults = await db`
@@ -224,12 +240,14 @@ async function hybridSearch(
       page_number,
       section_title,
       file_id,
-      1 - (embedding <=> ${vectorLiteral}::vector) as vector_score
+      1 - (embedding <=> ${vectorExpr}) as vector_score
     FROM project_doc_chunks
     WHERE project_id = ${projectId}
-    ORDER BY embedding <=> ${vectorLiteral}::vector
+    ORDER BY embedding <=> ${vectorExpr}
     LIMIT ${topK * 2}
   `;
+
+  console.log(`[Hybrid Search] Vector search returned ${vectorResults.length} results`);
 
   // Get full-text search results (keyword search)
   const textResults = await db`
