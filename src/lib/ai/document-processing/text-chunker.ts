@@ -1,21 +1,22 @@
 /**
  * Text chunking for RAG (Retrieval-Augmented Generation)
  *
- * CHUNKING STRATEGY:
- * - Target: 800 tokens per chunk (sweet spot for embeddings)
- * - Overlap: 100 tokens between chunks (preserve context at boundaries)
+ * CHUNKING STRATEGY (2024 Best Practices):
+ * - Target: 512 tokens per chunk (industry standard for RAG)
+ * - Overlap: 100 tokens between chunks (~20% overlap - optimal for context preservation)
  * - Semantic boundaries: Respects paragraphs and sentences when possible
  * - Page tracking: Maintains source page numbers for PDFs
  *
  * WHY THESE SIZES?
- * - 800 tokens ≈ 600 words ≈ 2-3 paragraphs
- * - Large enough: Meaningful semantic units
- * - Small enough: Focused retrieval, not too expensive
- * - Overlap: Prevents losing context at chunk boundaries
+ * - 512 tokens ≈ 380 words ≈ 1-2 paragraphs
+ * - More focused semantic units → better similarity scores
+ * - Smaller chunks = more precise retrieval
+ * - 20% overlap prevents losing context at boundaries
+ * - Based on 2024 RAG benchmarks (Stack Overflow, Databricks, Unstructured)
  *
  * EMBEDDING MODEL USED:
  * - OpenAI text-embedding-3-small (1536 dimensions)
- * - Max input: 8191 tokens (we use 800 for quality)
+ * - Max input: 8191 tokens (we use 512 for quality/precision)
  * - Cost: $0.02 per 1M tokens
  *
  * UPGRADE PATH:
@@ -41,15 +42,15 @@ export interface TextChunk {
 }
 
 export interface ChunkingOptions {
-  maxTokens: number;          // Default: 800
-  overlapTokens: number;      // Default: 100
+  maxTokens: number;          // Default: 512 (industry standard 2024)
+  overlapTokens: number;      // Default: 100 (~20% overlap)
   respectSentences: boolean;  // Default: true
   respectParagraphs: boolean; // Default: true
 }
 
 export class TextChunker {
   private defaultOptions: ChunkingOptions = {
-    maxTokens: 800,
+    maxTokens: 512,
     overlapTokens: 100,
     respectSentences: true,
     respectParagraphs: true

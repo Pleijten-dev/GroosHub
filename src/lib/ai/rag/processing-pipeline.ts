@@ -7,7 +7,7 @@
  * FLOW:
  * 1. Download file from R2 storage
  * 2. Extract text (PDF/TXT/MD)
- * 3. Chunk text (800 tokens, 100 overlap)
+ * 3. Chunk text (512 tokens, 100 overlap - 2024 best practices)
  * 4. Generate embeddings (OpenAI text-embedding-3-small)
  * 5. Store chunks in PostgreSQL with pgvector
  * 6. Update file status
