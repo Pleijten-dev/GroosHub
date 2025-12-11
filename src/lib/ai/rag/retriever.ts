@@ -83,12 +83,24 @@ export async function findRelevantContent(
   `;
   console.log(`[Retriever] Database has ${sampleCheck.length} sample chunks:`);
   sampleCheck.forEach((row, i) => {
-    const embedding = row.embedding;
+    let embedding = row.embedding;
     console.log(`[Retriever Debug] Row ${i} embedding type: ${typeof embedding}`);
     console.log(`[Retriever Debug] Row ${i} embedding is array: ${Array.isArray(embedding)}`);
     console.log(`[Retriever Debug] Row ${i} embedding value: ${JSON.stringify(embedding).substring(0, 100)}`);
 
-    const embeddingArray = Array.isArray(embedding) ? embedding : [];
+    // Handle both string and array formats (backward compatibility)
+    let embeddingArray: number[] = [];
+    if (Array.isArray(embedding)) {
+      embeddingArray = embedding;
+    } else if (typeof embedding === 'string') {
+      try {
+        embeddingArray = JSON.parse(embedding);
+        console.log(`[Retriever Debug] Row ${i} parsed string to array: ${embeddingArray.length} elements`);
+      } catch (e) {
+        console.log(`[Retriever Debug] Row ${i} failed to parse string: ${e}`);
+      }
+    }
+
     const dims = embeddingArray.length;
     const first5 = embeddingArray.slice(0, 5).map((v: number) => v.toFixed(4)).join(', ');
     const magnitude = dims > 0 ? Math.sqrt(embeddingArray.reduce((sum: number, v: number) => sum + v * v, 0)) : 0;

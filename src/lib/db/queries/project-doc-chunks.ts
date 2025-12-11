@@ -75,7 +75,7 @@ export async function insertChunks(chunks: ChunkInsert[]): Promise<void> {
         ${chunk.fileId},
         ${chunk.chunkText},
         ${chunk.chunkIndex},
-        ${JSON.stringify(chunk.embedding)}::vector,
+        ${`[${chunk.embedding.join(',')}]`}::vector,
         ${chunk.sourceFile},
         ${chunk.pageNumber || null},
         ${chunk.sectionTitle || null},
