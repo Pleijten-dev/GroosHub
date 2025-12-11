@@ -74,21 +74,28 @@ export async function findRelevantContent(
       source_file,
       chunk_text,
       chunk_index,
-      embedding
+      embedding,
+      created_at
     FROM project_doc_chunks
     WHERE project_id = ${projectId}
-    LIMIT 3
+    ORDER BY created_at DESC
+    LIMIT 5
   `;
   console.log(`[Retriever] Database has ${sampleCheck.length} sample chunks:`);
   sampleCheck.forEach((row, i) => {
     const embedding = row.embedding;
+    console.log(`[Retriever Debug] Row ${i} embedding type: ${typeof embedding}`);
+    console.log(`[Retriever Debug] Row ${i} embedding is array: ${Array.isArray(embedding)}`);
+    console.log(`[Retriever Debug] Row ${i} embedding value: ${JSON.stringify(embedding).substring(0, 100)}`);
+
     const embeddingArray = Array.isArray(embedding) ? embedding : [];
     const dims = embeddingArray.length;
     const first5 = embeddingArray.slice(0, 5).map((v: number) => v.toFixed(4)).join(', ');
     const magnitude = dims > 0 ? Math.sqrt(embeddingArray.reduce((sum: number, v: number) => sum + v * v, 0)) : 0;
 
-    console.log(`  [${i}] File: ${row.source_file}, Index: ${row.chunk_index}, Dims: ${dims}, First 5: [${first5}]`);
-    console.log(`      Magnitude: ${magnitude.toFixed(6)}, Text: "${row.chunk_text.substring(0, 80)}..."`);
+    console.log(`  [${i}] File: ${row.source_file}, Index: ${row.chunk_index}, Created: ${row.created_at}`);
+    console.log(`      Dims: ${dims}, First 5: [${first5}], Magnitude: ${magnitude.toFixed(6)}`);
+    console.log(`      Text: "${row.chunk_text.substring(0, 80)}..."`);
   });
 
   // 1. Generate embedding for the user's query
