@@ -34,7 +34,11 @@ export async function POST(
     const { id: projectId, fileId } = await context.params;
     const userId = session.user.id;
 
-    console.log(`[Process File] Step 1: Processing file ${fileId} in project ${projectId}`);
+    // Check for force reprocess flag
+    const { searchParams } = new URL(request.url);
+    const forceReprocess = searchParams.get('force') === 'true';
+
+    console.log(`[Process File] Step 1: Processing file ${fileId} in project ${projectId} (force=${forceReprocess})`);
 
     // Initialize database connection
     const sql = neon(process.env.POSTGRES_URL!);
@@ -92,7 +96,7 @@ export async function POST(
       );
     }
 
-    if (file.embedding_status === 'completed') {
+    if (file.embedding_status === 'completed' && !forceReprocess) {
       console.log(`[Process File] Step 8: File already completed, returning existing data`);
       // Get existing chunk count
       const chunks = await sql`
@@ -108,6 +112,21 @@ export async function POST(
         chunkCount: parseInt(chunks[0].count),
         alreadyProcessed: true
       });
+    }
+
+    if (forceReprocess) {
+      console.log(`[Process File] Step 8b: Force reprocessing file, deleting old chunks`);
+      // Delete existing chunks before reprocessing
+      await sql`
+        DELETE FROM project_doc_chunks
+        WHERE file_id = ${fileId}
+      `;
+      // Reset file status
+      await sql`
+        UPDATE file_uploads
+        SET embedding_status = 'pending', chunk_count = 0, embedded_at = NULL
+        WHERE id = ${fileId}
+      `;
     }
 
     // 5. Check if file type is supported

@@ -224,6 +224,38 @@ export default function RAGTestPage({ params }: { params: Promise<{ locale: stri
     }
   };
 
+  // Force reprocess a file (even if completed)
+  const handleForceReprocess = async (fileId: string) => {
+    if (!selectedProject) return;
+
+    const confirmed = confirm('Force reprocess this file? This will delete existing embeddings and regenerate them.');
+    if (!confirmed) return;
+
+    setLoading(true);
+    setError('');
+    setStatus(`Force reprocessing file ${fileId}...`);
+
+    try {
+      const res = await fetch(`/api/projects/${selectedProject}/files/${fileId}/process?force=true`, {
+        method: 'POST'
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setStatus(`✅ Reprocessed! ${data.chunkCount} chunks, ${data.totalTokens} tokens`);
+        loadFiles(selectedProject);
+      } else {
+        setError(`Reprocessing failed: ${data.error}`);
+      }
+    } catch (err) {
+      setError('Reprocessing failed');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Test retrieval
   const handleSearch = async () => {
     if (!query || !selectedProject) {
@@ -410,15 +442,27 @@ export default function RAGTestPage({ params }: { params: Promise<{ locale: stri
                       )}
                     </div>
 
-                    {file.embeddingStatus !== 'completed' && file.embeddingStatus !== 'processing' && (
-                      <Button
-                        onClick={() => handleProcess(file.id)}
-                        disabled={loading}
-                        size="sm"
-                      >
-                        {text.process}
-                      </Button>
-                    )}
+                    <div className="flex gap-sm">
+                      {file.embeddingStatus !== 'completed' && file.embeddingStatus !== 'processing' && (
+                        <Button
+                          onClick={() => handleProcess(file.id)}
+                          disabled={loading}
+                          size="sm"
+                        >
+                          {text.process}
+                        </Button>
+                      )}
+                      {file.embeddingStatus === 'completed' && (
+                        <Button
+                          onClick={() => handleForceReprocess(file.id)}
+                          disabled={loading}
+                          size="sm"
+                          variant="secondary"
+                        >
+                          Force Reprocess
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
