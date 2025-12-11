@@ -159,6 +159,42 @@ export async function getPresignedUrl(
 }
 
 /**
+ * Generate a presigned URL for uploading a file
+ *
+ * This allows clients to upload files directly to R2 without passing through our API,
+ * bypassing Vercel's 4.5MB serverless function body limit.
+ *
+ * @param key - Storage key where file will be uploaded
+ * @param contentType - MIME type of the file
+ * @param expiresIn - URL expiration time in seconds (default: 3600 = 1 hour)
+ * @returns Presigned URL that expires after the specified time
+ */
+export async function getPresignedUploadUrl(
+  key: string,
+  contentType: string,
+  expiresIn: number = 3600 // 1 hour default
+): Promise<string> {
+  try {
+    const command = new PutObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: key,
+      ContentType: contentType,
+      Metadata: {
+        uploadedAt: new Date().toISOString(),
+      },
+    });
+
+    const url = await getSignedUrl(r2Client, command, { expiresIn });
+
+    console.log(`[R2] Generated presigned upload URL for: ${key} (expires in ${expiresIn}s)`);
+    return url;
+  } catch (error) {
+    console.error('[R2] Presigned upload URL error:', error);
+    throw new Error(`Failed to generate presigned upload URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
  * Get file as buffer from R2 storage
  *
  * @param key - Storage key

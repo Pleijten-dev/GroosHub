@@ -11,8 +11,8 @@ const nextConfig: NextConfig = {
     },
   },
 
-  // Increase serverComponentsExternalPackages for Node.js compatibility
-  serverComponentsExternalPackages: ['@aws-sdk/client-s3'],
+  // Increase serverExternalPackages for Node.js compatibility
+  serverExternalPackages: ['@aws-sdk/client-s3'],
 };
 
 export default nextConfig;

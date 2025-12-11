@@ -155,7 +155,7 @@ export default function RAGTestPage({ params }: { params: Promise<{ locale: stri
     }
   };
 
-  // Upload file
+  // Upload file using presigned URL (bypasses Vercel 4.5MB limit)
   const handleUpload = async () => {
     if (!uploadFile || !selectedProject) {
       setError('Select a project and file first');
@@ -164,31 +164,78 @@ export default function RAGTestPage({ params }: { params: Promise<{ locale: stri
 
     setLoading(true);
     setError('');
-    setStatus('Uploading file...');
+    setStatus('Requesting upload URL...');
 
     try {
-      const formData = new FormData();
-      formData.append('file', uploadFile);
-      formData.append('projectId', selectedProject);
-
-      const res = await fetch('/api/upload', {
+      // Step 1: Request presigned upload URL
+      const presignedRes = await fetch('/api/upload/presigned', {
         method: 'POST',
-        body: formData
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename: uploadFile.name,
+          contentType: uploadFile.type,
+          projectId: selectedProject
+        })
       });
 
-      const data = await res.json();
+      const presignedData = await presignedRes.json();
 
-      if (data.success) {
-        setStatus(`✅ Uploaded! Processing started automatically...`);
+      if (!presignedData.success) {
+        setError(`Failed to get upload URL: ${presignedData.error}`);
+        return;
+      }
+
+      const { uploadUrl, fileKey, maxSize } = presignedData;
+
+      // Check file size
+      if (uploadFile.size > maxSize) {
+        setError(`File too large (${(uploadFile.size / 1024 / 1024).toFixed(2)}MB). Max: ${(maxSize / 1024 / 1024).toFixed(0)}MB`);
+        return;
+      }
+
+      // Step 2: Upload file directly to R2
+      setStatus(`Uploading ${(uploadFile.size / 1024 / 1024).toFixed(2)}MB to R2...`);
+
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': uploadFile.type,
+        },
+        body: uploadFile
+      });
+
+      if (!uploadRes.ok) {
+        setError(`Upload to R2 failed: ${uploadRes.status} ${uploadRes.statusText}`);
+        return;
+      }
+
+      // Step 3: Notify backend that upload is complete
+      setStatus('Processing document...');
+
+      const completeRes = await fetch('/api/upload/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileKey,
+          projectId: selectedProject,
+          filename: uploadFile.name
+        })
+      });
+
+      const completeData = await completeRes.json();
+
+      if (completeData.success) {
+        const chunks = completeData.rag?.chunks?.length || 0;
+        setStatus(`✅ Uploaded and processed! ${chunks} chunks created.`);
         setUploadFile(null);
 
         // Refresh files after short delay
         setTimeout(() => loadFiles(selectedProject), 2000);
       } else {
-        setError(`Upload failed: ${data.error}`);
+        setError(`Processing failed: ${completeData.error}`);
       }
     } catch (err) {
-      setError('Upload failed');
+      setError(`Upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
       console.error(err);
     } finally {
       setLoading(false);
@@ -393,7 +440,7 @@ export default function RAGTestPage({ params }: { params: Promise<{ locale: stri
                   disabled={loading}
                 />
                 <p className="text-xs text-gray-500 mt-sm">
-                  Supported: TXT, MD, PDF, XML (auto-processes after upload)
+                  Supported: TXT, MD, PDF (50MB), XML (50MB) - Direct R2 upload (bypasses Vercel limits)
                 </p>
               </div>
 
