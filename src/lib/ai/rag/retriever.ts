@@ -8,7 +8,7 @@
  *
  * QUALITY SETTINGS:
  * - topK: 5 chunks (configurable)
- * - Similarity threshold: 0.7 (70% match required)
+ * - Similarity threshold: 0.3 (industry standard for RAG, 0.3-0.5 typical)
  * - Hybrid search: Enabled by default (better results)
  *
  * EMBEDDING MODEL:
@@ -36,7 +36,7 @@ export interface RetrievalOptions {
   projectId: string;
   query: string;
   topK?: number;              // Default: 5
-  similarityThreshold?: number; // Default: 0.7
+  similarityThreshold?: number; // Default: 0.3 (industry standard for RAG)
   useHybridSearch?: boolean;   // Default: true
 }
 
@@ -49,7 +49,7 @@ export interface RetrievalOptions {
  *   projectId: 'uuid',
  *   query: 'What is the capital of France?',
  *   topK: 5,
- *   similarityThreshold: 0.7
+ *   similarityThreshold: 0.3  // 0.3-0.5 is industry standard for RAG
  * });
  */
 export async function findRelevantContent(
@@ -59,7 +59,7 @@ export async function findRelevantContent(
     projectId,
     query,
     topK = 5,
-    similarityThreshold = 0.7,
+    similarityThreshold = 0.3,
     useHybridSearch = true
   } = options;
 
