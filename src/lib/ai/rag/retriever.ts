@@ -161,6 +161,8 @@ async function vectorSearch(
 
   // Using PostgreSQL pgvector's cosine distance operator (<=>)
   // Similarity = 1 - cosine_distance
+  const vectorLiteral = `[${queryEmbedding.join(',')}]`;
+
   const result = await db`
     SELECT
       id,
@@ -170,12 +172,12 @@ async function vectorSearch(
       page_number,
       section_title,
       file_id,
-      1 - (embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as similarity
+      1 - (embedding <=> ${vectorLiteral}::vector) as similarity
     FROM project_doc_chunks
     WHERE
       project_id = ${projectId}
-      AND 1 - (embedding <=> ${JSON.stringify(queryEmbedding)}::vector) >= ${threshold}
-    ORDER BY embedding <=> ${JSON.stringify(queryEmbedding)}::vector
+      AND 1 - (embedding <=> ${vectorLiteral}::vector) >= ${threshold}
+    ORDER BY embedding <=> ${vectorLiteral}::vector
     LIMIT ${topK}
   `;
 
@@ -210,6 +212,8 @@ async function hybridSearch(
 ): Promise<RetrievedChunk[]> {
   const db = getDbConnection();
 
+  const vectorLiteral = `[${queryEmbedding.join(',')}]`;
+
   // Get vector results (semantic search)
   const vectorResults = await db`
     SELECT
@@ -220,10 +224,10 @@ async function hybridSearch(
       page_number,
       section_title,
       file_id,
-      1 - (embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as vector_score
+      1 - (embedding <=> ${vectorLiteral}::vector) as vector_score
     FROM project_doc_chunks
     WHERE project_id = ${projectId}
-    ORDER BY embedding <=> ${JSON.stringify(queryEmbedding)}::vector
+    ORDER BY embedding <=> ${vectorLiteral}::vector
     LIMIT ${topK * 2}
   `;
 
