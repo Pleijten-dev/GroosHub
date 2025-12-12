@@ -6,7 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import { detectFileType } from '@/lib/storage/file-validation';
 
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+export const maxDuration = 300; // 5 minutes - use Fluid Compute for large XML processing
 
 interface UploadCompleteRequest {
   fileKey: string;
