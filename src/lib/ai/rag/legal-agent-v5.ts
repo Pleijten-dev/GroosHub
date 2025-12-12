@@ -105,10 +105,34 @@ export class LegalRAGAgent {
       };
 
       // Execute agent with tool calling
+      // Stop when provide_answer is called OR after (maxSteps - 1) searches
       const result = await generateText({
         model: openai(model),
         tools,
-        stopWhen: stepCountIs(maxSteps),
+        stopWhen: ({ steps }) => {
+          // Stop if provide_answer was called in any step
+          const hasAnswer = steps.some(step =>
+            step.toolResults?.some(tr => tr.toolName === 'provide_answer')
+          );
+          if (hasAnswer) {
+            console.log('[Legal Agent] Stopping: answer provided');
+            return true;
+          }
+
+          // Count total search calls across all steps
+          const searchCount = steps.reduce((count, step) => {
+            const searches = step.toolResults?.filter(tr => tr.toolName === 'search_bouwbesluit').length || 0;
+            return count + searches;
+          }, 0);
+
+          // Stop after (maxSteps - 1) to reserve final step for answer synthesis
+          if (searchCount >= maxSteps - 1) {
+            console.log(`[Legal Agent] Stopping: reached ${maxSteps - 1} searches, will synthesize answer`);
+            return true;
+          }
+
+          return false;
+        },
         system: this.getSystemPrompt(),
         prompt: options.query,
         onStepFinish: ({ toolCalls, text }) => {
@@ -119,24 +143,53 @@ export class LegalRAGAgent {
         }
       });
 
-      const executionTimeMs = Date.now() - startTime;
-
       // Extract answer from tool results
-      let finalAnswer = result.text || 'Kon geen antwoord vinden.';
+      let finalAnswer = result.text || '';
       let confidence: 'high' | 'medium' | 'low' = 'low';
+      let answerProvided = false;
 
       // Check if provide_answer was called
       if (result.toolResults && result.toolResults.length > 0) {
         for (const toolResult of result.toolResults) {
           if (toolResult.toolName === 'provide_answer') {
-            // Tool result structure: toolResult.output contains the return value from execute
             const data = toolResult.output as { answer: string; confidence: 'high' | 'medium' | 'low'; reasoning: string };
             finalAnswer = data.answer;
             confidence = data.confidence;
+            answerProvided = true;
             break;
           }
         }
       }
+
+      // If no answer was provided, synthesize one from the gathered information
+      if (!answerProvided && this.allSources.length > 0) {
+        console.log('[Legal Agent] No answer provided, synthesizing from gathered sources...');
+
+        // Create context from top sources
+        const context = this.allSources.slice(0, 5).map((source, i) =>
+          `[Bron ${i + 1}] ${source.sourceFile}\n${source.chunkText.substring(0, 400)}\n`
+        ).join('\n');
+
+        // Make final synthesis call
+        const synthesisResult = await generateText({
+          model: openai(model),
+          system: `Je bent een juridisch assistent. Je hebt informatie verzameld uit het Bouwbesluit 2012.
+Geef nu een definitief antwoord op de vraag van de gebruiker op basis van de verzamelde bronnen.
+Vermeld ALTIJD de exacte artikel- of tabelnummers.`,
+          prompt: `Vraag: ${options.query}
+
+Verzamelde informatie:
+${context}
+
+Geef nu een compleet antwoord met bronvermelding (artikel/tabel nummers).`
+        });
+
+        finalAnswer = synthesisResult.text;
+        confidence = 'medium';  // Medium because it's synthesized
+        this.reasoning.push('📝 Antwoord gesynthetiseerd uit verzamelde bronnen');
+      }
+
+      const executionTimeMs = Date.now() - startTime;
 
       console.log(`[Legal Agent] Completed in ${executionTimeMs}ms with ${this.reasoning.length} steps`);
 
