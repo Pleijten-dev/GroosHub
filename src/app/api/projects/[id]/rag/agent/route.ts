@@ -10,7 +10,7 @@ import { auth } from '@/lib/auth';
 import { LegalRAGAgent } from '@/lib/ai/rag/legal-agent-v5';
 
 export const runtime = 'nodejs';
-export const maxDuration = 60; // Agentic queries can take longer
+export const maxDuration = 300; // 5 minutes - use Fluid Compute for multi-step agent reasoning
 
 export async function POST(
   request: NextRequest,
