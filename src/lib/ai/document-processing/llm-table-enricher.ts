@@ -216,38 +216,49 @@ Genereer nu de zinnen, één per regel:`;
 
   /**
    * Batch enrich multiple tables with parallel processing
-   * Processes 15 tables concurrently to speed up enrichment
+   * Processes ALL batches in parallel for maximum speed
    *
-   * Performance: 83 tables sequentially = ~415s, parallel (15/batch) = ~30-40s
+   * Performance: 83 tables with full parallelization = ~20-25s (all batches at once)
+   * This is safe because OpenAI's rate limits are high enough (10k req/min, 200k tokens/min)
    */
   async enrichTables(tables: ParsedTable[]): Promise<EnrichedTable[]> {
-    console.log(`[LLM Enricher] Enriching ${tables.length} tables (parallel batches of 15)...`);
+    console.log(`[LLM Enricher] Enriching ${tables.length} tables (all batches in parallel)...`);
 
-    const enriched: EnrichedTable[] = [];
-    const BATCH_SIZE = 15; // Process 15 tables concurrently
+    const BATCH_SIZE = 15; // Tables per batch for logging purposes
+    const totalBatches = Math.ceil(tables.length / BATCH_SIZE);
 
-    // Process in batches to avoid rate limits
+    console.log(`[LLM Enricher] Processing ${totalBatches} batches of up to ${BATCH_SIZE} tables each, ALL IN PARALLEL...`);
+
+    // Create all batch promises at once
+    const allBatchPromises: Promise<EnrichedTable[]>[] = [];
+
     for (let i = 0; i < tables.length; i += BATCH_SIZE) {
       const batch = tables.slice(i, i + BATCH_SIZE);
-
       const batchNum = Math.floor(i / BATCH_SIZE) + 1;
-      const totalBatches = Math.ceil(tables.length / BATCH_SIZE);
-      console.log(`[LLM Enricher] Processing batch ${batchNum}/${totalBatches} (${batch.length} tables, ~${batch.length * 4}s)...`);
 
-      // Process batch in parallel
-      const batchResults = await Promise.all(
+      console.log(`[LLM Enricher] Queuing batch ${batchNum}/${totalBatches} (${batch.length} tables)...`);
+
+      // Each batch processes its tables in parallel
+      const batchPromise = Promise.all(
         batch.map(table => this.enrichTable(table))
       );
 
-      enriched.push(...batchResults);
-
-      // Small delay between batches to avoid rate limiting
-      if (i + BATCH_SIZE < tables.length) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
+      allBatchPromises.push(batchPromise);
     }
 
-    console.log(`[LLM Enricher] Complete: ${enriched.length} tables enriched`);
+    // Execute ALL batches in parallel (all 83 tables processing simultaneously)
+    console.log(`[LLM Enricher] Starting ${allBatchPromises.length} batches in parallel (${tables.length} total LLM calls)...`);
+    const startTime = Date.now();
+
+    const allBatchResults = await Promise.all(allBatchPromises);
+
+    const endTime = Date.now();
+    const totalSeconds = ((endTime - startTime) / 1000).toFixed(1);
+
+    // Flatten results
+    const enriched = allBatchResults.flat();
+
+    console.log(`[LLM Enricher] Complete: ${enriched.length} tables enriched in ${totalSeconds}s (${(tables.length / parseFloat(totalSeconds)).toFixed(1)} tables/sec)`);
 
     return enriched;
   }
