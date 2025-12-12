@@ -21,6 +21,44 @@ interface LocationSnapshot {
   user_id: number;
 }
 
+interface FullLocationSnapshot extends LocationSnapshot {
+  project_id: string;
+  neighborhood_code: string | null;
+  district_code: string | null;
+  municipality_code: string | null;
+  demographics_data: Record<string, unknown>;
+  health_data: Record<string, unknown>;
+  safety_data: Record<string, unknown>;
+  livability_data: Record<string, unknown>;
+  amenities_data: Record<string, unknown>;
+  housing_data: Record<string, unknown>;
+  overall_score: number | null;
+  category_scores: Record<string, unknown>;
+  data_sources: Record<string, unknown>;
+  api_versions: Record<string, unknown>;
+  notes: string | null;
+  tags: string[] | null;
+  metadata: Record<string, unknown>;
+}
+
+interface AccessibleLocation {
+  address: string;
+  locationData: {
+    address: string;
+    latitude: number;
+    longitude: number;
+    neighborhood: { statcode: string } | null;
+    district: { statcode: string } | null;
+    municipality: { statcode: string } | null;
+    demographics: Record<string, unknown>;
+    health: Record<string, unknown>;
+    safety: Record<string, unknown>;
+    livability: Record<string, unknown>;
+    residential: Record<string, unknown>;
+  };
+  amenitiesData?: Record<string, unknown> | null;
+}
+
 interface Project {
   id: string;
   name: string;
@@ -30,7 +68,7 @@ interface Project {
 
 interface ProjectSnapshotsListProps {
   locale: Locale;
-  onLoadSnapshot?: (snapshot: LocationSnapshot) => void;
+  onLoadSnapshot?: (location: AccessibleLocation) => void;
   refreshTrigger?: number;
 }
 
@@ -100,6 +138,54 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
       setError(err instanceof Error ? err.message : 'Failed to load projects');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleLoadSnapshot = async (snapshot: LocationSnapshot) => {
+    try {
+      // Fetch full snapshot data from API
+      const response = await fetch(`/api/location/snapshots/${snapshot.id}`);
+
+      if (!response.ok) {
+        console.error('Failed to fetch snapshot data');
+        setErrorDialog({
+          isOpen: true,
+          message: locale === 'nl' ? 'Snapshot laden mislukt' : 'Failed to load snapshot',
+        });
+        return;
+      }
+
+      const { data: snapshotData } = await response.json();
+
+      // Transform to AccessibleLocation format
+      const accessibleLocation: AccessibleLocation = {
+        address: snapshotData.address,
+        locationData: {
+          address: snapshotData.address,
+          latitude: snapshotData.latitude,
+          longitude: snapshotData.longitude,
+          neighborhood: snapshotData.neighborhood_code ? { statcode: snapshotData.neighborhood_code } : null,
+          district: snapshotData.district_code ? { statcode: snapshotData.district_code } : null,
+          municipality: snapshotData.municipality_code ? { statcode: snapshotData.municipality_code } : null,
+          demographics: snapshotData.demographics_data || {},
+          health: snapshotData.health_data || {},
+          safety: snapshotData.safety_data || {},
+          livability: snapshotData.livability_data || {},
+          residential: snapshotData.housing_data || {}
+        },
+        amenitiesData: snapshotData.amenities_data || null
+      };
+
+      // Call the callback with transformed data
+      if (onLoadSnapshot) {
+        onLoadSnapshot(accessibleLocation);
+      }
+    } catch (err) {
+      console.error('Failed to load snapshot:', err);
+      setErrorDialog({
+        isOpen: true,
+        message: err instanceof Error ? err.message : (locale === 'nl' ? 'Snapshot laden mislukt' : 'Failed to load snapshot'),
+      });
     }
   };
 
@@ -256,7 +342,7 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
                         {/* Action Buttons */}
                         <div className="flex gap-xs">
                           <Button
-                            onClick={() => onLoadSnapshot?.(snapshot)}
+                            onClick={() => handleLoadSnapshot(snapshot)}
                             variant="primary"
                             size="sm"
                             className="text-xs"

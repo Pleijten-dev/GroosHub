@@ -42,19 +42,6 @@ const RAPPORT_SUBSECTIONS = [
 
 type SectionId = typeof MAIN_SECTIONS[number]['id'] | typeof OMGEVING_SUBSECTIONS[number]['id'] | typeof RAPPORT_SUBSECTIONS[number]['id'];
 
-interface LocationSnapshot {
-  id: string;
-  address: string;
-  latitude: number;
-  longitude: number;
-  snapshot_date: Date | string;
-  version_number: number;
-  is_active: boolean;
-  created_at: Date | string;
-  updated_at: Date | string;
-  user_id: number;
-}
-
 interface LocationSidebarContentProps {
   locale: Locale;
   activeTab: SectionId;
@@ -171,10 +158,10 @@ export const useLocationSidebarSections = ({
   };
 
   // Handle load saved location snapshot
-  // Triggers a new search for the snapshot's address
-  const handleLoadSavedLocation = (snapshot: LocationSnapshot): void => {
-    if (onAddressSearch && snapshot.address) {
-      onAddressSearch(snapshot.address);
+  // Passes the full location data to the parent to load without making API calls
+  const handleLoadSavedLocation = (location: AccessibleLocation): void => {
+    if (onLoadSavedLocation) {
+      onLoadSavedLocation(location);
     }
   };
 
