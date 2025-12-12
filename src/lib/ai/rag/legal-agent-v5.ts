@@ -166,8 +166,9 @@ export class LegalRAGAgent {
         console.log('[Legal Agent] No answer provided, synthesizing from gathered sources...');
 
         // Create context from top sources
+        // Use larger chunk size (2000 chars) to include enriched table summaries
         const context = this.allSources.slice(0, 5).map((source, i) =>
-          `[Bron ${i + 1}] ${source.sourceFile}\n${source.chunkText.substring(0, 400)}\n`
+          `[Bron ${i + 1}] ${source.sourceFile}\n${source.chunkText.substring(0, 2000)}\n`
         ).join('\n');
 
         // Make final synthesis call
@@ -175,7 +176,11 @@ export class LegalRAGAgent {
           model: openai(model),
           system: `Je bent een juridisch assistent. Je hebt informatie verzameld uit het Bouwbesluit 2012.
 Geef nu een definitief antwoord op de vraag van de gebruiker op basis van de verzamelde bronnen.
-Vermeld ALTIJD de exacte artikel- of tabelnummers.`,
+Vermeld ALTIJD de exacte artikel- of tabelnummers.
+
+BELANGRIJK: Als je tabelgegevens ziet (zoals "Tabel Samenvatting" of gestructureerde data),
+gebruik die om het exacte antwoord te geven. Zeg NOOIT dat je de informatie niet hebt als
+de tabel duidelijk de waarden bevat.`,
           prompt: `Vraag: ${options.query}
 
 Verzamelde informatie:
