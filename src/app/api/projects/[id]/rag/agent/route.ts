@@ -43,7 +43,7 @@ export async function POST(
     const result = await agent.query({
       projectId,
       query,
-      maxSteps: maxSteps || 5,
+      maxSteps: maxSteps || 10,  // Allow more steps for multi-search + answer
       model: model || 'gpt-4o'
     });
 
