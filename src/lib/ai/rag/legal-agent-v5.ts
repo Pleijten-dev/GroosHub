@@ -62,7 +62,7 @@ export class LegalRAGAgent {
             query: z.string().describe('De zoekterm. Gebruik juridische terminologie zoals "verblijfsgebied", "verblijfsruimte", "woonfunctie".'),
             reasoning: z.string().describe('Waarom zoek je dit? Wat verwacht je te vinden?')
           }),
-          execute: async ({ query, reasoning }) => {
+          execute: async ({ query, reasoning }: { query: string; reasoning: string }) => {
             console.log(`[Legal Agent] Search: "${query}" (${reasoning})`);
             this.reasoning.push(`🔍 Zoeken: "${query}" - ${reasoning}`);
 
@@ -96,7 +96,7 @@ export class LegalRAGAgent {
             confidence: z.enum(['high', 'medium', 'low']).describe('Hoe zeker ben je van dit antwoord?'),
             reasoning: z.string().describe('Waarom is dit het juiste antwoord? Welke bronnen ondersteunen dit?')
           }),
-          execute: async ({ answer, confidence, reasoning }) => {
+          execute: async ({ answer, confidence, reasoning }: { answer: string; confidence: 'high' | 'medium' | 'low'; reasoning: string }) => {
             console.log(`[Legal Agent] Final answer (${confidence} confidence): ${answer.substring(0, 100)}...`);
             this.reasoning.push(`✅ Antwoord (${confidence}): ${reasoning}`);
             return { answer, confidence, reasoning };
@@ -111,10 +111,10 @@ export class LegalRAGAgent {
         maxSteps,
         system: this.getSystemPrompt(),
         prompt: options.query,
-        onStepFinish: (step) => {
-          console.log(`[Legal Agent] Step ${step.stepNumber}: ${step.toolCalls?.length || 0} tool calls`);
-          if (step.text) {
-            console.log(`[Legal Agent] Reasoning: ${step.text.substring(0, 200)}...`);
+        onStepFinish: ({ stepNumber, toolCalls, text }) => {
+          console.log(`[Legal Agent] Step ${stepNumber}: ${toolCalls?.length || 0} tool calls`);
+          if (text) {
+            console.log(`[Legal Agent] Reasoning: ${text.substring(0, 200)}...`);
           }
         }
       });
@@ -122,11 +122,20 @@ export class LegalRAGAgent {
       const executionTimeMs = Date.now() - startTime;
 
       // Extract answer from tool results
-      const answerTool = result.toolResults?.find(tr => tr.toolName === 'provide_answer');
-      const answerData = answerTool?.result as { answer: string; confidence: string; reasoning: string } | undefined;
+      let finalAnswer = result.text || 'Kon geen antwoord vinden.';
+      let confidence: 'high' | 'medium' | 'low' = 'low';
 
-      const finalAnswer = answerData?.answer || result.text || 'Kon geen antwoord vinden.';
-      const confidence = (answerData?.confidence as 'high' | 'medium' | 'low') || 'low';
+      // Check if provide_answer was called
+      if (result.toolResults && result.toolResults.length > 0) {
+        for (const toolResult of result.toolResults) {
+          if (toolResult.toolName === 'provide_answer') {
+            const data = toolResult.result as { answer: string; confidence: 'high' | 'medium' | 'low'; reasoning: string };
+            finalAnswer = data.answer;
+            confidence = data.confidence;
+            break;
+          }
+        }
+      }
 
       console.log(`[Legal Agent] Completed in ${executionTimeMs}ms with ${this.reasoning.length} steps`);
 

@@ -58,7 +58,8 @@ export async function POST(
         chunkText: s.chunkText,
         similarity: s.similarity,
         chunkIndex: s.chunkIndex,
-        metadata: s.metadata
+        pageNumber: s.pageNumber,
+        sectionTitle: s.sectionTitle
       })),
       confidence: result.confidence,
       executionTimeMs: result.executionTimeMs
