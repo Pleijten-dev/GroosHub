@@ -42,6 +42,10 @@ export default function RAGTestPage({ params }: { params: Promise<{ locale: stri
   const [topK, setTopK] = useState(5);
   const [threshold, setThreshold] = useState(0.7);
   const [results, setResults] = useState<RetrievalResult[]>([]);
+  const [agentAnswer, setAgentAnswer] = useState<string>('');
+  const [agentReasoning, setAgentReasoning] = useState<string[]>([]);
+  const [agentSources, setAgentSources] = useState<RetrievalResult[]>([]);
+  const [agentConfidence, setAgentConfidence] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<string>('');
   const [error, setError] = useState<string>('');
@@ -303,7 +307,7 @@ export default function RAGTestPage({ params }: { params: Promise<{ locale: stri
     }
   };
 
-  // Test retrieval
+  // Test standard retrieval
   const handleSearch = async () => {
     if (!query || !selectedProject) {
       setError('Enter a query and select a project');
@@ -337,6 +341,50 @@ export default function RAGTestPage({ params }: { params: Promise<{ locale: stri
       }
     } catch (err) {
       setError('Search failed');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Test agentic retrieval (Phase 4)
+  const handleAgentSearch = async () => {
+    if (!query || !selectedProject) {
+      setError('Enter a query and select a project');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setStatus('Agent reasoning...');
+    setAgentAnswer('');
+    setAgentReasoning([]);
+    setAgentSources([]);
+
+    try {
+      const res = await fetch(`/api/projects/${selectedProject}/rag/agent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query,
+          maxSteps: 5,
+          model: 'gpt-4o'
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setAgentAnswer(data.answer);
+        setAgentReasoning(data.reasoning || []);
+        setAgentSources(data.sources || []);
+        setAgentConfidence(data.confidence);
+        setStatus(`✅ Agent completed in ${data.executionTimeMs}ms (${data.confidence} confidence)`);
+      } else {
+        setError(`Agent failed: ${data.error}`);
+      }
+    } catch (err) {
+      setError('Agent failed');
       console.error(err);
     } finally {
       setLoading(false);
@@ -571,10 +619,71 @@ export default function RAGTestPage({ params }: { params: Promise<{ locale: stri
                 </div>
               </div>
 
-              <Button onClick={handleSearch} disabled={loading || !query} className="w-full">
-                {loading ? text.processing : text.searchBtn}
-              </Button>
+              <div className="grid grid-cols-2 gap-base">
+                <Button onClick={handleSearch} disabled={loading || !query}>
+                  {loading ? text.processing : 'Standard Search'}
+                </Button>
+                <Button onClick={handleAgentSearch} disabled={loading || !query} variant="secondary">
+                  {loading ? 'Agent thinking...' : '🤖 Agent Search (Phase 4)'}
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500 text-center">
+                Standard search uses vector similarity. Agent search uses AI reasoning with query reformulation.
+              </p>
             </div>
+          </Card>
+        )}
+
+        {/* Agent Answer */}
+        {agentAnswer && (
+          <Card className="p-lg bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200">
+            <div className="flex items-start justify-between mb-base">
+              <h2 className="text-2xl font-semibold text-blue-900">
+                🤖 Agent Answer
+              </h2>
+              <span className={`px-sm py-xs rounded text-xs font-medium ${
+                agentConfidence === 'high' ? 'bg-green-100 text-green-800' :
+                agentConfidence === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                'bg-red-100 text-red-800'
+              }`}>
+                {agentConfidence} confidence
+              </span>
+            </div>
+
+            <div className="bg-white p-base rounded border border-blue-200 mb-base">
+              <p className="text-base leading-relaxed whitespace-pre-wrap">{agentAnswer}</p>
+            </div>
+
+            {agentReasoning.length > 0 && (
+              <details className="mt-base">
+                <summary className="cursor-pointer text-sm font-medium text-blue-900 hover:text-blue-700">
+                  Show reasoning steps ({agentReasoning.length})
+                </summary>
+                <div className="mt-sm space-y-sm">
+                  {agentReasoning.map((step, i) => (
+                    <div key={i} className="text-sm p-sm bg-white rounded border border-blue-100">
+                      {step}
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )}
+
+            {agentSources.length > 0 && (
+              <details className="mt-base">
+                <summary className="cursor-pointer text-sm font-medium text-blue-900 hover:text-blue-700">
+                  Show sources ({agentSources.length})
+                </summary>
+                <div className="mt-sm space-y-sm">
+                  {agentSources.map((source, i) => (
+                    <div key={source.id} className="text-sm p-sm bg-white rounded border border-blue-100">
+                      <p className="font-medium">Source {i + 1}: {source.sourceFile}</p>
+                      <p className="text-xs text-gray-600 mt-xs">{source.chunkText.substring(0, 200)}...</p>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )}
           </Card>
         )}
 
