@@ -215,20 +215,36 @@ Genereer nu de zinnen, één per regel:`;
   }
 
   /**
-   * Batch enrich multiple tables
-   * More efficient for documents with many tables
+   * Batch enrich multiple tables with parallel processing
+   * Processes 15 tables concurrently to speed up enrichment
+   *
+   * Performance: 83 tables sequentially = ~415s, parallel (15/batch) = ~30-40s
    */
   async enrichTables(tables: ParsedTable[]): Promise<EnrichedTable[]> {
-    console.log(`[LLM Enricher] Enriching ${tables.length} tables...`);
+    console.log(`[LLM Enricher] Enriching ${tables.length} tables (parallel batches of 15)...`);
 
     const enriched: EnrichedTable[] = [];
+    const BATCH_SIZE = 15; // Process 15 tables concurrently
 
-    for (const table of tables) {
-      const enrichedTable = await this.enrichTable(table);
-      enriched.push(enrichedTable);
+    // Process in batches to avoid rate limits
+    for (let i = 0; i < tables.length; i += BATCH_SIZE) {
+      const batch = tables.slice(i, i + BATCH_SIZE);
 
-      // Small delay to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 100));
+      const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+      const totalBatches = Math.ceil(tables.length / BATCH_SIZE);
+      console.log(`[LLM Enricher] Processing batch ${batchNum}/${totalBatches} (${batch.length} tables, ~${batch.length * 4}s)...`);
+
+      // Process batch in parallel
+      const batchResults = await Promise.all(
+        batch.map(table => this.enrichTable(table))
+      );
+
+      enriched.push(...batchResults);
+
+      // Small delay between batches to avoid rate limiting
+      if (i + BATCH_SIZE < tables.length) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
     }
 
     console.log(`[LLM Enricher] Complete: ${enriched.length} tables enriched`);
