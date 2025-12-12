@@ -7,7 +7,7 @@
  * The agent can reformulate queries, search multiple times, and reason through results.
  */
 
-import { generateText, tool } from 'ai';
+import { generateText, tool, stepCountIs } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { findRelevantContent } from './retriever';
@@ -58,11 +58,11 @@ export class LegalRAGAgent {
           description: 'Zoekt artikelen, tabellen en paragrafen in het Bouwbesluit 2012. ' +
             'Gebruik dit om relevante informatie op te halen. ' +
             'Je kunt meerdere keren zoeken met verschillende zoekvragen.',
-          parameters: z.object({
+          inputSchema: z.object({
             query: z.string().describe('De zoekterm. Gebruik juridische terminologie zoals "verblijfsgebied", "verblijfsruimte", "woonfunctie".'),
             reasoning: z.string().describe('Waarom zoek je dit? Wat verwacht je te vinden?')
           }),
-          execute: async ({ query, reasoning }: { query: string; reasoning: string }) => {
+          execute: async ({ query, reasoning }) => {
             console.log(`[Legal Agent] Search: "${query}" (${reasoning})`);
             this.reasoning.push(`🔍 Zoeken: "${query}" - ${reasoning}`);
 
@@ -91,12 +91,12 @@ export class LegalRAGAgent {
           description: 'Geef het definitieve antwoord op de vraag. ' +
             'Gebruik dit alleen als je voldoende informatie hebt verzameld. ' +
             'Vermeld altijd de exacte artikel- en tabelnummers als bronnen.',
-          parameters: z.object({
+          inputSchema: z.object({
             answer: z.string().describe('Het complete antwoord met bronvermelding (artikel/tabel nummers)'),
             confidence: z.enum(['high', 'medium', 'low']).describe('Hoe zeker ben je van dit antwoord?'),
             reasoning: z.string().describe('Waarom is dit het juiste antwoord? Welke bronnen ondersteunen dit?')
           }),
-          execute: async ({ answer, confidence, reasoning }: { answer: string; confidence: 'high' | 'medium' | 'low'; reasoning: string }) => {
+          execute: async ({ answer, confidence, reasoning }) => {
             console.log(`[Legal Agent] Final answer (${confidence} confidence): ${answer.substring(0, 100)}...`);
             this.reasoning.push(`✅ Antwoord (${confidence}): ${reasoning}`);
             return { answer, confidence, reasoning };
@@ -108,11 +108,11 @@ export class LegalRAGAgent {
       const result = await generateText({
         model: openai(model),
         tools,
-        maxSteps,
+        stopWhen: stepCountIs(maxSteps),
         system: this.getSystemPrompt(),
         prompt: options.query,
-        onStepFinish: ({ stepNumber, toolCalls, text }) => {
-          console.log(`[Legal Agent] Step ${stepNumber}: ${toolCalls?.length || 0} tool calls`);
+        onStepFinish: ({ toolCalls, text }) => {
+          console.log(`[Legal Agent] Step completed: ${toolCalls?.length || 0} tool calls`);
           if (text) {
             console.log(`[Legal Agent] Reasoning: ${text.substring(0, 200)}...`);
           }
@@ -129,7 +129,8 @@ export class LegalRAGAgent {
       if (result.toolResults && result.toolResults.length > 0) {
         for (const toolResult of result.toolResults) {
           if (toolResult.toolName === 'provide_answer') {
-            const data = toolResult.result as { answer: string; confidence: 'high' | 'medium' | 'low'; reasoning: string };
+            // Tool result structure: toolResult.output contains the return value from execute
+            const data = toolResult.output as { answer: string; confidence: 'high' | 'medium' | 'low'; reasoning: string };
             finalAnswer = data.answer;
             confidence = data.confidence;
             break;
