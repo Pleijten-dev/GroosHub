@@ -306,3 +306,29 @@ export async function updateFileEmbeddingStatus(
     `;
   }
 }
+
+/**
+ * Get list of unique source files for a project
+ * Used by query classifier to understand what documents are available
+ */
+export async function getProjectSourceFiles(projectId: string): Promise<Array<{
+  sourceFile: string;
+  chunkCount: number;
+}>> {
+  const db = getDbConnection();
+
+  const result = await db`
+    SELECT
+      source_file as "sourceFile",
+      COUNT(*)::int as "chunkCount"
+    FROM project_doc_chunks
+    WHERE project_id = ${projectId}
+    GROUP BY source_file
+    ORDER BY source_file ASC
+  `;
+
+  return result as Array<{
+    sourceFile: string;
+    chunkCount: number;
+  }>;
+}
