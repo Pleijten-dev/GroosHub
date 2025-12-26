@@ -59,6 +59,32 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
   // Lightbox state
   const [lightboxImage, setLightboxImage] = useState<{ url: string | URL; fileName?: string } | null>(null);
 
+  // RAG mode state
+  const [isRagEnabled, setIsRagEnabled] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [userProjects, setUserProjects] = useState<Array<{ id: string; name: string }>>([]);
+  const [isRagLoading, setIsRagLoading] = useState(false);
+
+  // Fetch user projects for RAG mode
+  useEffect(() => {
+    async function fetchProjects() {
+      try {
+        const response = await fetch('/api/projects');
+        const data = await response.json();
+        if (response.ok && data.projects) {
+          setUserProjects(data.projects);
+          // Auto-select first project if available
+          if (data.projects.length > 0 && !selectedProjectId) {
+            setSelectedProjectId(data.projects[0].id);
+          }
+        }
+      } catch (error) {
+        console.error('[ChatUI] Failed to fetch projects:', error);
+      }
+    }
+    fetchProjects();
+  }, []);
+
   // Sync currentChatId with chatId prop, or create new one
   useEffect(() => {
     if (chatId) {
@@ -161,7 +187,7 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
   }, [status, messages.length, setMessages]);
 
   // Compute loading state from status
-  const isLoading = status === 'submitted' || status === 'streaming';
+  const isLoading = status === 'submitted' || status === 'streaming' || isRagLoading;
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -189,10 +215,100 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [input, isLoading, stop]);
 
+  // Handle RAG query
+  const handleRagQuery = async (query: string) => {
+    if (!selectedProjectId) {
+      console.error('[ChatUI] No project selected for RAG');
+      return;
+    }
+
+    setIsRagLoading(true);
+
+    try {
+      // Add user message to chat immediately
+      const userMessage: UIMessage = {
+        id: crypto.randomUUID(),
+        role: 'user',
+        parts: [{ type: 'text', text: query }],
+        createdAt: new Date(),
+      };
+      setMessages([...messages, userMessage]);
+
+      // Call agent endpoint
+      const response = await fetch(`/api/projects/${selectedProjectId}/rag/agent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query,
+          maxSteps: 10,
+          model: 'gpt-4o',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Agent query failed');
+      }
+
+      // Format agent response with reasoning and sources
+      let responseText = `**${data.answer}**\n\n`;
+
+      if (data.reasoning && data.reasoning.length > 0) {
+        responseText += `**Redenering:**\n${data.reasoning.join('\n')}\n\n`;
+      }
+
+      if (data.sources && data.sources.length > 0) {
+        responseText += `**Bronnen (${data.sources.length}):**\n`;
+        data.sources.forEach((source: any, i: number) => {
+          responseText += `${i + 1}. ${source.sourceFile} (chunk ${source.chunkIndex})\n`;
+        });
+      }
+
+      responseText += `\n*Confidence: ${data.confidence}*`;
+
+      // Add assistant message with RAG metadata
+      const assistantMessage: UIMessage = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        parts: [{ type: 'text', text: responseText }],
+        createdAt: new Date(),
+        metadata: {
+          ragSources: data.sources || [],
+          confidence: data.confidence,
+          reasoning: data.reasoning || [],
+        },
+      };
+      setMessages([...messages, userMessage, assistantMessage]);
+    } catch (error) {
+      console.error('[ChatUI] RAG query failed:', error);
+      const errorMessage: UIMessage = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        parts: [{ type: 'text', text: `Error: ${error instanceof Error ? error.message : 'RAG query failed'}` }],
+        createdAt: new Date(),
+      };
+      setMessages([...messages, errorMessage]);
+    } finally {
+      setIsRagLoading(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || isRagLoading) return;
 
+    const queryText = input;
+    setInput(''); // Clear input immediately
+    setUploadedFiles([]); // Clear uploaded files
+
+    // If RAG is enabled, use agent endpoint
+    if (isRagEnabled) {
+      handleRagQuery(queryText);
+      return;
+    }
+
+    // Otherwise, use normal chat
     // chatId is already generated in useEffect above
     if (!currentChatIdRef.current) {
       console.error('[ChatUI] No chatId available, this should not happen');
@@ -201,7 +317,7 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
 
     // Send message with chatId, modelId, locale, and fileIds in metadata
     sendMessage({
-      text: input,
+      text: queryText,
       metadata: {
         chatId: currentChatIdRef.current,
         modelId: selectedModel,
@@ -209,8 +325,6 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
         fileIds: uploadedFiles.map(f => f.id), // Add file IDs
       },
     });
-    setInput('');
-    setUploadedFiles([]); // Clear uploaded files after sending
   };
 
   // File upload handlers
@@ -228,6 +342,11 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
     nl: {
       title: 'AI Assistent',
       modelLabel: 'Model',
+      ragLabel: 'RAG Modus',
+      projectLabel: 'Project',
+      ragOn: 'AAN',
+      ragOff: 'UIT',
+      noProjects: 'Geen projecten',
       inputPlaceholder: 'Typ je bericht...',
       sendButton: 'Versturen',
       stopButton: 'Stop',
@@ -240,6 +359,11 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
     en: {
       title: 'AI Assistant',
       modelLabel: 'Model',
+      ragLabel: 'RAG Mode',
+      projectLabel: 'Project',
+      ragOn: 'ON',
+      ragOff: 'OFF',
+      noProjects: 'No projects',
       inputPlaceholder: 'Type your message...',
       sendButton: 'Send',
       stopButton: 'Stop',
@@ -331,28 +455,84 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-900">{t.title}</h1>
 
-          {/* Model Selector */}
-          <div className="flex items-center gap-sm">
-            <label htmlFor="model-select" className="text-sm font-medium text-gray-700">
-              {t.modelLabel}:
-            </label>
-            <select
-              id="model-select"
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value as ModelId)}
-              disabled={isLoading}
-              className={cn(
-                'px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm',
-                'focus:outline-none focus:ring-2 focus:ring-blue-500',
-                'disabled:bg-gray-100 disabled:cursor-not-allowed'
-              )}
-            >
-              {availableModels.map((modelId) => (
-                <option key={modelId} value={modelId}>
-                  {modelId}
-                </option>
-              ))}
-            </select>
+          {/* Controls */}
+          <div className="flex items-center gap-base">
+            {/* RAG Toggle */}
+            <div className="flex items-center gap-sm">
+              <label className="text-sm font-medium text-gray-700">
+                {t.ragLabel}:
+              </label>
+              <button
+                onClick={() => setIsRagEnabled(!isRagEnabled)}
+                disabled={isLoading || isRagLoading}
+                className={cn(
+                  'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
+                  'focus:outline-none focus:ring-2 focus:ring-blue-500',
+                  'disabled:opacity-50 disabled:cursor-not-allowed',
+                  isRagEnabled
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                )}
+              >
+                {isRagEnabled ? t.ragOn : t.ragOff}
+              </button>
+            </div>
+
+            {/* Project Selector - Only shown when RAG is enabled */}
+            {isRagEnabled && (
+              <div className="flex items-center gap-sm">
+                <label htmlFor="project-select" className="text-sm font-medium text-gray-700">
+                  {t.projectLabel}:
+                </label>
+                <select
+                  id="project-select"
+                  value={selectedProjectId}
+                  onChange={(e) => setSelectedProjectId(e.target.value)}
+                  disabled={isLoading || isRagLoading}
+                  className={cn(
+                    'px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm',
+                    'focus:outline-none focus:ring-2 focus:ring-blue-500',
+                    'disabled:bg-gray-100 disabled:cursor-not-allowed'
+                  )}
+                >
+                  {userProjects.length === 0 ? (
+                    <option value="">{t.noProjects}</option>
+                  ) : (
+                    userProjects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+            )}
+
+            {/* Model Selector - Only shown when RAG is disabled */}
+            {!isRagEnabled && (
+              <div className="flex items-center gap-sm">
+                <label htmlFor="model-select" className="text-sm font-medium text-gray-700">
+                  {t.modelLabel}:
+                </label>
+                <select
+                  id="model-select"
+                  value={selectedModel}
+                  onChange={(e) => setSelectedModel(e.target.value as ModelId)}
+                  disabled={isLoading}
+                  className={cn(
+                    'px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm',
+                    'focus:outline-none focus:ring-2 focus:ring-blue-500',
+                    'disabled:bg-gray-100 disabled:cursor-not-allowed'
+                  )}
+                >
+                  {availableModels.map((modelId) => (
+                    <option key={modelId} value={modelId}>
+                      {modelId}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         </div>
       </div>
