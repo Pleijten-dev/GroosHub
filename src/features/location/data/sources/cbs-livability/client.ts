@@ -2,10 +2,21 @@
 
 /**
  * CBS Livability API Client
- * Dataset: 85146NED (Leefervaring en voorzieningen)
+ * Dataset: 85146NED (Veiligheidsmonitor - Safety Monitor)
  *
- * This client fetches livability data at municipality level
+ * This client fetches livability perception data at municipality level
+ * Includes safety perception, crime victimization, and livability questions
+ *
+ * Supports historic data from 2021, 2023
+ * Note: 2021 not easily comparable with earlier editions due to questionnaire changes
  */
+
+import {
+  LIVABILITY_DATASET,
+  getLivabilityAvailableYears,
+  isLivabilityYearAvailable,
+  getLivabilityPeriodCode
+} from '../historic-datasets';
 
 export type FetchedData = Record<string, unknown>;
 
@@ -19,11 +30,22 @@ export interface CBSLivabilityResponse {
   level: GeographicLevel;
   data: FetchedData;
   fetchedAt: Date;
+  year?: number;  // Year of the data (for historic data)
 }
 
 export interface CBSLivabilityMultiLevelResponse {
   national: CBSLivabilityResponse | null;
   municipality: CBSLivabilityResponse | null;
+}
+
+export interface CBSLivabilityHistoricResponse {
+  year: number;
+  period: string;
+  data: CBSLivabilityMultiLevelResponse;
+}
+
+export interface GeographicCodes {
+  municipality: string;
 }
 
 export class CBSLivabilityClient {
@@ -167,5 +189,161 @@ export class CBSLivabilityClient {
       console.error('Error fetching available metrics:', error);
       return [];
     }
+  }
+
+  // =============================================================================
+  // HISTORIC DATA METHODS
+  // =============================================================================
+
+  /**
+   * Fetch historic livability data for multiple years
+   *
+   * @param codes - Geographic codes (municipality only)
+   * @param years - Array of years to fetch (available: 2021, 2023)
+   * @param options - Fetch options
+   * @returns Map of year to multi-level response
+   *
+   * @example
+   * ```typescript
+   * const client = new CBSLivabilityClient();
+   * const historic = await client.fetchHistoricData(
+   *   { municipality: 'GM0363' },
+   *   [2021, 2023]
+   * );
+   * ```
+   *
+   * @warning 2021 results cannot be easily compared with earlier editions due to
+   *          questionnaire and research design changes
+   */
+  async fetchHistoricData(
+    codes: GeographicCodes,
+    years?: number[],  // Optional: if not provided, fetch all available years
+    options?: {
+      onProgress?: (current: number, total: number, year: number) => void;
+      rateLimitDelay?: number;  // Delay between requests in ms (default: 200)
+    }
+  ): Promise<Map<number, CBSLivabilityHistoricResponse>> {
+    const results = new Map<number, CBSLivabilityHistoricResponse>();
+    const rateLimitDelay = options?.rateLimitDelay ?? 200;
+
+    // Use provided years or all available years
+    const targetYears = years || getLivabilityAvailableYears();
+
+    console.log(`🟣 [CBS Livability Historic] Fetching ${targetYears.length} years: ${targetYears.join(', ')}`);
+
+    // Validate years
+    const validYears = targetYears.filter(year => {
+      const isValid = isLivabilityYearAvailable(year);
+      if (!isValid) {
+        console.warn(`⚠️ [CBS Livability Historic] Data not available for year ${year}`);
+        console.warn(`⚠️ [CBS Livability Historic] Available years: ${getLivabilityAvailableYears().join(', ')}`);
+      }
+      return isValid;
+    });
+
+    if (validYears.length === 0) {
+      console.error('❌ [CBS Livability Historic] No valid years to fetch');
+      return results;
+    }
+
+    // Show warning about 2021 comparability
+    if (validYears.includes(2021) && validYears.length > 1) {
+      console.warn('⚠️ [CBS Livability Historic] Warning: ' + LIVABILITY_DATASET.warning);
+    }
+
+    // Fetch each year sequentially to avoid rate limiting
+    for (let i = 0; i < validYears.length; i++) {
+      const year = validYears[i];
+      const periodCode = getLivabilityPeriodCode(year);
+
+      if (!periodCode) {
+        console.warn(`⚠️ [CBS Livability Historic] No period code for year ${year}`);
+        continue;
+      }
+
+      try {
+        console.log(`🟣 [CBS Livability Historic] Fetching year ${year} (${i + 1}/${validYears.length})`);
+
+        // Fetch multi-level data for this year
+        const data = await this.fetchMultiLevel(
+          codes.municipality,
+          periodCode
+        );
+
+        // Add year metadata to each response
+        const enrichData = (response: CBSLivabilityResponse | null): CBSLivabilityResponse | null => {
+          if (!response) return null;
+          return {
+            ...response,
+            year
+          };
+        };
+
+        results.set(year, {
+          year,
+          period: periodCode,
+          data: {
+            national: enrichData(data.national),
+            municipality: enrichData(data.municipality)
+          }
+        });
+
+        console.log(`✅ [CBS Livability Historic] Successfully fetched year ${year}`);
+
+        // Report progress
+        if (options?.onProgress) {
+          options.onProgress(i + 1, validYears.length, year);
+        }
+
+        // Rate limiting: wait before next request
+        if (i < validYears.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, rateLimitDelay));
+        }
+
+      } catch (error) {
+        console.error(`❌ [CBS Livability Historic] Failed to fetch year ${year}:`, error);
+        // Continue with next year instead of failing entirely
+      }
+    }
+
+    console.log(`🟣 [CBS Livability Historic] Completed: ${results.size}/${validYears.length} years fetched`);
+
+    return results;
+  }
+
+  /**
+   * Fetch historic livability data for a single year
+   *
+   * @param codes - Geographic codes
+   * @param year - Year to fetch
+   * @returns Historic response or null if not available
+   */
+  async fetchHistoricYear(
+    codes: GeographicCodes,
+    year: number
+  ): Promise<CBSLivabilityHistoricResponse | null> {
+    const results = await this.fetchHistoricData(codes, [year]);
+    return results.get(year) || null;
+  }
+
+  /**
+   * Get all available years for livability data
+   */
+  static getAvailableYears(): number[] {
+    return getLivabilityAvailableYears();
+  }
+
+  /**
+   * Check if livability data is available for a specific year
+   */
+  static isYearAvailable(year: number): boolean {
+    return isLivabilityYearAvailable(year);
+  }
+
+  /**
+   * Get period code for a specific year
+   */
+  static getPeriodCode(year: number): string | null {
+    return getLivabilityPeriodCode(year);
   }
 }

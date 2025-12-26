@@ -6,7 +6,16 @@
  *
  * This client fetches safety/crime data at district and neighborhood levels
  * Returns crime statistics by type of crime (SoortMisdrijf)
+ *
+ * Supports historic data from 2012-2024 (annual crime statistics)
  */
+
+import {
+  SAFETY_DATASET,
+  getSafetyAvailableYears,
+  isSafetyYearAvailable,
+  getSafetyPeriodCode
+} from '../historic-datasets';
 
 export type FetchedData = Record<string, unknown>;
 
@@ -26,6 +35,7 @@ export interface PolitieSafetyResponse {
   level: GeographicLevel;
   data: SafetyDataRemapped;
   fetchedAt: Date;
+  year?: number;  // Year of the data (for historic data)
 }
 
 export interface PolitieSafetyMultiLevelResponse {
@@ -33,6 +43,18 @@ export interface PolitieSafetyMultiLevelResponse {
   municipality: PolitieSafetyResponse | null;
   district: PolitieSafetyResponse | null;
   neighborhood: PolitieSafetyResponse | null;
+}
+
+export interface PolitieSafetyHistoricResponse {
+  year: number;
+  period: string;
+  data: PolitieSafetyMultiLevelResponse;
+}
+
+export interface GeographicCodes {
+  municipality: string;
+  district: string | null;
+  neighborhood: string | null;
 }
 
 interface VeiligheidRow {
@@ -204,5 +226,157 @@ export class PolitieSafetyClient {
       console.error('Error fetching available crime types:', error);
       return [];
     }
+  }
+
+  // =============================================================================
+  // HISTORIC DATA METHODS
+  // =============================================================================
+
+  /**
+   * Fetch historic safety/crime data for multiple years
+   *
+   * @param codes - Geographic codes (municipality, district, neighborhood)
+   * @param years - Array of years to fetch (available: 2012-2024)
+   * @param options - Fetch options
+   * @returns Map of year to multi-level response
+   *
+   * @example
+   * ```typescript
+   * const client = new PolitieSafetyClient();
+   * const historic = await client.fetchHistoricData(
+   *   { municipality: 'GM0363', district: 'WK036300', neighborhood: null },
+   *   [2020, 2021, 2022, 2023, 2024]
+   * );
+   * ```
+   */
+  async fetchHistoricData(
+    codes: GeographicCodes,
+    years?: number[],  // Optional: if not provided, fetch all available years
+    options?: {
+      onProgress?: (current: number, total: number, year: number) => void;
+      rateLimitDelay?: number;  // Delay between requests in ms (default: 200)
+    }
+  ): Promise<Map<number, PolitieSafetyHistoricResponse>> {
+    const results = new Map<number, PolitieSafetyHistoricResponse>();
+    const rateLimitDelay = options?.rateLimitDelay ?? 200;
+
+    // Use provided years or all available years
+    const targetYears = years || getSafetyAvailableYears();
+
+    console.log(`🔴 [Politie Safety Historic] Fetching ${targetYears.length} years: ${targetYears.join(', ')}`);
+
+    // Validate years
+    const validYears = targetYears.filter(year => {
+      const isValid = isSafetyYearAvailable(year);
+      if (!isValid) {
+        console.warn(`⚠️ [Politie Safety Historic] Data not available for year ${year}`);
+        console.warn(`⚠️ [Politie Safety Historic] Available: ${SAFETY_DATASET.yearRange.start}-${SAFETY_DATASET.yearRange.end}`);
+      }
+      return isValid;
+    });
+
+    if (validYears.length === 0) {
+      console.error('❌ [Politie Safety Historic] No valid years to fetch');
+      return results;
+    }
+
+    // Fetch each year sequentially to avoid rate limiting
+    for (let i = 0; i < validYears.length; i++) {
+      const year = validYears[i];
+      const periodCode = getSafetyPeriodCode(year);
+
+      if (!periodCode) {
+        console.warn(`⚠️ [Politie Safety Historic] No period code for year ${year}`);
+        continue;
+      }
+
+      try {
+        console.log(`🔴 [Politie Safety Historic] Fetching year ${year} (${i + 1}/${validYears.length})`);
+
+        // Fetch multi-level data for this year
+        const data = await this.fetchMultiLevel(
+          codes.municipality,
+          codes.district,
+          codes.neighborhood,
+          periodCode
+        );
+
+        // Add year metadata to each response
+        const enrichData = (response: PolitieSafetyResponse | null): PolitieSafetyResponse | null => {
+          if (!response) return null;
+          return {
+            ...response,
+            year
+          };
+        };
+
+        results.set(year, {
+          year,
+          period: periodCode,
+          data: {
+            national: enrichData(data.national),
+            municipality: enrichData(data.municipality),
+            district: enrichData(data.district),
+            neighborhood: enrichData(data.neighborhood)
+          }
+        });
+
+        console.log(`✅ [Politie Safety Historic] Successfully fetched year ${year}`);
+
+        // Report progress
+        if (options?.onProgress) {
+          options.onProgress(i + 1, validYears.length, year);
+        }
+
+        // Rate limiting: wait before next request
+        if (i < validYears.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, rateLimitDelay));
+        }
+
+      } catch (error) {
+        console.error(`❌ [Politie Safety Historic] Failed to fetch year ${year}:`, error);
+        // Continue with next year instead of failing entirely
+      }
+    }
+
+    console.log(`🔴 [Politie Safety Historic] Completed: ${results.size}/${validYears.length} years fetched`);
+
+    return results;
+  }
+
+  /**
+   * Fetch historic safety data for a single year
+   *
+   * @param codes - Geographic codes
+   * @param year - Year to fetch
+   * @returns Historic response or null if not available
+   */
+  async fetchHistoricYear(
+    codes: GeographicCodes,
+    year: number
+  ): Promise<PolitieSafetyHistoricResponse | null> {
+    const results = await this.fetchHistoricData(codes, [year]);
+    return results.get(year) || null;
+  }
+
+  /**
+   * Get all available years for safety data
+   */
+  static getAvailableYears(): number[] {
+    return getSafetyAvailableYears();
+  }
+
+  /**
+   * Check if safety data is available for a specific year
+   */
+  static isYearAvailable(year: number): boolean {
+    return isSafetyYearAvailable(year);
+  }
+
+  /**
+   * Get period code for a specific year
+   */
+  static getPeriodCode(year: number): string | null {
+    return getSafetyPeriodCode(year);
   }
 }
