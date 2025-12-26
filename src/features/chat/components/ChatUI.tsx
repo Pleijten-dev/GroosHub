@@ -215,115 +215,85 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [input, isLoading, stop]);
 
-  // Handle RAG query
-  const handleRagQuery = async (query: string) => {
-    if (!selectedProjectId) {
-      console.error('[ChatUI] No project selected for RAG');
-      return;
-    }
-
-    setIsRagLoading(true);
-
-    try {
-      // Add user message to chat immediately
-      const userMessage: UIMessage = {
-        id: crypto.randomUUID(),
-        role: 'user',
-        parts: [{ type: 'text', text: query }],
-        createdAt: new Date(),
-      };
-      setMessages([...messages, userMessage]);
-
-      // Call agent endpoint
-      const response = await fetch(`/api/projects/${selectedProjectId}/rag/agent`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query,
-          maxSteps: 10,
-          model: 'gpt-4o',
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Agent query failed');
-      }
-
-      // Format agent response with reasoning and sources
-      let responseText = `**${data.answer}**\n\n`;
-
-      if (data.reasoning && data.reasoning.length > 0) {
-        responseText += `**Redenering:**\n${data.reasoning.join('\n')}\n\n`;
-      }
-
-      if (data.sources && data.sources.length > 0) {
-        responseText += `**Bronnen (${data.sources.length}):**\n`;
-        data.sources.forEach((source: any, i: number) => {
-          responseText += `${i + 1}. ${source.sourceFile} (chunk ${source.chunkIndex})\n`;
-        });
-      }
-
-      responseText += `\n*Confidence: ${data.confidence}*`;
-
-      // Add assistant message with RAG metadata
-      const assistantMessage: UIMessage = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        parts: [{ type: 'text', text: responseText }],
-        createdAt: new Date(),
-        metadata: {
-          ragSources: data.sources || [],
-          confidence: data.confidence,
-          reasoning: data.reasoning || [],
-        },
-      };
-      setMessages([...messages, userMessage, assistantMessage]);
-    } catch (error) {
-      console.error('[ChatUI] RAG query failed:', error);
-      const errorMessage: UIMessage = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        parts: [{ type: 'text', text: `Error: ${error instanceof Error ? error.message : 'RAG query failed'}` }],
-        createdAt: new Date(),
-      };
-      setMessages([...messages, errorMessage]);
-    } finally {
-      setIsRagLoading(false);
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  // Handle RAG-augmented query
+  // First searches project docs, then proceeds with normal chat (preserving all features)
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading || isRagLoading) return;
 
     const queryText = input;
     setInput(''); // Clear input immediately
+    const currentFiles = [...uploadedFiles];
     setUploadedFiles([]); // Clear uploaded files
 
-    // If RAG is enabled, use agent endpoint
-    if (isRagEnabled) {
-      handleRagQuery(queryText);
-      return;
-    }
-
-    // Otherwise, use normal chat
-    // chatId is already generated in useEffect above
     if (!currentChatIdRef.current) {
-      console.error('[ChatUI] No chatId available, this should not happen');
+      console.error('[ChatUI] No chatId available');
       return;
     }
 
-    // Send message with chatId, modelId, locale, and fileIds in metadata
+    // Build base metadata
+    const baseMetadata: any = {
+      chatId: currentChatIdRef.current,
+      modelId: selectedModel,
+      locale: locale,
+      fileIds: currentFiles.map(f => f.id),
+    };
+
+    // If RAG is enabled and project is selected, search docs first
+    if (isRagEnabled && selectedProjectId) {
+      setIsRagLoading(true);
+
+      try {
+        console.log('[ChatUI] RAG Mode: Searching project documents before chat...');
+        const ragResponse = await fetch(`/api/projects/${selectedProjectId}/rag/agent`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: queryText,
+            maxSteps: 10,
+            model: 'gpt-4o',
+          }),
+        });
+
+        if (ragResponse.ok) {
+          const ragData = await ragResponse.json();
+
+          // Check if agent found useful information
+          const hasGoodAnswer = ragData.confidence !== 'low' &&
+                               ragData.sources &&
+                               ragData.sources.length > 0;
+
+          if (hasGoodAnswer) {
+            // Inject RAG context into chat metadata
+            console.log(`[ChatUI] ✅ RAG found ${ragData.sources.length} sources (${ragData.confidence} confidence) - injecting into chat`);
+
+            baseMetadata.ragContext = {
+              answer: ragData.answer,
+              sources: ragData.sources.slice(0, 5).map((s: any) => ({
+                file: s.sourceFile,
+                text: s.chunkText?.substring(0, 500)
+              })),
+              confidence: ragData.confidence,
+            };
+
+            baseMetadata.ragSources = ragData.sources; // For display in UI
+          } else {
+            console.log('[ChatUI] ⚠️ RAG found no good answer - proceeding with normal chat');
+          }
+        }
+      } catch (error) {
+        console.error('[ChatUI] ⚠️ RAG search failed, proceeding with normal chat:', error);
+        // Continue to normal chat even if RAG fails
+      } finally {
+        setIsRagLoading(false);
+      }
+    }
+
+    // Always proceed with normal chat (with or without RAG context)
+    // This preserves streaming, memory, tool calling, and all existing features
     sendMessage({
       text: queryText,
-      metadata: {
-        chatId: currentChatIdRef.current,
-        modelId: selectedModel,
-        locale: locale,
-        fileIds: uploadedFiles.map(f => f.id), // Add file IDs
-      },
+      metadata: baseMetadata,
     });
   };
 
