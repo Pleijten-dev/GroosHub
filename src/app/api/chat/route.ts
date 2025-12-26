@@ -426,9 +426,50 @@ export async function POST(request: NextRequest) {
       // Continue without memory if there's an error
     }
 
-    // RAG System: Retrieve relevant chunks from project documents
+    // RAG System: Two modes
+    // 1. Phase 4 Agent RAG (from metadata.ragContext) - Priority
+    // 2. Legacy project-based RAG (from existingChat.project_id) - Fallback
     let retrievedChunks: RetrievedChunk[] = [];
-    if (existingChat && existingChat.project_id) {
+
+    // Check for Phase 4 Agent RAG context in metadata
+    const agentRagContext = messageMetadata.ragContext || rootMetadata.ragContext;
+
+    if (agentRagContext && agentRagContext.answer && agentRagContext.sources) {
+      // Phase 4 Agent RAG: Use pre-processed agent results
+      console.log(`[Chat API] 🤖 Using Phase 4 Agent RAG (confidence: ${agentRagContext.confidence})`);
+      console.log(`[Chat API] 📚 Agent found ${agentRagContext.sources.length} sources`);
+
+      // Build RAG context from agent results
+      let ragContext = '\n\n---\n\nRELEVANT CONTEXT FROM PROJECT DOCUMENTS (Agent RAG):\n\n';
+      ragContext += `Agent Analysis (${agentRagContext.confidence} confidence):\n${agentRagContext.answer}\n\n`;
+      ragContext += 'Supporting Sources:\n';
+
+      agentRagContext.sources.forEach((source: any, i: number) => {
+        ragContext += `[Source ${i + 1}: ${source.file}]\n`;
+        ragContext += `${source.text}\n\n`;
+      });
+
+      ragContext += '---\n\n';
+      ragContext += 'INSTRUCTIONS FOR USING PROJECT DOCUMENTS:\n';
+      ragContext += '- The agent has already analyzed the project documents and provided an answer above\n';
+      ragContext += '- Use the agent\'s analysis and sources to inform your response\n';
+      ragContext += '- You can elaborate on the agent\'s answer or provide additional context\n';
+      ragContext += '- Cite sources using [Source N] notation\n';
+      ragContext += '- If the user asks a different question, you can still use other knowledge and tools\n\n';
+
+      // Inject Agent RAG context into system prompt
+      systemPrompt = systemPrompt + ragContext;
+
+      console.log(`[Chat API] 📝 Enhanced system prompt with Agent RAG context`);
+
+      // Store sources for metadata (use ragSources from metadata if available)
+      if (messageMetadata.ragSources || rootMetadata.ragSources) {
+        retrievedChunks = (messageMetadata.ragSources || rootMetadata.ragSources) as RetrievedChunk[];
+        console.log(`[Chat API] 💾 Stored ${retrievedChunks.length} full RAG sources for message metadata`);
+      }
+
+    } else if (existingChat && existingChat.project_id) {
+      // Legacy project-based RAG: Fall back to old system
       try {
         // Check if project has any embedded documents
         const chunkCount = await getChunkCountByProjectId(existingChat.project_id);
@@ -496,6 +537,8 @@ export async function POST(request: NextRequest) {
         console.error('[Chat API] ⚠️  RAG retrieval failed:', error);
         // Continue without RAG if there's an error
       }
+    } else {
+      console.log(`[Chat API] ℹ️  No RAG context available (neither Agent RAG nor project-based RAG)`);
     }
 
     const messagesWithSystem: UIMessage[] = [
