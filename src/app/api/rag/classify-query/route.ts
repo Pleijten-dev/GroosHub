@@ -48,12 +48,19 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Build document context from actual files
+    // Build rich document context from actual files with metadata
     const documentContext = sourceFiles
-      .map(f => `- ${f.sourceFile} (${f.chunkCount} chunks)`)
-      .join('\n');
+      .map(f => {
+        let desc = `- ${f.sourceFile} (${f.chunkCount} chunks)`;
+        if (f.documentType) desc += `\n  Type: ${f.documentType}`;
+        if (f.summary) desc += `\n  Summary: ${f.summary}`;
+        if (f.topics && f.topics.length > 0) desc += `\n  Topics: ${f.topics.join(', ')}`;
+        if (f.keyConcepts && f.keyConcepts.length > 0) desc += `\n  Key concepts: ${f.keyConcepts.slice(0, 5).join(', ')}`;
+        return desc;
+      })
+      .join('\n\n');
 
-    console.log(`[Query Classifier] Project has ${sourceFiles.length} document(s):\n${documentContext}`);
+    console.log(`[Query Classifier] Project has ${sourceFiles.length} document(s) with metadata:\n${documentContext}`);
 
     // 4. Use cheap model to classify with project-specific context
     // GPT-4o-mini is 60x cheaper than GPT-4o and very fast

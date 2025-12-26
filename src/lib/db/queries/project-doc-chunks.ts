@@ -308,27 +308,48 @@ export async function updateFileEmbeddingStatus(
 }
 
 /**
- * Get list of unique source files for a project
+ * Get list of unique source files for a project with rich metadata
  * Used by query classifier to understand what documents are available
  */
 export async function getProjectSourceFiles(projectId: string): Promise<Array<{
   sourceFile: string;
   chunkCount: number;
+  summary?: string;
+  topics?: string[];
+  documentType?: string;
+  keyConcepts?: string[];
 }>> {
   const db = getDbConnection();
 
   const result = await db`
     SELECT
-      source_file as "sourceFile",
-      COUNT(*)::int as "chunkCount"
-    FROM project_doc_chunks
-    WHERE project_id = ${projectId}
-    GROUP BY source_file
-    ORDER BY source_file ASC
+      c.source_file as "sourceFile",
+      COUNT(*)::int as "chunkCount",
+      f.metadata->>'summary' as "summary",
+      f.metadata->'topics' as "topics",
+      f.metadata->>'documentType' as "documentType",
+      f.metadata->'keyConcepts' as "keyConcepts"
+    FROM project_doc_chunks c
+    LEFT JOIN file_uploads f ON f.filename = c.source_file AND f.project_id = c.project_id
+    WHERE c.project_id = ${projectId}
+    GROUP BY c.source_file, f.metadata
+    ORDER BY c.source_file ASC
   `;
 
-  return result as Array<{
+  // Parse JSON fields
+  return result.map((row: any) => ({
+    sourceFile: row.sourceFile,
+    chunkCount: row.chunkCount,
+    summary: row.summary || undefined,
+    topics: row.topics ? JSON.parse(row.topics) : undefined,
+    documentType: row.documentType || undefined,
+    keyConcepts: row.keyConcepts ? JSON.parse(row.keyConcepts) : undefined,
+  })) as Array<{
     sourceFile: string;
     chunkCount: number;
+    summary?: string;
+    topics?: string[];
+    documentType?: string;
+    keyConcepts?: string[];
   }>;
 }

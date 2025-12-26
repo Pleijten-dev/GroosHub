@@ -11,6 +11,7 @@
 
 import { TextExtractor } from './text-extractor';
 import { TextChunker, type TextChunk } from './text-chunker';
+import { DocumentMetadataGenerator, type DocumentMetadata } from './document-metadata-generator';
 import { getFileBuffer } from '@/lib/storage/r2-client';
 
 export interface ProcessedDocument {
@@ -24,11 +25,13 @@ export interface ProcessedDocument {
     extractionMethod?: string;
     warnings?: string[];
   };
+  documentMetadata?: DocumentMetadata; // Rich metadata for classification
 }
 
 export class DocumentProcessor {
   private extractor = new TextExtractor();
   private chunker = new TextChunker();
+  private metadataGenerator = new DocumentMetadataGenerator();
 
   /**
    * Process a file: download → extract text → chunk → return chunks
@@ -92,6 +95,9 @@ export class DocumentProcessor {
         `min ${stats.minTokens}, max ${stats.maxTokens})`
       );
 
+      // Step 5: Generate document metadata for classification
+      const documentMetadata = await this.metadataGenerator.generate(filename, chunks);
+
       return {
         fileId,
         filename,
@@ -102,7 +108,8 @@ export class DocumentProcessor {
           chunkCount: chunks.length,
           extractionMethod: extracted.metadata.extractionMethod,
           warnings: extracted.metadata.warnings
-        }
+        },
+        documentMetadata
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';

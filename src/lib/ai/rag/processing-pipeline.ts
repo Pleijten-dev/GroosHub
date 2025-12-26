@@ -163,17 +163,31 @@ export async function processFile(options: ProcessFileOptions): Promise<Processi
     // Step 4: Insert into database
     await insertChunks(chunksToInsert);
 
-    // Step 5: Update file upload record
+    // Step 5: Update file upload record with document metadata
     const db = getDbConnection();
+
+    // Prepare document metadata for storage
+    const documentMetadata = processed.documentMetadata || {
+      summary: `Document: ${filename}`,
+      topics: [],
+      documentType: 'Unknown',
+      keyConcepts: [],
+      language: 'nl',
+      generatedAt: new Date().toISOString()
+    };
+
     await db`
       UPDATE file_uploads
       SET
         embedding_status = 'completed',
         chunk_count = ${processed.chunks.length},
         embedded_at = NOW(),
-        updated_at = NOW()
+        updated_at = NOW(),
+        metadata = ${JSON.stringify(documentMetadata)}::jsonb
       WHERE id = ${fileId}
     `;
+
+    console.log(`[Pipeline] Saved document metadata: ${documentMetadata.documentType} - ${documentMetadata.topics.join(', ')}`);
 
     await updateFileEmbeddingStatus(fileId, 'completed');
 
