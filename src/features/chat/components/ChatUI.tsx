@@ -239,50 +239,73 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
       fileIds: currentFiles.map(f => f.id),
     };
 
-    // If RAG is enabled and project is selected, search docs first
+    // If RAG is enabled and project is selected, check if query warrants document search
     if (isRagEnabled && selectedProjectId) {
       setIsRagLoading(true);
 
       try {
-        console.log('[ChatUI] RAG Mode: Searching project documents before chat...');
-        const ragResponse = await fetch(`/api/projects/${selectedProjectId}/rag/agent`, {
+        // Step 1: Classify if query is about documents (cheap, fast LLM call)
+        console.log('[ChatUI] RAG Mode: Classifying query relevance...');
+        const classifyResponse = await fetch('/api/rag/classify-query', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             query: queryText,
-            maxSteps: 10,
-            model: 'gpt-4o',
+            projectId: selectedProjectId,
           }),
         });
 
-        if (ragResponse.ok) {
-          const ragData = await ragResponse.json();
+        if (!classifyResponse.ok) {
+          throw new Error('Classification failed');
+        }
 
-          // Check if agent found useful information
-          const hasGoodAnswer = ragData.confidence !== 'low' &&
-                               ragData.sources &&
-                               ragData.sources.length > 0;
+        const classification = await classifyResponse.json();
+        console.log(`[ChatUI] Classification: ${classification.isDocumentRelated ? 'Document-related' : 'Not document-related'} (confidence: ${classification.confidence})`);
 
-          if (hasGoodAnswer) {
-            // Inject RAG context into chat metadata
-            console.log(`[ChatUI] ✅ RAG found ${ragData.sources.length} sources (${ragData.confidence} confidence) - injecting into chat`);
+        // Step 2: Only call expensive agent if query is document-related
+        if (classification.isDocumentRelated) {
+          console.log('[ChatUI] 🔍 Query is document-related - invoking agent...');
+          const ragResponse = await fetch(`/api/projects/${selectedProjectId}/rag/agent`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query: queryText,
+              maxSteps: 10,
+              model: 'gpt-4o',
+            }),
+          });
 
-            baseMetadata.ragContext = {
-              answer: ragData.answer,
-              sources: ragData.sources.slice(0, 5).map((s: any) => ({
-                file: s.sourceFile,
-                text: s.chunkText?.substring(0, 500)
-              })),
-              confidence: ragData.confidence,
-            };
+          if (ragResponse.ok) {
+            const ragData = await ragResponse.json();
 
-            baseMetadata.ragSources = ragData.sources; // For display in UI
-          } else {
-            console.log('[ChatUI] ⚠️ RAG found no good answer - proceeding with normal chat');
+            // Check if agent found useful information
+            const hasGoodAnswer = ragData.confidence !== 'low' &&
+                                 ragData.sources &&
+                                 ragData.sources.length > 0;
+
+            if (hasGoodAnswer) {
+              // Inject RAG context into chat metadata
+              console.log(`[ChatUI] ✅ RAG found ${ragData.sources.length} sources (${ragData.confidence} confidence) - injecting into chat`);
+
+              baseMetadata.ragContext = {
+                answer: ragData.answer,
+                sources: ragData.sources.slice(0, 5).map((s: any) => ({
+                  file: s.sourceFile,
+                  text: s.chunkText?.substring(0, 500)
+                })),
+                confidence: ragData.confidence,
+              };
+
+              baseMetadata.ragSources = ragData.sources; // For display in UI
+            } else {
+              console.log('[ChatUI] ⚠️ RAG found no good answer - proceeding with normal chat');
+            }
           }
+        } else {
+          console.log('[ChatUI] ⏭️  Query not document-related - skipping agent, using normal chat');
         }
       } catch (error) {
-        console.error('[ChatUI] ⚠️ RAG search failed, proceeding with normal chat:', error);
+        console.error('[ChatUI] ⚠️ RAG pipeline failed, proceeding with normal chat:', error);
         // Continue to normal chat even if RAG fails
       } finally {
         setIsRagLoading(false);
