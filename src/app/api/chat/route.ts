@@ -11,7 +11,8 @@
 import { streamText, stepCountIs, tool, convertToModelMessages, type UIMessage, type FileUIPart } from 'ai';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { getModel, type ModelId, MODEL_CAPABILITIES } from '@/lib/ai/models';
+import { getModel, type ModelId, MODEL_CAPABILITIES, modelSupportsReasoning } from '@/lib/ai/models';
+import { streamTextWithFallback } from '@/lib/ai/streaming';
 import { auth } from '@/lib/auth';
 import { neon } from '@neondatabase/serverless';
 import { getPresignedUrl } from '@/lib/storage/r2-client';
@@ -43,6 +44,8 @@ const chatRequestSchema = z.object({
   modelId: z.string().optional(),
   temperature: z.number().min(0).max(2).optional(),
   fileIds: z.array(z.string()).optional(), // Week 3: File attachments (file_uploads.id)
+  reasoningMode: z.boolean().optional(), // Enable reasoning mode for supported models
+  reasoningEffort: z.enum(['low', 'medium', 'high']).optional(), // Reasoning effort level
 });
 
 // Context window configuration
@@ -268,7 +271,9 @@ export async function POST(request: NextRequest) {
       chatId: bodyChatId,
       modelId: bodyModelId,
       temperature = 0.7,
-      fileIds
+      fileIds,
+      reasoningMode = false,
+      reasoningEffort = 'medium'
     } = validatedData;
 
     // Priority: message metadata > root metadata > headers > body
@@ -276,6 +281,8 @@ export async function POST(request: NextRequest) {
     const modelId = messageMetadata.modelId || rootMetadata.modelId || headerModelId || bodyModelId || 'claude-sonnet-4.5';
     const locale = (messageMetadata.locale || rootMetadata.locale || body.locale || 'nl') as 'nl' | 'en';
     const requestFileIds = messageMetadata.fileIds || rootMetadata.fileIds || fileIds;
+    const enableReasoning = messageMetadata.reasoningMode || rootMetadata.reasoningMode || reasoningMode;
+    const reasoningLevel = messageMetadata.reasoningEffort || rootMetadata.reasoningEffort || reasoningEffort;
 
     // Validate model ID
     const model = getModel(modelId as ModelId);
@@ -1331,14 +1338,29 @@ export async function POST(request: NextRequest) {
     // Track visualization tool results to inject into database-saved message
     const visualizationResults: any[] = [];
 
-    const result = streamText({
-      model,
+    // Log reasoning mode status
+    if (enableReasoning && modelSupportsReasoning(modelId as ModelId)) {
+      console.log(`[Chat API] 🧠 Reasoning mode enabled for ${modelId} (effort: ${reasoningLevel})`);
+    } else if (enableReasoning) {
+      console.log(`[Chat API] ⚠️  Reasoning mode requested but ${modelId} doesn't support it`);
+    }
+
+    // Use fallback-aware streaming with reasoning support
+    const streamingResult = await streamTextWithFallback({
+      modelId: modelId as ModelId,
       messages: convertedMessages,
       temperature,
-      // Location agent tools with userId injected
       tools: locationTools,
-      // Allow multi-step tool calling (up to 10 steps)
       stopWhen: stepCountIs(10),
+      reasoningMode: enableReasoning,
+      reasoningEffort: reasoningLevel,
+      enableTelemetry: true,
+      telemetryMetadata: {
+        userId,
+        chatId,
+        locale,
+        hasFiles: !!requestFileIds && requestFileIds.length > 0,
+      },
       // Log each step and capture visualization results
       onStepFinish({ text, toolCalls, toolResults, usage, finishReason }) {
         console.log(`[Chat API] 🔧 Step finished`);
@@ -1445,7 +1467,32 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Handle non-streaming models (e.g., o1)
+    if (streamingResult.isNonStreaming) {
+      const { result } = streamingResult;
+
+      // For non-streaming, return the complete result as a stream-like response
+      // We need to create a UIMessage response manually
+      return new Response(
+        JSON.stringify({
+          id: randomUUID(),
+          role: 'assistant',
+          parts: [
+            { type: 'text', text: result.text },
+            ...((result as any).reasoning
+              ? [{ type: 'reasoning', text: (result as any).reasoningText || (result as any).reasoning }]
+              : []),
+          ],
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     // Return streaming response in UIMessage format
+    const { result } = streamingResult;
     return result.toUIMessageStreamResponse();
 
   } catch (error) {

@@ -20,6 +20,7 @@ export interface ModelCapabilities {
   supportsVision: boolean;
   supportsTools: boolean;
   supportsImageGeneration: boolean;
+  supportsReasoning: boolean;
   maxTokens: number;
   contextWindow: number;
   streamingSupported: boolean;
@@ -40,6 +41,9 @@ export type ModelId =
   | 'gpt-4o-mini'
   | 'gpt-4-turbo'
   | 'gpt-3.5-turbo'
+  // OpenAI reasoning models
+  | 'o1'
+  | 'o1-mini'
   // Anthropic models
   | 'claude-sonnet-4.5'
   | 'claude-sonnet-3.7'
@@ -68,6 +72,10 @@ export const MODELS = {
   'gpt-4o-mini': openai('gpt-4o-mini'),
   'gpt-4-turbo': openai('gpt-4-turbo'),
   'gpt-3.5-turbo': openai('gpt-3.5-turbo'),
+
+  // OpenAI reasoning models
+  'o1': openai('o1'),
+  'o1-mini': openai('o1-mini'),
 
   // Anthropic models
   'claude-sonnet-4.5': anthropic('claude-sonnet-4-5-20250929'),
@@ -102,6 +110,7 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: true,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsReasoning: false,
     maxTokens: 16384,
     contextWindow: 128000,
     streamingSupported: true,
@@ -112,6 +121,7 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: true,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsReasoning: false,
     maxTokens: 16384,
     contextWindow: 128000,
     streamingSupported: true,
@@ -122,6 +132,7 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: true,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsReasoning: false,
     maxTokens: 4096,
     contextWindow: 128000,
     streamingSupported: true,
@@ -132,6 +143,7 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: false,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsReasoning: false,
     maxTokens: 4096,
     contextWindow: 16385,
     streamingSupported: true,
@@ -139,11 +151,36 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     costPer1kTokens: { input: 0.0005, output: 0.0015 },
   },
 
+  // OpenAI reasoning models
+  'o1': {
+    supportsVision: false,
+    supportsTools: true,
+    supportsImageGeneration: false,
+    supportsReasoning: true,
+    maxTokens: 100000,
+    contextWindow: 200000,
+    streamingSupported: false, // o1 doesn't support streaming
+    providers: ['openai'],
+    costPer1kTokens: { input: 0.015, output: 0.06 },
+  },
+  'o1-mini': {
+    supportsVision: false,
+    supportsTools: true,
+    supportsImageGeneration: false,
+    supportsReasoning: true,
+    maxTokens: 65536,
+    contextWindow: 128000,
+    streamingSupported: false, // o1-mini doesn't support streaming
+    providers: ['openai'],
+    costPer1kTokens: { input: 0.003, output: 0.012 },
+  },
+
   // Anthropic models
   'claude-sonnet-4.5': {
     supportsVision: true,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsReasoning: true, // Claude 4 supports extended thinking
     maxTokens: 8192,
     contextWindow: 200000,
     streamingSupported: true,
@@ -154,6 +191,7 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: true,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsReasoning: true, // Claude 3.7 supports extended thinking
     maxTokens: 8192,
     contextWindow: 200000,
     streamingSupported: true,
@@ -164,6 +202,7 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: true,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsReasoning: false,
     maxTokens: 8192,
     contextWindow: 200000,
     streamingSupported: true,
@@ -174,6 +213,7 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: true,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsReasoning: false,
     maxTokens: 4096,
     contextWindow: 200000,
     streamingSupported: true,
@@ -186,6 +226,7 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: true,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsReasoning: false,
     maxTokens: 8192,
     contextWindow: 1000000,
     streamingSupported: true,
@@ -196,6 +237,7 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: true,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsReasoning: false,
     maxTokens: 8192,
     contextWindow: 2000000,
     streamingSupported: true,
@@ -206,6 +248,7 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: true,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsReasoning: false,
     maxTokens: 8192,
     contextWindow: 1000000,
     streamingSupported: true,
@@ -218,6 +261,7 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: false,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsReasoning: false,
     maxTokens: 8192,
     contextWindow: 128000,
     streamingSupported: true,
@@ -228,6 +272,7 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: false,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsReasoning: false,
     maxTokens: 8192,
     contextWindow: 128000,
     streamingSupported: true,
@@ -238,6 +283,7 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: false,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsReasoning: false,
     maxTokens: 8192,
     contextWindow: 128000,
     streamingSupported: true,
@@ -250,6 +296,7 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: false,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsReasoning: false,
     maxTokens: 8192,
     contextWindow: 128000,
     streamingSupported: true,
@@ -260,6 +307,7 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: true,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsReasoning: false,
     maxTokens: 8192,
     contextWindow: 128000,
     streamingSupported: true,
@@ -270,6 +318,7 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: false,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsReasoning: false,
     maxTokens: 8192,
     contextWindow: 128000,
     streamingSupported: true,
@@ -396,3 +445,58 @@ export const PREMIUM_MODELS: ModelId[] = [
   'gemini-1.5-pro',
   'mistral-large'
 ];
+
+/**
+ * Reasoning models for complex problem-solving
+ */
+export const REASONING_MODELS: ModelId[] = [
+  'o1',
+  'o1-mini',
+  'claude-sonnet-4.5',
+  'claude-sonnet-3.7'
+];
+
+/**
+ * Model fallback configuration
+ * Primary model → fallback models in order of preference
+ */
+export const MODEL_FALLBACKS: Partial<Record<ModelId, ModelId[]>> = {
+  // Claude fallbacks
+  'claude-sonnet-4.5': ['gpt-4o', 'gemini-1.5-pro'],
+  'claude-sonnet-3.7': ['claude-sonnet-4.5', 'gpt-4o'],
+  'claude-haiku-3.5': ['gpt-4o-mini', 'gemini-1.5-flash'],
+
+  // OpenAI fallbacks
+  'gpt-4o': ['claude-sonnet-4.5', 'gemini-1.5-pro'],
+  'gpt-4o-mini': ['claude-haiku-3.5', 'gemini-1.5-flash'],
+  'o1': ['claude-sonnet-4.5', 'gpt-4o'],
+  'o1-mini': ['claude-haiku-3.5', 'gpt-4o-mini'],
+
+  // Google fallbacks
+  'gemini-1.5-pro': ['gpt-4o', 'claude-sonnet-4.5'],
+  'gemini-2.0-flash': ['gemini-1.5-flash', 'gpt-4o-mini'],
+  'gemini-1.5-flash': ['gpt-4o-mini', 'claude-haiku-3.5'],
+
+  // Grok fallbacks
+  'grok-2-latest': ['claude-sonnet-4.5', 'gpt-4o'],
+  'grok-2-vision': ['gpt-4o', 'claude-sonnet-4.5'],
+};
+
+/**
+ * Get fallback models for a given model ID
+ * @param modelId - The primary model ID
+ * @returns Array of fallback model IDs
+ */
+export function getFallbackModels(modelId: ModelId): ModelId[] {
+  return MODEL_FALLBACKS[modelId] || [];
+}
+
+/**
+ * Check if a model supports reasoning
+ * @param modelId - The model ID to check
+ * @returns True if the model supports reasoning capabilities
+ */
+export function modelSupportsReasoning(modelId: ModelId): boolean {
+  const capabilities = MODEL_CAPABILITIES[modelId];
+  return capabilities?.supportsReasoning || false;
+}
