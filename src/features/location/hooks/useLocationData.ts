@@ -1,20 +1,12 @@
 "use client";
 
 import { useState, useCallback } from 'react';
-import { LocationGeocoderService } from '../data/services/locationGeocoder';
-import { CBSDemographicsClient } from '../data/sources/cbs-demographics/client';
-import { RIVMHealthClient } from '../data/sources/rivm-health/client';
-import { CBSLivabilityClient } from '../data/sources/cbs-livability/client';
-import { PolitieSafetyClient } from '../data/sources/politie-safety/client';
-import { AltumAIClient } from '../data/sources/altum-ai/client';
-import {
-  MultiLevelAggregator,
-  type UnifiedLocationData,
-} from '../data/aggregator/multiLevelAggregator';
+import { locationServices } from '../services';
+import type { UnifiedLocationData } from '../data/aggregator/multiLevelAggregator';
 import { searchOrchestrator } from '../data/sources/google-places/search-orchestrator';
 import type { AmenityMultiCategoryResponse } from '../data/sources/google-places/types';
-import { locationDataCache } from '../data/cache/locationDataCache';
 import { logger } from '@/shared/utils/logger';
+import { safeLocalStorage } from '@/shared/utils/safeStorage';
 
 /**
  * Loading state for each data source
@@ -85,14 +77,9 @@ export function useLocationData(): UseLocationDataReturn {
     residential: null,
   });
 
-  // Initialize services
-  const geocoderService = new LocationGeocoderService();
-  const demographicsClient = new CBSDemographicsClient();
-  const healthClient = new RIVMHealthClient();
-  const livabilityClient = new CBSLivabilityClient();
-  const safetyClient = new PolitieSafetyClient();
-  const residentialClient = new AltumAIClient();
-  const aggregator = new MultiLevelAggregator();
+  // Use singleton services from locationServices
+  // Best Practice (2025): Services are created once and reused to prevent
+  // recreation on every render, which improves performance and enables proper memoization
 
   /**
    * Fetch all location data for a given address
@@ -115,14 +102,14 @@ export function useLocationData(): UseLocationDataReturn {
 
       // Check cache first (unless skipCache is true)
       if (!skipCache) {
-        const cached = locationDataCache.get(address);
+        const cached = locationServices.cache.get(address);
         if (cached) {
           logger.dataFetch('location data', 'cache', { address });
           setData(cached.data);
           setAmenities(cached.amenities);
           setFromCache(true);
           // Store the search address for later use (e.g., saving rapport)
-          localStorage.setItem('grooshub_current_address', address);
+          safeLocalStorage.setItem('grooshub_current_address', address);
           return;
         }
       }
@@ -132,7 +119,7 @@ export function useLocationData(): UseLocationDataReturn {
 
       try {
         // Step 1: Geocode address and get location codes
-        const locationData = await geocoderService.geocodeAddress(address);
+        const locationData = await locationServices.geocoder.geocodeAddress(address);
 
         if (!locationData) {
           setError((prev) => ({
@@ -169,18 +156,18 @@ export function useLocationData(): UseLocationDataReturn {
           amenitiesData,
           residentialData,
         ] = await Promise.allSettled([
-          demographicsClient.fetchMultiLevel(
+          locationServices.demographics.fetchMultiLevel(
             municipalityCode,
             districtCode,
             neighborhoodCode
           ),
-          healthClient.fetchMultiLevel(
+          locationServices.health.fetchMultiLevel(
             municipalityCode,
             districtCode,
             neighborhoodCode
           ),
-          livabilityClient.fetchMultiLevel(municipalityCode),
-          safetyClient.fetchMultiLevel(
+          locationServices.livability.fetchMultiLevel(municipalityCode),
+          locationServices.safety.fetchMultiLevel(
             municipalityCode,
             districtCode,
             neighborhoodCode
@@ -189,7 +176,7 @@ export function useLocationData(): UseLocationDataReturn {
             lat: locationData.coordinates.wgs84.latitude,
             lng: locationData.coordinates.wgs84.longitude,
           }),
-          residentialClient.fetchReferenceData(locationData),
+          locationServices.residential.fetchReferenceData(locationData),
         ]);
 
         // Update loading states
@@ -239,41 +226,53 @@ export function useLocationData(): UseLocationDataReturn {
                 neighborhood: null,
               };
 
-        // Set errors if any
+        // Set errors if any (include actual error messages for debugging)
         if (demographicsData.status === 'rejected') {
+          const errorMsg = demographicsData.reason?.message || 'Unknown error';
+          logger.error('Demographics fetch failed', { error: demographicsData.reason });
           setError((prev) => ({
             ...prev,
-            demographics: 'Failed to fetch demographics data',
+            demographics: `Failed to fetch demographics data: ${errorMsg}`,
           }));
         }
         if (healthData.status === 'rejected') {
+          const errorMsg = healthData.reason?.message || 'Unknown error';
+          logger.error('Health data fetch failed', { error: healthData.reason });
           setError((prev) => ({
             ...prev,
-            health: 'Failed to fetch health data',
+            health: `Failed to fetch health data: ${errorMsg}`,
           }));
         }
         if (livabilityData.status === 'rejected') {
+          const errorMsg = livabilityData.reason?.message || 'Unknown error';
+          logger.error('Livability data fetch failed', { error: livabilityData.reason });
           setError((prev) => ({
             ...prev,
-            livability: 'Failed to fetch livability data',
+            livability: `Failed to fetch livability data: ${errorMsg}`,
           }));
         }
         if (safetyData.status === 'rejected') {
+          const errorMsg = safetyData.reason?.message || 'Unknown error';
+          logger.error('Safety data fetch failed', { error: safetyData.reason });
           setError((prev) => ({
             ...prev,
-            safety: 'Failed to fetch safety data',
+            safety: `Failed to fetch safety data: ${errorMsg}`,
           }));
         }
         if (amenitiesData.status === 'rejected') {
+          const errorMsg = amenitiesData.reason?.message || 'Unknown error';
+          logger.error('Amenities data fetch failed', { error: amenitiesData.reason });
           setError((prev) => ({
             ...prev,
-            amenities: 'Failed to fetch amenities data',
+            amenities: `Failed to fetch amenities data: ${errorMsg}`,
           }));
         }
         if (residentialData.status === 'rejected') {
+          const errorMsg = residentialData.reason?.message || 'Unknown error';
+          logger.error('Residential data fetch failed', { error: residentialData.reason });
           setError((prev) => ({
             ...prev,
-            residential: 'Failed to fetch residential data',
+            residential: `Failed to fetch residential data: ${errorMsg}`,
           }));
         }
 
@@ -290,7 +289,7 @@ export function useLocationData(): UseLocationDataReturn {
         const amenitiesResult = amenitiesData.status === 'fulfilled' ? amenitiesData.value : null;
 
         // Step 3: Aggregate all data
-        const unifiedData = await aggregator.aggregate(
+        const unifiedData = await locationServices.aggregator.aggregate(
           locationData,
           demographics,
           health,
@@ -301,11 +300,11 @@ export function useLocationData(): UseLocationDataReturn {
         );
 
         // Store in cache
-        const cached = locationDataCache.set(address, unifiedData, amenitiesResult);
+        const cached = locationServices.cache.set(address, unifiedData, amenitiesResult);
         if (cached) {
           logger.success('Stored location data in cache', { address });
           // Store the search address for later use (e.g., saving rapport)
-          localStorage.setItem('grooshub_current_address', address);
+          safeLocalStorage.setItem('grooshub_current_address', address);
         }
 
         setData(unifiedData);
@@ -327,7 +326,7 @@ export function useLocationData(): UseLocationDataReturn {
         });
       }
     },
-    [geocoderService, demographicsClient, healthClient, livabilityClient, safetyClient, residentialClient, aggregator]
+    [] // Empty dependency array - locationServices are stable singleton instances
   );
 
   /**
@@ -359,7 +358,7 @@ export function useLocationData(): UseLocationDataReturn {
 
     // Store in cache to prevent unnecessary API calls if data is refetched
     if (address) {
-      const cached = locationDataCache.set(address, locationData, amenitiesData || null);
+      const cached = locationServices.cache.set(address, locationData, amenitiesData || null);
       if (cached) {
         logger.success('Stored saved data in cache', { address });
       }

@@ -509,7 +509,7 @@ export function exportCompactForLLM(
     // Helper to parse price range string to average number
     const parsePriceRange = (priceStr: string | number): number => {
       if (typeof priceStr === 'number') return priceStr;
-      const parts = priceStr.split('-').map(p => parseInt(p.replace(/[^0-9]/g, '')));
+      const parts = priceStr.split('-').map(p => parseInt(p.replace(/[^0-9]/g, ''), 10));
       return parts.length === 2 ? (parts[0] + parts[1]) / 2 : parts[0] || 0;
     };
 

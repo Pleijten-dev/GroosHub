@@ -9,6 +9,7 @@ import type { UnifiedLocationData } from '../aggregator/multiLevelAggregator';
 import type { AmenityMultiCategoryResponse } from '../sources/google-places/types';
 import type { BuildingProgram } from '@/app/api/generate-building-program/route';
 import { logger } from '@/shared/utils/logger';
+import { safeLocalStorage } from '@/shared/utils/safeStorage';
 
 /**
  * Cache entry structure
@@ -97,16 +98,10 @@ export class LocationDataCache {
 
   /**
    * Check if localStorage is available
+   * Note: Using safeLocalStorage which handles availability internally
    */
   private isLocalStorageAvailable(): boolean {
-    try {
-      const test = '__localStorage_test__';
-      localStorage.setItem(test, test);
-      localStorage.removeItem(test);
-      return true;
-    } catch (e) {
-      return false;
-    }
+    return safeLocalStorage.isAvailable();
   }
 
   /**
@@ -120,7 +115,7 @@ export class LocationDataCache {
 
     try {
       const key = this.getCacheKey(address);
-      const cached = localStorage.getItem(key);
+      const cached = safeLocalStorage.getItem(key);
 
       if (!cached) {
         return null;
@@ -132,7 +127,7 @@ export class LocationDataCache {
       // Check if expired
       if (now - entry.cachedAt > entry.ttl) {
         // Remove expired entry
-        localStorage.removeItem(key);
+        safeLocalStorage.removeItem(key);
         return null;
       }
 
@@ -193,7 +188,7 @@ export class LocationDataCache {
         this.cleanupOldest();
       }
 
-      localStorage.setItem(key, serialized);
+      safeLocalStorage.setItem(key, serialized);
       return true;
     } catch (error) {
       logger.error('Failed to write to location cache', error);
@@ -212,7 +207,7 @@ export class LocationDataCache {
             ttl: ttl || this.config.defaultTTL,
             address,
           };
-          localStorage.setItem(key, JSON.stringify(entry));
+          safeLocalStorage.setItem(key, JSON.stringify(entry));
           return true;
         } catch {
           return false;
@@ -234,7 +229,7 @@ export class LocationDataCache {
 
     try {
       const key = this.getCacheKey(address);
-      const cached = localStorage.getItem(key);
+      const cached = safeLocalStorage.getItem(key);
 
       if (!cached) {
         logger.warn('No cache entry found for address, cannot set rapport');
@@ -253,7 +248,7 @@ export class LocationDataCache {
         return false;
       }
 
-      localStorage.setItem(key, serialized);
+      safeLocalStorage.setItem(key, serialized);
       return true;
     } catch (error) {
       logger.error('Failed to update rapport in cache', error);
@@ -287,7 +282,7 @@ export class LocationDataCache {
 
     try {
       const key = this.getCacheKey(address);
-      localStorage.removeItem(key);
+      safeLocalStorage.removeItem(key);
     } catch (error) {
       logger.error('Failed to remove from cache', error);
     }
@@ -306,7 +301,7 @@ export class LocationDataCache {
       const cacheKeys = keys.filter((key) => key.startsWith(this.config.prefix));
 
       cacheKeys.forEach((key) => {
-        localStorage.removeItem(key);
+        safeLocalStorage.removeItem(key);
       });
     } catch (error) {
       logger.error('Failed to clear cache', error);
@@ -329,17 +324,17 @@ export class LocationDataCache {
 
       cacheKeys.forEach((key) => {
         try {
-          const cached = localStorage.getItem(key);
+          const cached = safeLocalStorage.getItem(key);
           if (cached) {
             const entry: CacheEntry = JSON.parse(cached);
             if (now - entry.cachedAt > entry.ttl) {
-              localStorage.removeItem(key);
+              safeLocalStorage.removeItem(key);
               removed++;
             }
           }
         } catch {
           // Invalid entry, remove it
-          localStorage.removeItem(key);
+          safeLocalStorage.removeItem(key);
           removed++;
         }
       });
@@ -368,7 +363,7 @@ export class LocationDataCache {
 
       cacheKeys.forEach((key) => {
         try {
-          const cached = localStorage.getItem(key);
+          const cached = safeLocalStorage.getItem(key);
           if (cached) {
             const entry: CacheEntry = JSON.parse(cached);
             entries.push({ key, cachedAt: entry.cachedAt });
@@ -383,7 +378,7 @@ export class LocationDataCache {
 
       // Remove oldest entries
       entries.slice(0, count).forEach(({ key }) => {
-        localStorage.removeItem(key);
+        safeLocalStorage.removeItem(key);
       });
     } catch (error) {
       logger.error('Failed to cleanup oldest entries', error);
@@ -416,7 +411,7 @@ export class LocationDataCache {
 
       cacheKeys.forEach((key) => {
         try {
-          const cached = localStorage.getItem(key);
+          const cached = safeLocalStorage.getItem(key);
           if (cached) {
             cacheSize += cached.length;
             const entry: CacheEntry = JSON.parse(cached);

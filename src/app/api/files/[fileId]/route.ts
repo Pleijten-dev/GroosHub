@@ -65,15 +65,18 @@ export async function GET(
     // 3. Get expiration time from query params
     const searchParams = request.nextUrl.searchParams;
     const expiresInParam = searchParams.get('expiresIn');
-    const expiresIn = expiresInParam ? parseInt(expiresInParam) : 3600; // 1 hour default
+    const parsedExpiresIn = expiresInParam ? parseInt(expiresInParam, 10) : 3600; // 1 hour default
 
     // Validate expiration (1 second to 7 days, as per R2 limits)
-    if (expiresIn < 1 || expiresIn > 604800) {
+    // Check for NaN and bounds
+    if (isNaN(parsedExpiresIn) || parsedExpiresIn < 1 || parsedExpiresIn > 604800) {
       return NextResponse.json(
-        { error: 'Invalid expiresIn. Must be between 1 and 604800 seconds (7 days).' },
+        { error: 'Invalid expiresIn. Must be a number between 1 and 604800 seconds (7 days).' },
         { status: 400 }
       );
     }
+
+    const expiresIn = parsedExpiresIn;
 
     // 4. Get file from database and verify ownership/access
     const sql = neon(process.env.POSTGRES_URL!);

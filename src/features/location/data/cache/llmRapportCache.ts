@@ -4,6 +4,7 @@
  */
 
 import type { LLMRapportData } from '../../types/saved-locations';
+import { safeLocalStorage } from '@/shared/utils/safeStorage';
 
 const CACHE_KEY_PREFIX = 'grooshub_llm_rapport';
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
@@ -19,14 +20,7 @@ class LLMRapportCache {
    * Check if localStorage is available
    */
   private isLocalStorageAvailable(): boolean {
-    try {
-      const test = '__localStorage_test__';
-      localStorage.setItem(test, test);
-      localStorage.removeItem(test);
-      return true;
-    } catch {
-      return false;
-    }
+    return safeLocalStorage.isAvailable();
   }
 
   /**
@@ -48,7 +42,7 @@ class LLMRapportCache {
 
     try {
       const cacheKey = this.getCacheKey(address);
-      const cached = localStorage.getItem(cacheKey);
+      const cached = safeLocalStorage.getItem(cacheKey);
 
       if (!cached) {
         return null;
@@ -72,7 +66,7 @@ class LLMRapportCache {
    * Get cached rapport for current address (from localStorage)
    */
   getCurrentRapport(): LLMRapportData | null {
-    const currentAddress = localStorage.getItem('grooshub_current_address');
+    const currentAddress = safeLocalStorage.getItem('grooshub_current_address');
     if (!currentAddress) {
       return null;
     }
@@ -95,7 +89,7 @@ class LLMRapportCache {
         timestamp: Date.now()
       };
 
-      localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+      safeLocalStorage.setItem(cacheKey, JSON.stringify(cacheData));
       return true;
     } catch (error) {
       return false;
@@ -112,7 +106,7 @@ class LLMRapportCache {
 
     try {
       const cacheKey = this.getCacheKey(address);
-      localStorage.removeItem(cacheKey);
+      safeLocalStorage.removeItem(cacheKey);
     } catch (error) {
       // Silent fail
     }
@@ -131,7 +125,7 @@ class LLMRapportCache {
       const keys = Object.keys(localStorage);
       keys.forEach(key => {
         if (key.startsWith(CACHE_KEY_PREFIX)) {
-          localStorage.removeItem(key);
+          safeLocalStorage.removeItem(key);
         }
       });
     } catch (error) {

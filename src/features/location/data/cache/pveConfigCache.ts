@@ -4,6 +4,7 @@
  */
 
 import { logger } from '@/shared/utils/logger';
+import { safeLocalStorage } from '@/shared/utils/safeStorage';
 
 export interface PVEAllocations {
   apartments: number;
@@ -39,8 +40,8 @@ class PVEConfigCache {
   private isLocalStorageAvailable(): boolean {
     try {
       const test = '__localStorage_test__';
-      localStorage.setItem(test, test);
-      localStorage.removeItem(test);
+      safeLocalStorage.setItem(test, test);
+      safeLocalStorage.removeItem(test);
       return true;
     } catch {
       return false;
@@ -56,7 +57,7 @@ class PVEConfigCache {
     }
 
     try {
-      const cached = localStorage.getItem(CACHE_KEY);
+      const cached = safeLocalStorage.getItem(CACHE_KEY);
       if (!cached) {
         return null;
       }
@@ -90,7 +91,7 @@ class PVEConfigCache {
         timestamp: Date.now()
       };
 
-      localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+      safeLocalStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
       return true;
     } catch (error) {
       logger.error('Failed to save PVE config cache', error);
@@ -107,7 +108,7 @@ class PVEConfigCache {
     }
 
     try {
-      localStorage.removeItem(CACHE_KEY);
+      safeLocalStorage.removeItem(CACHE_KEY);
     } catch (error) {
       logger.error('Failed to clear PVE config cache', error);
     }
@@ -129,7 +130,7 @@ class PVEConfigCache {
     }
 
     try {
-      const cached = localStorage.getItem(FINAL_PVE_CACHE_KEY);
+      const cached = safeLocalStorage.getItem(FINAL_PVE_CACHE_KEY);
       if (!cached) {
         return null;
       }
@@ -163,7 +164,7 @@ class PVEConfigCache {
         timestamp: Date.now()
       };
 
-      localStorage.setItem(FINAL_PVE_CACHE_KEY, JSON.stringify(cacheData));
+      safeLocalStorage.setItem(FINAL_PVE_CACHE_KEY, JSON.stringify(cacheData));
 
       return true;
     } catch (error) {
@@ -181,7 +182,7 @@ class PVEConfigCache {
     }
 
     try {
-      localStorage.removeItem(FINAL_PVE_CACHE_KEY);
+      safeLocalStorage.removeItem(FINAL_PVE_CACHE_KEY);
     } catch (error) {
       logger.error('Failed to clear final PVE state', error);
     }
