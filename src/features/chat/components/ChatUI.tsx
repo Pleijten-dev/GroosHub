@@ -305,13 +305,32 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
         );
       }
 
-      // Handle image parts (use type guard since 'image' is not in UIMessage part types)
-      if ('image' in part && part.image) {
+      // Handle image parts (FileUIPart with type 'file' and mediaType 'image/*')
+      if ('type' in part && part.type === 'file' && 'mediaType' in part && 'url' in part) {
+        const filePart = part as { type: 'file'; mediaType: string; url: string };
+        if (filePart.mediaType.startsWith('image/')) {
+          return (
+            <div key={`${message.id}-image-${index}`} className="mt-2">
+              <ImageAttachment
+                imageUrl={filePart.url}
+                onClick={() => setLightboxImage({
+                  url: filePart.url,
+                  fileName: `image-${index}.${filePart.mediaType.split('/')[1]}`
+                })}
+                alt="Attached image"
+              />
+            </div>
+          );
+        }
+      }
+
+      // Handle legacy image parts (for backward compatibility)
+      if ('image' in part && (part as any).image) {
         return (
           <div key={`${message.id}-image-${index}`} className="mt-2">
             <ImageAttachment
-              imageUrl={part.image as string | URL}
-              onClick={() => setLightboxImage({ url: part.image as string | URL })}
+              imageUrl={(part as any).image as string | URL}
+              onClick={() => setLightboxImage({ url: (part as any).image as string | URL })}
               alt="Attached image"
             />
           </div>
