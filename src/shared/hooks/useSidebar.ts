@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
+import { safeLocalStorage } from '@/shared/utils/safeStorage';
 
 interface UseSidebarOptions {
   /** Initial collapsed state */
@@ -45,23 +46,19 @@ export function useSidebar({
   mobileBreakpoint = 768,
 }: UseSidebarOptions = {}): UseSidebarReturn {
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
-    // Server-side rendering safe initial state
-    if (typeof window === 'undefined') {
-      return defaultCollapsed;
-    }
-    
     // Try to get from localStorage if persistence is enabled
+    // safeLocalStorage handles SSR and other edge cases
     if (persistState) {
-      try {
-        const stored = localStorage.getItem(storageKey);
-        if (stored !== null) {
+      const stored = safeLocalStorage.getItem(storageKey);
+      if (stored !== null) {
+        try {
           return JSON.parse(stored);
+        } catch (error) {
+          console.warn('Failed to parse sidebar state from localStorage:', error);
         }
-      } catch (error) {
-        console.warn('Failed to parse sidebar state from localStorage:', error);
       }
     }
-    
+
     return defaultCollapsed;
   });
 
@@ -91,13 +88,10 @@ export function useSidebar({
   }, [mobileBreakpoint, autoCollapseMobile, isCollapsed]);
 
   // Persist state to localStorage
+  // safeLocalStorage handles SSR and quota exceeded errors
   useEffect(() => {
-    if (persistState && typeof window !== 'undefined') {
-      try {
-        localStorage.setItem(storageKey, JSON.stringify(isCollapsed));
-      } catch (error) {
-        console.warn('Failed to save sidebar state to localStorage:', error);
-      }
+    if (persistState) {
+      safeLocalStorage.setItem(storageKey, JSON.stringify(isCollapsed));
     }
   }, [isCollapsed, persistState, storageKey]);
 

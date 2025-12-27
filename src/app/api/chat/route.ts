@@ -37,8 +37,18 @@ import personasData from '@/features/location/data/sources/housing-personas.json
 import { randomUUID } from 'crypto';
 
 // Request schema validation
+// Note: messages are UIMessage[] from Vercel AI SDK - using a flexible schema
+// that validates structure while allowing AI SDK's complex types
 const chatRequestSchema = z.object({
-  messages: z.any(), // UIMessage[] - complex type, validated by AI SDK
+  messages: z.array(z.object({
+    id: z.string(),
+    role: z.enum(['user', 'assistant', 'system', 'tool']),
+    content: z.union([
+      z.string(),
+      z.array(z.record(z.unknown())) // Complex content parts
+    ]),
+    experimental_attachments: z.array(z.record(z.unknown())).optional(),
+  }).passthrough()), // Allow additional fields from AI SDK
   chatId: z.string().optional(), // Optional - create new chat if not provided
   modelId: z.string().optional(),
   temperature: z.number().min(0).max(2).optional(),
@@ -499,6 +509,7 @@ export async function POST(request: NextRequest) {
                 AND ls.is_active = true
 
               ORDER BY "createdAt" DESC
+              LIMIT 100
             `;
 
             const locations = results as unknown as AccessibleLocation[];
@@ -689,6 +700,7 @@ export async function POST(request: NextRequest) {
                 AND pm.user_id = ${userId}
                 AND pm.left_at IS NULL
                 AND ls.is_active = true
+              LIMIT 50
             `;
 
             if (results.length === 0) {
@@ -936,13 +948,19 @@ export async function POST(request: NextRequest) {
             const neighborhood = data.neighborhood;
 
             // Helper function to find field value (use relative/percentage data like location page)
-            const findField = (fieldKey: string) => {
-              const field = neighborhood.find((f: any) => f.key === fieldKey);
+            const findField = (fieldKey: string): number => {
+              const field = neighborhood.find((f: UnifiedDataRow) => f.key === fieldKey);
               // Use relative (percentage) value, fallback to absolute value
-              return field ? (parseFloat(field.relative) || parseFloat(field.value) || 0) : 0;
+              return field ? (parseFloat(field.relative as string) || parseFloat(field.value as string) || 0) : 0;
             };
 
-            const charts: any = {};
+            interface ChartData {
+              title: string;
+              type: 'density' | 'bar' | 'pie';
+              data: Array<{ label: string; value: number; color?: string }>;
+            }
+
+            const charts: Record<string, ChartData> = {};
             const requestedSections = sections || ['age', 'status', 'immigration', 'family'];
 
             if (requestedSections.includes('age')) {
@@ -1056,7 +1074,7 @@ export async function POST(request: NextRequest) {
             const neighborhood = data.neighborhood;
 
             const findField = (fieldKey: string) => {
-              const field = neighborhood.find((f: any) => f.key === fieldKey);
+              const field = neighborhood.find((f: UnifiedDataRow) => f.key === fieldKey);
               return field ? (parseFloat(field.relative) || parseFloat(field.value) || 0) : 0;
             };
 
@@ -1126,7 +1144,7 @@ export async function POST(request: NextRequest) {
             const municipality = data.municipality;
 
             const findField = (fieldKey: string) => {
-              const field = municipality.find((f: any) => f.key === fieldKey);
+              const field = municipality.find((f: UnifiedDataRow) => f.key === fieldKey);
               return field ? (parseFloat(field.relative) || parseFloat(field.value) || 0) : 0;
             };
 
@@ -1194,7 +1212,7 @@ export async function POST(request: NextRequest) {
             const neighborhood = data.neighborhood;
 
             const findField = (fieldKey: string) => {
-              const field = neighborhood.find((f: any) => f.key === fieldKey);
+              const field = neighborhood.find((f: UnifiedDataRow) => f.key === fieldKey);
               return field ? (parseFloat(field.relative) || parseFloat(field.value) || 0) : 0;
             };
 
@@ -1265,7 +1283,7 @@ export async function POST(request: NextRequest) {
             const neighborhood = data.neighborhood;
 
             const findField = (fieldKey: string) => {
-              const field = neighborhood.find((f: any) => f.key === fieldKey);
+              const field = neighborhood.find((f: UnifiedDataRow) => f.key === fieldKey);
               return field ? (parseFloat(field.relative) || parseFloat(field.value) || 0) : 0;
             };
 
@@ -1309,11 +1327,16 @@ export async function POST(request: NextRequest) {
     const modelMessages = convertToModelMessages(messagesWithSystem);
 
     // Fix image parts: Anthropic needs type 'image' for visual analysis, not 'file'
+    type MessageContentPart =
+      | { type: 'text'; text: string }
+      | { type: 'image'; image: string | Buffer }
+      | { type: 'file'; mimeType?: string; data: string | Buffer; [key: string]: unknown };
+
     const convertedMessages = modelMessages.map(msg => {
       if (msg.role === 'user' && Array.isArray(msg.content)) {
         return {
           ...msg,
-          content: msg.content.map((part: any) => {
+          content: msg.content.map((part: MessageContentPart) => {
             // Convert FilePart with image data → ImagePart for visual analysis
             if (part.type === 'file' && part.mimeType?.startsWith('image/')) {
               return {
@@ -1329,7 +1352,17 @@ export async function POST(request: NextRequest) {
     });
 
     // Track visualization tool results to inject into database-saved message
-    const visualizationResults: any[] = [];
+    interface VisualizationResult {
+      success: boolean;
+      visualizations?: Record<string, {
+        title: string;
+        type: string;
+        data: Array<{ label: string; value: number; color?: string }>;
+      }>;
+      [key: string]: unknown; // Allow other tool result properties
+    }
+
+    const visualizationResults: VisualizationResult[] = [];
 
     const result = streamText({
       model,
