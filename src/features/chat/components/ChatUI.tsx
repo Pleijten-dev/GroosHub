@@ -19,6 +19,7 @@ import {
   getAllModelIds,
   DEFAULT_MODEL,
   MODEL_CAPABILITIES,
+  modelSupportsReasoning,
   type ModelId
 } from '@/lib/ai/models';
 import { type FileType } from '@/lib/storage/file-validation';
@@ -51,6 +52,10 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
   const currentChatIdRef = useRef<string | undefined>(chatId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const previousStatusRef = useRef<string>('idle');
+
+  // Reasoning mode state
+  const [reasoningMode, setReasoningMode] = useState(false);
+  const [reasoningEffort, setReasoningEffort] = useState<'low' | 'medium' | 'high'>('medium');
 
   // File upload state
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
@@ -198,7 +203,7 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
       return;
     }
 
-    // Send message with chatId, modelId, locale, and fileIds in metadata
+    // Send message with chatId, modelId, locale, fileIds, and reasoning settings in metadata
     sendMessage({
       text: input,
       metadata: {
@@ -206,6 +211,8 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
         modelId: selectedModel,
         locale: locale,
         fileIds: uploadedFiles.map(f => f.id), // Add file IDs
+        reasoningMode: reasoningMode,
+        reasoningEffort: reasoningEffort,
       },
     });
     setInput('');
@@ -235,6 +242,12 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
       you: 'Jij',
       assistant: 'Assistent',
       shortcuts: 'Ctrl+Enter om te versturen, Esc om te stoppen',
+      reasoningMode: 'Redeneer Modus',
+      reasoningEffort: 'Denk Niveau',
+      effortLow: 'Laag',
+      effortMedium: 'Gemiddeld',
+      effortHigh: 'Hoog',
+      reasoningTooltip: 'Schakel redeneer modus in voor diepere analyse',
     },
     en: {
       title: 'AI Assistant',
@@ -247,6 +260,12 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
       you: 'You',
       assistant: 'Assistant',
       shortcuts: 'Ctrl+Enter to send, Esc to stop',
+      reasoningMode: 'Reasoning Mode',
+      reasoningEffort: 'Thinking Level',
+      effortLow: 'Low',
+      effortMedium: 'Medium',
+      effortHigh: 'High',
+      reasoningTooltip: 'Enable reasoning mode for deeper analysis',
     },
   };
 
@@ -255,6 +274,9 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
   // Check if selected model supports vision (for file uploads)
   const selectedModelCapabilities = MODEL_CAPABILITIES[selectedModel];
   const modelSupportsVision = selectedModelCapabilities?.supportsVision ?? false;
+
+  // Check if selected model supports reasoning
+  const currentModelSupportsReasoning = modelSupportsReasoning(selectedModel);
 
   // Helper function to detect and parse chart visualization data
   const tryParseChartData = (text: string): ChartVisualizationProps | null => {
@@ -330,28 +352,91 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-900">{t.title}</h1>
 
-          {/* Model Selector */}
-          <div className="flex items-center gap-sm">
-            <label htmlFor="model-select" className="text-sm font-medium text-gray-700">
-              {t.modelLabel}:
-            </label>
-            <select
-              id="model-select"
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value as ModelId)}
-              disabled={isLoading}
-              className={cn(
-                'px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm',
-                'focus:outline-none focus:ring-2 focus:ring-blue-500',
-                'disabled:bg-gray-100 disabled:cursor-not-allowed'
-              )}
-            >
-              {availableModels.map((modelId) => (
-                <option key={modelId} value={modelId}>
-                  {modelId}
-                </option>
-              ))}
-            </select>
+          {/* Model Selector and Reasoning Controls */}
+          <div className="flex items-center gap-base">
+            {/* Model Selector */}
+            <div className="flex items-center gap-sm">
+              <label htmlFor="model-select" className="text-sm font-medium text-gray-700">
+                {t.modelLabel}:
+              </label>
+              <select
+                id="model-select"
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value as ModelId)}
+                disabled={isLoading}
+                className={cn(
+                  'px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm',
+                  'focus:outline-none focus:ring-2 focus:ring-blue-500',
+                  'disabled:bg-gray-100 disabled:cursor-not-allowed'
+                )}
+              >
+                {availableModels.map((modelId) => (
+                  <option key={modelId} value={modelId}>
+                    {modelId}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Reasoning Mode Toggle - Only shown if model supports reasoning */}
+            {currentModelSupportsReasoning && (
+              <>
+                <div className="h-6 w-px bg-gray-300" /> {/* Divider */}
+
+                <div className="flex items-center gap-sm">
+                  <label
+                    htmlFor="reasoning-toggle"
+                    className="text-sm font-medium text-gray-700 flex items-center gap-1"
+                    title={t.reasoningTooltip}
+                  >
+                    {t.reasoningMode}:
+                  </label>
+                  <button
+                    id="reasoning-toggle"
+                    type="button"
+                    onClick={() => setReasoningMode(!reasoningMode)}
+                    disabled={isLoading}
+                    className={cn(
+                      'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
+                      'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+                      'disabled:opacity-50 disabled:cursor-not-allowed',
+                      reasoningMode ? 'bg-blue-600' : 'bg-gray-300'
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
+                        reasoningMode ? 'translate-x-6' : 'translate-x-1'
+                      )}
+                    />
+                  </button>
+                </div>
+
+                {/* Reasoning Effort Selector - Only shown when reasoning is enabled */}
+                {reasoningMode && (
+                  <div className="flex items-center gap-sm">
+                    <label htmlFor="effort-select" className="text-sm font-medium text-gray-700">
+                      {t.reasoningEffort}:
+                    </label>
+                    <select
+                      id="effort-select"
+                      value={reasoningEffort}
+                      onChange={(e) => setReasoningEffort(e.target.value as 'low' | 'medium' | 'high')}
+                      disabled={isLoading}
+                      className={cn(
+                        'px-2 py-1 bg-white border border-gray-300 rounded-md text-sm',
+                        'focus:outline-none focus:ring-2 focus:ring-blue-500',
+                        'disabled:bg-gray-100 disabled:cursor-not-allowed'
+                      )}
+                    >
+                      <option value="low">{t.effortLow}</option>
+                      <option value="medium">{t.effortMedium}</option>
+                      <option value="high">{t.effortHigh}</option>
+                    </select>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       </div>
