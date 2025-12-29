@@ -9,7 +9,8 @@
     "lint": "eslint",
     "db:migrate": "tsx scripts/init-database.ts",
     "validate:data": "tsx scripts/validate-data-integrity.ts",
-    "setup:hooks": "bash scripts/install-git-hooks.sh"
+    "setup:hooks": "bash scripts/install-git-hooks.sh",
+    "cleanup:files": "tsx scripts/cleanup-deleted-files.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.39",
