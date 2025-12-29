@@ -3,6 +3,14 @@
     {
       "path": "/api/files/cleanup",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/summaries/inactivity",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/memory/consolidate",
+      "schedule": "30 23 * * *"
     }
   ]
 }
