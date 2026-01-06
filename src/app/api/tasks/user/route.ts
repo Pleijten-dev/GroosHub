@@ -29,44 +29,15 @@ export async function GET(request: NextRequest) {
     const db = getDbConnection();
     const { searchParams } = new URL(request.url);
 
-    const status = searchParams.get('status');
+    const statusFilter = searchParams.get('status');
     const withDeadline = searchParams.get('withDeadline') === 'true';
     const upcoming = searchParams.get('upcoming');
     const overdue = searchParams.get('overdue') === 'true';
     const sortBy = searchParams.get('sortBy') || 'deadline';
     const sortOrder = searchParams.get('sortOrder') || 'asc';
 
-    // Base query
-    let whereConditions = [
-      db`ta.user_id = ${session.user.id}`,
-      db`t.deleted_at IS NULL`,
-      db`pp.deleted_at IS NULL`,
-    ];
-
-    // Apply filters
-    if (status) {
-      whereConditions.push(db`t.status = ${status}`);
-    }
-
-    if (withDeadline) {
-      whereConditions.push(db`t.deadline IS NOT NULL`);
-    }
-
-    if (overdue) {
-      whereConditions.push(db`t.deadline < CURRENT_TIMESTAMP`);
-      whereConditions.push(db`t.status != 'done'`);
-    }
-
-    if (upcoming) {
-      const days = parseInt(upcoming);
-      whereConditions.push(
-        db`t.deadline BETWEEN CURRENT_TIMESTAMP AND CURRENT_TIMESTAMP + ${days}::TEXT::INTERVAL`
-      );
-      whereConditions.push(db`t.status != 'done'`);
-    }
-
-    // Get tasks with project info
-    const tasks = await db`
+    // Build base query with all tasks for the user
+    let query = `
       SELECT
         t.*,
         pp.id as project_id,
@@ -98,20 +69,54 @@ export async function GET(request: NextRequest) {
       LEFT JOIN task_assignments ta2 ON ta2.task_id = t.id
       LEFT JOIN user_accounts ua ON ua.id = ta2.user_id
       LEFT JOIN task_notes tn ON tn.task_id = t.id
-      WHERE ${db(whereConditions, ' AND ')}
-      GROUP BY t.id, pp.id, pp.name, tg.name, tg.color, creator.name
-      ORDER BY
-        ${sortBy === 'deadline' ? db`t.deadline ${sortOrder === 'asc' ? db`ASC` : db`DESC`} NULLS LAST` :
-          sortBy === 'priority' ? db`
-            CASE t.priority
-              WHEN 'urgent' THEN 1
-              WHEN 'high' THEN 2
-              WHEN 'normal' THEN 3
-              WHEN 'low' THEN 4
-            END ${sortOrder === 'asc' ? db`ASC` : db`DESC`}
-          ` :
-          db`t.created_at ${sortOrder === 'asc' ? db`ASC` : db`DESC`}`}
+      WHERE ta.user_id = $1
+        AND t.deleted_at IS NULL
+        AND pp.deleted_at IS NULL
     `;
+
+    const params: any[] = [session.user.id];
+
+    // Apply filters
+    if (statusFilter) {
+      params.push(statusFilter);
+      query += ` AND t.status = $${params.length}`;
+    }
+
+    if (withDeadline) {
+      query += ` AND t.deadline IS NOT NULL`;
+    }
+
+    if (overdue) {
+      query += ` AND t.deadline < CURRENT_TIMESTAMP AND t.status != 'done'`;
+    }
+
+    if (upcoming) {
+      const days = parseInt(upcoming);
+      params.push(days);
+      query += ` AND t.deadline BETWEEN CURRENT_TIMESTAMP AND CURRENT_TIMESTAMP + INTERVAL '1 day' * $${params.length} AND t.status != 'done'`;
+    }
+
+    query += ' GROUP BY t.id, pp.id, pp.name, tg.name, tg.color, creator.name';
+
+    // Add ORDER BY
+    if (sortBy === 'deadline') {
+      query += ` ORDER BY t.deadline ${sortOrder.toUpperCase()} NULLS LAST`;
+    } else if (sortBy === 'priority') {
+      query += `
+        ORDER BY
+          CASE t.priority
+            WHEN 'urgent' THEN 1
+            WHEN 'high' THEN 2
+            WHEN 'normal' THEN 3
+            WHEN 'low' THEN 4
+          END ${sortOrder.toUpperCase()}
+      `;
+    } else {
+      query += ` ORDER BY t.created_at ${sortOrder.toUpperCase()}`;
+    }
+
+    // Execute query with parameters
+    const tasks = await db.unsafe(query, params);
 
     // Get summary statistics
     const stats = await db`
