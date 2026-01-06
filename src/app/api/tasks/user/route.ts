@@ -29,94 +29,148 @@ export async function GET(request: NextRequest) {
     const db = getDbConnection();
     const { searchParams } = new URL(request.url);
 
-    const statusFilter = searchParams.get('status');
+    const statusFilter = searchParams.get('status') as 'todo' | 'doing' | 'done' | null;
     const withDeadline = searchParams.get('withDeadline') === 'true';
     const upcoming = searchParams.get('upcoming');
     const overdue = searchParams.get('overdue') === 'true';
     const sortBy = searchParams.get('sortBy') || 'deadline';
     const sortOrder = searchParams.get('sortOrder') || 'asc';
 
-    // Build base query with all tasks for the user
-    let query = `
-      SELECT
-        t.*,
-        pp.id as project_id,
-        pp.name as project_name,
-        tg.name as group_name,
-        tg.color as group_color,
-        creator.name as created_by_name,
-        ARRAY_AGG(DISTINCT jsonb_build_object(
-          'id', ua.id,
-          'name', ua.name,
-          'email', ua.email
-        )) FILTER (WHERE ua.id IS NOT NULL) as assigned_users,
-        COUNT(DISTINCT tn.id) as note_count,
-        CASE
-          WHEN t.deadline IS NOT NULL AND t.deadline < CURRENT_TIMESTAMP AND t.status != 'done'
-          THEN true
-          ELSE false
-        END as is_overdue,
-        CASE
-          WHEN t.deadline IS NOT NULL
-          THEN EXTRACT(DAY FROM (t.deadline - CURRENT_TIMESTAMP))::INTEGER
-          ELSE NULL
-        END as days_until_deadline
-      FROM tasks t
-      JOIN task_assignments ta ON ta.task_id = t.id
-      JOIN project_projects pp ON pp.id = t.project_id
-      LEFT JOIN task_groups tg ON tg.id = t.task_group_id
-      LEFT JOIN user_accounts creator ON creator.id = t.created_by_user_id
-      LEFT JOIN task_assignments ta2 ON ta2.task_id = t.id
-      LEFT JOIN user_accounts ua ON ua.id = ta2.user_id
-      LEFT JOIN task_notes tn ON tn.task_id = t.id
-      WHERE ta.user_id = $1
-        AND t.deleted_at IS NULL
-        AND pp.deleted_at IS NULL
-    `;
+    // Validate sortOrder to prevent SQL injection
+    const validSortOrder = sortOrder.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
-    const params: any[] = [session.user.id];
-
-    // Apply filters
-    if (statusFilter) {
-      params.push(statusFilter);
-      query += ` AND t.status = $${params.length}`;
-    }
-
-    if (withDeadline) {
-      query += ` AND t.deadline IS NOT NULL`;
-    }
+    // Build query based on filters using conditional logic
+    let tasksQuery;
 
     if (overdue) {
-      query += ` AND t.deadline < CURRENT_TIMESTAMP AND t.status != 'done'`;
-    }
-
-    if (upcoming) {
+      // Overdue tasks only
+      tasksQuery = db`
+        SELECT
+          t.*,
+          pp.id as project_id,
+          pp.name as project_name,
+          tg.name as group_name,
+          tg.color as group_color,
+          creator.name as created_by_name,
+          ARRAY_AGG(DISTINCT jsonb_build_object(
+            'id', ua.id,
+            'name', ua.name,
+            'email', ua.email
+          )) FILTER (WHERE ua.id IS NOT NULL) as assigned_users,
+          COUNT(DISTINCT tn.id) as note_count,
+          true as is_overdue,
+          EXTRACT(DAY FROM (t.deadline - CURRENT_TIMESTAMP))::INTEGER as days_until_deadline
+        FROM tasks t
+        JOIN task_assignments ta ON ta.task_id = t.id
+        JOIN project_projects pp ON pp.id = t.project_id
+        LEFT JOIN task_groups tg ON tg.id = t.task_group_id
+        LEFT JOIN user_accounts creator ON creator.id = t.created_by_user_id
+        LEFT JOIN task_assignments ta2 ON ta2.task_id = t.id
+        LEFT JOIN user_accounts ua ON ua.id = ta2.user_id
+        LEFT JOIN task_notes tn ON tn.task_id = t.id
+        WHERE ta.user_id = ${session.user.id}
+          AND t.deleted_at IS NULL
+          AND pp.deleted_at IS NULL
+          AND t.deadline < CURRENT_TIMESTAMP
+          AND t.status != 'done'
+          ${statusFilter ? db`AND t.status = ${statusFilter}` : db``}
+        GROUP BY t.id, pp.id, pp.name, tg.name, tg.color, creator.name
+        ORDER BY t.deadline ASC
+      `;
+    } else if (upcoming) {
+      // Upcoming tasks (due in next N days)
       const days = parseInt(upcoming);
-      params.push(days);
-      query += ` AND t.deadline BETWEEN CURRENT_TIMESTAMP AND CURRENT_TIMESTAMP + INTERVAL '1 day' * $${params.length} AND t.status != 'done'`;
-    }
-
-    query += ' GROUP BY t.id, pp.id, pp.name, tg.name, tg.color, creator.name';
-
-    // Add ORDER BY
-    if (sortBy === 'deadline') {
-      query += ` ORDER BY t.deadline ${sortOrder.toUpperCase()} NULLS LAST`;
-    } else if (sortBy === 'priority') {
-      query += `
-        ORDER BY
-          CASE t.priority
-            WHEN 'urgent' THEN 1
-            WHEN 'high' THEN 2
-            WHEN 'normal' THEN 3
-            WHEN 'low' THEN 4
-          END ${sortOrder.toUpperCase()}
+      tasksQuery = db`
+        SELECT
+          t.*,
+          pp.id as project_id,
+          pp.name as project_name,
+          tg.name as group_name,
+          tg.color as group_color,
+          creator.name as created_by_name,
+          ARRAY_AGG(DISTINCT jsonb_build_object(
+            'id', ua.id,
+            'name', ua.name,
+            'email', ua.email
+          )) FILTER (WHERE ua.id IS NOT NULL) as assigned_users,
+          COUNT(DISTINCT tn.id) as note_count,
+          CASE
+            WHEN t.deadline < CURRENT_TIMESTAMP THEN true
+            ELSE false
+          END as is_overdue,
+          EXTRACT(DAY FROM (t.deadline - CURRENT_TIMESTAMP))::INTEGER as days_until_deadline
+        FROM tasks t
+        JOIN task_assignments ta ON ta.task_id = t.id
+        JOIN project_projects pp ON pp.id = t.project_id
+        LEFT JOIN task_groups tg ON tg.id = t.task_group_id
+        LEFT JOIN user_accounts creator ON creator.id = t.created_by_user_id
+        LEFT JOIN task_assignments ta2 ON ta2.task_id = t.id
+        LEFT JOIN user_accounts ua ON ua.id = ta2.user_id
+        LEFT JOIN task_notes tn ON tn.task_id = t.id
+        WHERE ta.user_id = ${session.user.id}
+          AND t.deleted_at IS NULL
+          AND pp.deleted_at IS NULL
+          AND t.deadline BETWEEN CURRENT_TIMESTAMP AND CURRENT_TIMESTAMP + (${days} || ' days')::INTERVAL
+          AND t.status != 'done'
+          ${statusFilter ? db`AND t.status = ${statusFilter}` : db``}
+        GROUP BY t.id, pp.id, pp.name, tg.name, tg.color, creator.name
+        ORDER BY t.deadline ASC
       `;
     } else {
-      query += ` ORDER BY t.created_at ${sortOrder.toUpperCase()}`;
+      // All tasks (with optional filters)
+      tasksQuery = db`
+        SELECT
+          t.*,
+          pp.id as project_id,
+          pp.name as project_name,
+          tg.name as group_name,
+          tg.color as group_color,
+          creator.name as created_by_name,
+          ARRAY_AGG(DISTINCT jsonb_build_object(
+            'id', ua.id,
+            'name', ua.name,
+            'email', ua.email
+          )) FILTER (WHERE ua.id IS NOT NULL) as assigned_users,
+          COUNT(DISTINCT tn.id) as note_count,
+          CASE
+            WHEN t.deadline IS NOT NULL AND t.deadline < CURRENT_TIMESTAMP AND t.status != 'done'
+            THEN true
+            ELSE false
+          END as is_overdue,
+          CASE
+            WHEN t.deadline IS NOT NULL
+            THEN EXTRACT(DAY FROM (t.deadline - CURRENT_TIMESTAMP))::INTEGER
+            ELSE NULL
+          END as days_until_deadline
+        FROM tasks t
+        JOIN task_assignments ta ON ta.task_id = t.id
+        JOIN project_projects pp ON pp.id = t.project_id
+        LEFT JOIN task_groups tg ON tg.id = t.task_group_id
+        LEFT JOIN user_accounts creator ON creator.id = t.created_by_user_id
+        LEFT JOIN task_assignments ta2 ON ta2.task_id = t.id
+        LEFT JOIN user_accounts ua ON ua.id = ta2.user_id
+        LEFT JOIN task_notes tn ON tn.task_id = t.id
+        WHERE ta.user_id = ${session.user.id}
+          AND t.deleted_at IS NULL
+          AND pp.deleted_at IS NULL
+          ${statusFilter ? db`AND t.status = ${statusFilter}` : db``}
+          ${withDeadline ? db`AND t.deadline IS NOT NULL` : db``}
+        GROUP BY t.id, pp.id, pp.name, tg.name, tg.color, creator.name
+        ORDER BY
+          ${sortBy === 'deadline' ? db`t.deadline ${db.unsafe(validSortOrder)} NULLS LAST` :
+            sortBy === 'priority' ? db`
+              CASE t.priority
+                WHEN 'urgent' THEN 1
+                WHEN 'high' THEN 2
+                WHEN 'normal' THEN 3
+                WHEN 'low' THEN 4
+              END ${db.unsafe(validSortOrder)}
+            ` :
+            db`t.created_at ${db.unsafe(validSortOrder)}`}
+      `;
     }
 
-    // Execute query with parameters
-    const tasks = await db.unsafe(query, params);
+    const tasks = await tasksQuery;
 
     // Get summary statistics
     const stats = await db`
