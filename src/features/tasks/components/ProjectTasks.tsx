@@ -4,8 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/shared/components/UI/Card/Card';
 import { Button } from '@/shared/components/UI/Button/Button';
 import { KanbanBoard } from './KanbanBoard';
+import { TaskCalendarView } from './TaskCalendarView';
 import { CreateTaskModal } from './CreateTaskModal';
 import { TaskGroupsModal } from './TaskGroupsModal';
+import { TaskDetailModal } from './TaskDetailModal';
 import type { Task, TaskGroup, TaskFilters } from '../types';
 
 export interface ProjectTasksProps {
@@ -20,6 +22,8 @@ export function ProjectTasks({ projectId, locale }: ProjectTasksProps) {
   const [error, setError] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isGroupsModalOpen, setIsGroupsModalOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [currentView, setCurrentView] = useState<'kanban' | 'calendar'>('kanban');
   const [filters, setFilters] = useState<TaskFilters>({
     sortBy: 'position',
     sortOrder: 'asc'
@@ -30,6 +34,8 @@ export function ProjectTasks({ projectId, locale }: ProjectTasksProps) {
       tasks: 'Taken',
       newTask: 'Nieuwe Taak',
       manageGroups: 'Groepen Beheren',
+      kanbanView: 'Kanban',
+      calendarView: 'Kalender',
       loading: 'Laden...',
       error: 'Fout bij laden taken',
       noTasks: 'Geen taken',
@@ -46,6 +52,8 @@ export function ProjectTasks({ projectId, locale }: ProjectTasksProps) {
       tasks: 'Tasks',
       newTask: 'New Task',
       manageGroups: 'Manage Groups',
+      kanbanView: 'Kanban',
+      calendarView: 'Calendar',
       loading: 'Loading...',
       error: 'Error loading tasks',
       noTasks: 'No tasks',
@@ -184,17 +192,43 @@ export function ProjectTasks({ projectId, locale }: ProjectTasksProps) {
         <div className="flex items-center gap-4">
           <h2 className="text-xl font-semibold">{t.tasks}</h2>
 
-          {/* Sort selector */}
-          <select
-            value={filters.sortBy}
-            onChange={(e) => setFilters({ ...filters, sortBy: e.target.value as any })}
-            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-          >
-            <option value="position">{t.position}</option>
-            <option value="deadline">{t.deadline}</option>
-            <option value="priority">{t.priority}</option>
-            <option value="created">{t.created}</option>
-          </select>
+          {/* View toggle */}
+          <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+            <button
+              onClick={() => setCurrentView('kanban')}
+              className={`px-3 py-1 text-sm rounded transition-colors ${
+                currentView === 'kanban'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              {t.kanbanView}
+            </button>
+            <button
+              onClick={() => setCurrentView('calendar')}
+              className={`px-3 py-1 text-sm rounded transition-colors ${
+                currentView === 'calendar'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              {t.calendarView}
+            </button>
+          </div>
+
+          {/* Sort selector - only show in Kanban view */}
+          {currentView === 'kanban' && (
+            <select
+              value={filters.sortBy}
+              onChange={(e) => setFilters({ ...filters, sortBy: e.target.value as any })}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
+            >
+              <option value="position">{t.position}</option>
+              <option value="deadline">{t.deadline}</option>
+              <option value="priority">{t.priority}</option>
+              <option value="created">{t.created}</option>
+            </select>
+          )}
 
           {/* Group filter */}
           {groups.length > 0 && (
@@ -223,15 +257,23 @@ export function ProjectTasks({ projectId, locale }: ProjectTasksProps) {
         </div>
       </div>
 
-      {/* Kanban Board */}
-      <KanbanBoard
-        tasks={tasks}
-        groups={groups}
-        onUpdateTask={handleUpdateTask}
-        onDeleteTask={handleDeleteTask}
-        locale={locale}
-        projectId={projectId}
-      />
+      {/* View Content */}
+      {currentView === 'kanban' ? (
+        <KanbanBoard
+          tasks={tasks}
+          groups={groups}
+          onUpdateTask={handleUpdateTask}
+          onDeleteTask={handleDeleteTask}
+          locale={locale}
+          projectId={projectId}
+        />
+      ) : (
+        <TaskCalendarView
+          tasks={tasks}
+          onTaskClick={(task) => setSelectedTask(task)}
+          locale={locale}
+        />
+      )}
 
       {/* Create Task Modal */}
       {isCreateModalOpen && (
@@ -252,6 +294,25 @@ export function ProjectTasks({ projectId, locale }: ProjectTasksProps) {
           onUpdate={async () => {
             await fetchGroups();
             await fetchTasks();
+          }}
+          locale={locale}
+        />
+      )}
+
+      {/* Task Detail Modal (for calendar view) */}
+      {selectedTask && (
+        <TaskDetailModal
+          task={selectedTask}
+          projectId={projectId}
+          groups={groups}
+          onClose={() => setSelectedTask(null)}
+          onUpdate={async (updates) => {
+            await handleUpdateTask(selectedTask.id, updates);
+            setSelectedTask(null);
+          }}
+          onDelete={async () => {
+            await handleDeleteTask(selectedTask.id);
+            setSelectedTask(null);
           }}
           locale={locale}
         />
