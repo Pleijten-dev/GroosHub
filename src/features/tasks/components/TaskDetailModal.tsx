@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/shared/components/UI/Button/Button';
+import { TaskAssignmentModal } from './TaskAssignmentModal';
 import type { Task, TaskGroup, TaskNote } from '../types';
 
 export interface TaskDetailModalProps {
@@ -24,8 +25,10 @@ export function TaskDetailModal({
   locale
 }: TaskDetailModalProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
   const [notes, setNotes] = useState<TaskNote[]>([]);
   const [newNote, setNewNote] = useState('');
+  const [currentTask, setCurrentTask] = useState(task);
   const [editData, setEditData] = useState({
     title: task.title,
     description: task.description || '',
@@ -102,6 +105,18 @@ export function TaskDetailModal({
       }
     } catch (err) {
       console.error('Error fetching notes:', err);
+    }
+  }
+
+  async function refreshTask() {
+    try {
+      const res = await fetch(`/api/projects/${projectId}/tasks/${task.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setCurrentTask(data.data);
+      }
+    } catch (err) {
+      console.error('Error refreshing task:', err);
     }
   }
 
@@ -195,7 +210,7 @@ export function TaskDetailModal({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
               />
             ) : (
-              <p className="text-lg font-medium">{task.title}</p>
+              <p className="text-lg font-medium">{currentTask.title}</p>
             )}
           </div>
 
@@ -212,7 +227,7 @@ export function TaskDetailModal({
                 rows={4}
               />
             ) : (
-              <p className="text-gray-700 whitespace-pre-wrap">{task.description || '-'}</p>
+              <p className="text-gray-700 whitespace-pre-wrap">{currentTask.description || '-'}</p>
             )}
           </div>
 
@@ -222,7 +237,7 @@ export function TaskDetailModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {t.status}
               </label>
-              <p className="text-gray-900 capitalize">{task.status}</p>
+              <p className="text-gray-900 capitalize">{currentTask.status}</p>
             </div>
 
             <div>
@@ -241,7 +256,7 @@ export function TaskDetailModal({
                   <option value="urgent">{t.urgent}</option>
                 </select>
               ) : (
-                <p className="text-gray-900 capitalize">{t[task.priority]}</p>
+                <p className="text-gray-900 capitalize">{t[currentTask.priority]}</p>
               )}
             </div>
           </div>
@@ -261,7 +276,7 @@ export function TaskDetailModal({
                 />
               ) : (
                 <p className="text-gray-900">
-                  {task.deadline ? new Date(task.deadline).toLocaleString(locale) : '-'}
+                  {currentTask.deadline ? new Date(currentTask.deadline).toLocaleString(locale) : '-'}
                 </p>
               )}
             </div>
@@ -284,19 +299,28 @@ export function TaskDetailModal({
                   ))}
                 </select>
               ) : (
-                <p className="text-gray-900">{task.group_name || '-'}</p>
+                <p className="text-gray-900">{currentTask.group_name || '-'}</p>
               )}
             </div>
           </div>
 
           {/* Assigned Users */}
-          {task.assigned_users && task.assigned_users.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">
                 {t.assignedTo}
               </label>
+              <Button
+                onClick={() => setIsAssignmentModalOpen(true)}
+                variant="secondary"
+                size="sm"
+              >
+                {locale === 'nl' ? 'Beheer' : 'Manage'}
+              </Button>
+            </div>
+            {currentTask.assigned_users && currentTask.assigned_users.length > 0 ? (
               <div className="flex flex-wrap gap-2">
-                {task.assigned_users.map(user => (
+                {currentTask.assigned_users.map(user => (
                   <div
                     key={user.id}
                     className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm flex items-center gap-2"
@@ -308,8 +332,10 @@ export function TaskDetailModal({
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            ) : (
+              <p className="text-gray-500 text-sm">{locale === 'nl' ? 'Niemand toegewezen' : 'No one assigned'}</p>
+            )}
+          </div>
 
           {/* Notes Section */}
           <div className="border-t border-gray-200 pt-6">
@@ -350,11 +376,26 @@ export function TaskDetailModal({
 
           {/* Metadata */}
           <div className="border-t border-gray-200 pt-4 text-sm text-gray-500">
-            <p>{t.created}: {new Date(task.created_at).toLocaleString(locale)}</p>
-            {task.created_by_name && <p>{t.by}: {task.created_by_name}</p>}
+            <p>{t.created}: {new Date(currentTask.created_at).toLocaleString(locale)}</p>
+            {currentTask.created_by_name && <p>{t.by}: {currentTask.created_by_name}</p>}
           </div>
         </div>
       </div>
+
+      {/* Task Assignment Modal */}
+      {isAssignmentModalOpen && (
+        <TaskAssignmentModal
+          taskId={task.id}
+          projectId={projectId}
+          currentAssignees={currentTask.assigned_users || []}
+          onClose={() => setIsAssignmentModalOpen(false)}
+          onUpdate={async () => {
+            await refreshTask();
+            setIsAssignmentModalOpen(false);
+          }}
+          locale={locale}
+        />
+      )}
     </div>
   );
 }

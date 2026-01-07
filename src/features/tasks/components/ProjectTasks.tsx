@@ -5,6 +5,7 @@ import { Card } from '@/shared/components/UI/Card/Card';
 import { Button } from '@/shared/components/UI/Button/Button';
 import { KanbanBoard } from './KanbanBoard';
 import { CreateTaskModal } from './CreateTaskModal';
+import { TaskGroupsModal } from './TaskGroupsModal';
 import type { Task, TaskGroup, TaskFilters } from '../types';
 
 export interface ProjectTasksProps {
@@ -18,6 +19,7 @@ export function ProjectTasks({ projectId, locale }: ProjectTasksProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isGroupsModalOpen, setIsGroupsModalOpen] = useState(false);
   const [filters, setFilters] = useState<TaskFilters>({
     sortBy: 'position',
     sortOrder: 'asc'
@@ -27,6 +29,7 @@ export function ProjectTasks({ projectId, locale }: ProjectTasksProps) {
     nl: {
       tasks: 'Taken',
       newTask: 'Nieuwe Taak',
+      manageGroups: 'Groepen Beheren',
       loading: 'Laden...',
       error: 'Fout bij laden taken',
       noTasks: 'Geen taken',
@@ -42,6 +45,7 @@ export function ProjectTasks({ projectId, locale }: ProjectTasksProps) {
     en: {
       tasks: 'Tasks',
       newTask: 'New Task',
+      manageGroups: 'Manage Groups',
       loading: 'Loading...',
       error: 'Error loading tasks',
       noTasks: 'No tasks',
@@ -209,9 +213,14 @@ export function ProjectTasks({ projectId, locale }: ProjectTasksProps) {
           )}
         </div>
 
-        <Button onClick={() => setIsCreateModalOpen(true)} size="sm">
-          {t.newTask}
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setIsGroupsModalOpen(true)} variant="secondary" size="sm">
+            {t.manageGroups}
+          </Button>
+          <Button onClick={() => setIsCreateModalOpen(true)} size="sm">
+            {t.newTask}
+          </Button>
+        </div>
       </div>
 
       {/* Kanban Board */}
@@ -231,6 +240,19 @@ export function ProjectTasks({ projectId, locale }: ProjectTasksProps) {
           groups={groups}
           onClose={() => setIsCreateModalOpen(false)}
           onCreate={handleCreateTask}
+          locale={locale}
+        />
+      )}
+
+      {/* Task Groups Modal */}
+      {isGroupsModalOpen && (
+        <TaskGroupsModal
+          projectId={projectId}
+          onClose={() => setIsGroupsModalOpen(false)}
+          onUpdate={async () => {
+            await fetchGroups();
+            await fetchTasks();
+          }}
           locale={locale}
         />
       )}
