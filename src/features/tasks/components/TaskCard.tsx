@@ -8,9 +8,18 @@ export interface TaskCardProps {
   onDragStart: (task: Task) => void;
   onClick: () => void;
   locale: string;
+  isLoading?: boolean;
+  isDragging?: boolean;
 }
 
-export function TaskCard({ task, onDragStart, onClick, locale }: TaskCardProps) {
+export function TaskCard({
+  task,
+  onDragStart,
+  onClick,
+  locale,
+  isLoading = false,
+  isDragging = false
+}: TaskCardProps) {
   const priorityColors = {
     urgent: 'border-red-500 bg-red-50',
     high: 'border-orange-500 bg-orange-50',
@@ -61,13 +70,21 @@ export function TaskCard({ task, onDragStart, onClick, locale }: TaskCardProps) 
       onDragStart={() => onDragStart(task)}
       onClick={onClick}
       className={`
-        p-3 border rounded-lg cursor-pointer
+        relative p-3 border rounded-lg cursor-pointer
         transition-all duration-200
         hover:shadow-md hover:scale-[1.02]
         ${priorityColors[task.priority]}
         ${task.is_overdue ? 'border-red-500 bg-red-50' : ''}
+        ${isDragging ? 'opacity-50 scale-105 shadow-xl ring-2 ring-primary' : ''}
+        ${isLoading ? 'opacity-75 pointer-events-none animate-pulse' : ''}
       `}
     >
+      {/* Loading indicator */}
+      {isLoading && (
+        <div className="absolute top-2 right-2">
+          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
       {/* Title */}
       <h4 className="font-medium text-gray-900 mb-2 line-clamp-2">
         {task.title}

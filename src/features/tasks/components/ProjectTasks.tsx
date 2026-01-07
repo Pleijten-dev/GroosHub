@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/shared/components/UI/Card/Card';
 import { Button } from '@/shared/components/UI/Button/Button';
+import { ToastProvider } from '@/shared/components/UI/Toast';
 import { KanbanBoard } from './KanbanBoard';
 import { TaskCalendarView } from './TaskCalendarView';
 import { CreateTaskModal } from './CreateTaskModal';
@@ -186,7 +187,8 @@ export function ProjectTasks({ projectId, locale }: ProjectTasksProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <ToastProvider>
+      <div className="space-y-4">
       {/* Header with filters */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -264,6 +266,7 @@ export function ProjectTasks({ projectId, locale }: ProjectTasksProps) {
           groups={groups}
           onUpdateTask={handleUpdateTask}
           onDeleteTask={handleDeleteTask}
+          onCreateTask={handleCreateTask}
           locale={locale}
           projectId={projectId}
         />
@@ -318,6 +321,7 @@ export function ProjectTasks({ projectId, locale }: ProjectTasksProps) {
         />
       )}
     </div>
+    </ToastProvider>
   );
 }
 
