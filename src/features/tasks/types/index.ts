@@ -72,6 +72,7 @@ export interface Task {
   subtasks?: Task[];
   is_overdue?: boolean;
   days_until_deadline?: number | null;
+  project_name?: string; // For cross-project views (user tasks page)
 }
 
 export interface TaskStats {
