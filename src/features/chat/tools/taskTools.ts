@@ -1348,6 +1348,446 @@ export function createTaskTools(userId: number, locale: string = 'en') {
           };
         }
       }
+    }),
+
+    /**
+     * Bulk Update Tasks - Update multiple tasks at once based on filters
+     */
+    bulkUpdateTasks: tool({
+      description: `Update multiple tasks at once based on filters. Use when user asks:
+        - "Mark all overdue tasks as high priority"
+        - "Move all design tasks to doing"
+        - "Set deadline for all todo tasks"
+        - "Change all John's tasks to Sarah"
+
+        IMPORTANT: Always confirm with user before bulk updates.`,
+
+      inputSchema: z.object({
+        project_id: z.string().uuid()
+          .describe('UUID of the project'),
+        filter: z.object({
+          status: z.enum(['todo', 'doing', 'done']).optional(),
+          priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(),
+          overdue: z.boolean().optional(),
+          title_contains: z.string().optional()
+        }).optional()
+          .describe('Filter which tasks to update'),
+        updates: z.object({
+          status: z.enum(['todo', 'doing', 'done']).optional(),
+          priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(),
+          deadline: z.string().nullable().optional()
+        })
+          .describe('What to update on matched tasks'),
+        limit: z.number().min(1).max(50).default(20)
+          .describe('Maximum number of tasks to update (safety limit)')
+      }),
+
+      async execute({ project_id, filter, updates, limit }: {
+        project_id: string;
+        filter?: {
+          status?: 'todo' | 'doing' | 'done';
+          priority?: 'low' | 'normal' | 'high' | 'urgent';
+          overdue?: boolean;
+          title_contains?: string;
+        };
+        updates: {
+          status?: 'todo' | 'doing' | 'done';
+          priority?: 'low' | 'normal' | 'high' | 'urgent';
+          deadline?: string | null;
+        };
+        limit?: number;
+      }) {
+        try {
+          // Verify project access
+          const projectAccess = await db`
+            SELECT pp.id, pp.name
+            FROM project_projects pp
+            JOIN project_members pm ON pm.project_id = pp.id
+            WHERE pp.id = ${project_id}
+              AND pm.user_id = ${userId}
+              AND pm.left_at IS NULL
+              AND pp.deleted_at IS NULL
+            LIMIT 1
+          `;
+
+          if (projectAccess.length === 0) {
+            return { success: false, error: 'Project not found or access denied' };
+          }
+
+          // Build filter conditions
+          const now = new Date();
+          const conditions = [
+            'project_id = ' + project_id,
+            'deleted_at IS NULL'
+          ];
+
+          if (filter?.status) {
+            conditions.push(`status = '${filter.status}'`);
+          }
+          if (filter?.priority) {
+            conditions.push(`priority = '${filter.priority}'`);
+          }
+          if (filter?.overdue) {
+            conditions.push(`deadline < '${now.toISOString()}' AND status != 'done'`);
+          }
+          if (filter?.title_contains) {
+            conditions.push(`title ILIKE '%${filter.title_contains}%'`);
+          }
+
+          // First, preview what will be updated
+          const tasksToUpdate = await db`
+            SELECT id, title, status, priority, deadline
+            FROM tasks
+            WHERE ${db.unsafe(conditions.join(' AND '))}
+            LIMIT ${limit}
+          `;
+
+          if (tasksToUpdate.length === 0) {
+            return {
+              success: true,
+              updated_count: 0,
+              message: 'No tasks match the specified filters.',
+              tasks: []
+            };
+          }
+
+          // Build update SET clause
+          const updateFields = [];
+          if (updates.status) {
+            updateFields.push(`status = '${updates.status}'`);
+          }
+          if (updates.priority) {
+            updateFields.push(`priority = '${updates.priority}'`);
+          }
+          if (updates.deadline !== undefined) {
+            updateFields.push(updates.deadline === null
+              ? 'deadline = NULL'
+              : `deadline = '${updates.deadline}'`
+            );
+          }
+
+          if (updateFields.length === 0) {
+            return {
+              success: false,
+              error: 'No updates specified. Provide at least one field to update.'
+            };
+          }
+
+          // Perform bulk update
+          const taskIds = tasksToUpdate.map((t: any) => t.id);
+
+          await db`
+            UPDATE tasks
+            SET ${db.unsafe(updateFields.join(', '))}
+            WHERE id = ANY(${taskIds})
+          `;
+
+          return {
+            success: true,
+            updated_count: tasksToUpdate.length,
+            message: `Successfully updated ${tasksToUpdate.length} task${tasksToUpdate.length > 1 ? 's' : ''}.`,
+            tasks: tasksToUpdate.map((t: any) => ({
+              id: t.id,
+              title: t.title,
+              old_status: t.status,
+              new_status: updates.status || t.status,
+              old_priority: t.priority,
+              new_priority: updates.priority || t.priority
+            })),
+            recommendation: tasksToUpdate.length >= (limit || 20)
+              ? `Reached limit of ${limit || 20} tasks. There may be more matching tasks. Consider refining filters.`
+              : null
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: 'Failed to bulk update tasks',
+            details: error instanceof Error ? error.message : 'Unknown error'
+          };
+        }
+      }
+    }),
+
+    /**
+     * Bulk Create Tasks - Create multiple tasks from a list
+     */
+    bulkCreateTasks: tool({
+      description: `Create multiple tasks at once from a list. Use when user says:
+        - "Create tasks for A, B, C"
+        - "Add 5 tasks for next week's sprint"
+        - "Create tasks from this list: ..."
+
+        Efficiently creates multiple tasks in one operation.`,
+
+      inputSchema: z.object({
+        project_id: z.string().uuid()
+          .describe('UUID of the project'),
+        tasks: z.array(z.object({
+          title: z.string(),
+          description: z.string().optional(),
+          priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(),
+          deadline: z.string().optional(),
+          status: z.enum(['todo', 'doing', 'done']).default('todo')
+        }))
+          .describe('List of tasks to create (max 20)'),
+        default_priority: z.enum(['low', 'normal', 'high', 'urgent']).default('normal')
+          .describe('Default priority for tasks without specified priority')
+      }),
+
+      async execute({ project_id, tasks, default_priority }: {
+        project_id: string;
+        tasks: Array<{
+          title: string;
+          description?: string;
+          priority?: 'low' | 'normal' | 'high' | 'urgent';
+          deadline?: string;
+          status?: 'todo' | 'doing' | 'done';
+        }>;
+        default_priority?: 'low' | 'normal' | 'high' | 'urgent';
+      }) {
+        try {
+          if (tasks.length === 0) {
+            return { success: false, error: 'No tasks provided' };
+          }
+
+          if (tasks.length > 20) {
+            return {
+              success: false,
+              error: `Too many tasks (${tasks.length}). Maximum is 20 per batch. Consider splitting into multiple operations.`
+            };
+          }
+
+          // Verify project access
+          const projectAccess = await db`
+            SELECT pp.id, pp.name
+            FROM project_projects pp
+            JOIN project_members pm ON pm.project_id = pp.id
+            WHERE pp.id = ${project_id}
+              AND pm.user_id = ${userId}
+              AND pm.left_at IS NULL
+              AND pp.deleted_at IS NULL
+            LIMIT 1
+          `;
+
+          if (projectAccess.length === 0) {
+            return { success: false, error: 'Project not found or access denied' };
+          }
+
+          // Get starting position for todo column
+          const positionResult = await db`
+            SELECT COALESCE(MAX(position), 0) as max_position
+            FROM tasks
+            WHERE project_id = ${project_id}
+              AND status = 'todo'
+              AND deleted_at IS NULL
+          `;
+          let nextPosition = (positionResult[0]?.max_position || 0) + 1;
+
+          // Create all tasks
+          const createdTasks = [];
+          for (const task of tasks) {
+            const created = await db`
+              INSERT INTO tasks (
+                project_id,
+                title,
+                description,
+                status,
+                position,
+                priority,
+                deadline,
+                created_by_user_id
+              )
+              VALUES (
+                ${project_id},
+                ${task.title},
+                ${task.description || null},
+                ${task.status || 'todo'},
+                ${nextPosition++},
+                ${task.priority || default_priority},
+                ${task.deadline || null},
+                ${userId}
+              )
+              RETURNING id, title, status, priority
+            `;
+
+            createdTasks.push(created[0]);
+          }
+
+          return {
+            success: true,
+            created_count: createdTasks.length,
+            message: `Successfully created ${createdTasks.length} task${createdTasks.length > 1 ? 's' : ''}.`,
+            tasks: createdTasks.map((t: any) => ({
+              id: t.id,
+              title: t.title,
+              status: t.status,
+              priority: t.priority,
+              url: `/${locale}/ai-assistant?project=${project_id}&tab=tasks&task=${t.id}`
+            })),
+            next_step: `View all tasks on the Kanban board in project "${projectAccess[0].name}".`
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: 'Failed to bulk create tasks',
+            details: error instanceof Error ? error.message : 'Unknown error'
+          };
+        }
+      }
+    }),
+
+    /**
+     * Add Task Note - Add a comment/note to a task
+     */
+    addTaskNote: tool({
+      description: `Add a comment or note to a task. Use when user says:
+        - "Add a comment to task X"
+        - "Note that..."
+        - "Leave a comment on the design task"`,
+
+      inputSchema: z.object({
+        task_id: z.string().uuid()
+          .describe('UUID of the task'),
+        content: z.string().min(1)
+          .describe('Note content/comment text')
+      }),
+
+      async execute({ task_id, content }: {
+        task_id: string;
+        content: string;
+      }) {
+        try {
+          // Verify task access
+          const taskAccess = await db`
+            SELECT t.id, t.title, pp.name as project_name
+            FROM tasks t
+            JOIN project_projects pp ON t.project_id = pp.id
+            JOIN project_members pm ON pm.project_id = pp.id
+            WHERE t.id = ${task_id}
+              AND pm.user_id = ${userId}
+              AND pm.left_at IS NULL
+              AND t.deleted_at IS NULL
+            LIMIT 1
+          `;
+
+          if (taskAccess.length === 0) {
+            return { success: false, error: 'Task not found or access denied' };
+          }
+
+          // Create note
+          const note = await db`
+            INSERT INTO task_notes (
+              task_id,
+              user_id,
+              content
+            )
+            VALUES (
+              ${task_id},
+              ${userId},
+              ${content}
+            )
+            RETURNING id, content, created_at
+          `;
+
+          return {
+            success: true,
+            note: {
+              id: note[0].id,
+              content: note[0].content,
+              created_at: note[0].created_at
+            },
+            task: {
+              id: taskAccess[0].id,
+              title: taskAccess[0].title,
+              project_name: taskAccess[0].project_name
+            },
+            message: `Note added to task "${taskAccess[0].title}".`
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: 'Failed to add note',
+            details: error instanceof Error ? error.message : 'Unknown error'
+          };
+        }
+      }
+    }),
+
+    /**
+     * Get Task Notes - Get all comments/notes for a task
+     */
+    getTaskNotes: tool({
+      description: `Get all comments and notes for a task. Use when user asks:
+        - "Show me notes on task X"
+        - "What comments are on the design task?"
+        - "Summarize discussion on task Y"`,
+
+      inputSchema: z.object({
+        task_id: z.string().uuid()
+          .describe('UUID of the task')
+      }),
+
+      async execute({ task_id }: { task_id: string }) {
+        try {
+          // Verify task access and get task info
+          const taskAccess = await db`
+            SELECT t.id, t.title, pp.name as project_name
+            FROM tasks t
+            JOIN project_projects pp ON t.project_id = pp.id
+            JOIN project_members pm ON pm.project_id = pp.id
+            WHERE t.id = ${task_id}
+              AND pm.user_id = ${userId}
+              AND pm.left_at IS NULL
+              AND t.deleted_at IS NULL
+            LIMIT 1
+          `;
+
+          if (taskAccess.length === 0) {
+            return { success: false, error: 'Task not found or access denied' };
+          }
+
+          // Get all notes
+          const notes = await db`
+            SELECT
+              tn.id,
+              tn.content,
+              tn.created_at,
+              ua.name as author_name,
+              ua.id as author_id
+            FROM task_notes tn
+            JOIN user_accounts ua ON tn.user_id = ua.id
+            WHERE tn.task_id = ${task_id}
+              AND tn.deleted_at IS NULL
+            ORDER BY tn.created_at ASC
+          `;
+
+          return {
+            success: true,
+            task: {
+              id: taskAccess[0].id,
+              title: taskAccess[0].title,
+              project_name: taskAccess[0].project_name
+            },
+            notes_count: notes.length,
+            notes: notes.map((n: any) => ({
+              id: n.id,
+              content: n.content,
+              author: n.author_name,
+              created_at: n.created_at,
+              is_mine: n.author_id === userId
+            })),
+            summary: notes.length === 0
+              ? 'No notes yet on this task.'
+              : `${notes.length} note${notes.length > 1 ? 's' : ''} on this task.`
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: 'Failed to get task notes',
+            details: error instanceof Error ? error.message : 'Unknown error'
+          };
+        }
+      }
     })
   };
 }
