@@ -8,6 +8,56 @@ import { z } from 'zod';
 import { getDbConnection } from '@/lib/db/connection';
 
 /**
+ * Helper: Check for circular dependencies
+ * Returns true if adding parent_task_id would create a cycle
+ */
+async function hasCircularDependency(
+  db: any,
+  potentialChildId: string,
+  potentialParentId: string
+): Promise<boolean> {
+  // Use recursive CTE to check if potentialChildId appears in potentialParentId's ancestor chain
+  const result = await db`
+    WITH RECURSIVE ancestor_chain AS (
+      -- Start with the potential parent
+      SELECT id, parent_task_id, 1 as depth
+      FROM tasks
+      WHERE id = ${potentialParentId}
+        AND deleted_at IS NULL
+
+      UNION ALL
+
+      -- Recursively get ancestors
+      SELECT t.id, t.parent_task_id, ac.depth + 1
+      FROM tasks t
+      JOIN ancestor_chain ac ON t.id = ac.parent_task_id
+      WHERE t.deleted_at IS NULL
+        AND ac.depth < 20  -- Prevent infinite loops (max depth 20)
+    )
+    SELECT EXISTS(
+      SELECT 1 FROM ancestor_chain WHERE id = ${potentialChildId}
+    ) as has_cycle
+  `;
+
+  return result[0]?.has_cycle || false;
+}
+
+/**
+ * Helper: Extract hashtags from text
+ * Example: "Fix bug #urgent #backend" -> ["urgent", "backend"]
+ */
+function extractHashtags(text: string): string[] {
+  if (!text) return [];
+
+  const hashtagRegex = /#[\w-]+/g;
+  const matches = text.match(hashtagRegex);
+  if (!matches) return [];
+
+  // Remove # prefix, convert to lowercase, and deduplicate
+  return Array.from(new Set(matches.map(tag => tag.slice(1).toLowerCase())));
+}
+
+/**
  * Create task management tools with user context
  * @param userId - Current authenticated user ID
  * @param locale - User's locale (nl/en)
@@ -56,6 +106,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
               t.status,
               t.priority,
               t.deadline,
+              t.tags,
               t.created_at,
               pp.id as project_id,
               pp.name as project_name,
@@ -114,6 +165,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
               status: t.status,
               priority: t.priority,
               deadline: t.deadline,
+              tags: t.tags || [],
               is_overdue: t.is_overdue,
               days_until_deadline: t.days_until_deadline,
               project_name: t.project_name,
@@ -166,10 +218,16 @@ export function createTaskTools(userId: number, locale: string = 'en') {
         parent_task_id: z.string().uuid().optional()
           .describe('UUID of parent task (this task depends on/is blocked by parent)'),
         parent_task_title: z.string().optional()
-          .describe('Title of parent task to search for (alternative to parent_task_id)')
+          .describe('Title of parent task to search for (alternative to parent_task_id)'),
+        task_group_id: z.string().uuid().optional()
+          .describe('UUID of task group/epic to assign this task to'),
+        task_group_name: z.string().optional()
+          .describe('Name of task group/epic to search for (alternative to task_group_id)'),
+        tags: z.array(z.string()).optional()
+          .describe('Tags for categorizing task (will also auto-extract hashtags from title/description like #bug #urgent)')
       }),
 
-      async execute({ project_id, title, description, status, priority, deadline, assign_to_user_names, parent_task_id, parent_task_title }: {
+      async execute({ project_id, title, description, status, priority, deadline, assign_to_user_names, parent_task_id, parent_task_title, task_group_id, task_group_name, tags }: {
         project_id: string;
         title: string;
         description?: string;
@@ -179,6 +237,9 @@ export function createTaskTools(userId: number, locale: string = 'en') {
         assign_to_user_names?: string[];
         parent_task_id?: string;
         parent_task_title?: string;
+        task_group_id?: string;
+        task_group_name?: string;
+        tags?: string[];
       }) {
         try {
           // Verify project access
@@ -238,6 +299,46 @@ export function createTaskTools(userId: number, locale: string = 'en') {
             resolvedParentId = parentTasks[0].id;
           }
 
+          // Resolve task group if name provided instead of ID
+          let resolvedGroupId = task_group_id;
+          if (task_group_name && !task_group_id) {
+            const taskGroups = await db`
+              SELECT id, name FROM task_groups
+              WHERE project_id = ${project_id}
+                AND name ILIKE ${'%' + task_group_name + '%'}
+                AND deleted_at IS NULL
+              LIMIT 5
+            `;
+
+            if (taskGroups.length === 0) {
+              return {
+                success: false,
+                error: `Task group "${task_group_name}" not found in this project. Create it first with createTaskGroup.`
+              };
+            }
+
+            if (taskGroups.length > 1) {
+              return {
+                success: false,
+                error: `Multiple task groups match "${task_group_name}". Please be more specific or use group ID.`,
+                matches: taskGroups.map((g: any) => ({ id: g.id, name: g.name }))
+              };
+            }
+
+            resolvedGroupId = taskGroups[0].id;
+          }
+
+          // Parse tags from title and description
+          const extractedTags = [
+            ...extractHashtags(title),
+            ...extractHashtags(description || '')
+          ];
+
+          // Combine explicitly provided tags with extracted hashtags
+          const allTags = tags || [];
+          const combinedTags = Array.from(new Set([...allTags, ...extractedTags]));
+          const finalTags = combinedTags.length > 0 ? combinedTags : null;
+
           // Create task
           const newTask = await db`
             INSERT INTO tasks (
@@ -249,6 +350,8 @@ export function createTaskTools(userId: number, locale: string = 'en') {
               priority,
               deadline,
               parent_task_id,
+              task_group_id,
+              tags,
               created_by_user_id
             )
             VALUES (
@@ -260,6 +363,8 @@ export function createTaskTools(userId: number, locale: string = 'en') {
               ${priority},
               ${deadline || null},
               ${resolvedParentId || null},
+              ${resolvedGroupId || null},
+              ${finalTags},
               ${userId}
             )
             RETURNING *
@@ -339,15 +444,18 @@ export function createTaskTools(userId: number, locale: string = 'en') {
           .describe('New priority'),
         deadline: z.string().nullable().optional()
           .describe('New deadline (ISO 8601) or null to remove'),
+        parent_task_id: z.string().uuid().nullable().optional()
+          .describe('Set parent task (creates dependency) or null to remove parent'),
         assign_to_user_names: z.array(z.string()).optional()
           .describe('Add these users as assignees')
       }),
 
-      async execute({ task_id, status, priority, deadline, assign_to_user_names }: {
+      async execute({ task_id, status, priority, deadline, parent_task_id, assign_to_user_names }: {
         task_id: string;
         status?: 'todo' | 'doing' | 'done';
         priority?: 'low' | 'normal' | 'high' | 'urgent';
         deadline?: string | null;
+        parent_task_id?: string | null;
         assign_to_user_names?: string[];
       }) {
         try {
@@ -370,11 +478,46 @@ export function createTaskTools(userId: number, locale: string = 'en') {
             };
           }
 
+          // Validate parent_task_id changes (circular dependency prevention)
+          if (parent_task_id !== undefined) {
+            if (parent_task_id !== null) {
+              // Check if parent task exists and user has access
+              const parentCheck = await db`
+                SELECT t.id
+                FROM tasks t
+                JOIN task_assignments ta ON ta.task_id = t.id
+                WHERE t.id = ${parent_task_id}
+                  AND ta.user_id = ${userId}
+                  AND t.deleted_at IS NULL
+                LIMIT 1
+              `;
+
+              if (parentCheck.length === 0) {
+                return {
+                  success: false,
+                  error: 'Parent task not found or access denied'
+                };
+              }
+
+              // Check for circular dependencies
+              const hasCircle = await hasCircularDependency(db, task_id, parent_task_id);
+              if (hasCircle) {
+                return {
+                  success: false,
+                  error: 'Cannot set parent task: this would create a circular dependency (Task A → B → ... → A)',
+                  details: 'A task cannot depend on itself directly or indirectly through a chain of dependencies'
+                };
+              }
+            }
+            // parent_task_id will be added to updates below
+          }
+
           // Build update query
           const updates: any = {};
           if (status !== undefined) updates.status = status;
           if (priority !== undefined) updates.priority = priority;
           if (deadline !== undefined) updates.deadline = deadline;
+          if (parent_task_id !== undefined) updates.parent_task_id = parent_task_id;
 
           if (Object.keys(updates).length > 0) {
             await db`
@@ -665,6 +808,185 @@ export function createTaskTools(userId: number, locale: string = 'en') {
           return {
             success: false,
             error: 'Failed to list projects',
+            details: error instanceof Error ? error.message : 'Unknown error'
+          };
+        }
+      }
+    }),
+
+    /**
+     * Create a task group/Epic for organizing related tasks
+     */
+    createTaskGroup: tool({
+      description: `Create a task group (Epic) for organizing related tasks. Use when user says:
+        - "Create an epic for..."
+        - "Make a group for tasks related to..."
+        - "Organize tasks under..."
+
+        Task groups help organize tasks into logical collections like features, sprints, or projects.`,
+
+      inputSchema: z.object({
+        project_id: z.string().uuid()
+          .describe('UUID of the project'),
+        name: z.string().min(1).max(100)
+          .describe('Name of the task group/epic (e.g., "Sprint 1", "User Authentication Feature")'),
+        description: z.string().optional()
+          .describe('Optional description of what this group represents'),
+        color: z.string().optional()
+          .describe('Optional color code for the group (hex color like #ff5733)')
+      }),
+
+      async execute({ project_id, name, description, color }: {
+        project_id: string;
+        name: string;
+        description?: string;
+        color?: string;
+      }) {
+        try {
+          // Verify project access
+          const projectAccess = await db`
+            SELECT pp.id, pp.name
+            FROM project_projects pp
+            JOIN project_members pm ON pm.project_id = pp.id
+            WHERE pp.id = ${project_id}
+              AND pm.user_id = ${userId}
+              AND pp.deleted_at IS NULL
+            LIMIT 1
+          `;
+
+          if (projectAccess.length === 0) {
+            return {
+              success: false,
+              error: 'Project not found or access denied'
+            };
+          }
+
+          // Check if group with same name already exists
+          const existing = await db`
+            SELECT id, name FROM task_groups
+            WHERE project_id = ${project_id}
+              AND name ILIKE ${name}
+              AND deleted_at IS NULL
+            LIMIT 1
+          `;
+
+          if (existing.length > 0) {
+            return {
+              success: false,
+              error: `Task group "${existing[0].name}" already exists in this project`,
+              existing_group_id: existing[0].id
+            };
+          }
+
+          // Create task group
+          const newGroup = await db`
+            INSERT INTO task_groups (
+              project_id,
+              name,
+              description,
+              color
+            )
+            VALUES (
+              ${project_id},
+              ${name},
+              ${description || null},
+              ${color || null}
+            )
+            RETURNING *
+          `;
+
+          const group = newGroup[0];
+
+          return {
+            success: true,
+            task_group: {
+              id: group.id,
+              name: group.name,
+              description: group.description,
+              color: group.color,
+              project_name: projectAccess[0].name
+            },
+            message: `Created task group "${name}" in ${projectAccess[0].name}`
+          };
+        } catch (error) {
+          console.error('Error creating task group:', error);
+          return {
+            success: false,
+            error: 'Failed to create task group',
+            details: error instanceof Error ? error.message : 'Unknown error'
+          };
+        }
+      }
+    }),
+
+    /**
+     * List task groups/Epics in a project
+     */
+    listTaskGroups: tool({
+      description: `List all task groups (Epics) in a project. Use when user asks:
+        - "What epics do we have?"
+        - "Show me task groups"
+        - "List all groups in project X"
+
+        Shows task groups with task counts and completion stats.`,
+
+      inputSchema: z.object({
+        project_id: z.string().uuid()
+          .describe('UUID of the project')
+      }),
+
+      async execute({ project_id }: { project_id: string }) {
+        try {
+          const groups = await db`
+            SELECT
+              tg.id,
+              tg.name,
+              tg.description,
+              tg.color,
+              tg.created_at,
+              COUNT(DISTINCT t.id) FILTER (WHERE t.deleted_at IS NULL) as total_tasks,
+              COUNT(DISTINCT t.id) FILTER (WHERE t.status = 'done' AND t.deleted_at IS NULL) as completed_tasks,
+              COUNT(DISTINCT t.id) FILTER (WHERE t.status = 'doing' AND t.deleted_at IS NULL) as in_progress_tasks,
+              COUNT(DISTINCT t.id) FILTER (WHERE t.status = 'todo' AND t.deleted_at IS NULL) as todo_tasks
+            FROM task_groups tg
+            JOIN project_members pm ON pm.project_id = tg.project_id
+            LEFT JOIN tasks t ON t.task_group_id = tg.id
+            WHERE tg.project_id = ${project_id}
+              AND pm.user_id = ${userId}
+              AND tg.deleted_at IS NULL
+            GROUP BY tg.id, tg.name, tg.description, tg.color, tg.created_at
+            ORDER BY tg.created_at DESC
+          `;
+
+          const groupsWithStats = groups.map(g => {
+            const total = parseInt(g.total_tasks) || 0;
+            const completed = parseInt(g.completed_tasks) || 0;
+            const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+            return {
+              id: g.id,
+              name: g.name,
+              description: g.description,
+              color: g.color,
+              total_tasks: total,
+              completed_tasks: completed,
+              in_progress_tasks: parseInt(g.in_progress_tasks) || 0,
+              todo_tasks: parseInt(g.todo_tasks) || 0,
+              progress_percentage: progress,
+              created_at: g.created_at
+            };
+          });
+
+          return {
+            success: true,
+            count: groupsWithStats.length,
+            task_groups: groupsWithStats
+          };
+        } catch (error) {
+          console.error('Error listing task groups:', error);
+          return {
+            success: false,
+            error: 'Failed to list task groups',
             details: error instanceof Error ? error.message : 'Unknown error'
           };
         }
@@ -1177,6 +1499,31 @@ export function createTaskTools(userId: number, locale: string = 'en') {
           const todo = subtasks.filter((st: any) => st.status === 'todo').length;
           const completionRate = totalSubtasks > 0 ? Math.round((completed / totalSubtasks) * 100) : 0;
 
+          // Auto-progress calculation: suggest parent status based on subtask states
+          let statusSuggestion: { suggested_status: 'todo' | 'doing' | 'done'; reason: string } | null = null;
+
+          if (totalSubtasks > 0) {
+            if (completed === totalSubtasks && task.status !== 'done') {
+              // All subtasks done, parent should be done
+              statusSuggestion = {
+                suggested_status: 'done',
+                reason: 'All subtasks are completed. Consider marking this task as done.'
+              };
+            } else if (todo === totalSubtasks && task.status !== 'todo') {
+              // All subtasks todo, parent should be todo
+              statusSuggestion = {
+                suggested_status: 'todo',
+                reason: 'All subtasks are still todo. Consider marking this task as todo.'
+              };
+            } else if ((inProgress > 0 || (completed > 0 && completed < totalSubtasks)) && task.status !== 'doing') {
+              // Some progress made, parent should be doing
+              statusSuggestion = {
+                suggested_status: 'doing',
+                reason: `${completed} of ${totalSubtasks} subtasks completed. Consider marking this task as in progress.`
+              };
+            }
+          }
+
           return {
             success: true,
             task: {
@@ -1204,6 +1551,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
               todo,
               completion_percentage: completionRate
             },
+            status_suggestion: statusSuggestion,
             recommendation: completionRate === 100
               ? 'All subtasks complete! Consider marking the parent task as done.'
               : totalSubtasks === 0
@@ -1240,16 +1588,19 @@ export function createTaskTools(userId: number, locale: string = 'en') {
           .describe('Where to search: title, description, or notes'),
         status: z.enum(['todo', 'doing', 'done']).optional()
           .describe('Filter by status after searching'),
+        tags: z.array(z.string()).optional()
+          .describe('Filter by tags (tasks must have at least one of these tags)'),
         include_completed: z.boolean().default(false)
           .describe('Include completed tasks in results'),
         limit: z.number().min(1).max(50).default(20)
       }),
 
-      async execute({ query, project_id, search_in, status, include_completed, limit }: {
+      async execute({ query, project_id, search_in, status, tags, include_completed, limit }: {
         query: string;
         project_id?: string;
         search_in?: Array<'title' | 'description' | 'notes'>;
         status?: 'todo' | 'doing' | 'done';
+        tags?: string[];
         include_completed?: boolean;
         limit?: number;
       }) {
@@ -1265,6 +1616,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
               t.status,
               t.priority,
               t.deadline,
+              t.tags,
               pp.name as project_name,
               pp.id as project_id,
 
@@ -1298,6 +1650,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
               -- Optional filters
               ${project_id ? `AND t.project_id = ${project_id}` : ''}
               ${status ? `AND t.status = ${status}` : ''}
+              ${tags && tags.length > 0 ? `AND t.tags && ${tags}` : ''}
               ${!include_completed ? `AND t.status != 'done'` : ''}
 
             GROUP BY t.id, pp.id, pp.name
@@ -1784,6 +2137,201 @@ export function createTaskTools(userId: number, locale: string = 'en') {
           return {
             success: false,
             error: 'Failed to get task notes',
+            details: error instanceof Error ? error.message : 'Unknown error'
+          };
+        }
+      }
+    }),
+
+    /**
+     * Parse Natural Language Date - Convert phrases like "tomorrow", "next Friday" to ISO dates
+     */
+    parseNaturalLanguageDate: tool({
+      description: `Convert natural language date phrases to ISO format. Use when user mentions:
+        - Relative dates: "tomorrow", "next week", "in 3 days"
+        - Day names: "Monday", "next Friday"
+        - Time periods: "end of month", "next quarter"
+
+        This ensures consistent, reliable date parsing.`,
+
+      inputSchema: z.object({
+        phrase: z.string()
+          .describe('Natural language date phrase (e.g., "tomorrow", "next Friday", "in 2 weeks")')
+      }),
+
+      async execute({ phrase }: { phrase: string }) {
+        try {
+          const now = new Date();
+          let targetDate: Date | null = null;
+          const lowerPhrase = phrase.toLowerCase().trim();
+
+          // Handle common relative dates
+          if (lowerPhrase === 'today') {
+            targetDate = now;
+          } else if (lowerPhrase === 'tomorrow') {
+            targetDate = new Date(now);
+            targetDate.setDate(targetDate.getDate() + 1);
+          } else if (lowerPhrase === 'yesterday') {
+            targetDate = new Date(now);
+            targetDate.setDate(targetDate.getDate() - 1);
+          } else if (lowerPhrase.match(/^in (\d+) days?$/)) {
+            const days = parseInt(lowerPhrase.match(/\d+/)![0]);
+            targetDate = new Date(now);
+            targetDate.setDate(targetDate.getDate() + days);
+          } else if (lowerPhrase.match(/^in (\d+) weeks?$/)) {
+            const weeks = parseInt(lowerPhrase.match(/\d+/)![0]);
+            targetDate = new Date(now);
+            targetDate.setDate(targetDate.getDate() + (weeks * 7));
+          } else if (lowerPhrase.match(/^in (\d+) months?$/)) {
+            const months = parseInt(lowerPhrase.match(/\d+/)![0]);
+            targetDate = new Date(now);
+            targetDate.setMonth(targetDate.getMonth() + months);
+          } else if (lowerPhrase === 'next week') {
+            targetDate = new Date(now);
+            targetDate.setDate(targetDate.getDate() + 7);
+          } else if (lowerPhrase === 'next month') {
+            targetDate = new Date(now);
+            targetDate.setMonth(targetDate.getMonth() + 1);
+          } else if (lowerPhrase === 'end of week') {
+            targetDate = new Date(now);
+            const daysUntilSunday = 7 - targetDate.getDay();
+            targetDate.setDate(targetDate.getDate() + daysUntilSunday);
+          } else if (lowerPhrase === 'end of month') {
+            targetDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+          } else if (lowerPhrase.match(/^(next )?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)$/)) {
+            const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            const targetDay = lowerPhrase.replace('next ', '');
+            const targetDayIndex = daysOfWeek.indexOf(targetDay);
+            const currentDayIndex = now.getDay();
+
+            let daysToAdd = targetDayIndex - currentDayIndex;
+            if (daysToAdd <= 0 || lowerPhrase.startsWith('next ')) {
+              daysToAdd += 7; // Next occurrence
+            }
+
+            targetDate = new Date(now);
+            targetDate.setDate(targetDate.getDate() + daysToAdd);
+          } else {
+            // Try to parse as ISO date or fallback
+            return {
+              success: false,
+              error: `Could not parse "${phrase}". Try: "tomorrow", "next Friday", "in 3 days", "end of month"`
+            };
+          }
+
+          return {
+            success: true,
+            phrase,
+            iso_date: targetDate.toISOString(),
+            human_readable: targetDate.toLocaleDateString('en-US', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: 'Failed to parse date',
+            details: error instanceof Error ? error.message : 'Unknown error'
+          };
+        }
+      }
+    }),
+
+    /**
+     * Find Task By Title - Search for tasks by title when user doesn't know UUID
+     */
+    findTaskByTitle: tool({
+      description: `Find tasks by searching their title. Use when:
+        - User references task by name without UUID
+        - "Update the design task" - which one?
+        - "What's the status of the login bug?"
+
+        Returns matching tasks for user to clarify which one they mean.`,
+
+      inputSchema: z.object({
+        title_query: z.string()
+          .describe('Search term from task title'),
+        project_id: z.string().uuid().optional()
+          .describe('Limit search to specific project (optional)')
+      }),
+
+      async execute({ title_query, project_id }: {
+        title_query: string;
+        project_id?: string;
+      }) {
+        try {
+          const searchPattern = `%${title_query}%`;
+
+          const matches = await db`
+            SELECT
+              t.id,
+              t.title,
+              t.status,
+              t.priority,
+              t.deadline,
+              pp.name as project_name,
+              pp.id as project_id
+            FROM tasks t
+            JOIN project_projects pp ON t.project_id = pp.id
+            JOIN project_members pm ON pm.project_id = pp.id
+            WHERE pm.user_id = ${userId}
+              AND pm.left_at IS NULL
+              AND t.deleted_at IS NULL
+              AND t.title ILIKE ${searchPattern}
+              ${project_id ? `AND t.project_id = ${project_id}` : ''}
+            ORDER BY
+              -- Exact matches first
+              CASE WHEN LOWER(t.title) = LOWER(${title_query}) THEN 0 ELSE 1 END,
+              t.created_at DESC
+            LIMIT 10
+          `;
+
+          if (matches.length === 0) {
+            return {
+              success: true,
+              count: 0,
+              message: `No tasks found matching "${title_query}".`,
+              matches: []
+            };
+          }
+
+          if (matches.length === 1) {
+            return {
+              success: true,
+              count: 1,
+              exact_match: true,
+              task: {
+                id: matches[0].id,
+                title: matches[0].title,
+                status: matches[0].status,
+                priority: matches[0].priority,
+                deadline: matches[0].deadline,
+                project_name: matches[0].project_name
+              },
+              message: `Found exact match: "${matches[0].title}"`
+            };
+          }
+
+          return {
+            success: true,
+            count: matches.length,
+            exact_match: false,
+            matches: matches.map((m: any) => ({
+              id: m.id,
+              title: m.title,
+              status: m.status,
+              priority: m.priority,
+              project_name: m.project_name
+            })),
+            message: `Found ${matches.length} tasks matching "${title_query}". Please specify which one.`
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: 'Failed to search tasks by title',
             details: error instanceof Error ? error.message : 'Unknown error'
           };
         }

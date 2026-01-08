@@ -184,12 +184,12 @@ Gebruik de taaktools wanneer de gebruiker vraagt naar:
 - Toewijzingen van taken aan teamleden
 - Tijdsinschatting of planning
 
-### Beschikbare Tools (13 tools)
+### Beschikbare Tools (19 tools)
 
 **Basistaken:**
-1. \`listUserTasks\` - Toon de taken van de gebruiker (met filters: overdue, today, this-week)
-2. \`createTask\` - Maak een nieuwe taak aan (ondersteunt nu ook parent_task_id voor afhankelijkheden!)
-3. \`updateTask\` - Wijzig een bestaande taak (status, prioriteit, deadline, toewijzingen)
+1. \`listUserTasks\` - Toon de taken van de gebruiker (met filters: overdue, today, this-week, tags worden nu getoond!)
+2. \`createTask\` - Maak een nieuwe taak aan (ondersteunt parent_task_id, task_group_id/name, en auto-extraheert #tags!)
+3. \`updateTask\` - Wijzig een bestaande taak (ondersteunt nu parent_task_id met circulaire afhankelijkheid preventie!)
 4. \`listUserProjects\` - Toon alle projecten waar de gebruiker toegang toe heeft
 
 **Afhankelijkheden & Blokkades:**
@@ -198,22 +198,30 @@ Gebruik de taaktools wanneer de gebruiker vraagt naar:
 
 **Subtaken:**
 7. \`createTaskWithSubtasks\` - Maak een taak met subtaken in één keer
-8. \`getTaskWithSubtasks\` - Toon een taak met alle subtaken en voortgang
+8. \`getTaskWithSubtasks\` - Toon een taak met alle subtaken en voortgang (suggereert nu automatisch parent status!)
 
-**Zoeken:**
-9. \`searchTasks\` - Zoek taken op trefwoorden (doorzoekt titels, beschrijvingen, notities)
+**Zoeken & Vinden:**
+9. \`searchTasks\` - Zoek taken op trefwoorden (doorzoekt titels, beschrijvingen, notities, ondersteunt tag filtering!)
+10. \`findTaskByTitle\` - Vind taken op naam zonder UUID (fuzzy matching)
 
 **Bulk Operaties:**
-10. \`bulkUpdateTasks\` - Wijzig meerdere taken tegelijk (max 20)
-11. \`bulkCreateTasks\` - Maak meerdere taken in één keer (max 20)
+11. \`bulkUpdateTasks\` - Wijzig meerdere taken tegelijk (max 20)
+12. \`bulkCreateTasks\` - Maak meerdere taken in één keer (max 20)
 
 **Notities & Discussie:**
-12. \`addTaskNote\` - Voeg een notitie/opmerking toe aan een taak
-13. \`getTaskNotes\` - Haal alle notities van een taak op
+13. \`addTaskNote\` - Voeg een notitie/opmerking toe aan een taak
+14. \`getTaskNotes\` - Haal alle notities van een taak op
+
+**Task Groups/Epics:**
+15. \`createTaskGroup\` - Maak een task group/epic aan om taken te organiseren
+16. \`listTaskGroups\` - Toon alle task groups met voortgangsstatistieken
 
 **Project Inzichten:**
-14. \`getProjectTaskSummary\` - Haal projectoverzicht op met statistieken en voortgang
-15. \`suggestTaskAssignment\` - Stel voor wie een taak moet doen (op basis van werkdruk)
+17. \`getProjectTaskSummary\` - Haal projectoverzicht op met statistieken en voortgang
+18. \`suggestTaskAssignment\` - Stel voor wie een taak moet doen (op basis van werkdruk)
+
+**Slimme Utilities:**
+19. \`parseNaturalLanguageDate\` - Converteer natuurlijke taal naar ISO datum ("morgen", "volgende vrijdag", "over 3 dagen")
 
 ### Belangrijke Richtlijnen
 
@@ -274,12 +282,12 @@ Use task tools when the user asks about:
 - Task assignments to team members
 - Time estimation or planning
 
-### Available Tools (15 tools)
+### Available Tools (19 tools)
 
 **Basic Tasks:**
-1. \`listUserTasks\` - Show user's tasks (with filters: overdue, today, this-week)
-2. \`createTask\` - Create a new task (now supports parent_task_id for dependencies!)
-3. \`updateTask\` - Modify an existing task (status, priority, deadline, assignments)
+1. \`listUserTasks\` - Show user's tasks (with filters: overdue, today, this-week, now shows tags!)
+2. \`createTask\` - Create a new task (supports parent_task_id, task_group_id/name, and auto-extracts #hashtags!)
+3. \`updateTask\` - Modify an existing task (now supports parent_task_id with circular dependency prevention!)
 4. \`listUserProjects\` - Show all projects the user has access to
 
 **Dependencies & Blockers:**
@@ -288,22 +296,30 @@ Use task tools when the user asks about:
 
 **Subtasks:**
 7. \`createTaskWithSubtasks\` - Create a task with subtasks in one call
-8. \`getTaskWithSubtasks\` - Show a task with all subtasks and progress
+8. \`getTaskWithSubtasks\` - Show a task with all subtasks and progress (now auto-suggests parent status!)
 
-**Search:**
-9. \`searchTasks\` - Search tasks by keywords (searches titles, descriptions, notes)
+**Search & Discovery:**
+9. \`searchTasks\` - Search tasks by keywords (searches titles, descriptions, notes, supports tag filtering!)
+10. \`findTaskByTitle\` - Find tasks by name without UUID (fuzzy matching)
 
 **Bulk Operations:**
-10. \`bulkUpdateTasks\` - Update multiple tasks at once (max 20)
-11. \`bulkCreateTasks\` - Create multiple tasks in one operation (max 20)
+11. \`bulkUpdateTasks\` - Update multiple tasks at once (max 20)
+12. \`bulkCreateTasks\` - Create multiple tasks in one operation (max 20)
 
 **Notes & Discussion:**
-12. \`addTaskNote\` - Add a comment/note to a task
-13. \`getTaskNotes\` - Get all notes for a task
+13. \`addTaskNote\` - Add a comment/note to a task
+14. \`getTaskNotes\` - Get all notes for a task
+
+**Task Groups/Epics:**
+15. \`createTaskGroup\` - Create a task group/epic to organize related tasks
+16. \`listTaskGroups\` - List all task groups with progress statistics
 
 **Project Insights:**
-14. \`getProjectTaskSummary\` - Get project overview with statistics and progress
-15. \`suggestTaskAssignment\` - Suggest who should do a task (based on workload)
+17. \`getProjectTaskSummary\` - Get project overview with statistics and progress
+18. \`suggestTaskAssignment\` - Suggest who should do a task (based on workload)
+
+**Smart Utilities:**
+19. \`parseNaturalLanguageDate\` - Convert natural language to ISO date ("tomorrow", "next Friday", "in 3 days")
 
 ### Important Guidelines
 
