@@ -162,10 +162,14 @@ export function createTaskTools(userId: number, locale: string = 'en') {
         deadline: z.string().optional()
           .describe('ISO 8601 deadline date-time (calculate from phrases like "by Friday", "next week")'),
         assign_to_user_names: z.array(z.string()).optional()
-          .describe('Names of users to assign (will look up by name)')
+          .describe('Names of users to assign (will look up by name)'),
+        parent_task_id: z.string().uuid().optional()
+          .describe('UUID of parent task (this task depends on/is blocked by parent)'),
+        parent_task_title: z.string().optional()
+          .describe('Title of parent task to search for (alternative to parent_task_id)')
       }),
 
-      async execute({ project_id, title, description, status, priority, deadline, assign_to_user_names }: {
+      async execute({ project_id, title, description, status, priority, deadline, assign_to_user_names, parent_task_id, parent_task_title }: {
         project_id: string;
         title: string;
         description?: string;
@@ -173,6 +177,8 @@ export function createTaskTools(userId: number, locale: string = 'en') {
         priority?: 'low' | 'normal' | 'high' | 'urgent';
         deadline?: string;
         assign_to_user_names?: string[];
+        parent_task_id?: string;
+        parent_task_title?: string;
       }) {
         try {
           // Verify project access
@@ -203,6 +209,35 @@ export function createTaskTools(userId: number, locale: string = 'en') {
           `;
           const position = positionResult[0]?.next_position || 1;
 
+          // Resolve parent task if title provided instead of ID
+          let resolvedParentId = parent_task_id;
+          if (parent_task_title && !parent_task_id) {
+            const parentTasks = await db`
+              SELECT id, title FROM tasks
+              WHERE project_id = ${project_id}
+                AND title ILIKE ${'%' + parent_task_title + '%'}
+                AND deleted_at IS NULL
+              LIMIT 5
+            `;
+
+            if (parentTasks.length === 0) {
+              return {
+                success: false,
+                error: `Parent task "${parent_task_title}" not found in this project.`
+              };
+            }
+
+            if (parentTasks.length > 1) {
+              return {
+                success: false,
+                error: `Multiple tasks match "${parent_task_title}". Please be more specific or use task ID.`,
+                matches: parentTasks.map((t: any) => ({ id: t.id, title: t.title }))
+              };
+            }
+
+            resolvedParentId = parentTasks[0].id;
+          }
+
           // Create task
           const newTask = await db`
             INSERT INTO tasks (
@@ -213,6 +248,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
               position,
               priority,
               deadline,
+              parent_task_id,
               created_by_user_id
             )
             VALUES (
@@ -223,6 +259,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
               ${position},
               ${priority},
               ${deadline || null},
+              ${resolvedParentId || null},
               ${userId}
             )
             RETURNING *
@@ -628,6 +665,685 @@ export function createTaskTools(userId: number, locale: string = 'en') {
           return {
             success: false,
             error: 'Failed to list projects',
+            details: error instanceof Error ? error.message : 'Unknown error'
+          };
+        }
+      }
+    }),
+
+    /**
+     * Get Task Blockers - Find what's blocking a task from progressing
+     */
+    getTaskBlockers: tool({
+      description: `Find what's blocking a task from progressing. Use when user asks:
+        - "What's blocking task X?"
+        - "Why can't I start this task?"
+        - "Show me dependencies for task Y"
+        - "What needs to finish before I can work on Z?"`,
+
+      inputSchema: z.object({
+        task_id: z.string().uuid()
+          .describe('UUID of the task to check for blockers'),
+        include_full_chain: z.boolean().default(true)
+          .describe('Show entire dependency chain (all ancestors), not just immediate parent')
+      }),
+
+      async execute({ task_id, include_full_chain }: {
+        task_id: string;
+        include_full_chain?: boolean;
+      }) {
+        try {
+          // Get task with immediate parent
+          const taskResult = await db`
+            SELECT
+              t.id,
+              t.title,
+              t.status,
+              t.priority,
+              t.deadline,
+              t.parent_task_id,
+              parent.title as parent_task_title,
+              parent.status as parent_task_status,
+              parent.priority as parent_task_priority,
+              parent.deadline as parent_task_deadline,
+              pp.id as project_id,
+              pp.name as project_name
+            FROM tasks t
+            LEFT JOIN tasks parent ON t.parent_task_id = parent.id AND parent.deleted_at IS NULL
+            JOIN project_projects pp ON t.project_id = pp.id
+            JOIN project_members pm ON pm.project_id = pp.id
+            WHERE t.id = ${task_id}
+              AND pm.user_id = ${userId}
+              AND pm.left_at IS NULL
+              AND t.deleted_at IS NULL
+            LIMIT 1
+          `;
+
+          if (taskResult.length === 0) {
+            return { success: false, error: 'Task not found or access denied' };
+          }
+
+          const task = taskResult[0];
+
+          const result: any = {
+            success: true,
+            task: {
+              id: task.id,
+              title: task.title,
+              status: task.status,
+              priority: task.priority,
+              deadline: task.deadline
+            },
+            is_blocked: task.parent_task_id !== null && task.parent_task_status !== 'done',
+            blocker: null,
+            dependency_chain: []
+          };
+
+          // If task has a parent (is blocked by something)
+          if (task.parent_task_id) {
+            result.blocker = {
+              id: task.parent_task_id,
+              title: task.parent_task_title,
+              status: task.parent_task_status,
+              priority: task.parent_task_priority,
+              deadline: task.parent_task_deadline,
+              is_blocking: task.parent_task_status !== 'done'
+            };
+
+            // Get full dependency chain if requested
+            if (include_full_chain) {
+              const chain = await db`
+                WITH RECURSIVE dependency_chain AS (
+                  -- Start with immediate parent
+                  SELECT
+                    id,
+                    title,
+                    status,
+                    priority,
+                    deadline,
+                    parent_task_id,
+                    1 as level
+                  FROM tasks
+                  WHERE id = ${task.parent_task_id}
+                    AND deleted_at IS NULL
+
+                  UNION ALL
+
+                  -- Recursively get ancestors
+                  SELECT
+                    t.id,
+                    t.title,
+                    t.status,
+                    t.priority,
+                    t.deadline,
+                    t.parent_task_id,
+                    dc.level + 1
+                  FROM tasks t
+                  JOIN dependency_chain dc ON t.id = dc.parent_task_id
+                  WHERE t.deleted_at IS NULL
+                    AND dc.level < 10  -- Prevent infinite loops
+                )
+                SELECT * FROM dependency_chain
+                ORDER BY level ASC
+              `;
+
+              result.dependency_chain = chain.map((c: any) => ({
+                id: c.id,
+                title: c.title,
+                status: c.status,
+                priority: c.priority,
+                deadline: c.deadline,
+                level: c.level
+              }));
+            }
+
+            // Provide recommendation
+            if (task.parent_task_status === 'done') {
+              result.recommendation = `Parent task "${task.parent_task_title}" is complete. You can proceed with this task.`;
+            } else if (task.parent_task_status === 'doing') {
+              result.recommendation = `Waiting on "${task.parent_task_title}" which is currently in progress. Consider checking with the assignee.`;
+            } else {
+              result.recommendation = `Blocked by "${task.parent_task_title}" (status: ${task.parent_task_status}). This must be completed first.`;
+            }
+          } else {
+            result.recommendation = 'No blockers - this task can be started immediately.';
+          }
+
+          return result;
+        } catch (error) {
+          return {
+            success: false,
+            error: 'Failed to check task blockers',
+            details: error instanceof Error ? error.message : 'Unknown error'
+          };
+        }
+      }
+    }),
+
+    /**
+     * Analyze Project Dependencies - Show all task dependencies and critical path
+     */
+    analyzeProjectDependencies: tool({
+      description: `Analyze all task dependencies in a project. Identifies:
+        - Blocked tasks (waiting on incomplete parents)
+        - Critical path tasks (tasks that block others)
+        - Orphaned tasks (no dependencies)
+
+        Use when user asks:
+        - "Show me project dependencies"
+        - "What's the critical path?"
+        - "Which tasks are blocked?"
+        - "What's blocking the project?"`,
+
+      inputSchema: z.object({
+        project_id: z.string().uuid()
+          .describe('UUID of the project to analyze')
+      }),
+
+      async execute({ project_id }: { project_id: string }) {
+        try {
+          // Verify project access
+          const projectAccess = await db`
+            SELECT pp.id, pp.name
+            FROM project_projects pp
+            JOIN project_members pm ON pm.project_id = pp.id
+            WHERE pp.id = ${project_id}
+              AND pm.user_id = ${userId}
+              AND pm.left_at IS NULL
+              AND pp.deleted_at IS NULL
+            LIMIT 1
+          `;
+
+          if (projectAccess.length === 0) {
+            return { success: false, error: 'Project not found or access denied' };
+          }
+
+          // Get all tasks with dependency information
+          const tasks = await db`
+            SELECT
+              t.id,
+              t.title,
+              t.status,
+              t.priority,
+              t.deadline,
+              t.parent_task_id,
+              parent.title as parent_title,
+              parent.status as parent_status,
+              COUNT(DISTINCT children.id) FILTER (WHERE children.deleted_at IS NULL) as child_count
+            FROM tasks t
+            LEFT JOIN tasks parent ON t.parent_task_id = parent.id AND parent.deleted_at IS NULL
+            LEFT JOIN tasks children ON children.parent_task_id = t.id AND children.deleted_at IS NULL
+            WHERE t.project_id = ${project_id}
+              AND t.deleted_at IS NULL
+            GROUP BY t.id, parent.id, parent.title, parent.status
+            ORDER BY t.created_at ASC
+          `;
+
+          // Categorize tasks
+          const blockedTasks = tasks.filter((t: any) =>
+            t.parent_task_id && t.parent_status !== 'done'
+          );
+
+          const criticalPathTasks = tasks.filter((t: any) =>
+            parseInt(t.child_count) > 0 && t.status !== 'done'
+          );
+
+          const orphanedTasks = tasks.filter((t: any) =>
+            !t.parent_task_id && parseInt(t.child_count) === 0
+          );
+
+          const completedWithDependencies = tasks.filter((t: any) =>
+            t.parent_task_id && t.status === 'done'
+          );
+
+          return {
+            success: true,
+            project_name: projectAccess[0].name,
+            summary: {
+              total_tasks: tasks.length,
+              tasks_with_dependencies: tasks.filter((t: any) => t.parent_task_id).length,
+              blocked_count: blockedTasks.length,
+              critical_path_count: criticalPathTasks.length,
+              orphaned_count: orphanedTasks.length
+            },
+            blocked_tasks: {
+              count: blockedTasks.length,
+              tasks: blockedTasks.map((t: any) => ({
+                id: t.id,
+                title: t.title,
+                status: t.status,
+                priority: t.priority,
+                waiting_on: t.parent_title,
+                parent_status: t.parent_status
+              }))
+            },
+            critical_path: {
+              count: criticalPathTasks.length,
+              description: 'Tasks that block other tasks from starting',
+              tasks: criticalPathTasks.map((t: any) => ({
+                id: t.id,
+                title: t.title,
+                status: t.status,
+                priority: t.priority,
+                deadline: t.deadline,
+                blocking_count: parseInt(t.child_count)
+              }))
+            },
+            orphaned_tasks: {
+              count: orphanedTasks.length,
+              description: 'Tasks with no dependencies (can work in parallel)',
+              tasks: orphanedTasks.map((t: any) => ({
+                id: t.id,
+                title: t.title,
+                status: t.status,
+                priority: t.priority
+              }))
+            },
+            recommendation: blockedTasks.length > 0
+              ? `Focus on completing ${blockedTasks.length} blocker task${blockedTasks.length > 1 ? 's' : ''} to unblock downstream work.`
+              : criticalPathTasks.length > 0
+                ? `${criticalPathTasks.length} critical path task${criticalPathTasks.length > 1 ? 's' : ''} ${criticalPathTasks.length > 1 ? 'are' : 'is'} blocking others. Prioritize these.`
+                : 'No blocked tasks - team can work in parallel on all tasks.'
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: 'Failed to analyze project dependencies',
+            details: error instanceof Error ? error.message : 'Unknown error'
+          };
+        }
+      }
+    }),
+
+    /**
+     * Create Task With Subtasks - Create a parent task with automatic subtask breakdown
+     */
+    createTaskWithSubtasks: tool({
+      description: `Create a parent task with subtasks. Use when user says:
+        - "Create task X with subtasks for A, B, C"
+        - "Break this down into smaller tasks"
+        - "Create a project with tasks for..."
+
+        This automatically creates a parent task and multiple child tasks.`,
+
+      inputSchema: z.object({
+        project_id: z.string().uuid()
+          .describe('UUID of the project'),
+        title: z.string().min(1).max(200)
+          .describe('Parent task title'),
+        description: z.string().optional()
+          .describe('Parent task description'),
+        status: z.enum(['todo', 'doing', 'done']).default('todo'),
+        priority: z.enum(['low', 'normal', 'high', 'urgent']).default('normal'),
+        deadline: z.string().optional()
+          .describe('Parent task deadline (ISO 8601)'),
+        subtasks: z.array(z.object({
+          title: z.string(),
+          description: z.string().optional(),
+          estimated_hours: z.number().optional()
+        }))
+          .describe('List of subtasks to create')
+      }),
+
+      async execute({ project_id, title, description, status, priority, deadline, subtasks }: {
+        project_id: string;
+        title: string;
+        description?: string;
+        status?: 'todo' | 'doing' | 'done';
+        priority?: 'low' | 'normal' | 'high' | 'urgent';
+        deadline?: string;
+        subtasks: Array<{ title: string; description?: string; estimated_hours?: number }>;
+      }) {
+        try {
+          // Verify project access
+          const projectAccess = await db`
+            SELECT pp.id, pp.name
+            FROM project_projects pp
+            JOIN project_members pm ON pm.project_id = pp.id
+            WHERE pp.id = ${project_id}
+              AND pm.user_id = ${userId}
+              AND pm.left_at IS NULL
+              AND pp.deleted_at IS NULL
+            LIMIT 1
+          `;
+
+          if (projectAccess.length === 0) {
+            return { success: false, error: 'Project not found or access denied' };
+          }
+
+          // Get next position
+          const positionResult = await db`
+            SELECT COALESCE(MAX(position), 0) + 1 as next_position
+            FROM tasks
+            WHERE project_id = ${project_id}
+              AND status = ${status}
+              AND deleted_at IS NULL
+          `;
+          const position = positionResult[0]?.next_position || 1;
+
+          // Create parent task
+          const parentTask = await db`
+            INSERT INTO tasks (
+              project_id,
+              title,
+              description,
+              status,
+              position,
+              priority,
+              deadline,
+              created_by_user_id
+            )
+            VALUES (
+              ${project_id},
+              ${title},
+              ${description || null},
+              ${status},
+              ${position},
+              ${priority},
+              ${deadline || null},
+              ${userId}
+            )
+            RETURNING *
+          `;
+
+          const parent = parentTask[0];
+
+          // Create subtasks
+          const createdSubtasks = [];
+          for (let i = 0; i < subtasks.length; i++) {
+            const subtask = subtasks[i];
+            const subtaskPosition = i + 1;
+
+            const created = await db`
+              INSERT INTO tasks (
+                project_id,
+                title,
+                description,
+                parent_task_id,
+                status,
+                position,
+                priority,
+                estimated_hours,
+                created_by_user_id
+              )
+              VALUES (
+                ${project_id},
+                ${subtask.title},
+                ${subtask.description || null},
+                ${parent.id},
+                'todo',
+                ${subtaskPosition},
+                ${priority},
+                ${subtask.estimated_hours || null},
+                ${userId}
+              )
+              RETURNING *
+            `;
+
+            createdSubtasks.push(created[0]);
+          }
+
+          return {
+            success: true,
+            parent_task: {
+              id: parent.id,
+              title: parent.title,
+              url: `/${locale}/ai-assistant?project=${project_id}&tab=tasks&task=${parent.id}`
+            },
+            subtasks: createdSubtasks.map(st => ({
+              id: st.id,
+              title: st.title,
+              estimated_hours: st.estimated_hours
+            })),
+            message: `Created task "${title}" with ${createdSubtasks.length} subtask${createdSubtasks.length > 1 ? 's' : ''}.`,
+            next_step: `View the task on the Kanban board to see all subtasks and track progress.`
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: 'Failed to create task with subtasks',
+            details: error instanceof Error ? error.message : 'Unknown error'
+          };
+        }
+      }
+    }),
+
+    /**
+     * Get Task With Subtasks - Show a task and all its subtasks
+     */
+    getTaskWithSubtasks: tool({
+      description: `Get a task and all its subtasks with progress. Use when:
+        - "Show me task X and its subtasks"
+        - "What are the subtasks for Y?"
+        - "How many subtasks are done?"`,
+
+      inputSchema: z.object({
+        task_id: z.string().uuid()
+          .describe('UUID of the parent task')
+      }),
+
+      async execute({ task_id }: { task_id: string }) {
+        try {
+          // Get parent task
+          const taskResult = await db`
+            SELECT
+              t.id,
+              t.title,
+              t.description,
+              t.status,
+              t.priority,
+              t.deadline,
+              t.created_at,
+              pp.id as project_id,
+              pp.name as project_name
+            FROM tasks t
+            JOIN project_projects pp ON t.project_id = pp.id
+            JOIN project_members pm ON pm.project_id = pp.id
+            WHERE t.id = ${task_id}
+              AND pm.user_id = ${userId}
+              AND pm.left_at IS NULL
+              AND t.deleted_at IS NULL
+            LIMIT 1
+          `;
+
+          if (taskResult.length === 0) {
+            return { success: false, error: 'Task not found or access denied' };
+          }
+
+          const task = taskResult[0];
+
+          // Get all subtasks
+          const subtasks = await db`
+            SELECT
+              id,
+              title,
+              description,
+              status,
+              priority,
+              deadline,
+              estimated_hours,
+              position,
+              created_at
+            FROM tasks
+            WHERE parent_task_id = ${task_id}
+              AND deleted_at IS NULL
+            ORDER BY position ASC, created_at ASC
+          `;
+
+          // Calculate progress
+          const totalSubtasks = subtasks.length;
+          const completed = subtasks.filter((st: any) => st.status === 'done').length;
+          const inProgress = subtasks.filter((st: any) => st.status === 'doing').length;
+          const todo = subtasks.filter((st: any) => st.status === 'todo').length;
+          const completionRate = totalSubtasks > 0 ? Math.round((completed / totalSubtasks) * 100) : 0;
+
+          return {
+            success: true,
+            task: {
+              id: task.id,
+              title: task.title,
+              description: task.description,
+              status: task.status,
+              priority: task.priority,
+              deadline: task.deadline,
+              project_name: task.project_name
+            },
+            subtasks: subtasks.map((st: any) => ({
+              id: st.id,
+              title: st.title,
+              description: st.description,
+              status: st.status,
+              priority: st.priority,
+              deadline: st.deadline,
+              estimated_hours: st.estimated_hours
+            })),
+            progress: {
+              total: totalSubtasks,
+              completed,
+              in_progress: inProgress,
+              todo,
+              completion_percentage: completionRate
+            },
+            recommendation: completionRate === 100
+              ? 'All subtasks complete! Consider marking the parent task as done.'
+              : totalSubtasks === 0
+                ? 'No subtasks yet. You can add subtasks to break down this task further.'
+                : `${todo} subtask${todo !== 1 ? 's' : ''} remaining. ${completed}/${totalSubtasks} complete (${completionRate}%).`
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: 'Failed to get task with subtasks',
+            details: error instanceof Error ? error.message : 'Unknown error'
+          };
+        }
+      }
+    }),
+
+    /**
+     * Search Tasks - Search for tasks using keywords or phrases
+     */
+    searchTasks: tool({
+      description: `Search tasks using keywords or phrases. Use when user asks:
+        - "Find tasks about X"
+        - "Show tasks related to Y"
+        - "Search for tasks mentioning Z"
+
+        Searches across task titles, descriptions, and optionally notes.`,
+
+      inputSchema: z.object({
+        query: z.string()
+          .describe('Search keywords or phrase (e.g., "authentication", "login bug", "database")'),
+        project_id: z.string().uuid().optional()
+          .describe('Limit search to specific project (optional - searches all projects if not provided)'),
+        search_in: z.array(z.enum(['title', 'description', 'notes'])).default(['title', 'description'])
+          .describe('Where to search: title, description, or notes'),
+        status: z.enum(['todo', 'doing', 'done']).optional()
+          .describe('Filter by status after searching'),
+        include_completed: z.boolean().default(false)
+          .describe('Include completed tasks in results'),
+        limit: z.number().min(1).max(50).default(20)
+      }),
+
+      async execute({ query, project_id, search_in, status, include_completed, limit }: {
+        query: string;
+        project_id?: string;
+        search_in?: Array<'title' | 'description' | 'notes'>;
+        status?: 'todo' | 'doing' | 'done';
+        include_completed?: boolean;
+        limit?: number;
+      }) {
+        try {
+          const searchPattern = `%${query}%`;
+
+          // Build query based on search fields
+          const results = await db`
+            SELECT DISTINCT
+              t.id,
+              t.title,
+              t.description,
+              t.status,
+              t.priority,
+              t.deadline,
+              pp.name as project_name,
+              pp.id as project_id,
+
+              -- Determine where match was found
+              CASE
+                WHEN t.title ILIKE ${searchPattern} THEN 'title'
+                WHEN t.description ILIKE ${searchPattern} THEN 'description'
+                ELSE 'unknown'
+              END as match_location,
+
+              -- Subtask count
+              COUNT(DISTINCT children.id) FILTER (WHERE children.deleted_at IS NULL) as subtask_count
+
+            FROM tasks t
+            JOIN project_projects pp ON t.project_id = pp.id
+            JOIN project_members pm ON pm.project_id = pp.id
+            LEFT JOIN tasks children ON children.parent_task_id = t.id
+            ${search_in?.includes('notes') ? 'LEFT JOIN task_notes tn ON tn.task_id = t.id AND tn.deleted_at IS NULL' : ''}
+
+            WHERE pm.user_id = ${userId}
+              AND pm.left_at IS NULL
+              AND t.deleted_at IS NULL
+
+              -- Search conditions
+              AND (
+                ${search_in?.includes('title') ? `t.title ILIKE ${searchPattern}` : 'FALSE'}
+                ${search_in?.includes('description') ? `OR t.description ILIKE ${searchPattern}` : ''}
+                ${search_in?.includes('notes') ? `OR tn.content ILIKE ${searchPattern}` : ''}
+              )
+
+              -- Optional filters
+              ${project_id ? `AND t.project_id = ${project_id}` : ''}
+              ${status ? `AND t.status = ${status}` : ''}
+              ${!include_completed ? `AND t.status != 'done'` : ''}
+
+            GROUP BY t.id, pp.id, pp.name
+
+            ORDER BY
+              -- Prioritize title matches
+              CASE WHEN t.title ILIKE ${searchPattern} THEN 1 ELSE 2 END,
+              t.created_at DESC
+
+            LIMIT ${limit}
+          `;
+
+          if (results.length === 0) {
+            return {
+              success: true,
+              count: 0,
+              query,
+              message: `No tasks found matching "${query}". Try different keywords or check spelling.`,
+              tasks: []
+            };
+          }
+
+          return {
+            success: true,
+            count: results.length,
+            query,
+            searched_in: search_in,
+            tasks: results.map((t: any) => ({
+              id: t.id,
+              title: t.title,
+              description: t.description?.substring(0, 200), // Truncate for brevity
+              status: t.status,
+              priority: t.priority,
+              deadline: t.deadline,
+              project_name: t.project_name,
+              match_location: t.match_location,
+              has_subtasks: parseInt(t.subtask_count) > 0,
+              subtask_count: parseInt(t.subtask_count),
+              url: `/${locale}/ai-assistant?project=${t.project_id}&tab=tasks&task=${t.id}`
+            })),
+            message: `Found ${results.length} task${results.length === 1 ? '' : 's'} matching "${query}".`
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: 'Failed to search tasks',
             details: error instanceof Error ? error.message : 'Unknown error'
           };
         }
