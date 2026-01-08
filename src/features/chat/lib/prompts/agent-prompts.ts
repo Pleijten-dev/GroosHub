@@ -184,17 +184,36 @@ Gebruik de taaktools wanneer de gebruiker vraagt naar:
 - Toewijzingen van taken aan teamleden
 - Tijdsinschatting of planning
 
-### Beschikbare Tools
+### Beschikbare Tools (13 tools)
 
-**Taken Beheren:**
+**Basistaken:**
 1. \`listUserTasks\` - Toon de taken van de gebruiker (met filters: overdue, today, this-week)
-2. \`createTask\` - Maak een nieuwe taak aan (haal details uit natuurlijke taal)
+2. \`createTask\` - Maak een nieuwe taak aan (ondersteunt nu ook parent_task_id voor afhankelijkheden!)
 3. \`updateTask\` - Wijzig een bestaande taak (status, prioriteit, deadline, toewijzingen)
+4. \`listUserProjects\` - Toon alle projecten waar de gebruiker toegang toe heeft
+
+**Afhankelijkheden & Blokkades:**
+5. \`getTaskBlockers\` - Ontdek wat een taak blokkeert (toon blokkades en afhankelijkheidsketen)
+6. \`analyzeProjectDependencies\` - Analyseer alle taakafhankelijkheden in een project (critical path, geblokkeerde taken)
+
+**Subtaken:**
+7. \`createTaskWithSubtasks\` - Maak een taak met subtaken in één keer
+8. \`getTaskWithSubtasks\` - Toon een taak met alle subtaken en voortgang
+
+**Zoeken:**
+9. \`searchTasks\` - Zoek taken op trefwoorden (doorzoekt titels, beschrijvingen, notities)
+
+**Bulk Operaties:**
+10. \`bulkUpdateTasks\` - Wijzig meerdere taken tegelijk (max 20)
+11. \`bulkCreateTasks\` - Maak meerdere taken in één keer (max 20)
+
+**Notities & Discussie:**
+12. \`addTaskNote\` - Voeg een notitie/opmerking toe aan een taak
+13. \`getTaskNotes\` - Haal alle notities van een taak op
 
 **Project Inzichten:**
-4. \`getProjectTaskSummary\` - Haal projectoverzicht op met statistieken en voortgang
-5. \`suggestTaskAssignment\` - Stel voor wie een taak moet doen (op basis van werkdruk)
-6. \`listUserProjects\` - Toon alle projecten waar de gebruiker toegang toe heeft
+14. \`getProjectTaskSummary\` - Haal projectoverzicht op met statistieken en voortgang
+15. \`suggestTaskAssignment\` - Stel voor wie een taak moet doen (op basis van werkdruk)
 
 ### Belangrijke Richtlijnen
 
@@ -255,17 +274,36 @@ Use task tools when the user asks about:
 - Task assignments to team members
 - Time estimation or planning
 
-### Available Tools
+### Available Tools (15 tools)
 
-**Task Management:**
+**Basic Tasks:**
 1. \`listUserTasks\` - Show user's tasks (with filters: overdue, today, this-week)
-2. \`createTask\` - Create a new task (extract details from natural language)
+2. \`createTask\` - Create a new task (now supports parent_task_id for dependencies!)
 3. \`updateTask\` - Modify an existing task (status, priority, deadline, assignments)
+4. \`listUserProjects\` - Show all projects the user has access to
+
+**Dependencies & Blockers:**
+5. \`getTaskBlockers\` - Find what's blocking a task (shows blockers and dependency chain)
+6. \`analyzeProjectDependencies\` - Analyze all task dependencies in a project (critical path, blocked tasks)
+
+**Subtasks:**
+7. \`createTaskWithSubtasks\` - Create a task with subtasks in one call
+8. \`getTaskWithSubtasks\` - Show a task with all subtasks and progress
+
+**Search:**
+9. \`searchTasks\` - Search tasks by keywords (searches titles, descriptions, notes)
+
+**Bulk Operations:**
+10. \`bulkUpdateTasks\` - Update multiple tasks at once (max 20)
+11. \`bulkCreateTasks\` - Create multiple tasks in one operation (max 20)
+
+**Notes & Discussion:**
+12. \`addTaskNote\` - Add a comment/note to a task
+13. \`getTaskNotes\` - Get all notes for a task
 
 **Project Insights:**
-4. \`getProjectTaskSummary\` - Get project overview with statistics and progress
-5. \`suggestTaskAssignment\` - Suggest who should do a task (based on workload)
-6. \`listUserProjects\` - Show all projects the user has access to
+14. \`getProjectTaskSummary\` - Get project overview with statistics and progress
+15. \`suggestTaskAssignment\` - Suggest who should do a task (based on workload)
 
 ### Important Guidelines
 
