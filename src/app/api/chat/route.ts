@@ -279,6 +279,7 @@ export async function POST(request: NextRequest) {
     const modelId = messageMetadata.modelId || rootMetadata.modelId || headerModelId || bodyModelId || 'claude-sonnet-4.5';
     const locale = (messageMetadata.locale || rootMetadata.locale || body.locale || 'nl') as 'nl' | 'en';
     const requestFileIds = messageMetadata.fileIds || rootMetadata.fileIds || fileIds;
+    const projectId = messageMetadata.projectId || rootMetadata.projectId || undefined;
 
     // Validate model ID
     const model = getModel(modelId as ModelId);
@@ -333,11 +334,12 @@ export async function POST(request: NextRequest) {
           userId,
           title,
           modelId,
+          projectId, // Link chat to project if provided
           metadata: { temperature },
           chatId // Use the client-provided chatId
         });
 
-        console.log(`[Chat API] ✅ Created new chat ${chatId} for user ${userId}`);
+        console.log(`[Chat API] ✅ Created new chat ${chatId} for user ${userId}${projectId ? ` (project: ${projectId})` : ''}`);
       }
     } else {
       // No chatId provided - create new chat with auto-generated ID
@@ -349,10 +351,11 @@ export async function POST(request: NextRequest) {
         userId,
         title,
         modelId,
+        projectId, // Link chat to project if provided
         metadata: { temperature }
       });
 
-      console.log(`[Chat API] ✅ Created new chat ${chatId} for user ${userId}`);
+      console.log(`[Chat API] ✅ Created new chat ${chatId} for user ${userId}${projectId ? ` (project: ${projectId})` : ''}`);
     }
 
     // Process file attachments for multimodal input (Week 3)

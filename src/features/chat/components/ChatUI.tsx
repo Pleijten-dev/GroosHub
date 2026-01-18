@@ -41,9 +41,10 @@ interface UploadedFile {
 export interface ChatUIProps {
   locale: 'nl' | 'en';
   chatId?: string; // Optional: for loading existing chats
+  projectId?: string; // Optional: for project-specific chats
 }
 
-export function ChatUI({ locale, chatId }: ChatUIProps) {
+export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
   const [selectedModel, setSelectedModel] = useState<ModelId>(DEFAULT_MODEL);
   const [input, setInput] = useState('');
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
@@ -59,9 +60,9 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
   // Lightbox state
   const [lightboxImage, setLightboxImage] = useState<{ url: string | URL; fileName?: string } | null>(null);
 
-  // RAG mode state
-  const [isRagEnabled, setIsRagEnabled] = useState(false);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  // RAG mode state - auto-enable if projectId is provided
+  const [isRagEnabled, setIsRagEnabled] = useState(!!projectId);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(projectId || '');
   const [userProjects, setUserProjects] = useState<Array<{ id: string; name: string }>>([]);
   const [isRagLoading, setIsRagLoading] = useState(false);
 
@@ -73,8 +74,8 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
         const data = await response.json();
         if (response.ok && data.projects) {
           setUserProjects(data.projects);
-          // Auto-select first project if available
-          if (data.projects.length > 0 && !selectedProjectId) {
+          // Only auto-select first project if no projectId was provided
+          if (!projectId && data.projects.length > 0 && !selectedProjectId) {
             setSelectedProjectId(data.projects[0].id);
           }
         }
@@ -83,7 +84,7 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
       }
     }
     fetchProjects();
-  }, []);
+  }, [projectId]);
 
   // Sync currentChatId with chatId prop, or create new one
   useEffect(() => {
@@ -237,6 +238,7 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
       modelId: selectedModel,
       locale: locale,
       fileIds: currentFiles.map(f => f.id),
+      ...(projectId && { projectId }), // Include projectId if provided (for project-specific chats)
     };
 
     // If RAG is enabled and project is selected, check if query warrants document search
@@ -450,82 +452,29 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
 
           {/* Controls */}
           <div className="flex items-center gap-base">
-            {/* RAG Toggle */}
+            {/* Model Selector - Always visible */}
             <div className="flex items-center gap-sm">
-              <label className="text-sm font-medium text-gray-700">
-                {t.ragLabel}:
+              <label htmlFor="model-select" className="text-sm font-medium text-gray-700">
+                {t.modelLabel}:
               </label>
-              <button
-                onClick={() => setIsRagEnabled(!isRagEnabled)}
-                disabled={isLoading || isRagLoading}
+              <select
+                id="model-select"
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value as ModelId)}
+                disabled={isLoading}
                 className={cn(
-                  'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
+                  'px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm',
                   'focus:outline-none focus:ring-2 focus:ring-blue-500',
-                  'disabled:opacity-50 disabled:cursor-not-allowed',
-                  isRagEnabled
-                    ? 'bg-green-600 text-white hover:bg-green-700'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  'disabled:bg-gray-100 disabled:cursor-not-allowed'
                 )}
               >
-                {isRagEnabled ? t.ragOn : t.ragOff}
-              </button>
+                {availableModels.map((modelId) => (
+                  <option key={modelId} value={modelId}>
+                    {modelId}
+                  </option>
+                ))}
+              </select>
             </div>
-
-            {/* Project Selector - Only shown when RAG is enabled */}
-            {isRagEnabled && (
-              <div className="flex items-center gap-sm">
-                <label htmlFor="project-select" className="text-sm font-medium text-gray-700">
-                  {t.projectLabel}:
-                </label>
-                <select
-                  id="project-select"
-                  value={selectedProjectId}
-                  onChange={(e) => setSelectedProjectId(e.target.value)}
-                  disabled={isLoading || isRagLoading}
-                  className={cn(
-                    'px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm',
-                    'focus:outline-none focus:ring-2 focus:ring-blue-500',
-                    'disabled:bg-gray-100 disabled:cursor-not-allowed'
-                  )}
-                >
-                  {userProjects.length === 0 ? (
-                    <option value="">{t.noProjects}</option>
-                  ) : (
-                    userProjects.map((project) => (
-                      <option key={project.id} value={project.id}>
-                        {project.name}
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
-            )}
-
-            {/* Model Selector - Only shown when RAG is disabled */}
-            {!isRagEnabled && (
-              <div className="flex items-center gap-sm">
-                <label htmlFor="model-select" className="text-sm font-medium text-gray-700">
-                  {t.modelLabel}:
-                </label>
-                <select
-                  id="model-select"
-                  value={selectedModel}
-                  onChange={(e) => setSelectedModel(e.target.value as ModelId)}
-                  disabled={isLoading}
-                  className={cn(
-                    'px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm',
-                    'focus:outline-none focus:ring-2 focus:ring-blue-500',
-                    'disabled:bg-gray-100 disabled:cursor-not-allowed'
-                  )}
-                >
-                  {availableModels.map((modelId) => (
-                    <option key={modelId} value={modelId}>
-                      {modelId}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -630,47 +579,106 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
             />
           )}
 
-          <form id="chat-form" onSubmit={handleSubmit} className="flex gap-sm">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={t.inputPlaceholder}
-              disabled={isLoading}
-              className={cn(
-                'flex-1 px-base py-sm bg-white border border-gray-300 rounded-lg',
-                'text-sm focus:outline-none focus:ring-2 focus:ring-blue-500',
-                'disabled:bg-gray-100 disabled:cursor-not-allowed'
-              )}
-            />
+          <form id="chat-form" onSubmit={handleSubmit} className="flex flex-col gap-sm">
+            <div className="flex gap-sm items-center">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder={t.inputPlaceholder}
+                disabled={isLoading}
+                className={cn(
+                  'flex-1 px-base py-sm bg-white border border-gray-300 rounded-lg',
+                  'text-sm focus:outline-none focus:ring-2 focus:ring-blue-500',
+                  'disabled:bg-gray-100 disabled:cursor-not-allowed'
+                )}
+              />
 
-            {isLoading ? (
-              <button
-                type="button"
-                onClick={stop}
-                className={cn(
-                  'px-base py-sm bg-red-600 text-white rounded-lg',
-                  'text-sm font-medium hover:bg-red-700',
-                  'focus:outline-none focus:ring-2 focus:ring-red-500',
-                  'transition-colors'
-                )}
-              >
-                {t.stopButton}
-              </button>
-            ) : (
-              <button
-                type="submit"
-                disabled={!input.trim()}
-                className={cn(
-                  'px-base py-sm bg-blue-600 text-white rounded-lg',
-                  'text-sm font-medium hover:bg-blue-700',
-                  'focus:outline-none focus:ring-2 focus:ring-blue-500',
-                  'disabled:bg-gray-300 disabled:cursor-not-allowed',
-                  'transition-colors'
-                )}
-              >
-                {t.sendButton}
-              </button>
+              {/* RAG Toggle - Always show unless projectId is provided (then it's auto-enabled) */}
+              {!projectId && userProjects.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsRagEnabled(!isRagEnabled)}
+                  disabled={isLoading || isRagLoading}
+                  title={isRagEnabled ? t.ragOn : t.ragOff}
+                  className={cn(
+                    'px-3 py-sm rounded-lg text-xs font-medium transition-colors flex items-center gap-xs',
+                    'focus:outline-none focus:ring-2 focus:ring-blue-500',
+                    'disabled:opacity-50 disabled:cursor-not-allowed',
+                    isRagEnabled
+                      ? 'bg-green-600 text-white hover:bg-green-700'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  )}
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span>RAG</span>
+                </button>
+              )}
+
+              {/* Project Selector - Only shown when RAG is enabled and NOT in project-specific mode */}
+              {isRagEnabled && !projectId && (
+                <select
+                  value={selectedProjectId}
+                  onChange={(e) => setSelectedProjectId(e.target.value)}
+                  disabled={isLoading || isRagLoading}
+                  className={cn(
+                    'px-3 py-sm bg-white border border-gray-300 rounded-lg text-sm',
+                    'focus:outline-none focus:ring-2 focus:ring-blue-500',
+                    'disabled:bg-gray-100 disabled:cursor-not-allowed'
+                  )}
+                >
+                  {userProjects.length === 0 ? (
+                    <option value="">{t.noProjects}</option>
+                  ) : (
+                    userProjects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+              )}
+
+              {isLoading ? (
+                <button
+                  type="button"
+                  onClick={stop}
+                  className={cn(
+                    'px-base py-sm bg-red-600 text-white rounded-lg',
+                    'text-sm font-medium hover:bg-red-700',
+                    'focus:outline-none focus:ring-2 focus:ring-red-500',
+                    'transition-colors'
+                  )}
+                >
+                  {t.stopButton}
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={!input.trim()}
+                  className={cn(
+                    'px-base py-sm bg-blue-600 text-white rounded-lg',
+                    'text-sm font-medium hover:bg-blue-700',
+                    'focus:outline-none focus:ring-2 focus:ring-blue-500',
+                    'disabled:bg-gray-300 disabled:cursor-not-allowed',
+                    'transition-colors'
+                  )}
+                >
+                  {t.sendButton}
+                </button>
+              )}
+            </div>
+
+            {/* RAG Status Indicator - Show when in project-specific mode */}
+            {projectId && isRagEnabled && (
+              <div className="text-xs text-gray-600 flex items-center gap-xs">
+                <svg className="w-3 h-3 text-green-600" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>{t.ragActiveForProject || 'RAG enabled for this project'}</span>
+              </div>
             )}
           </form>
 
