@@ -65,6 +65,7 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
   const [selectedProjectId, setSelectedProjectId] = useState<string>(projectId || '');
   const [userProjects, setUserProjects] = useState<Array<{ id: string; name: string }>>([]);
   const [isRagLoading, setIsRagLoading] = useState(false);
+  const [ragStatus, setRagStatus] = useState<string>('');
 
   // Fetch user projects for RAG mode
   useEffect(() => {
@@ -244,6 +245,7 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
     // If RAG is enabled and project is selected, check if query warrants document search
     if (isRagEnabled && selectedProjectId) {
       setIsRagLoading(true);
+      setRagStatus(locale === 'nl' ? '🔍 Analyseren van vraag...' : '🔍 Analyzing query...');
 
       try {
         // Step 1: Classify if query is about documents (cheap, fast LLM call)
@@ -267,6 +269,7 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
         // Step 2: Only call expensive agent if query is document-related
         if (classification.isDocumentRelated) {
           console.log('[ChatUI] 🔍 Query is document-related - invoking agent...');
+          setRagStatus(locale === 'nl' ? '📚 Zoeken in documenten...' : '📚 Searching documents...');
           const ragResponse = await fetch(`/api/projects/${selectedProjectId}/rag/agent`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -288,6 +291,10 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
             if (hasGoodAnswer) {
               // Inject RAG context into chat metadata
               console.log(`[ChatUI] ✅ RAG found ${ragData.sources.length} sources (${ragData.confidence} confidence) - injecting into chat`);
+              setRagStatus(locale === 'nl'
+                ? `✅ ${ragData.sources.length} bronnen gevonden`
+                : `✅ Found ${ragData.sources.length} sources`
+              );
 
               baseMetadata.ragContext = {
                 answer: ragData.answer,
@@ -301,16 +308,21 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
               baseMetadata.ragSources = ragData.sources; // For display in UI
             } else {
               console.log('[ChatUI] ⚠️ RAG found no good answer - proceeding with normal chat');
+              setRagStatus('');
             }
           }
         } else {
           console.log('[ChatUI] ⏭️  Query not document-related - skipping agent, using normal chat');
+          setRagStatus('');
         }
       } catch (error) {
         console.error('[ChatUI] ⚠️ RAG pipeline failed, proceeding with normal chat:', error);
+        setRagStatus('');
         // Continue to normal chat even if RAG fails
       } finally {
         setIsRagLoading(false);
+        // Clear status after a short delay
+        setTimeout(() => setRagStatus(''), 2000);
       }
     }
 
@@ -531,6 +543,22 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
                   </div>
                 </div>
               ))}
+
+              {/* RAG Status Indicator */}
+              {ragStatus && (
+                <div className="flex justify-center">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg px-base py-sm shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      </div>
+                      <span className="text-sm text-blue-700 font-medium">{ragStatus}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Loading indicator */}
               {isLoading && (
