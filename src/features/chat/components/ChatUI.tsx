@@ -342,6 +342,7 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
       ragOn: 'AAN',
       ragOff: 'UIT',
       noProjects: 'Geen projecten',
+      ragActiveForProject: 'RAG ingeschakeld voor dit project',
       inputPlaceholder: 'Typ je bericht...',
       sendButton: 'Versturen',
       stopButton: 'Stop',
@@ -359,6 +360,7 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
       ragOn: 'ON',
       ragOff: 'OFF',
       noProjects: 'No projects',
+      ragActiveForProject: 'RAG enabled for this project',
       inputPlaceholder: 'Type your message...',
       sendButton: 'Send',
       stopButton: 'Stop',
@@ -677,7 +679,7 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
                 <svg className="w-3 h-3 text-green-600" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>{t.ragActiveForProject || 'RAG enabled for this project'}</span>
+                <span>{t.ragActiveForProject}</span>
               </div>
             )}
           </form>
