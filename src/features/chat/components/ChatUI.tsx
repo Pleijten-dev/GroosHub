@@ -710,7 +710,7 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
                 <button
                   type="button"
                   onClick={() => setIsRagEnabled(!isRagEnabled)}
-                  disabled={isLoading || isRagLoading || (!!projectId && isRagEnabled)}
+                  disabled={isLoading || isRagLoading}
                   title={isRagEnabled ? t.ragOn : t.ragOff}
                   className={cn(
                     'px-3 py-sm rounded-lg text-xs font-bold transition-colors flex items-center gap-xs flex-shrink-0',
