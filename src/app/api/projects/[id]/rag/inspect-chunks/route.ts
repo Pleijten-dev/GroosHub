@@ -35,6 +35,7 @@ export async function GET(
         source_file,
         page_number,
         section_title,
+        file_id,
         metadata,
         token_count,
         created_at
@@ -60,6 +61,7 @@ export async function GET(
         sourceFile: c.source_file,
         pageNumber: c.page_number,
         sectionTitle: c.section_title,
+        fileId: c.file_id,
         tokenCount: c.token_count,
         metadata: c.metadata,
         preview: c.chunk_text.substring(0, 200) + '...',

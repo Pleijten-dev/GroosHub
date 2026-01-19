@@ -59,7 +59,8 @@ export async function POST(
         similarity: s.similarity,
         chunkIndex: s.chunkIndex,
         pageNumber: s.pageNumber,
-        sectionTitle: s.sectionTitle
+        sectionTitle: s.sectionTitle,
+        fileId: s.fileId  // CRITICAL: Required for document download button
       })),
       confidence: result.confidence,
       executionTimeMs: result.executionTimeMs
