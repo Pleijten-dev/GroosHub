@@ -681,3 +681,18 @@ body {
     radial-gradient(circle at 75% 75%, var(--blob-2-color) 0%, transparent 35%),
     radial-gradient(circle at 50% 50%, var(--blob-3-color) 0%, transparent 30%);
 }
+/* ========== TOAST ANIMATIONS ========== */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
+}
