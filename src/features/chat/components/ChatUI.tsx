@@ -233,6 +233,15 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
       return;
     }
 
+    // Show user message immediately (optimistic update)
+    const tempUserMessageId = `temp-${Date.now()}`;
+    const userMessage: typeof messages[0] = {
+      id: tempUserMessageId,
+      role: 'user',
+      parts: [{ type: 'text', text: queryText }]
+    };
+    setMessages([...messages, userMessage]);
+
     // Build base metadata
     const baseMetadata: any = {
       chatId: currentChatIdRef.current,
@@ -336,6 +345,10 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
         setTimeout(() => setRagStatus(''), 1000);
       }
     }
+
+    // Remove temporary user message before calling sendMessage
+    // (sendMessage will add the real message from backend)
+    setMessages(prev => prev.filter(m => m.id !== tempUserMessageId));
 
     // Always proceed with normal chat (with or without RAG context)
     // This preserves streaming, memory, tool calling, and all existing features
