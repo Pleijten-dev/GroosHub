@@ -233,14 +233,6 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
       return;
     }
 
-    // Show user message immediately (optimistic update)
-    const userMessage: typeof messages[0] = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      parts: [{ type: 'text', text: queryText }]
-    };
-    setMessages([...messages, userMessage]);
-
     // Build base metadata
     const baseMetadata: any = {
       chatId: currentChatIdRef.current,
@@ -662,8 +654,8 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
                 </div>
               )}
 
-              {/* Loading indicator */}
-              {isLoading && (
+              {/* Loading indicator - Hidden when RAG status is showing */}
+              {isLoading && !ragStatus && (
                 <div className="flex justify-start">
                   <div className="max-w-[80%] bg-white border border-gray-200 rounded-lg px-base py-sm shadow-sm">
                     <div className="flex items-center gap-2">
