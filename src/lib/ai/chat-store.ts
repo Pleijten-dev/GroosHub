@@ -258,7 +258,8 @@ export async function loadChatMessages(chatId: string): Promise<UIMessage[]> {
     const uiMessage: UIMessage = {
       id: msg.id,
       role: msg.role as 'user' | 'assistant' | 'system',
-      parts: []
+      parts: [],
+      metadata: msg.metadata || undefined // Include metadata if present
     };
 
     // Parse content_json to get parts
@@ -294,6 +295,16 @@ export async function loadChatMessages(chatId: string): Promise<UIMessage[]> {
 
   console.log(`[ChatStore] ✅ Converted to ${result.length} UIMessages`);
   console.log(`[ChatStore] 📤 Returning message IDs:`, result.map(m => m.id));
+
+  // Log which messages have RAG sources
+  const messagesWithRag = result.filter(m => m.metadata && (m.metadata as any).ragSources);
+  if (messagesWithRag.length > 0) {
+    console.log(`[ChatStore] 📚 ${messagesWithRag.length} messages have RAG sources`);
+    messagesWithRag.forEach(m => {
+      const ragSourcesCount = ((m.metadata as any).ragSources as any[])?.length || 0;
+      console.log(`[ChatStore] 📚 Message ${m.id} has ${ragSourcesCount} RAG sources`);
+    });
+  }
 
   return result;
 }
