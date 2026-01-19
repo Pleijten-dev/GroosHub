@@ -6,7 +6,7 @@
  * ✅ Phase 2: PDF with pdf-parse - BASIC quality (see limitations below)
  * ✅ Phase 3: XML with LLM enrichment - EXCELLENT quality for legal docs
  * ✅ Phase 4: CSV with PapaParse - GOOD quality (converts to natural language)
- * 🚧 Phase 5: Images with vision models - TODO
+ * ✅ Phase 5: Images with GPT-4V - EXCELLENT quality (vision model descriptions)
  *
  * PDF EXTRACTION LIMITATIONS (pdf-parse):
  * ⚠️ Tables: Column structure is lost, data appears as plain text
@@ -231,9 +231,102 @@ export class TextExtractor {
   }
 
   /**
+   * Extract text from images using GPT-4V (Vision)
+   * ✅ EXCELLENT quality - Rich semantic descriptions for RAG
+   *
+   * Uses GPT-4o's vision capabilities to generate detailed descriptions
+   * that can be embedded and searched semantically. Perfect for:
+   * - Architectural blueprints and diagrams
+   * - Photos of buildings/locations
+   * - Charts and infographics
+   * - Scanned documents with images
+   *
+   * Cost: ~$0.01 per image (GPT-4V pricing)
+   */
+  async extractFromImage(buffer: Buffer, filename: string): Promise<ExtractedText> {
+    try {
+      console.log(`[Image Extractor] Processing image: ${filename} (${buffer.length} bytes)`);
+
+      // Dynamic import to avoid circular dependencies
+      const { generateText } = await import('ai');
+      const { openai } = await import('@ai-sdk/openai');
+
+      // Detect image type from filename
+      const extension = filename.toLowerCase().split('.').pop();
+      let mediaType = 'image/jpeg'; // default
+
+      if (extension === 'png') {
+        mediaType = 'image/png';
+      } else if (extension === 'gif') {
+        mediaType = 'image/gif';
+      } else if (extension === 'webp') {
+        mediaType = 'image/webp';
+      }
+
+      console.log(`[Image Extractor] Detected media type: ${mediaType}`);
+
+      // Use GPT-4o (vision) to describe the image
+      const result = await generateText({
+        model: openai('gpt-4o'),
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `You are an expert at describing images for document search and retrieval.
+Provide a comprehensive, detailed description of this image that will be used for semantic search.
+
+Include:
+- What type of image this is (photo, diagram, blueprint, chart, etc.)
+- Main subjects, objects, or elements visible
+- Any text, labels, or annotations present
+- Technical details if it's a diagram or blueprint (dimensions, measurements, annotations)
+- Context and purpose if apparent (architectural drawing, product photo, etc.)
+- Colors, layout, and composition
+- Any other relevant details that would help someone find this image through search
+
+Be thorough and factual. This description will be embedded and used for RAG retrieval.`
+              },
+              {
+                type: 'image',
+                image: buffer,
+                mimeType: mediaType
+              }
+            ]
+          }
+        ],
+        maxTokens: 1000 // Allow detailed descriptions
+      });
+
+      const description = result.text;
+
+      console.log(
+        `[Image Extractor] Generated description (${description.length} chars): ` +
+        `${description.substring(0, 100)}...`
+      );
+
+      // Add header with filename for context
+      const fullText = `IMAGE: ${filename}\n\nDESCRIPTION:\n${description}`;
+
+      return {
+        text: fullText,
+        metadata: {
+          extractionMethod: 'gpt-4v-vision',
+          warnings: []
+        }
+      };
+    } catch (error) {
+      throw new Error(
+        `Image extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}. ` +
+        `The image may be corrupted or use an unsupported format.`
+      );
+    }
+  }
+
+  /**
    * Main extraction router
-   * Supports: TXT, MD, CSV, PDF (basic quality), XML (excellent quality for legal docs)
-   * Coming soon: Images
+   * Supports: TXT, MD, CSV, PDF (basic quality), XML (excellent quality for legal docs), Images (vision descriptions)
    */
   async extract(
     buffer: Buffer,
@@ -260,18 +353,14 @@ export class TextExtractor {
       return this.extractFromCSV(buffer);
     }
 
-    // Images - Coming soon
+    // Images - Fully supported with GPT-4V vision descriptions
     if (mimeType.startsWith('image/')) {
-      throw new Error(
-        'Image extraction not yet implemented. ' +
-        'For now, you can ask questions about images directly in chat using multimodal models.'
-      );
+      return this.extractFromImage(buffer, filename);
     }
 
     throw new Error(
       `Unsupported file type: ${mimeType} (${filename}). ` +
-      `Currently supported: .txt, .md, .csv, .xml (legal docs), .pdf (basic quality). ` +
-      `Coming soon: images.`
+      `Currently supported: .txt, .md, .csv, .xml (legal docs), .pdf (basic quality), images (vision descriptions).`
     );
   }
 }
