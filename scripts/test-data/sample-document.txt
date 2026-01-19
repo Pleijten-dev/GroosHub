@@ -1,0 +1,143 @@
+Sample Document for RAG Testing
+
+Introduction
+This is a test document for validating the RAG (Retrieval-Augmented Generation) system.
+It contains multiple sections with different topics to test retrieval accuracy and ensure
+that the system can correctly identify and retrieve relevant information based on user queries.
+
+Section 1: Urban Development
+Urban development involves the planning and management of the growth of cities and towns.
+Key factors in urban development include infrastructure development, transportation systems,
+housing availability, and the creation of public spaces. Sustainable urban development focuses
+on minimizing environmental impact while improving quality of life for residents. Modern cities
+face challenges such as population growth, traffic congestion, and the need for green spaces.
+Urban planners use data analysis and community engagement to create livable, sustainable cities.
+
+Section 2: Project Management Methodologies
+Effective project management requires clear goals, well-defined timelines, and efficient resource
+allocation. There are several common project management methodologies used in the industry:
+
+- Agile: An iterative approach that emphasizes flexibility and customer collaboration
+- Waterfall: A linear sequential approach where each phase must be completed before the next begins
+- Hybrid: Combines elements of both Agile and Waterfall to suit project-specific needs
+- Scrum: A subset of Agile that uses sprints and daily stand-ups
+- Kanban: Visualizes work and limits work-in-progress to improve flow
+
+Risk management and stakeholder communication are critical success factors in any project.
+Regular status updates, clear documentation, and proactive problem-solving help ensure project
+success. Tools like Gantt charts, burndown charts, and risk registers are commonly used.
+
+Section 3: Data Analysis and Business Intelligence
+Data analysis involves examining datasets to draw conclusions and generate actionable insights.
+The process typically includes data collection, data cleaning, exploratory analysis, statistical
+modeling, and visualization. Common techniques in data analysis include:
+
+- Descriptive statistics to summarize data characteristics
+- Inferential statistics to make predictions about populations
+- Data visualization using charts, graphs, and dashboards
+- Machine learning for pattern recognition and prediction
+- A/B testing for comparing different approaches
+
+Tools commonly used in data analysis include Python (with pandas, numpy, scikit-learn), R for
+statistical computing, SQL for database queries, and business intelligence platforms like Tableau,
+Power BI, and Looker. The field has grown significantly with the rise of big data and the need
+for data-driven decision making in organizations.
+
+Section 4: Environmental Sustainability Practices
+Environmental sustainability focuses on meeting present needs without compromising the ability
+of future generations to meet their own needs. This involves reducing ecological footprint through
+various practices and strategies:
+
+Key areas of environmental sustainability include:
+- Renewable energy: Solar, wind, hydroelectric, and geothermal power
+- Waste reduction: Recycling, composting, and circular economy principles
+- Conservation: Protecting natural habitats and biodiversity
+- Sustainable agriculture: Organic farming and permaculture
+- Green building: Energy-efficient construction and LEED certification
+
+Organizations implement sustainability practices through comprehensive policies, employee training,
+and adoption of green technologies. Many companies now publish annual sustainability reports and
+set science-based targets for carbon reduction. Consumer awareness and demand for sustainable
+products drive corporate responsibility in environmental stewardship.
+
+Section 5: Artificial Intelligence and Machine Learning
+Artificial Intelligence (AI) is the simulation of human intelligence by machines. Machine Learning
+(ML) is a subset of AI that enables systems to learn and improve from experience without being
+explicitly programmed. Deep Learning is a subset of ML that uses neural networks with multiple layers.
+
+Applications of AI and ML include:
+- Natural Language Processing (NLP): Understanding and generating human language
+- Computer Vision: Image recognition, object detection, facial recognition
+- Recommendation Systems: Personalized content and product suggestions
+- Autonomous Vehicles: Self-driving cars and drones
+- Predictive Analytics: Forecasting trends and behaviors
+
+The field has experienced rapid growth due to increased computing power, availability of large
+datasets, and advances in algorithms. Ethical considerations around AI include bias in algorithms,
+privacy concerns, job displacement, and the need for explainable AI systems.
+
+Section 6: GroosHub Platform Features
+GroosHub is a comprehensive urban development and location analysis platform that provides
+data-driven insights for urban planning, location analysis, and project management. The platform
+features include:
+
+- Location Analysis: Multi-source data aggregation from CBS, RIVM, Politie, Google Places, and Altum AI
+- Demographics Data: Population statistics, age distribution, household composition
+- Health Metrics: Healthcare facility proximity, health indicators
+- Safety Data: Crime statistics, safety scores, emergency services coverage
+- Livability Index: Quality of life metrics and neighborhood characteristics
+- Amenities Mapping: Nearby services, restaurants, schools, parks, public transport
+- Housing Market Analysis: Property values, rental prices, market trends
+- AI Assistant: Multi-provider chatbot with streaming responses and document analysis
+- Interactive Maps: Leaflet-based visualization with GeoJSON layers
+- 3D Charts: Three.js powered data visualizations
+- Multi-language Support: Dutch (nl) and English (en)
+- Project Management: Organize locations, notes, and files for urban development projects
+
+The platform uses a RAG (Retrieval-Augmented Generation) system to allow users to upload project
+documents and ask questions about them. The AI assistant retrieves relevant sections from uploaded
+documents and provides accurate answers with source citations, preventing hallucinations.
+
+Section 7: Testing Best Practices
+Software testing is crucial for ensuring application quality and reliability. Different types of
+testing serve different purposes:
+
+- Unit Testing: Tests individual components in isolation
+- Integration Testing: Tests how components work together
+- End-to-End Testing: Tests complete user workflows
+- Performance Testing: Measures speed, scalability, and stability
+- Security Testing: Identifies vulnerabilities and security flaws
+- User Acceptance Testing (UAT): Validates that the system meets user requirements
+
+Test automation improves efficiency and enables continuous integration/continuous deployment (CI/CD)
+pipelines. Popular testing frameworks include Jest for JavaScript, Pytest for Python, JUnit for Java,
+and Cypress for end-to-end web testing. Test coverage metrics help teams understand how much of the
+codebase is tested, though high coverage doesn't guarantee absence of bugs.
+
+Conclusion
+This document provides diverse content across multiple domains to test document retrieval systems.
+Each section contains domain-specific terminology and concepts that should be accurately retrievable
+based on relevant user queries. The RAG system should be able to identify the most relevant sections,
+extract key information, and provide source citations for verification.
+
+Testing the RAG system with this document validates:
+- Text extraction from various file formats
+- Semantic chunking that preserves context
+- Embedding generation for similarity search
+- Hybrid search combining vector and text matching
+- Accurate retrieval of relevant content
+- Integration with chat interface
+- Source citation and verification features
+
+Expected test behaviors:
+- Query "urban development" should retrieve Section 1
+- Query "project management" should retrieve Section 2
+- Query "data analysis" should retrieve Section 3
+- Query "environmental sustainability" should retrieve Section 4
+- Query "artificial intelligence" should retrieve Section 5
+- Query "GroosHub features" should retrieve Section 6
+- Query "software testing" should retrieve Section 7
+
+The system should maintain high relevance scores (>70%) for directly related queries and lower
+scores for tangentially related content. Citations should include file name, page numbers (for PDFs),
+and the original text excerpt for user verification.

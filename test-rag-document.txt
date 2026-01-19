@@ -1,0 +1,18 @@
+RAG System Test Document
+
+This is a test document for validating the RAG (Retrieval-Augmented Generation) system.
+
+Section 1: Project Information
+This document contains information about the GroosHub platform. GroosHub is an urban development and location analysis platform that helps users make data-driven decisions about real estate and urban planning.
+
+Section 2: Technical Details
+The RAG system uses OpenAI's text-embedding-3-small model to generate 1536-dimensional vector embeddings. Text is chunked into 800-token segments with 100-token overlap to preserve context across boundaries.
+
+Section 3: Key Features
+GroosHub provides several key features including location scoring, demographics analysis, safety metrics, and amenities mapping. The platform integrates data from multiple sources such as CBS, RIVM, and Google Places.
+
+Section 4: Implementation Notes
+The RAG pipeline consists of four stages: text extraction, semantic chunking, embedding generation, and vector storage. Retrieval uses hybrid search combining cosine similarity and BM25 full-text search with Reciprocal Rank Fusion.
+
+Section 5: Testing Instructions
+To test the RAG system, upload this document to a project, wait for processing to complete, then ask questions like "What is GroosHub?" or "How does the RAG system work?" The AI should retrieve relevant sections and cite this document as the source.

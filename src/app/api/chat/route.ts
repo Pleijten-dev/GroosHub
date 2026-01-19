@@ -35,6 +35,9 @@ import type { UnifiedLocationData, UnifiedDataRow } from '@/features/location/da
 import type { ResidentialData } from '@/features/location/data/sources/altum-ai/types';
 import personasData from '@/features/location/data/sources/housing-personas.json';
 import { randomUUID } from 'crypto';
+// RAG System imports
+import { findRelevantContent, type RetrievedChunk } from '@/lib/ai/rag/retriever';
+import { getChunkCountByProjectId } from '@/lib/db/queries/project-doc-chunks';
 import { createTaskTools } from '@/features/chat/tools/taskTools';
 
 // Request schema validation
@@ -277,6 +280,7 @@ export async function POST(request: NextRequest) {
     const modelId = messageMetadata.modelId || rootMetadata.modelId || headerModelId || bodyModelId || 'claude-sonnet-4.5';
     const locale = (messageMetadata.locale || rootMetadata.locale || body.locale || 'nl') as 'nl' | 'en';
     const requestFileIds = messageMetadata.fileIds || rootMetadata.fileIds || fileIds;
+    const projectId = messageMetadata.projectId || rootMetadata.projectId || undefined;
 
     // Validate model ID
     const model = getModel(modelId as ModelId);
@@ -299,13 +303,14 @@ export async function POST(request: NextRequest) {
     // Handle chat persistence
     let chatId = requestChatId;
     let existingMessages: UIMessage[] = [];
+    let existingChat: any = null; // Will store chat object for RAG lookup
 
     console.log(`[Chat API] 🔍 Received ${clientMessages.length} messages from client`);
     console.log(`[Chat API] 📝 Client message roles:`, (clientMessages as UIMessage[]).map(m => m.role).join(', '));
 
     if (chatId) {
       // Check if chat exists in database
-      const existingChat = await getChat(chatId);
+      existingChat = await getChat(chatId);
 
       if (existingChat) {
         // Chat exists - load existing messages
@@ -330,11 +335,12 @@ export async function POST(request: NextRequest) {
           userId,
           title,
           modelId,
+          projectId, // Link chat to project if provided
           metadata: { temperature },
           chatId // Use the client-provided chatId
         });
 
-        console.log(`[Chat API] ✅ Created new chat ${chatId} for user ${userId}`);
+        console.log(`[Chat API] ✅ Created new chat ${chatId} for user ${userId}${projectId ? ` (project: ${projectId})` : ''}`);
       }
     } else {
       // No chatId provided - create new chat with auto-generated ID
@@ -346,10 +352,11 @@ export async function POST(request: NextRequest) {
         userId,
         title,
         modelId,
+        projectId, // Link chat to project if provided
         metadata: { temperature }
       });
 
-      console.log(`[Chat API] ✅ Created new chat ${chatId} for user ${userId}`);
+      console.log(`[Chat API] ✅ Created new chat ${chatId} for user ${userId}${projectId ? ` (project: ${projectId})` : ''}`);
     }
 
     // Process file attachments for multimodal input (Week 3)
@@ -422,6 +429,126 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.error('[Chat API] ⚠️  Failed to load user memory:', error);
       // Continue without memory if there's an error
+    }
+
+    // RAG System: Two modes
+    // 1. Phase 4 Agent RAG (from metadata.ragContext) - Priority
+    // 2. Legacy project-based RAG (from existingChat.project_id) - Fallback
+    let retrievedChunks: RetrievedChunk[] = [];
+
+    // Check for Phase 4 Agent RAG context in metadata
+    const agentRagContext = messageMetadata.ragContext || rootMetadata.ragContext;
+
+    if (agentRagContext && agentRagContext.answer && agentRagContext.sources) {
+      // Phase 4 Agent RAG: Use pre-processed agent results
+      console.log(`[Chat API] 🤖 Using Phase 4 Agent RAG (confidence: ${agentRagContext.confidence})`);
+      console.log(`[Chat API] 📚 Agent found ${agentRagContext.sources.length} sources`);
+
+      // Build RAG context from agent results
+      let ragContext = '\n\n---\n\nRELEVANT CONTEXT FROM PROJECT DOCUMENTS (Agent RAG):\n\n';
+      ragContext += `Agent Analysis (${agentRagContext.confidence} confidence):\n${agentRagContext.answer}\n\n`;
+      ragContext += 'Supporting Sources:\n';
+
+      agentRagContext.sources.forEach((source: any, i: number) => {
+        ragContext += `[Source ${i + 1}: ${source.file}]\n`;
+        ragContext += `${source.text}\n\n`;
+      });
+
+      ragContext += '---\n\n';
+      ragContext += 'CRITICAL INSTRUCTIONS FOR USING PROJECT DOCUMENTS - YOU MUST FOLLOW THESE:\n';
+      ragContext += '1. MANDATORY: When using information from the sources above, you MUST cite them using [Source N] notation\n';
+      ragContext += '2. MANDATORY: Cite sources INLINE within your answer text, immediately after each fact or claim\n';
+      ragContext += '   Example: "According to the building code [Source 1], the minimum height is 2.6 meters [Source 2]."\n';
+      ragContext += '3. MANDATORY: Every fact, number, or requirement from the sources MUST have a citation\n';
+      ragContext += '4. The agent has analyzed the documents and provided an answer - use it to inform your response\n';
+      ragContext += '5. You can elaborate on the agent\'s answer or provide additional context from the sources\n';
+      ragContext += '6. If the sources don\'t contain relevant information, you can answer from general knowledge but clearly state this\n';
+      ragContext += '7. NEVER invent citations - only cite sources that actually contain the information\n\n';
+
+      // Inject Agent RAG context into system prompt
+      systemPrompt = systemPrompt + ragContext;
+
+      console.log(`[Chat API] 📝 Enhanced system prompt with Agent RAG context`);
+
+      // Store sources for metadata (use ragSources from metadata if available)
+      if (messageMetadata.ragSources || rootMetadata.ragSources) {
+        retrievedChunks = (messageMetadata.ragSources || rootMetadata.ragSources) as RetrievedChunk[];
+        console.log(`[Chat API] 💾 Stored ${retrievedChunks.length} full RAG sources for message metadata`);
+      }
+
+    } else if (existingChat && existingChat.project_id) {
+      // Legacy project-based RAG: Fall back to old system
+      try {
+        // Check if project has any embedded documents
+        const chunkCount = await getChunkCountByProjectId(existingChat.project_id);
+
+        if (chunkCount > 0) {
+          // Get the last user message for RAG query
+          const lastUserMessage = truncatedMessages
+            .filter(m => m.role === 'user')
+            .slice(-1)[0];
+
+          if (lastUserMessage) {
+            const queryText = lastUserMessage.parts
+              .filter(p => p.type === 'text')
+              .map(p => ('text' in p ? p.text : ''))
+              .join(' ');
+
+            if (queryText) {
+              console.log(`[Chat API] 📚 Retrieving RAG context for project ${existingChat.project_id}`);
+
+              retrievedChunks = await findRelevantContent({
+                projectId: existingChat.project_id,
+                query: queryText,
+                topK: 5,
+                similarityThreshold: 0.7,
+                useHybridSearch: true
+              });
+
+              if (retrievedChunks.length > 0) {
+                console.log(
+                  `[Chat API] ✅ Retrieved ${retrievedChunks.length} relevant chunks ` +
+                  `(avg similarity: ${(retrievedChunks.reduce((sum, c) => sum + c.similarity, 0) / retrievedChunks.length).toFixed(3)})`
+                );
+
+                // Build RAG context to inject into system prompt
+                let ragContext = '\n\n---\n\nRELEVANT CONTEXT FROM PROJECT DOCUMENTS:\n\n';
+
+                retrievedChunks.forEach((chunk, i) => {
+                  ragContext += `[Source ${i + 1}: ${chunk.sourceFile}`;
+                  if (chunk.pageNumber) ragContext += `, Page ${chunk.pageNumber}`;
+                  ragContext += ` - Relevance: ${(chunk.similarity * 100).toFixed(0)}%]\n`;
+                  ragContext += `${chunk.chunkText}\n\n`;
+                });
+
+                ragContext += '---\n\n';
+                ragContext += 'CRITICAL INSTRUCTIONS FOR USING PROJECT DOCUMENTS - YOU MUST FOLLOW THESE:\n';
+                ragContext += '1. MANDATORY: When using information from the sources above, you MUST cite them using [Source N] notation\n';
+                ragContext += '2. MANDATORY: Cite sources INLINE within your answer text, immediately after each fact or claim\n';
+                ragContext += '   Example: "According to the building code [Source 1], the minimum height is 2.6 meters [Source 2]."\n';
+                ragContext += '3. MANDATORY: Every fact, number, or requirement from the sources MUST have a citation\n';
+                ragContext += '4. If the context contains relevant information, use it in your answer with citations\n';
+                ragContext += '5. If the context does not contain relevant information, you can answer from general knowledge but clearly state this\n';
+                ragContext += '6. NEVER invent citations - only cite sources that actually contain the information\n\n';
+
+                // Inject RAG context into system prompt
+                systemPrompt = systemPrompt + ragContext;
+
+                console.log(`[Chat API] 📝 Enhanced system prompt with RAG context (${retrievedChunks.length} sources)`);
+              } else {
+                console.log(`[Chat API] ℹ️  No relevant chunks found (similarity threshold: 0.7)`);
+              }
+            }
+          }
+        } else {
+          console.log(`[Chat API] ℹ️  Project ${existingChat.project_id} has no embedded documents`);
+        }
+      } catch (error) {
+        console.error('[Chat API] ⚠️  RAG retrieval failed:', error);
+        // Continue without RAG if there's an error
+      }
+    } else {
+      console.log(`[Chat API] ℹ️  No RAG context available (neither Agent RAG nor project-based RAG)`);
     }
 
     const messagesWithSystem: UIMessage[] = [
@@ -1411,11 +1538,28 @@ export async function POST(request: NextRequest) {
           console.log(`[Chat API] 💾 Assistant text preview: "${text.substring(0, 50)}..."`);
           console.log(`[Chat API] 💾 Tokens - Input: ${inputTokens}, Output: ${outputTokens}`);
 
-          await saveChatMessage(chatId!, assistantMessage, {
+          // Add RAG sources to metadata if chunks were retrieved
+          const messageMetadata: Record<string, any> = {
             modelId,
             inputTokens,
             outputTokens
-          });
+          };
+
+          if (retrievedChunks.length > 0) {
+            messageMetadata.metadata = {
+              ragSources: retrievedChunks.map(chunk => ({
+                id: chunk.id,
+                sourceFile: chunk.sourceFile,
+                pageNumber: chunk.pageNumber,
+                chunkText: chunk.chunkText,
+                similarity: chunk.similarity,
+                fileId: chunk.fileId
+              }))
+            };
+            console.log(`[Chat API] 📚 Saving ${retrievedChunks.length} RAG sources with assistant message`);
+          }
+
+          await saveChatMessage(chatId!, assistantMessage, messageMetadata);
 
           console.log(`[Chat API] ✅ Assistant message saved successfully!`);
 

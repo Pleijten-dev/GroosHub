@@ -19,7 +19,7 @@ const translations = {
     uploadSuccess: 'Bestanden succesvol geüpload',
     uploadError: 'Fout bij uploaden',
     maxFiles: 'Maximaal 10 bestanden per keer',
-    supportedTypes: 'Ondersteunde types: afbeeldingen, PDF, CSV, TXT'
+    supportedTypes: 'Ondersteunde types voor RAG: afbeeldingen (JPG, PNG, GIF, WebP), PDF, CSV, TXT, XML'
   },
   en: {
     uploadFiles: 'Upload Files',
@@ -29,7 +29,7 @@ const translations = {
     uploadSuccess: 'Files uploaded successfully',
     uploadError: 'Upload failed',
     maxFiles: 'Maximum 10 files at once',
-    supportedTypes: 'Supported types: images, PDF, CSV, TXT'
+    supportedTypes: 'Supported types for RAG: images (JPG, PNG, GIF, WebP), PDF, CSV, TXT, XML'
   }
 };
 
