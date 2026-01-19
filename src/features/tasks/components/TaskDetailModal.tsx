@@ -113,7 +113,17 @@ export function TaskDetailModal({
       const res = await fetch(`/api/projects/${projectId}/tasks/${task.id}`);
       if (res.ok) {
         const data = await res.json();
-        setCurrentTask(data.data);
+        const updatedTask = data.data;
+        setCurrentTask(updatedTask);
+
+        // Also update editData to keep it in sync
+        setEditData({
+          title: updatedTask.title,
+          description: updatedTask.description || '',
+          priority: updatedTask.priority,
+          deadline: updatedTask.deadline ? updatedTask.deadline.slice(0, 16) : '',
+          task_group_id: updatedTask.task_group_id || ''
+        });
       }
     } catch (err) {
       console.error('Error refreshing task:', err);
@@ -121,13 +131,23 @@ export function TaskDetailModal({
   }
 
   async function handleSave() {
+    // Convert datetime-local string to ISO 8601 format for PostgreSQL
+    let formattedDeadline = null;
+    if (editData.deadline) {
+      // datetime-local gives us "2024-01-15T14:30", we need to add seconds for ISO 8601
+      formattedDeadline = editData.deadline + ':00';
+    }
+
     await onUpdate({
       title: editData.title,
       description: editData.description,
       priority: editData.priority,
-      deadline: editData.deadline || null,
+      deadline: formattedDeadline,
       task_group_id: editData.task_group_id || null
     });
+
+    // Refresh task data to show updated deadline
+    await refreshTask();
     setIsEditing(false);
   }
 
