@@ -233,6 +233,14 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
       return;
     }
 
+    // Show user message immediately (optimistic update)
+    const userMessage: typeof messages[0] = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      parts: [{ type: 'text', text: queryText }]
+    };
+    setMessages([...messages, userMessage]);
+
     // Build base metadata
     const baseMetadata: any = {
       chatId: currentChatIdRef.current,
@@ -251,8 +259,8 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
         // Step 1: Classify if query is about documents (cheap, fast LLM call)
         console.log('[ChatUI] RAG Mode: Classifying query relevance...');
 
-        // Wait to ensure status is visible before starting classification
-        await new Promise(resolve => setTimeout(resolve, 800));
+        // Brief delay so user sees status update
+        await new Promise(resolve => setTimeout(resolve, 300));
 
         const classifyResponse = await fetch('/api/rag/classify-query', {
           method: 'POST',
@@ -274,9 +282,9 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
         if (classification.isDocumentRelated) {
           console.log('[ChatUI] 🔍 Query is document-related - invoking agent...');
 
-          // Update status and wait before starting agent call
+          // Update status and brief delay
           setRagStatus(locale === 'nl' ? '📚 Zoeken in documenten...' : '📚 Searching documents...');
-          await new Promise(resolve => setTimeout(resolve, 800));
+          await new Promise(resolve => setTimeout(resolve, 300));
 
           const ragResponse = await fetch(`/api/projects/${selectedProjectId}/rag/agent`, {
             method: 'POST',
@@ -300,12 +308,12 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
               // Inject RAG context into chat metadata
               console.log(`[ChatUI] ✅ RAG found ${ragData.sources.length} sources (${ragData.confidence} confidence) - injecting into chat`);
 
-              // Update status and wait before injecting context
+              // Update status and brief delay
               setRagStatus(locale === 'nl'
                 ? `✅ ${ragData.sources.length} bronnen gevonden`
                 : `✅ Found ${ragData.sources.length} sources`
               );
-              await new Promise(resolve => setTimeout(resolve, 1000)); // Show success message longer
+              await new Promise(resolve => setTimeout(resolve, 500)); // Show success message
 
               baseMetadata.ragContext = {
                 answer: ragData.answer,
@@ -332,8 +340,8 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
         // Continue to normal chat even if RAG fails
       } finally {
         setIsRagLoading(false);
-        // Clear status after a delay to let user see the final status
-        setTimeout(() => setRagStatus(''), 2000);
+        // Clear status once assistant starts responding
+        setTimeout(() => setRagStatus(''), 1000);
       }
     }
 
