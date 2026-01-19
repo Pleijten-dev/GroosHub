@@ -24,11 +24,12 @@ import { calculatePersonaScores } from '../../../features/location/utils/targetG
 import { getPersonaCubePosition } from '../../../features/location/utils/cubePositionMapping';
 import { calculateConnections, calculateScenarios } from '../../../features/location/utils/connectionCalculations';
 import housingPersonasData from '../../../features/location/data/sources/housing-personas.json';
-import { LocationMap, MapStyle, WMSLayerControl, WMSLayerSelection, WMSFeatureInfo } from '../../../features/location/components/Maps';
+import { LocationMap, MapStyle, WMSLayerControl, WMSLayerSelection, WMSFeatureInfo, WMSGradingScoreCard } from '../../../features/location/components/Maps';
 import { calculateAllAmenityScores, type AmenityScore } from '../../../features/location/data/scoring/amenityScoring';
 import { PVEQuestionnaire } from '../../../features/location/components/PVE';
 import { MapExportButton } from '../../../features/location/components/MapExport';
 import type { AccessibleLocation } from '../../../features/location/types/saved-locations';
+import { useWMSGrading } from '../../../features/location/hooks/useWMSGrading';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -85,6 +86,16 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
   // Use location data hook
   const { data, amenities, loading, error, isLoading, hasError, fetchData, loadSavedData, clearData } = useLocationData();
+
+  // Use WMS grading hook
+  const wmsGrading = useWMSGrading({
+    snapshotId: null, // TODO: Get snapshot ID when available
+    latitude: data?.location?.coordinates?.wgs84?.latitude,
+    longitude: data?.location?.coordinates?.wgs84?.longitude,
+    address: data?.location?.address,
+    existingGradingData: null, // TODO: Get from loaded snapshot
+    autoGrade: true, // Auto-start grading when location is loaded
+  });
 
   // Use sidebar hook for state management
   const { isCollapsed, toggle, setCollapsed } = useSidebar({
@@ -502,6 +513,19 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                 onClearFeatureInfo={() => setFeatureInfo(null)}
               />
             </LocationMap>
+
+            {/* WMS Grading Score Card - Top right overlay */}
+            <div className="absolute top-4 right-4 z-[1000] max-w-sm">
+              <WMSGradingScoreCard
+                gradingData={wmsGrading.gradingData}
+                isGrading={wmsGrading.isGrading}
+                progress={wmsGrading.progress}
+                layersCompleted={wmsGrading.layersCompleted}
+                layersTotal={wmsGrading.layersTotal}
+                locale={locale}
+                compact={false}
+              />
+            </div>
           </div>
         );
       }
