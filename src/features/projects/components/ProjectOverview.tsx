@@ -9,6 +9,7 @@ import { ProjectFiles } from './ProjectFiles';
 import { ProjectChats } from './ProjectChats';
 import { ProjectLocations } from './ProjectLocations';
 import { ProjectTrash } from './ProjectTrash';
+import { ProjectTasks } from '@/features/tasks/components/ProjectTasks';
 
 interface ProjectOverviewProps {
   projectId: string;
@@ -40,7 +41,7 @@ interface Project {
   last_accessed_at: string;
 }
 
-type Tab = 'overview' | 'files' | 'members' | 'chats' | 'locations' | 'lca' | 'trash';
+type Tab = 'overview' | 'tasks' | 'files' | 'members' | 'chats' | 'locations' | 'lca' | 'trash';
 
 export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
   const [project, setProject] = useState<Project | null>(null);
@@ -51,6 +52,7 @@ export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
   const translations = {
     nl: {
       overview: 'Overzicht',
+      tasks: 'Taken',
       files: 'Bestanden',
       members: 'Leden',
       chats: 'Chats',
@@ -73,6 +75,7 @@ export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
     },
     en: {
       overview: 'Overview',
+      tasks: 'Tasks',
       files: 'Files',
       members: 'Members',
       chats: 'Chats',
@@ -152,6 +155,7 @@ export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
 
   const tabs: { id: Tab; label: string; count?: number }[] = [
     { id: 'overview', label: t.overview },
+    { id: 'tasks', label: t.tasks },
     { id: 'chats', label: t.chats, count: project.chat_count },
     { id: 'files', label: t.files, count: project.file_count },
     { id: 'locations', label: t.locations, count: project.location_count },
@@ -277,6 +281,15 @@ export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
               </div>
             </Card>
           </>
+        )}
+
+        {activeTab === 'tasks' && (
+          <Card>
+            <ProjectTasks
+              projectId={projectId}
+              locale={locale}
+            />
+          </Card>
         )}
 
         {activeTab === 'chats' && (

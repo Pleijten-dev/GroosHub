@@ -28,13 +28,14 @@ import { getSystemPrompt } from '@/features/chat/lib/prompts/system-prompt';
 import { getUserMemory, formatMemoryForPrompt } from '@/lib/ai/memory-store';
 import { enhanceSystemPromptWithMemory } from '@/lib/ai/memory-prompts';
 import { queueMemoryAnalysis } from '@/lib/ai/memory-analyzer';
-import { getLocationAgentPrompt, getCombinedPrompt } from '@/features/chat/lib/prompts/agent-prompts';
+import { getLocationAgentPrompt, getTaskAgentPrompt, getCombinedPrompt } from '@/features/chat/lib/prompts/agent-prompts';
 import { getDbConnection } from '@/lib/db/connection';
 import type { AccessibleLocation } from '@/features/location/types/saved-locations';
 import type { UnifiedLocationData, UnifiedDataRow } from '@/features/location/data/aggregator/multiLevelAggregator';
 import type { ResidentialData } from '@/features/location/data/sources/altum-ai/types';
 import personasData from '@/features/location/data/sources/housing-personas.json';
 import { randomUUID } from 'crypto';
+import { createTaskTools } from '@/features/chat/tools/taskTools';
 
 // Request schema validation
 const chatRequestSchema = z.object({
@@ -404,10 +405,11 @@ export async function POST(request: NextRequest) {
     // Truncate messages to fit context window
     const truncatedMessages = truncateMessages(allMessages);
 
-    // Build system prompt: base + location agent + user memory
+    // Build system prompt: base + location agent + task agent + user memory
     const baseSystemPrompt = getSystemPrompt(locale);
     const locationAgentPrompt = getLocationAgentPrompt(locale);
-    let systemPrompt = getCombinedPrompt(baseSystemPrompt, locationAgentPrompt);
+    const taskAgentPrompt = getTaskAgentPrompt(locale);
+    let systemPrompt = getCombinedPrompt(baseSystemPrompt, locationAgentPrompt, taskAgentPrompt);
 
     // Get user memory and enhance system prompt
     try {
@@ -432,7 +434,7 @@ export async function POST(request: NextRequest) {
     ];
 
     console.log(`[Chat API] Chat: ${chatId}, Model: ${modelId}, Locale: ${locale}, Messages: ${truncatedMessages.length}/${allMessages.length}`);
-    console.log(`[Chat API] 🔧 Location agent tools enabled for user ${userId}`);
+    console.log(`[Chat API] 🔧 Location and task management tools enabled for user ${userId}`);
 
     // Debug: Log the last user message to see if files/images are included
     const lastUserMsg = messagesWithSystem.filter(m => m.role === 'user').slice(-1)[0];
@@ -1302,6 +1304,15 @@ export async function POST(request: NextRequest) {
       }),
     };
 
+    // Create task management tools with userId and locale injected
+    const taskTools = createTaskTools(userId, locale);
+
+    // Combine location and task tools for the AI agent
+    const allTools = {
+      ...locationTools,
+      ...taskTools,
+    };
+
     // Stream the response with location agent tools
     // Two-step conversion for proper Anthropic image handling:
     // 1. Use convertToModelMessages() to get correct message structure
@@ -1335,8 +1346,8 @@ export async function POST(request: NextRequest) {
       model,
       messages: convertedMessages,
       temperature,
-      // Location agent tools with userId injected
-      tools: locationTools,
+      // Location and task management tools with userId injected
+      tools: allTools,
       // Allow multi-step tool calling (up to 10 steps)
       stopWhen: stepCountIs(10),
       // Log each step and capture visualization results
