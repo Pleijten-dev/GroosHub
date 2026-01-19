@@ -576,8 +576,31 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
                           citedSourceNumbers.has(index + 1)
                         );
 
-                        // If no sources were cited, don't show the section
-                        if (citedSources.length === 0) return null;
+                        // If no sources were cited, show warning instead of hiding
+                        if (citedSources.length === 0) {
+                          return (
+                            <div className="mt-base">
+                              <div className="bg-red-50 border border-red-200 rounded-md p-sm">
+                                <div className="flex items-start gap-xs">
+                                  <svg className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                                  </svg>
+                                  <div className="flex-1">
+                                    <p className="text-xs text-red-700 font-semibold">
+                                      {locale === 'nl' ? 'Bronnen niet geciteerd' : 'Sources not cited'}
+                                    </p>
+                                    <p className="text-xs text-red-600 mt-1">
+                                      {locale === 'nl'
+                                        ? `De AI heeft ${allSources.length} bronnen geraadpleegd maar deze niet correct geciteerd in het antwoord. Dit is een fout in het systeem.`
+                                        : `The AI consulted ${allSources.length} sources but did not properly cite them in the answer. This is a system error.`
+                                      }
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
 
                         return (
                         <div className="mt-base space-y-sm">

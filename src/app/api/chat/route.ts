@@ -453,12 +453,15 @@ export async function POST(request: NextRequest) {
       });
 
       ragContext += '---\n\n';
-      ragContext += 'INSTRUCTIONS FOR USING PROJECT DOCUMENTS:\n';
-      ragContext += '- The agent has already analyzed the project documents and provided an answer above\n';
-      ragContext += '- Use the agent\'s analysis and sources to inform your response\n';
-      ragContext += '- You can elaborate on the agent\'s answer or provide additional context\n';
-      ragContext += '- Cite sources using [Source N] notation\n';
-      ragContext += '- If the user asks a different question, you can still use other knowledge and tools\n\n';
+      ragContext += 'CRITICAL INSTRUCTIONS FOR USING PROJECT DOCUMENTS - YOU MUST FOLLOW THESE:\n';
+      ragContext += '1. MANDATORY: When using information from the sources above, you MUST cite them using [Source N] notation\n';
+      ragContext += '2. MANDATORY: Cite sources INLINE within your answer text, immediately after each fact or claim\n';
+      ragContext += '   Example: "According to the building code [Source 1], the minimum height is 2.6 meters [Source 2]."\n';
+      ragContext += '3. MANDATORY: Every fact, number, or requirement from the sources MUST have a citation\n';
+      ragContext += '4. The agent has analyzed the documents and provided an answer - use it to inform your response\n';
+      ragContext += '5. You can elaborate on the agent\'s answer or provide additional context from the sources\n';
+      ragContext += '6. If the sources don\'t contain relevant information, you can answer from general knowledge but clearly state this\n';
+      ragContext += '7. NEVER invent citations - only cite sources that actually contain the information\n\n';
 
       // Inject Agent RAG context into system prompt
       systemPrompt = systemPrompt + ragContext;
@@ -517,12 +520,14 @@ export async function POST(request: NextRequest) {
                 });
 
                 ragContext += '---\n\n';
-                ragContext += 'INSTRUCTIONS FOR USING PROJECT DOCUMENTS:\n';
-                ragContext += '- Answer the user\'s question using the context provided above when relevant\n';
-                ragContext += '- Quote relevant sections verbatim and cite the source number (e.g., [Source 1])\n';
-                ragContext += '- If the context contains relevant information, use it in your answer\n';
-                ragContext += '- If the context does not contain relevant information, answer normally without citing sources\n';
-                ragContext += '- Always provide both a summary AND exact quotes from sources when using the context\n\n';
+                ragContext += 'CRITICAL INSTRUCTIONS FOR USING PROJECT DOCUMENTS - YOU MUST FOLLOW THESE:\n';
+                ragContext += '1. MANDATORY: When using information from the sources above, you MUST cite them using [Source N] notation\n';
+                ragContext += '2. MANDATORY: Cite sources INLINE within your answer text, immediately after each fact or claim\n';
+                ragContext += '   Example: "According to the building code [Source 1], the minimum height is 2.6 meters [Source 2]."\n';
+                ragContext += '3. MANDATORY: Every fact, number, or requirement from the sources MUST have a citation\n';
+                ragContext += '4. If the context contains relevant information, use it in your answer with citations\n';
+                ragContext += '5. If the context does not contain relevant information, you can answer from general knowledge but clearly state this\n';
+                ragContext += '6. NEVER invent citations - only cite sources that actually contain the information\n\n';
 
                 // Inject RAG context into system prompt
                 systemPrompt = systemPrompt + ragContext;
