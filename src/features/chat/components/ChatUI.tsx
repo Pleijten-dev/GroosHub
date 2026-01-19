@@ -552,18 +552,6 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
                     <div className="text-sm">
                       {renderMessageContent(message)}
 
-                      {/* DEBUG: Log message metadata */}
-                      {message.role === 'assistant' && (() => {
-                        console.log('[ChatUI] 🔍 Assistant message metadata:', {
-                          id: message.id,
-                          hasMetadata: !!message.metadata,
-                          metadata: message.metadata,
-                          hasRagSources: !!(message.metadata && (message.metadata as any).ragSources),
-                          ragSourcesLength: (message.metadata && (message.metadata as any).ragSources) ? (message.metadata as any).ragSources.length : 0
-                        });
-                        return null;
-                      })()}
-
                       {/* Inline RAG Citations - Show within message body */}
                       {message.role === 'assistant' &&
                        message.metadata &&

@@ -1530,14 +1530,16 @@ export async function POST(request: NextRequest) {
           };
 
           if (retrievedChunks.length > 0) {
-            messageMetadata.ragSources = retrievedChunks.map(chunk => ({
-              id: chunk.id,
-              sourceFile: chunk.sourceFile,
-              pageNumber: chunk.pageNumber,
-              chunkText: chunk.chunkText,
-              similarity: chunk.similarity,
-              fileId: chunk.fileId
-            }));
+            messageMetadata.metadata = {
+              ragSources: retrievedChunks.map(chunk => ({
+                id: chunk.id,
+                sourceFile: chunk.sourceFile,
+                pageNumber: chunk.pageNumber,
+                chunkText: chunk.chunkText,
+                similarity: chunk.similarity,
+                fileId: chunk.fileId
+              }))
+            };
             console.log(`[Chat API] 📚 Saving ${retrievedChunks.length} RAG sources with assistant message`);
           }
 
