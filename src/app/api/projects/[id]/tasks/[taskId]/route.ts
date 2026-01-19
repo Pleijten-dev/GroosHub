@@ -224,19 +224,25 @@ export async function PATCH(
       );
     }
 
-    // Build and execute update query
-    const updateFields = Object.keys(updates)
-      .map((key) => `${key} = $${key}`)
-      .join(', ');
+    // Build SET clause parts for tagged template
+    const setParts: string[] = [];
+    const setValues: any[] = [];
 
-    const result = await db`
-      UPDATE tasks
-      SET ${db(updates)},
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ${taskId}
-        AND project_id = ${projectId}
-      RETURNING *
-    `;
+    Object.entries(updates).forEach(([key, value]) => {
+      setParts.push(`${key} = $${setParts.length + 1}`);
+      setValues.push(value);
+    });
+
+    // Execute update query using neon's query method for dynamic placeholders
+    const result = await db.query(
+      `UPDATE tasks
+       SET ${setParts.join(', ')},
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $${setParts.length + 1}
+         AND project_id = $${setParts.length + 2}
+       RETURNING *`,
+      [...setValues, taskId, projectId]
+    );
 
     if (result.length === 0) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
