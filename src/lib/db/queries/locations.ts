@@ -23,7 +23,7 @@ export interface LocationSnapshot {
   livability_data: Record<string, unknown>;
   amenities_data: Record<string, unknown>;
   housing_data: Record<string, unknown>;
-  wms_grading_data: Record<string, unknown>;
+  wms_grading_data?: Record<string, unknown>; // Optional - may not exist before migration
   overall_score: number | null;
   category_scores: Record<string, unknown>;
   data_sources: Record<string, unknown>;

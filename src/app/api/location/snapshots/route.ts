@@ -12,6 +12,7 @@ import {
   createLocationSnapshot,
 } from '@/lib/db/queries/locations';
 import { isProjectMember } from '@/lib/db/queries/projects';
+import { ensureWmsGradingMigration } from '@/lib/db/migrations/migrationHelper';
 
 /**
  * GET /api/location/snapshots
@@ -24,6 +25,9 @@ export async function GET(request: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Auto-run WMS grading migration if needed
+    await ensureWmsGradingMigration();
 
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('project_id');
