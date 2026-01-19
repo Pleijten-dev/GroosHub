@@ -23,6 +23,7 @@ export interface LocationSnapshot {
   livability_data: Record<string, unknown>;
   amenities_data: Record<string, unknown>;
   housing_data: Record<string, unknown>;
+  wms_grading_data: Record<string, unknown>;
   overall_score: number | null;
   category_scores: Record<string, unknown>;
   data_sources: Record<string, unknown>;
@@ -48,7 +49,7 @@ export async function getActiveLocationSnapshot(
       neighborhood_code, district_code, municipality_code,
       snapshot_date, version_number, is_active,
       demographics_data, health_data, safety_data, livability_data,
-      amenities_data, housing_data, overall_score, category_scores,
+      amenities_data, housing_data, wms_grading_data, overall_score, category_scores,
       data_sources, api_versions, notes, tags, metadata,
       created_at, updated_at
     FROM location_snapshots
@@ -74,7 +75,7 @@ export async function getProjectLocationSnapshots(
       neighborhood_code, district_code, municipality_code,
       snapshot_date, version_number, is_active,
       demographics_data, health_data, safety_data, livability_data,
-      amenities_data, housing_data, overall_score, category_scores,
+      amenities_data, housing_data, wms_grading_data, overall_score, category_scores,
       data_sources, api_versions, notes, tags, metadata,
       created_at, updated_at
     FROM location_snapshots
@@ -99,7 +100,7 @@ export async function getLocationSnapshotById(
       neighborhood_code, district_code, municipality_code,
       snapshot_date, version_number, is_active,
       demographics_data, health_data, safety_data, livability_data,
-      amenities_data, housing_data, overall_score, category_scores,
+      amenities_data, housing_data, wms_grading_data, overall_score, category_scores,
       data_sources, api_versions, notes, tags, metadata,
       created_at, updated_at
     FROM location_snapshots
@@ -129,6 +130,7 @@ export async function createLocationSnapshot(params: {
   livabilityData?: Record<string, unknown>;
   amenitiesData?: Record<string, unknown>;
   housingData?: Record<string, unknown>;
+  wmsGradingData?: Record<string, unknown>;
   overallScore?: number;
   categoryScores?: Record<string, unknown>;
   dataSources?: Record<string, unknown>;
@@ -163,7 +165,7 @@ export async function createLocationSnapshot(params: {
       neighborhood_code, district_code, municipality_code,
       snapshot_date, version_number, is_active,
       demographics_data, health_data, safety_data, livability_data,
-      amenities_data, housing_data, overall_score, category_scores,
+      amenities_data, housing_data, wms_grading_data, overall_score, category_scores,
       data_sources, api_versions, notes, tags,
       created_at, updated_at
     ) VALUES (
@@ -184,6 +186,7 @@ export async function createLocationSnapshot(params: {
       ${JSON.stringify(params.livabilityData || {})},
       ${JSON.stringify(params.amenitiesData || {})},
       ${JSON.stringify(params.housingData || {})},
+      ${JSON.stringify(params.wmsGradingData || {})},
       ${params.overallScore || null},
       ${JSON.stringify(params.categoryScores || {})},
       ${JSON.stringify(params.dataSources || {})},
@@ -198,7 +201,7 @@ export async function createLocationSnapshot(params: {
       neighborhood_code, district_code, municipality_code,
       snapshot_date, version_number, is_active,
       demographics_data, health_data, safety_data, livability_data,
-      amenities_data, housing_data, overall_score, category_scores,
+      amenities_data, housing_data, wms_grading_data, overall_score, category_scores,
       data_sources, api_versions, notes, tags, metadata,
       created_at, updated_at
   `;
@@ -281,6 +284,23 @@ export async function deleteLocationSnapshot(snapshotId: string): Promise<void> 
 }
 
 /**
+ * Update WMS grading data for a location snapshot
+ */
+export async function updateLocationSnapshotWmsGrading(
+  snapshotId: string,
+  wmsGradingData: Record<string, unknown>
+): Promise<void> {
+  const db = getDbConnection();
+
+  await db`
+    UPDATE location_snapshots
+    SET wms_grading_data = ${JSON.stringify(wmsGradingData)},
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ${snapshotId}
+  `;
+}
+
+/**
  * Get location snapshots by user ID
  */
 export async function getUserLocationSnapshots(userId: number): Promise<LocationSnapshot[]> {
@@ -292,7 +312,7 @@ export async function getUserLocationSnapshots(userId: number): Promise<Location
       neighborhood_code, district_code, municipality_code,
       snapshot_date, version_number, is_active,
       demographics_data, health_data, safety_data, livability_data,
-      amenities_data, housing_data, overall_score, category_scores,
+      amenities_data, housing_data, wms_grading_data, overall_score, category_scores,
       data_sources, api_versions, notes, tags, metadata,
       created_at, updated_at
     FROM location_snapshots
