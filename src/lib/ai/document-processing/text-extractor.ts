@@ -181,7 +181,7 @@ export class TextExtractor {
    */
   async extractFromCSV(buffer: Buffer): Promise<ExtractedText> {
     try {
-      const Papa = (await import('papaparse')).default;
+      const Papa = await import('papaparse');
       const csvString = buffer.toString('utf-8');
 
       return new Promise((resolve, reject) => {
@@ -219,7 +219,7 @@ export class TextExtractor {
               }
             });
           },
-          error: (error) => reject(new Error(`CSV parsing failed: ${error.message}`))
+          error: (error: Error) => reject(new Error(`CSV parsing failed: ${error.message}`))
         });
       });
     } catch (error) {
@@ -251,20 +251,6 @@ export class TextExtractor {
       const { generateText } = await import('ai');
       const { openai } = await import('@ai-sdk/openai');
 
-      // Detect image type from filename
-      const extension = filename.toLowerCase().split('.').pop();
-      let mediaType = 'image/jpeg'; // default
-
-      if (extension === 'png') {
-        mediaType = 'image/png';
-      } else if (extension === 'gif') {
-        mediaType = 'image/gif';
-      } else if (extension === 'webp') {
-        mediaType = 'image/webp';
-      }
-
-      console.log(`[Image Extractor] Detected media type: ${mediaType}`);
-
       // Use GPT-4o (vision) to describe the image
       const result = await generateText({
         model: openai('gpt-4o'),
@@ -290,13 +276,11 @@ Be thorough and factual. This description will be embedded and used for RAG retr
               },
               {
                 type: 'image',
-                image: buffer,
-                mimeType: mediaType
+                image: buffer
               }
             ]
           }
-        ],
-        maxTokens: 1000 // Allow detailed descriptions
+        ]
       });
 
       const description = result.text;
