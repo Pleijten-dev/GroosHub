@@ -5,7 +5,7 @@
  * ✅ Phase 1: TXT/MD files - Perfect quality
  * ✅ Phase 2: PDF with pdf-parse - BASIC quality (see limitations below)
  * ✅ Phase 3: XML with LLM enrichment - EXCELLENT quality for legal docs
- * 🚧 Phase 4: CSV with PapaParse - TODO
+ * ✅ Phase 4: CSV with PapaParse - GOOD quality (converts to natural language)
  * 🚧 Phase 5: Images with vision models - TODO
  *
  * PDF EXTRACTION LIMITATIONS (pdf-parse):
@@ -173,42 +173,67 @@ export class TextExtractor {
   }
 
   /**
-   * Extract text from CSV
-   * Phase 4: Add after XML works
-   * TODO: Install papaparse library first
+   * Extract text from CSV with PapaParse
+   * ✅ Converts CSV data to natural language sentences for better RAG retrieval
+   *
+   * Example: "Name: John, Age: 25, City: Amsterdam"
+   * This format allows semantic search to find relevant rows
    */
   async extractFromCSV(buffer: Buffer): Promise<ExtractedText> {
-    throw new Error('CSV extraction not yet implemented. Install papaparse library first.');
+    try {
+      const Papa = (await import('papaparse')).default;
+      const csvString = buffer.toString('utf-8');
 
-    // Phase 4 implementation:
-    // const Papa = require('papaparse');
-    // const csvString = buffer.toString('utf-8');
-    // return new Promise((resolve, reject) => {
-    //   Papa.parse(csvString, {
-    //     header: true,
-    //     complete: (results) => {
-    //       const rows = results.data.map((row: any) => {
-    //         return Object.entries(row)
-    //           .map(([key, value]) => `${key}: ${value}`)
-    //           .join(', ');
-    //       });
-    //       resolve({
-    //         text: rows.join('\n'),
-    //         metadata: {
-    //           rows: results.data.length,
-    //           columns: results.meta.fields || []
-    //         }
-    //       });
-    //     },
-    //     error: (error) => reject(error)
-    //   });
-    // });
+      return new Promise((resolve, reject) => {
+        Papa.parse(csvString, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (results) => {
+            const data = results.data as Record<string, any>[];
+            const columns = results.meta.fields || [];
+
+            // Convert each row to a natural language sentence
+            const rows = data.map((row, index) => {
+              const rowNumber = index + 1;
+              const fields = Object.entries(row)
+                .filter(([_, value]) => value !== null && value !== undefined && value !== '')
+                .map(([key, value]) => `${key}: ${value}`)
+                .join(', ');
+
+              return `Row ${rowNumber}: ${fields}`;
+            });
+
+            // Add header info at the beginning for context
+            const headerInfo = `CSV with ${data.length} rows and ${columns.length} columns: ${columns.join(', ')}`;
+            const fullText = [headerInfo, '', ...rows].join('\n');
+
+            console.log(`[CSV Extractor] Parsed ${data.length} rows with ${columns.length} columns`);
+
+            resolve({
+              text: fullText,
+              metadata: {
+                rows: data.length,
+                columns: columns,
+                extractionMethod: 'papaparse-csv',
+                warnings: []
+              }
+            });
+          },
+          error: (error) => reject(new Error(`CSV parsing failed: ${error.message}`))
+        });
+      });
+    } catch (error) {
+      throw new Error(
+        `CSV extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}. ` +
+        `The CSV may be malformed or use an unsupported encoding.`
+      );
+    }
   }
 
   /**
    * Main extraction router
-   * Supports: TXT, MD, PDF (basic quality), XML (excellent quality for legal docs)
-   * Coming soon: CSV, Images
+   * Supports: TXT, MD, CSV, PDF (basic quality), XML (excellent quality for legal docs)
+   * Coming soon: Images
    */
   async extract(
     buffer: Buffer,
@@ -230,12 +255,9 @@ export class TextExtractor {
       return this.extractFromPDF(buffer);
     }
 
-    // CSV - Coming soon
+    // CSV - Fully supported with PapaParse
     if (mimeType === 'text/csv' || filename.endsWith('.csv')) {
-      throw new Error(
-        'CSV extraction not yet implemented. ' +
-        'Please convert to .txt format or wait for CSV support.'
-      );
+      return this.extractFromCSV(buffer);
     }
 
     // Images - Coming soon
@@ -248,8 +270,8 @@ export class TextExtractor {
 
     throw new Error(
       `Unsupported file type: ${mimeType} (${filename}). ` +
-      `Currently supported: .txt, .md, .xml (legal docs), .pdf (basic quality). ` +
-      `Coming soon: .csv, images.`
+      `Currently supported: .txt, .md, .csv, .xml (legal docs), .pdf (basic quality). ` +
+      `Coming soon: images.`
     );
   }
 }

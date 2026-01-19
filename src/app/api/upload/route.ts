@@ -275,7 +275,7 @@ export async function POST(request: NextRequest) {
 
         // Automatically process for RAG if this is a project file and supported type
         if (projectId) {
-          const supportedTypes = ['text/plain', 'text/markdown', 'application/pdf', 'application/xml', 'text/xml'];
+          const supportedTypes = ['text/plain', 'text/markdown', 'text/csv', 'application/pdf', 'application/xml', 'text/xml'];
           if (supportedTypes.includes(file.type)) {
             console.log(`[Upload] 🚀 Auto-triggering RAG processing for ${file.name}`);
 
