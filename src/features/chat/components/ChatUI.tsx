@@ -705,8 +705,8 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
 
           <form id="chat-form" onSubmit={handleSubmit}>
             <div className="flex gap-sm items-center">
-              {/* RAG Toggle Button - Always visible on the left */}
-              {userProjects.length > 0 && (
+              {/* RAG Toggle Button - ALWAYS VISIBLE if in project context or user has projects */}
+              {(userProjects.length > 0 || projectId) && (
                 <button
                   type="button"
                   onClick={() => setIsRagEnabled(!isRagEnabled)}
