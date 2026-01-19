@@ -557,14 +557,41 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
                        message.metadata &&
                        (message.metadata as any).ragSources &&
                        Array.isArray((message.metadata as any).ragSources) &&
-                       (message.metadata as any).ragSources.length > 0 && (
+                       (message.metadata as any).ragSources.length > 0 && (() => {
+                        // Extract message text to find which sources were actually cited
+                        const messageText = message.parts
+                          .filter(part => part.type === 'text')
+                          .map(part => ('text' in part ? part.text : ''))
+                          .join('\n');
+
+                        // Find all [Source N] citations in the message
+                        const citationMatches = messageText.matchAll(/\[Source (\d+)\]/gi);
+                        const citedSourceNumbers = new Set(
+                          Array.from(citationMatches).map(match => parseInt(match[1]))
+                        );
+
+                        // Filter to only show sources that were actually cited
+                        const allSources = (message.metadata as any).ragSources as RAGSource[];
+                        const citedSources = allSources.filter((_, index) =>
+                          citedSourceNumbers.has(index + 1)
+                        );
+
+                        // If no sources were cited, don't show the section
+                        if (citedSources.length === 0) return null;
+
+                        return (
                         <div className="mt-base space-y-sm">
-                          {((message.metadata as any).ragSources as RAGSource[]).map((source, index) => (
+                          {citedSources.map((source) => {
+                            // Find original source number for this cited source
+                            const originalIndex = allSources.findIndex(s => s.id === source.id);
+                            const sourceNumber = originalIndex + 1;
+
+                            return (
                             <div key={source.id} className="border-t-2 border-gray-300 pt-sm mt-sm">
                               {/* Source Header */}
                               <div className="flex items-center gap-xs mb-xs">
                                 <span className="font-mono text-xs bg-amber-600 text-white px-xs py-0.5 rounded font-semibold">
-                                  {index + 1}
+                                  Bron {sourceNumber}
                                 </span>
                                 <span className="text-xs text-gray-600">
                                   {locale === 'nl' ? 'Directe citaat uit document:' : 'Direct quote from document:'}
@@ -621,7 +648,8 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
                                 </span>
                               </button>
                             </div>
-                          ))}
+                          );
+                          })}
 
                           {/* Footer Info */}
                           <div className="border-t-2 border-gray-300 pt-sm mt-sm">
@@ -636,8 +664,8 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
                                   </p>
                                   <p className="text-xs text-blue-600 mt-1">
                                     {locale === 'nl'
-                                      ? 'Bovenstaande antwoord combineert informatie uit de getoonde bronnen. Klik op "Open volledig document" om de informatie te verifiëren.'
-                                      : 'The answer above combines information from the sources shown. Click "Open complete document" to verify the information.'
+                                      ? `Bovenstaande antwoord is gebaseerd op ${citedSources.length} geciteerde ${citedSources.length === 1 ? 'bron' : 'bronnen'}. Klik op "Open volledig document" om de informatie te verifiëren.`
+                                      : `The answer above is based on ${citedSources.length} cited ${citedSources.length === 1 ? 'source' : 'sources'}. Click "Open complete document" to verify the information.`
                                     }
                                   </p>
                                 </div>
@@ -645,7 +673,8 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
                             </div>
                           </div>
                         </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
