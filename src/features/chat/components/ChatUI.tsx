@@ -246,6 +246,7 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
     if (isRagEnabled && selectedProjectId) {
       setIsRagLoading(true);
       setRagStatus(locale === 'nl' ? '🔍 Analyseren van vraag...' : '🔍 Analyzing query...');
+      await new Promise(resolve => setTimeout(resolve, 300)); // Ensure status is visible
 
       try {
         // Step 1: Classify if query is about documents (cheap, fast LLM call)
@@ -270,6 +271,8 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
         if (classification.isDocumentRelated) {
           console.log('[ChatUI] 🔍 Query is document-related - invoking agent...');
           setRagStatus(locale === 'nl' ? '📚 Zoeken in documenten...' : '📚 Searching documents...');
+          await new Promise(resolve => setTimeout(resolve, 300)); // Ensure status is visible
+
           const ragResponse = await fetch(`/api/projects/${selectedProjectId}/rag/agent`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -295,6 +298,7 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
                 ? `✅ ${ragData.sources.length} bronnen gevonden`
                 : `✅ Found ${ragData.sources.length} sources`
               );
+              await new Promise(resolve => setTimeout(resolve, 500)); // Show success message longer
 
               baseMetadata.ragContext = {
                 answer: ragData.answer,
@@ -321,8 +325,8 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
         // Continue to normal chat even if RAG fails
       } finally {
         setIsRagLoading(false);
-        // Clear status after a short delay
-        setTimeout(() => setRagStatus(''), 2000);
+        // Clear status after chat starts streaming
+        setTimeout(() => setRagStatus(''), 1000);
       }
     }
 
@@ -527,19 +531,102 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
                     </div>
                     <div className="text-sm">
                       {renderMessageContent(message)}
-                    </div>
 
-                    {/* RAG Sources - Only show for assistant messages with sources */}
-                    {message.role === 'assistant' &&
-                     message.metadata &&
-                     (message.metadata as any).ragSources &&
-                     Array.isArray((message.metadata as any).ragSources) &&
-                     (message.metadata as any).ragSources.length > 0 && (
-                      <MessageSources
-                        sources={(message.metadata as any).ragSources as RAGSource[]}
-                        locale={locale}
-                      />
-                    )}
+                      {/* Inline RAG Citations - Show within message body */}
+                      {message.role === 'assistant' &&
+                       message.metadata &&
+                       (message.metadata as any).ragSources &&
+                       Array.isArray((message.metadata as any).ragSources) &&
+                       (message.metadata as any).ragSources.length > 0 && (
+                        <div className="mt-base space-y-sm">
+                          {((message.metadata as any).ragSources as RAGSource[]).map((source, index) => (
+                            <div key={source.id} className="border-t-2 border-gray-300 pt-sm mt-sm">
+                              {/* Source Header */}
+                              <div className="flex items-center gap-xs mb-xs">
+                                <span className="font-mono text-xs bg-amber-600 text-white px-xs py-0.5 rounded font-semibold">
+                                  {index + 1}
+                                </span>
+                                <span className="text-xs text-gray-600">
+                                  {locale === 'nl' ? 'Directe citaat uit document:' : 'Direct quote from document:'}
+                                </span>
+                              </div>
+
+                              {/* Quote Section - Distinct Styling */}
+                              <div className="bg-amber-50 border-l-4 border-amber-500 p-sm rounded-r-md mb-sm">
+                                <div className="flex items-start gap-xs mb-xs">
+                                  <svg className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/>
+                                  </svg>
+                                  <p className="text-sm text-gray-800 italic leading-relaxed flex-1">
+                                    {source.chunkText}
+                                  </p>
+                                </div>
+
+                                {/* Source Info */}
+                                <div className="text-xs text-amber-700 flex items-center gap-sm flex-wrap mt-xs">
+                                  <span className="font-medium">📄 {source.sourceFile}</span>
+                                  {source.pageNumber && (
+                                    <span>
+                                      {locale === 'nl' ? 'Pagina' : 'Page'} {source.pageNumber}
+                                    </span>
+                                  )}
+                                  <span className="ml-auto">
+                                    {locale === 'nl' ? 'Relevantie' : 'Relevance'}: {(source.similarity * 100).toFixed(0)}%
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Open Document Button */}
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const response = await fetch(`/api/files/${source.fileId}`);
+                                    if (response.ok) {
+                                      const data = await response.json();
+                                      if (data.url) {
+                                        window.open(data.url, '_blank');
+                                      }
+                                    }
+                                  } catch (error) {
+                                    console.error('Error opening document:', error);
+                                  }
+                                }}
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-base rounded-md transition-colors flex items-center justify-center gap-xs"
+                              >
+                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                                <span>
+                                  {locale === 'nl' ? 'Open volledig document' : 'Open complete document'}
+                                </span>
+                              </button>
+                            </div>
+                          ))}
+
+                          {/* Footer Info */}
+                          <div className="border-t-2 border-gray-300 pt-sm mt-sm">
+                            <div className="bg-blue-50 border border-blue-200 rounded-md p-sm">
+                              <div className="flex items-start gap-xs">
+                                <svg className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="currentColor">
+                                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                </svg>
+                                <div className="flex-1">
+                                  <p className="text-xs text-blue-700 font-semibold">
+                                    {locale === 'nl' ? 'Geverifieerd antwoord' : 'Verified answer'}
+                                  </p>
+                                  <p className="text-xs text-blue-600 mt-1">
+                                    {locale === 'nl'
+                                      ? 'Bovenstaande antwoord combineert informatie uit de getoonde bronnen. Klik op "Open volledig document" om de informatie te verifiëren.'
+                                      : 'The answer above combines information from the sources shown. Click "Open complete document" to verify the information.'
+                                    }
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -609,30 +696,17 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
             />
           )}
 
-          <form id="chat-form" onSubmit={handleSubmit} className="flex flex-col gap-sm">
+          <form id="chat-form" onSubmit={handleSubmit}>
             <div className="flex gap-sm items-center">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder={t.inputPlaceholder}
-                disabled={isLoading}
-                className={cn(
-                  'flex-1 px-base py-sm bg-white border border-gray-300 rounded-lg',
-                  'text-sm focus:outline-none focus:ring-2 focus:ring-blue-500',
-                  'disabled:bg-gray-100 disabled:cursor-not-allowed'
-                )}
-              />
-
-              {/* RAG Toggle - Always show unless projectId is provided (then it's auto-enabled) */}
-              {!projectId && userProjects.length > 0 && (
+              {/* RAG Toggle Button - Always visible on the left */}
+              {userProjects.length > 0 && (
                 <button
                   type="button"
                   onClick={() => setIsRagEnabled(!isRagEnabled)}
-                  disabled={isLoading || isRagLoading}
+                  disabled={isLoading || isRagLoading || (!!projectId && isRagEnabled)}
                   title={isRagEnabled ? t.ragOn : t.ragOff}
                   className={cn(
-                    'px-3 py-sm rounded-lg text-xs font-medium transition-colors flex items-center gap-xs',
+                    'px-3 py-sm rounded-lg text-xs font-bold transition-colors flex items-center gap-xs flex-shrink-0',
                     'focus:outline-none focus:ring-2 focus:ring-blue-500',
                     'disabled:opacity-50 disabled:cursor-not-allowed',
                     isRagEnabled
@@ -647,6 +721,20 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
                 </button>
               )}
 
+              {/* Input Field */}
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder={t.inputPlaceholder}
+                disabled={isLoading}
+                className={cn(
+                  'flex-1 px-base py-sm bg-white border border-gray-300 rounded-lg',
+                  'text-sm focus:outline-none focus:ring-2 focus:ring-blue-500',
+                  'disabled:bg-gray-100 disabled:cursor-not-allowed'
+                )}
+              />
+
               {/* Project Selector - Only shown when RAG is enabled and NOT in project-specific mode */}
               {isRagEnabled && !projectId && (
                 <select
@@ -654,7 +742,7 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
                   onChange={(e) => setSelectedProjectId(e.target.value)}
                   disabled={isLoading || isRagLoading}
                   className={cn(
-                    'px-3 py-sm bg-white border border-gray-300 rounded-lg text-sm',
+                    'px-3 py-sm bg-white border border-gray-300 rounded-lg text-sm flex-shrink-0',
                     'focus:outline-none focus:ring-2 focus:ring-blue-500',
                     'disabled:bg-gray-100 disabled:cursor-not-allowed'
                   )}
@@ -671,12 +759,13 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
                 </select>
               )}
 
+              {/* Send/Stop Button */}
               {isLoading ? (
                 <button
                   type="button"
                   onClick={stop}
                   className={cn(
-                    'px-base py-sm bg-red-600 text-white rounded-lg',
+                    'px-base py-sm bg-red-600 text-white rounded-lg flex-shrink-0',
                     'text-sm font-medium hover:bg-red-700',
                     'focus:outline-none focus:ring-2 focus:ring-red-500',
                     'transition-colors'
@@ -689,7 +778,7 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
                   type="submit"
                   disabled={!input.trim()}
                   className={cn(
-                    'px-base py-sm bg-blue-600 text-white rounded-lg',
+                    'px-base py-sm bg-blue-600 text-white rounded-lg flex-shrink-0',
                     'text-sm font-medium hover:bg-blue-700',
                     'focus:outline-none focus:ring-2 focus:ring-blue-500',
                     'disabled:bg-gray-300 disabled:cursor-not-allowed',
@@ -700,16 +789,6 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
                 </button>
               )}
             </div>
-
-            {/* RAG Status Indicator - Show when in project-specific mode */}
-            {projectId && isRagEnabled && (
-              <div className="text-xs text-gray-600 flex items-center gap-xs">
-                <svg className="w-3 h-3 text-green-600" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>{t.ragActiveForProject}</span>
-              </div>
-            )}
           </form>
 
           <p className="text-xs text-gray-500 mt-sm text-center">
