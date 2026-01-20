@@ -1,9 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ProjectsSidebarEnhanced } from '@/features/projects/components/ProjectsSidebarEnhanced';
 import { ChatUI } from '@/features/chat/components/ChatUI';
+import { OverviewPage } from '@/features/chat/components/OverviewPage';
 import { useProjectsSidebar } from '@/features/projects/hooks/useProjectsSidebar';
+import { cn } from '@/shared/utils/cn';
 
 interface AIAssistantClientProps {
   locale: string;
@@ -11,6 +13,8 @@ interface AIAssistantClientProps {
   userName?: string;
   chatId?: string;
   projectId?: string;
+  /** Current active view from sidebar navigation */
+  activeView?: 'overview' | 'chats' | 'tasks' | 'files' | 'notes' | 'members' | 'trash';
 }
 
 export function AIAssistantClient({
@@ -18,9 +22,34 @@ export function AIAssistantClient({
   userEmail,
   userName,
   chatId,
-  projectId
+  projectId,
+  activeView = 'overview'
 }: AIAssistantClientProps) {
   const { isCollapsed, toggleSidebar, isLoaded } = useProjectsSidebar();
+
+  // Track current view for transitions
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [currentView, setCurrentView] = useState<'overview' | 'chat'>('overview');
+  const previousChatId = useRef<string | undefined>(chatId);
+
+  // Handle view transitions
+  useEffect(() => {
+    const newView = chatId ? 'chat' : 'overview';
+
+    // Detect view change
+    if (newView !== currentView || chatId !== previousChatId.current) {
+      setIsTransitioning(true);
+
+      // Brief transition delay for smooth effect
+      const timer = setTimeout(() => {
+        setCurrentView(newView);
+        previousChatId.current = chatId;
+        setIsTransitioning(false);
+      }, 150);
+
+      return () => clearTimeout(timer);
+    }
+  }, [chatId, currentView]);
 
   // Don't render until sidebar state is loaded from localStorage
   if (!isLoaded) {
@@ -30,6 +59,39 @@ export function AIAssistantClient({
       </div>
     );
   }
+
+  // Determine which content to show
+  const renderContent = () => {
+    // If a specific chat is selected, show ChatUI
+    if (chatId) {
+      return (
+        <ChatUI
+          locale={locale as 'nl' | 'en'}
+          chatId={chatId}
+          projectId={projectId}
+        />
+      );
+    }
+
+    // Show overview page for the default/overview view
+    if (activeView === 'overview' || !activeView) {
+      return (
+        <OverviewPage
+          locale={locale as 'nl' | 'en'}
+        />
+      );
+    }
+
+    // For other views (chats, tasks, files, etc.) show ChatUI as fallback
+    // These will be handled by their own pages in the future
+    return (
+      <ChatUI
+        locale={locale as 'nl' | 'en'}
+        chatId={chatId}
+        projectId={projectId}
+      />
+    );
+  };
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -43,16 +105,16 @@ export function AIAssistantClient({
 
       {/* Main content area - adjust margin based on sidebar state */}
       <main
-        className="flex-1 overflow-hidden transition-all duration-normal"
+        className={cn(
+          'flex-1 overflow-hidden transition-all duration-200',
+          // Fade transition when switching views
+          isTransitioning ? 'opacity-0 translate-y-1' : 'opacity-100 translate-y-0'
+        )}
         style={{
           marginLeft: isCollapsed ? '60px' : '280px'
         }}
       >
-        <ChatUI
-          locale={locale as 'nl' | 'en'}
-          chatId={chatId}
-          projectId={projectId}
-        />
+        {renderContent()}
       </main>
     </div>
   );
