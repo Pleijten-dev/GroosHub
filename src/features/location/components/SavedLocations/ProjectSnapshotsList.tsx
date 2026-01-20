@@ -122,14 +122,22 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
 
       // Transform to AccessibleLocation format
       // Structure must match UnifiedLocationData with location.coordinates.wgs84 nesting
+      // Ensure coordinates are numbers (they may come as strings from JSON/database)
+      const latitude = typeof snapshotData.latitude === 'string'
+        ? parseFloat(snapshotData.latitude)
+        : Number(snapshotData.latitude) || 0;
+      const longitude = typeof snapshotData.longitude === 'string'
+        ? parseFloat(snapshotData.longitude)
+        : Number(snapshotData.longitude) || 0;
+
       const accessibleLocation: AccessibleLocation = {
         id: snapshotData.id,
         userId: snapshotData.user_id,
         name: snapshotData.address,
         address: snapshotData.address,
         coordinates: {
-          lat: snapshotData.latitude,
-          lng: snapshotData.longitude,
+          lat: latitude,
+          lng: longitude,
         },
         locationData: {
           // Location data with proper coordinate nesting
@@ -137,8 +145,8 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
             address: snapshotData.address,
             coordinates: {
               wgs84: {
-                latitude: snapshotData.latitude,
-                longitude: snapshotData.longitude,
+                latitude,
+                longitude,
               },
               rd: {
                 x: 0,

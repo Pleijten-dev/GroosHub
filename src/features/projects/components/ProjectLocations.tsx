@@ -171,6 +171,14 @@ export function ProjectLocations({ projectId, locale }: ProjectLocationsProps) {
 
       // Store snapshot data in sessionStorage for the location page to retrieve
       // Structure must match UnifiedLocationData with location.coordinates.wgs84 nesting
+      // Ensure coordinates are numbers (they may come as strings from JSON/database)
+      const latitude = typeof snapshotData.latitude === 'string'
+        ? parseFloat(snapshotData.latitude)
+        : Number(snapshotData.latitude) || 0;
+      const longitude = typeof snapshotData.longitude === 'string'
+        ? parseFloat(snapshotData.longitude)
+        : Number(snapshotData.longitude) || 0;
+
       sessionStorage.setItem('grooshub_load_snapshot', JSON.stringify({
         snapshotId: snapshotData.id, // Include snapshot ID for WMS grading
         address: snapshotData.address,
@@ -180,8 +188,8 @@ export function ProjectLocations({ projectId, locale }: ProjectLocationsProps) {
             address: snapshotData.address,
             coordinates: {
               wgs84: {
-                latitude: snapshotData.latitude,
-                longitude: snapshotData.longitude,
+                latitude,
+                longitude,
               },
               rd: {
                 x: 0,
