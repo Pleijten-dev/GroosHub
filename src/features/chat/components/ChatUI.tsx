@@ -27,6 +27,7 @@ import { ImageAttachment } from './ImageAttachment';
 import { ImageLightbox } from './ImageLightbox';
 import { MarkdownMessage } from './MarkdownMessage';
 import { ChartVisualization, type ChartVisualizationProps } from './ChartVisualization';
+import { MessageSources, type RAGSource } from './MessageSources';
 
 interface UploadedFile {
   id: string;
@@ -40,9 +41,12 @@ interface UploadedFile {
 export interface ChatUIProps {
   locale: 'nl' | 'en';
   chatId?: string; // Optional: for loading existing chats
+  projectId?: string; // Optional: for project-specific chats
+  initialMessage?: string; // Optional: message to send automatically on load
+  isEntering?: boolean; // Optional: signals that the component is entering (for animations)
 }
 
-export function ChatUI({ locale, chatId }: ChatUIProps) {
+export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering = false }: ChatUIProps) {
   const [selectedModel, setSelectedModel] = useState<ModelId>(DEFAULT_MODEL);
   const [input, setInput] = useState('');
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
@@ -57,6 +61,33 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
 
   // Lightbox state
   const [lightboxImage, setLightboxImage] = useState<{ url: string | URL; fileName?: string } | null>(null);
+
+  // RAG mode state - auto-enable if projectId is provided
+  const [isRagEnabled, setIsRagEnabled] = useState(!!projectId);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(projectId || '');
+  const [userProjects, setUserProjects] = useState<Array<{ id: string; name: string }>>([]);
+  const [isRagLoading, setIsRagLoading] = useState(false);
+  const [ragStatus, setRagStatus] = useState<string>('');
+
+  // Fetch user projects for RAG mode
+  useEffect(() => {
+    async function fetchProjects() {
+      try {
+        const response = await fetch('/api/projects');
+        const data = await response.json();
+        if (response.ok && data.projects) {
+          setUserProjects(data.projects);
+          // Only auto-select first project if no projectId was provided
+          if (!projectId && data.projects.length > 0 && !selectedProjectId) {
+            setSelectedProjectId(data.projects[0].id);
+          }
+        }
+      } catch (error) {
+        console.error('[ChatUI] Failed to fetch projects:', error);
+      }
+    }
+    fetchProjects();
+  }, [projectId]);
 
   // Sync currentChatId with chatId prop, or create new one
   useEffect(() => {
@@ -160,7 +191,45 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
   }, [status, messages.length, setMessages]);
 
   // Compute loading state from status
-  const isLoading = status === 'submitted' || status === 'streaming';
+  const isLoading = status === 'submitted' || status === 'streaming' || isRagLoading;
+
+  // Track if initial message has been sent
+  const initialMessageSentRef = useRef(false);
+  const pendingInitialMessageRef = useRef<string | null>(null);
+
+  // Auto-send initial message when provided and chat is ready
+  useEffect(() => {
+    // Only queue once, when not loading, and when we have an initial message
+    if (
+      initialMessage &&
+      !initialMessageSentRef.current &&
+      !isLoadingChat &&
+      currentChatIdRef.current &&
+      !isLoading
+    ) {
+      initialMessageSentRef.current = true;
+      pendingInitialMessageRef.current = initialMessage;
+      console.log('[ChatUI] Queuing initial message:', initialMessage.substring(0, 50) + '...');
+      setInput(initialMessage);
+    }
+  }, [initialMessage, isLoadingChat, isLoading]);
+
+  // Watch for input change to trigger auto-send
+  useEffect(() => {
+    if (
+      pendingInitialMessageRef.current &&
+      input === pendingInitialMessageRef.current &&
+      !isLoading &&
+      currentChatIdRef.current
+    ) {
+      pendingInitialMessageRef.current = null;
+      // Trigger submit via a fake form event
+      const submitButton = document.querySelector('button[type="submit"]') as HTMLButtonElement;
+      if (submitButton) {
+        submitButton.click();
+      }
+    }
+  }, [input, isLoading]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -188,28 +257,145 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [input, isLoading, stop]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Handle RAG-augmented query
+  // First searches project docs, then proceeds with normal chat (preserving all features)
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || isRagLoading) return;
 
-    // chatId is already generated in useEffect above
+    const queryText = input;
+    setInput(''); // Clear input immediately
+    const currentFiles = [...uploadedFiles];
+    setUploadedFiles([]); // Clear uploaded files
+
     if (!currentChatIdRef.current) {
-      console.error('[ChatUI] No chatId available, this should not happen');
+      console.error('[ChatUI] No chatId available');
       return;
     }
 
-    // Send message with chatId, modelId, locale, and fileIds in metadata
+    // Show user message immediately (optimistic update)
+    const tempUserMessageId = `temp-${Date.now()}`;
+    const userMessage: typeof messages[0] = {
+      id: tempUserMessageId,
+      role: 'user',
+      parts: [{ type: 'text', text: queryText }]
+    };
+    setMessages([...messages, userMessage]);
+
+    // Build base metadata
+    const baseMetadata: any = {
+      chatId: currentChatIdRef.current,
+      modelId: selectedModel,
+      locale: locale,
+      fileIds: currentFiles.map(f => f.id),
+      ...(projectId && { projectId }), // Include projectId if provided (for project-specific chats)
+    };
+
+    // If RAG is enabled and project is selected, check if query warrants document search
+    if (isRagEnabled && selectedProjectId) {
+      setIsRagLoading(true);
+      setRagStatus(locale === 'nl' ? '🔍 Analyseren van vraag...' : '🔍 Analyzing query...');
+
+      try {
+        // Step 1: Classify if query is about documents (cheap, fast LLM call)
+        console.log('[ChatUI] RAG Mode: Classifying query relevance...');
+
+        // Brief delay so user sees status update
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        const classifyResponse = await fetch('/api/rag/classify-query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: queryText,
+            projectId: selectedProjectId,
+          }),
+        });
+
+        if (!classifyResponse.ok) {
+          throw new Error('Classification failed');
+        }
+
+        const classification = await classifyResponse.json();
+        console.log(`[ChatUI] Classification: ${classification.isDocumentRelated ? 'Document-related' : 'Not document-related'} (confidence: ${classification.confidence})`);
+
+        // Step 2: Only call expensive agent if query is document-related
+        if (classification.isDocumentRelated) {
+          console.log('[ChatUI] 🔍 Query is document-related - invoking agent...');
+
+          // Update status and brief delay
+          setRagStatus(locale === 'nl' ? '📚 Zoeken in documenten...' : '📚 Searching documents...');
+          await new Promise(resolve => setTimeout(resolve, 300));
+
+          const ragResponse = await fetch(`/api/projects/${selectedProjectId}/rag/agent`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query: queryText,
+              maxSteps: 10,
+              model: 'gpt-4o',
+            }),
+          });
+
+          if (ragResponse.ok) {
+            const ragData = await ragResponse.json();
+
+            // Check if agent found useful information
+            const hasGoodAnswer = ragData.confidence !== 'low' &&
+                                 ragData.sources &&
+                                 ragData.sources.length > 0;
+
+            if (hasGoodAnswer) {
+              // Inject RAG context into chat metadata
+              console.log(`[ChatUI] ✅ RAG found ${ragData.sources.length} sources (${ragData.confidence} confidence) - injecting into chat`);
+
+              // Update status and brief delay
+              setRagStatus(locale === 'nl'
+                ? `✅ ${ragData.sources.length} bronnen gevonden`
+                : `✅ Found ${ragData.sources.length} sources`
+              );
+              await new Promise(resolve => setTimeout(resolve, 500)); // Show success message
+
+              baseMetadata.ragContext = {
+                answer: ragData.answer,
+                sources: ragData.sources.slice(0, 5).map((s: any) => ({
+                  file: s.sourceFile,
+                  text: s.chunkText?.substring(0, 500)
+                })),
+                confidence: ragData.confidence,
+              };
+
+              baseMetadata.ragSources = ragData.sources; // For display in UI
+            } else {
+              console.log('[ChatUI] ⚠️ RAG found no good answer - proceeding with normal chat');
+              setRagStatus('');
+            }
+          }
+        } else {
+          console.log('[ChatUI] ⏭️  Query not document-related - skipping agent, using normal chat');
+          setRagStatus('');
+        }
+      } catch (error) {
+        console.error('[ChatUI] ⚠️ RAG pipeline failed, proceeding with normal chat:', error);
+        setRagStatus('');
+        // Continue to normal chat even if RAG fails
+      } finally {
+        setIsRagLoading(false);
+        // Clear status once assistant starts responding
+        setTimeout(() => setRagStatus(''), 1000);
+      }
+    }
+
+    // Remove temporary user message before calling sendMessage
+    // (sendMessage will add the real message from backend)
+    setMessages(prev => prev.filter(m => m.id !== tempUserMessageId));
+
+    // Always proceed with normal chat (with or without RAG context)
+    // This preserves streaming, memory, tool calling, and all existing features
     sendMessage({
-      text: input,
-      metadata: {
-        chatId: currentChatIdRef.current,
-        modelId: selectedModel,
-        locale: locale,
-        fileIds: uploadedFiles.map(f => f.id), // Add file IDs
-      },
+      text: queryText,
+      metadata: baseMetadata,
     });
-    setInput('');
-    setUploadedFiles([]); // Clear uploaded files after sending
   };
 
   // File upload handlers
@@ -227,6 +413,12 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
     nl: {
       title: 'AI Assistent',
       modelLabel: 'Model',
+      ragLabel: 'RAG Modus',
+      projectLabel: 'Project',
+      ragOn: 'AAN',
+      ragOff: 'UIT',
+      noProjects: 'Geen projecten',
+      ragActiveForProject: 'RAG ingeschakeld voor dit project',
       inputPlaceholder: 'Typ je bericht...',
       sendButton: 'Versturen',
       stopButton: 'Stop',
@@ -239,6 +431,12 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
     en: {
       title: 'AI Assistant',
       modelLabel: 'Model',
+      ragLabel: 'RAG Mode',
+      projectLabel: 'Project',
+      ragOn: 'ON',
+      ragOff: 'OFF',
+      noProjects: 'No projects',
+      ragActiveForProject: 'RAG enabled for this project',
       inputPlaceholder: 'Type your message...',
       sendButton: 'Send',
       stopButton: 'Stop',
@@ -279,7 +477,37 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
     return null;
   };
 
-  // Render message content from parts array (AI SDK v5)
+  // Extract images from message parts
+  const extractImages = (message: typeof messages[0]) => {
+    const images: Array<{ url: string; fileName: string; index: number }> = [];
+
+    message.parts.forEach((part, index) => {
+      // Handle FileUIPart with type 'file' and mediaType 'image/*'
+      if ('type' in part && part.type === 'file' && 'mediaType' in part && 'url' in part) {
+        const filePart = part as { type: 'file'; mediaType: string; url: string };
+        if (filePart.mediaType.startsWith('image/')) {
+          images.push({
+            url: filePart.url,
+            fileName: `image-${index}.${filePart.mediaType.split('/')[1]}`,
+            index
+          });
+        }
+      }
+
+      // Handle legacy image parts (for backward compatibility)
+      if ('image' in part && (part as any).image) {
+        images.push({
+          url: (part as any).image as string,
+          fileName: `image-${index}.jpg`,
+          index
+        });
+      }
+    });
+
+    return images;
+  };
+
+  // Render message content from parts array (AI SDK v5) - text only
   const renderMessageContent = (message: typeof messages[0]) => {
     return message.parts.map((part, index) => {
       if (part.type === 'text') {
@@ -305,20 +533,7 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
         );
       }
 
-      // Handle image parts (use type guard since 'image' is not in UIMessage part types)
-      if ('image' in part && part.image) {
-        return (
-          <div key={`${message.id}-image-${index}`} className="mt-2">
-            <ImageAttachment
-              imageUrl={part.image as string | URL}
-              onClick={() => setLightboxImage({ url: part.image as string | URL })}
-              alt="Attached image"
-            />
-          </div>
-        );
-      }
-
-      // Handle other part types if needed in future (files, etc.)
+      // Images are handled separately now, not rendered here
       return null;
     });
   };
@@ -326,38 +541,47 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-base py-sm shadow-sm">
+      <div className={cn(
+        "bg-white border-b border-gray-200 px-base py-sm shadow-sm",
+        isEntering && "animate-fade-slide-up fill-both"
+      )}>
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-900">{t.title}</h1>
 
-          {/* Model Selector */}
-          <div className="flex items-center gap-sm">
-            <label htmlFor="model-select" className="text-sm font-medium text-gray-700">
-              {t.modelLabel}:
-            </label>
-            <select
-              id="model-select"
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value as ModelId)}
-              disabled={isLoading}
-              className={cn(
-                'px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm',
-                'focus:outline-none focus:ring-2 focus:ring-blue-500',
-                'disabled:bg-gray-100 disabled:cursor-not-allowed'
-              )}
-            >
-              {availableModels.map((modelId) => (
-                <option key={modelId} value={modelId}>
-                  {modelId}
-                </option>
-              ))}
-            </select>
+          {/* Controls */}
+          <div className="flex items-center gap-base">
+            {/* Model Selector - Always visible */}
+            <div className="flex items-center gap-sm">
+              <label htmlFor="model-select" className="text-sm font-medium text-gray-700">
+                {t.modelLabel}:
+              </label>
+              <select
+                id="model-select"
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value as ModelId)}
+                disabled={isLoading}
+                className={cn(
+                  'px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm',
+                  'focus:outline-none focus:ring-2 focus:ring-blue-500',
+                  'disabled:bg-gray-100 disabled:cursor-not-allowed'
+                )}
+              >
+                {availableModels.map((modelId) => (
+                  <option key={modelId} value={modelId}>
+                    {modelId}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto">
+      <div className={cn(
+        "flex-1 overflow-y-auto",
+        isEntering && "animate-scale-fade-in fill-both stagger-1"
+      )}>
         <div className="max-w-4xl mx-auto px-base py-lg">
           {isLoadingChat ? (
             <div className="flex items-center justify-center h-full text-gray-500">
@@ -369,34 +593,222 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
             </div>
           ) : (
             <div className="space-y-base">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={cn(
-                    'flex',
-                    message.role === 'user' ? 'justify-end' : 'justify-start'
-                  )}
-                >
+              {messages.map((message) => {
+                const images = extractImages(message);
+                const hasText = message.parts.some(p => p.type === 'text');
+
+                return (
                   <div
+                    key={message.id}
                     className={cn(
-                      'max-w-[80%] rounded-lg px-base py-sm shadow-sm',
-                      message.role === 'user'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white text-gray-900 border border-gray-200'
+                      'flex flex-col gap-2',
+                      message.role === 'user' ? 'items-end' : 'items-start'
                     )}
                   >
-                    <div className="text-xs font-medium mb-1 opacity-70">
-                      {message.role === 'user' ? t.you : t.assistant}
-                    </div>
-                    <div className="text-sm">
-                      {renderMessageContent(message)}
+                    {/* Images - displayed above text, separate from bubble */}
+                    {images.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {images.map((img) => (
+                          <ImageAttachment
+                            key={`${message.id}-image-${img.index}`}
+                            imageUrl={img.url}
+                            onClick={() => setLightboxImage({
+                              url: img.url,
+                              fileName: img.fileName
+                            })}
+                            alt="Attached image"
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Text bubble - only if there's text content */}
+                    {hasText && (
+                      <div
+                        className={cn(
+                          'max-w-[80%] rounded-lg px-base py-sm shadow-sm',
+                          message.role === 'user'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white text-gray-900 border border-gray-200'
+                        )}
+                      >
+                        <div className="text-xs font-medium mb-1 opacity-70">
+                          {message.role === 'user' ? t.you : t.assistant}
+                        </div>
+                        <div className="text-sm">
+                          {renderMessageContent(message)}
+
+                          {/* Inline RAG Citations - Show within message body */}
+                      {message.role === 'assistant' &&
+                       message.metadata &&
+                       (message.metadata as any).ragSources &&
+                       Array.isArray((message.metadata as any).ragSources) &&
+                       (message.metadata as any).ragSources.length > 0 && (() => {
+                        // Extract message text to find which sources were actually cited
+                        const messageText = message.parts
+                          .filter(part => part.type === 'text')
+                          .map(part => ('text' in part ? part.text : ''))
+                          .join('\n');
+
+                        // Find all [Source N] citations in the message
+                        const citationMatches = messageText.matchAll(/\[Source (\d+)\]/gi);
+                        const citedSourceNumbers = new Set(
+                          Array.from(citationMatches).map(match => parseInt(match[1]))
+                        );
+
+                        // Filter to only show sources that were actually cited
+                        const allSources = (message.metadata as any).ragSources as RAGSource[];
+                        const citedSources = allSources.filter((_, index) =>
+                          citedSourceNumbers.has(index + 1)
+                        );
+
+                        // If no sources were cited, show warning instead of hiding
+                        if (citedSources.length === 0) {
+                          return (
+                            <div className="mt-base">
+                              <div className="bg-red-50 border border-red-200 rounded-md p-sm">
+                                <div className="flex items-start gap-xs">
+                                  <svg className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                                  </svg>
+                                  <div className="flex-1">
+                                    <p className="text-xs text-red-700 font-semibold">
+                                      {locale === 'nl' ? 'Bronnen niet geciteerd' : 'Sources not cited'}
+                                    </p>
+                                    <p className="text-xs text-red-600 mt-1">
+                                      {locale === 'nl'
+                                        ? `De AI heeft ${allSources.length} bronnen geraadpleegd maar deze niet correct geciteerd in het antwoord. Dit is een fout in het systeem.`
+                                        : `The AI consulted ${allSources.length} sources but did not properly cite them in the answer. This is a system error.`
+                                      }
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        return (
+                        <div className="mt-base space-y-sm">
+                          {citedSources.map((source) => {
+                            // Find original source number for this cited source
+                            const originalIndex = allSources.findIndex(s => s.id === source.id);
+                            const sourceNumber = originalIndex + 1;
+
+                            return (
+                            <div key={source.id} className="border-t-2 border-gray-300 pt-sm mt-sm">
+                              {/* Source Header */}
+                              <div className="flex items-center gap-xs mb-xs">
+                                <span className="font-mono text-xs bg-amber-600 text-white px-xs py-0.5 rounded font-semibold">
+                                  Bron {sourceNumber}
+                                </span>
+                                <span className="text-xs text-gray-600">
+                                  {locale === 'nl' ? 'Directe citaat uit document:' : 'Direct quote from document:'}
+                                </span>
+                              </div>
+
+                              {/* Quote Section - Distinct Styling */}
+                              <div className="bg-amber-50 border-l-4 border-amber-500 p-sm rounded-r-md mb-sm">
+                                <div className="flex items-start gap-xs mb-xs">
+                                  <svg className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/>
+                                  </svg>
+                                  <p className="text-sm text-gray-800 italic leading-relaxed flex-1">
+                                    {source.chunkText}
+                                  </p>
+                                </div>
+
+                                {/* Source Info */}
+                                <div className="text-xs text-amber-700 flex items-center gap-sm flex-wrap mt-xs">
+                                  <span className="font-medium">📄 {source.sourceFile}</span>
+                                  {source.pageNumber && (
+                                    <span>
+                                      {locale === 'nl' ? 'Pagina' : 'Page'} {source.pageNumber}
+                                    </span>
+                                  )}
+                                  <span className="ml-auto">
+                                    {locale === 'nl' ? 'Relevantie' : 'Relevance'}: {(source.similarity * 100).toFixed(0)}%
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Open Document Button */}
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const response = await fetch(`/api/files/${source.fileId}`);
+                                    if (response.ok) {
+                                      const data = await response.json();
+                                      if (data.url) {
+                                        window.open(data.url, '_blank');
+                                      }
+                                    }
+                                  } catch (error) {
+                                    console.error('Error opening document:', error);
+                                  }
+                                }}
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-base rounded-md transition-colors flex items-center justify-center gap-xs"
+                              >
+                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                                <span>
+                                  {locale === 'nl' ? 'Open volledig document' : 'Open complete document'}
+                                </span>
+                              </button>
+                            </div>
+                          );
+                          })}
+
+                          {/* Footer Info */}
+                          <div className="border-t-2 border-gray-300 pt-sm mt-sm">
+                            <div className="bg-blue-50 border border-blue-200 rounded-md p-sm">
+                              <div className="flex items-start gap-xs">
+                                <svg className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="currentColor">
+                                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                </svg>
+                                <div className="flex-1">
+                                  <p className="text-xs text-blue-700 font-semibold">
+                                    {locale === 'nl' ? 'Geverifieerd antwoord' : 'Verified answer'}
+                                  </p>
+                                  <p className="text-xs text-blue-600 mt-1">
+                                    {locale === 'nl'
+                                      ? `Bovenstaande antwoord is gebaseerd op ${citedSources.length} geciteerde ${citedSources.length === 1 ? 'bron' : 'bronnen'}. Klik op "Open volledig document" om de informatie te verifiëren.`
+                                      : `The answer above is based on ${citedSources.length} cited ${citedSources.length === 1 ? 'source' : 'sources'}. Click "Open complete document" to verify the information.`
+                                    }
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        );
+                      })()}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* RAG Status Indicator */}
+              {ragStatus && (
+                <div className="flex justify-center">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg px-base py-sm shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      </div>
+                      <span className="text-sm text-blue-700 font-medium">{ragStatus}</span>
                     </div>
                   </div>
                 </div>
-              ))}
+              )}
 
-              {/* Loading indicator */}
-              {isLoading && (
+              {/* Loading indicator - Hidden when RAG status is showing */}
+              {isLoading && !ragStatus && (
                 <div className="flex justify-start">
                   <div className="max-w-[80%] bg-white border border-gray-200 rounded-lg px-base py-sm shadow-sm">
                     <div className="flex items-center gap-2">
@@ -429,7 +841,10 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
       )}
 
       {/* Input Area */}
-      <div className="bg-white border-t border-gray-200 px-base py-sm shadow-lg">
+      <div className={cn(
+        "bg-white border-t border-gray-200 px-base py-sm shadow-lg",
+        isEntering && "animate-message-flow fill-both stagger-2"
+      )}>
         <div className="max-w-4xl mx-auto space-y-sm">
           {/* File Upload Zone - Only shown if model supports vision */}
           {currentChatId && (
@@ -444,48 +859,99 @@ export function ChatUI({ locale, chatId }: ChatUIProps) {
             />
           )}
 
-          <form id="chat-form" onSubmit={handleSubmit} className="flex gap-sm">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={t.inputPlaceholder}
-              disabled={isLoading}
-              className={cn(
-                'flex-1 px-base py-sm bg-white border border-gray-300 rounded-lg',
-                'text-sm focus:outline-none focus:ring-2 focus:ring-blue-500',
-                'disabled:bg-gray-100 disabled:cursor-not-allowed'
+          <form id="chat-form" onSubmit={handleSubmit}>
+            <div className="flex gap-sm items-center">
+              {/* RAG Toggle Button - ALWAYS VISIBLE if in project context or user has projects */}
+              {(userProjects.length > 0 || projectId) && (
+                <button
+                  type="button"
+                  onClick={() => setIsRagEnabled(!isRagEnabled)}
+                  disabled={isLoading || isRagLoading}
+                  title={isRagEnabled ? t.ragOn : t.ragOff}
+                  className={cn(
+                    'px-3 py-sm rounded-lg text-xs font-bold transition-colors flex items-center gap-xs flex-shrink-0',
+                    'focus:outline-none focus:ring-2 focus:ring-blue-500',
+                    'disabled:opacity-50 disabled:cursor-not-allowed',
+                    isRagEnabled
+                      ? 'bg-green-600 text-white hover:bg-green-700'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  )}
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span>RAG</span>
+                </button>
               )}
-            />
 
-            {isLoading ? (
-              <button
-                type="button"
-                onClick={stop}
+              {/* Input Field */}
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder={t.inputPlaceholder}
+                disabled={isLoading}
                 className={cn(
-                  'px-base py-sm bg-red-600 text-white rounded-lg',
-                  'text-sm font-medium hover:bg-red-700',
-                  'focus:outline-none focus:ring-2 focus:ring-red-500',
-                  'transition-colors'
+                  'flex-1 px-base py-sm bg-white border border-gray-300 rounded-lg',
+                  'text-sm focus:outline-none focus:ring-2 focus:ring-blue-500',
+                  'disabled:bg-gray-100 disabled:cursor-not-allowed'
                 )}
-              >
-                {t.stopButton}
-              </button>
-            ) : (
-              <button
-                type="submit"
-                disabled={!input.trim()}
-                className={cn(
-                  'px-base py-sm bg-blue-600 text-white rounded-lg',
-                  'text-sm font-medium hover:bg-blue-700',
-                  'focus:outline-none focus:ring-2 focus:ring-blue-500',
-                  'disabled:bg-gray-300 disabled:cursor-not-allowed',
-                  'transition-colors'
-                )}
-              >
-                {t.sendButton}
-              </button>
-            )}
+              />
+
+              {/* Project Selector - Only shown when RAG is enabled and NOT in project-specific mode */}
+              {isRagEnabled && !projectId && (
+                <select
+                  value={selectedProjectId}
+                  onChange={(e) => setSelectedProjectId(e.target.value)}
+                  disabled={isLoading || isRagLoading}
+                  className={cn(
+                    'px-3 py-sm bg-white border border-gray-300 rounded-lg text-sm flex-shrink-0',
+                    'focus:outline-none focus:ring-2 focus:ring-blue-500',
+                    'disabled:bg-gray-100 disabled:cursor-not-allowed'
+                  )}
+                >
+                  {userProjects.length === 0 ? (
+                    <option value="">{t.noProjects}</option>
+                  ) : (
+                    userProjects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+              )}
+
+              {/* Send/Stop Button */}
+              {isLoading ? (
+                <button
+                  type="button"
+                  onClick={stop}
+                  className={cn(
+                    'px-base py-sm bg-red-600 text-white rounded-lg flex-shrink-0',
+                    'text-sm font-medium hover:bg-red-700',
+                    'focus:outline-none focus:ring-2 focus:ring-red-500',
+                    'transition-colors'
+                  )}
+                >
+                  {t.stopButton}
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={!input.trim()}
+                  className={cn(
+                    'px-base py-sm bg-blue-600 text-white rounded-lg flex-shrink-0',
+                    'text-sm font-medium hover:bg-blue-700',
+                    'focus:outline-none focus:ring-2 focus:ring-blue-500',
+                    'disabled:bg-gray-300 disabled:cursor-not-allowed',
+                    'transition-colors'
+                  )}
+                >
+                  {t.sendButton}
+                </button>
+              )}
+            </div>
           </form>
 
           <p className="text-xs text-gray-500 mt-sm text-center">
