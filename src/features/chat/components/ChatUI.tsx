@@ -477,7 +477,37 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
     return null;
   };
 
-  // Render message content from parts array (AI SDK v5)
+  // Extract images from message parts
+  const extractImages = (message: typeof messages[0]) => {
+    const images: Array<{ url: string; fileName: string; index: number }> = [];
+
+    message.parts.forEach((part, index) => {
+      // Handle FileUIPart with type 'file' and mediaType 'image/*'
+      if ('type' in part && part.type === 'file' && 'mediaType' in part && 'url' in part) {
+        const filePart = part as { type: 'file'; mediaType: string; url: string };
+        if (filePart.mediaType.startsWith('image/')) {
+          images.push({
+            url: filePart.url,
+            fileName: `image-${index}.${filePart.mediaType.split('/')[1]}`,
+            index
+          });
+        }
+      }
+
+      // Handle legacy image parts (for backward compatibility)
+      if ('image' in part && (part as any).image) {
+        images.push({
+          url: (part as any).image as string,
+          fileName: `image-${index}.jpg`,
+          index
+        });
+      }
+    });
+
+    return images;
+  };
+
+  // Render message content from parts array (AI SDK v5) - text only
   const renderMessageContent = (message: typeof messages[0]) => {
     return message.parts.map((part, index) => {
       if (part.type === 'text') {
@@ -503,20 +533,7 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
         );
       }
 
-      // Handle image parts (use type guard since 'image' is not in UIMessage part types)
-      if ('image' in part && part.image) {
-        return (
-          <div key={`${message.id}-image-${index}`} className="mt-2">
-            <ImageAttachment
-              imageUrl={part.image as string | URL}
-              onClick={() => setLightboxImage({ url: part.image as string | URL })}
-              alt="Attached image"
-            />
-          </div>
-        );
-      }
-
-      // Handle other part types if needed in future (files, etc.)
+      // Images are handled separately now, not rendered here
       return null;
     });
   };
@@ -576,22 +593,53 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
             </div>
           ) : (
             <div className="space-y-base">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={cn(
-                    'flex',
-                    message.role === 'user' ? 'justify-end' : 'justify-start'
-                  )}
-                >
+              {messages.map((message) => {
+                const images = extractImages(message);
+                const hasText = message.parts.some(p => p.type === 'text');
+
+                return (
                   <div
+                    key={message.id}
                     className={cn(
-                      'max-w-[80%] rounded-lg px-base py-sm shadow-sm',
-                      message.role === 'user'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white text-gray-900 border border-gray-200'
+                      'flex flex-col gap-2',
+                      message.role === 'user' ? 'items-end' : 'items-start'
                     )}
                   >
+                    {/* Images - displayed above text, separate from bubble */}
+                    {images.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {images.map((img) => (
+                          <ImageAttachment
+                            key={`${message.id}-image-${img.index}`}
+                            imageUrl={img.url}
+                            onClick={() => setLightboxImage({
+                              url: img.url,
+                              fileName: img.fileName
+                            })}
+                            alt="Attached image"
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Text bubble - only if there's text content */}
+                    {hasText && (
+                      <div
+                        className={cn(
+                          'max-w-[80%] rounded-lg px-base py-sm shadow-sm',
+                          message.role === 'user'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white text-gray-900 border border-gray-200'
+                        )}
+                      >
+                        <div className="text-xs font-medium mb-1 opacity-70">
+                          {message.role === 'user' ? t.you : t.assistant}
+                        </div>
+                        <div className="text-sm">
+                          {renderMessageContent(message)}
+                        </div>
+                      </div>
+                    )}
                     <div className="text-xs font-medium mb-1 opacity-70">
                       {message.role === 'user' ? t.you : t.assistant}
                     </div>
@@ -746,8 +794,8 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
                       })()}
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {/* RAG Status Indicator */}
               {ragStatus && (
