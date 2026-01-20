@@ -261,6 +261,10 @@ export async function POST(request: NextRequest) {
       : {};
     const messageMetadata = lastMessage.metadata || {};
 
+    console.log('[Chat API] 📥 Request body keys:', Object.keys(body));
+    console.log('[Chat API] 📥 Root metadata:', JSON.stringify(rootMetadata));
+    console.log('[Chat API] 📥 Last message metadata:', JSON.stringify(messageMetadata));
+
     const validatedData = chatRequestSchema.parse(body);
 
     // Read chatId and modelId from headers (for AI SDK v5 compatibility) or fallback to body
@@ -281,6 +285,13 @@ export async function POST(request: NextRequest) {
     const locale = (messageMetadata.locale || rootMetadata.locale || body.locale || 'nl') as 'nl' | 'en';
     const requestFileIds = messageMetadata.fileIds || rootMetadata.fileIds || fileIds;
     const projectId = messageMetadata.projectId || rootMetadata.projectId || undefined;
+
+    console.log('[Chat API] 📎 File handling debug:', {
+      messageMetadataFileIds: messageMetadata.fileIds,
+      rootMetadataFileIds: rootMetadata.fileIds,
+      bodyFileIds: fileIds,
+      resolvedFileIds: requestFileIds,
+    });
 
     // Validate model ID
     const model = getModel(modelId as ModelId);

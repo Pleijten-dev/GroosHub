@@ -303,9 +303,11 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
       chatId: currentChatIdRef.current,
       modelId: selectedModel,
       locale: locale,
-      fileIds: currentFiles.map(f => f.id),
+      fileIds: currentFiles.filter(f => f.id).map(f => f.id),
       ...(projectId && { projectId }), // Include projectId if provided (for project-specific chats)
     };
+
+    console.log('[ChatUI] Sending message with fileIds:', baseMetadata.fileIds);
 
     // If RAG is enabled and project is selected, check if query warrants document search
     if (isRagEnabled && selectedProjectId) {
