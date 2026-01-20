@@ -8,6 +8,8 @@ GroosHub implements an automated system for managing AI assistant conversation s
 
 ## Architecture
 
+### Vercel Hobby Plan (Default)
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  Real-Time (During Conversation)                                 │
@@ -21,21 +23,49 @@ GroosHub implements an automated system for managing AI assistant conversation s
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
-│  Automated (Cron Jobs)                                           │
+│  Automated (Daily Cron Job - Hobby Plan Limitation)             │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  [Hourly] ──→ Inactivity Summarization                          │
-│     └─ POST /api/summaries/inactivity                           │
-│        └─ Summarize chats inactive for 1+ hours                 │
-│        └─ Compresses context for abandoned conversations        │
-│                                                                  │
-│  [Daily at 11:30 PM] ──→ Memory Consolidation                   │
+│  [Daily at 11:00 PM] ──→ Combined Automation                    │
 │     └─ POST /api/memory/consolidate                             │
-│        └─ Gather all day's summaries per user                   │
-│        └─ Send to LLM for pattern extraction                    │
-│        └─ Update user memory with daily insights                │
+│        ├─ Step 1: Inactivity summarization                      │
+│        │  └─ Summarize ALL chats inactive 1+ hours              │
+│        │     └─ Catches day's abandoned conversations           │
+│        └─ Step 2: Memory consolidation                          │
+│           └─ Gather all day's summaries per user                │
+│           └─ Send to LLM for pattern extraction                 │
+│           └─ Update user memory with daily insights             │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
+```
+
+### Vercel Pro Plan (Optional Upgrade)
+
+If you upgrade to Pro, you can split the jobs for more frequent processing:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  [Every Hour] ──→ Inactivity Summarization                      │
+│     └─ POST /api/summaries/inactivity                           │
+│        └─ Summarize chats inactive for 1+ hours                 │
+│                                                                  │
+│  [Daily at 11:00 PM] ──→ Memory Consolidation                   │
+│     └─ POST /api/memory/consolidate                             │
+│        └─ Consolidate summaries into user memory                │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Pro Plan Setup**: Add this to `vercel.json`:
+```json
+{
+  "crons": [
+    {
+      "path": "/api/summaries/inactivity",
+      "schedule": "0 * * * *"
+    }
+  ]
+}
 ```
 
 ---
@@ -73,10 +103,12 @@ Messages 21-30 → (kept raw)
 
 ---
 
-### 2. **Inactivity Summarization** (Every Hour)
+### 2. **Inactivity Summarization** (Daily on Hobby, Hourly on Pro)
 
 **Endpoint**: `POST /api/summaries/inactivity`
-**Schedule**: `0 * * * *` (every hour)
+**Schedule**:
+- **Hobby Plan**: Daily at 11:00 PM (called by `/api/memory/consolidate`)
+- **Pro Plan**: `0 * * * *` (every hour, optional)
 **Purpose**: Summarize chats where user stopped mid-conversation
 
 **What It Does**:
@@ -324,7 +356,39 @@ curl https://yourdomain.com/api/memory/consolidate \
 
 ## Cron Configuration
 
-### `vercel.json`
+### Hobby Plan (Default) - `vercel.json`
+
+⚠️ **Vercel Hobby plan only allows daily cron jobs.** Hourly crons require Pro plan.
+
+```json
+{
+  "crons": [
+    {
+      "path": "/api/files/cleanup",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/memory/consolidate",
+      "schedule": "0 23 * * *"
+    }
+  ]
+}
+```
+
+### Hobby Plan Cron Schedule
+
+| Job | Schedule | Frequency | Purpose |
+|-----|----------|-----------|---------|
+| File Cleanup | `0 2 * * *` | Daily at 2:00 AM | Delete files in trash 30+ days |
+| AI Automation | `0 23 * * *` | Daily at 11:00 PM | Inactivity summarization + Memory consolidation |
+
+**Note**: `/api/memory/consolidate` internally calls `/api/summaries/inactivity` first, then does memory consolidation.
+
+---
+
+### Pro Plan (Optional Upgrade)
+
+If you upgrade to Vercel Pro, you can enable hourly summarization:
 
 ```json
 {
@@ -339,19 +403,21 @@ curl https://yourdomain.com/api/memory/consolidate \
     },
     {
       "path": "/api/memory/consolidate",
-      "schedule": "30 23 * * *"
+      "schedule": "0 23 * * *"
     }
   ]
 }
 ```
 
-### Cron Schedule Breakdown
+### Pro Plan Cron Schedule
 
 | Job | Schedule | Frequency | Purpose |
 |-----|----------|-----------|---------|
 | File Cleanup | `0 2 * * *` | Daily at 2:00 AM | Delete files in trash 30+ days |
-| Inactivity Summarization | `0 * * * *` | Every hour | Summarize abandoned chats |
-| Memory Consolidation | `30 23 * * *` | Daily at 11:30 PM | Update user memories |
+| Inactivity Summarization | `0 * * * *` | **Every hour** | Summarize abandoned chats |
+| Memory Consolidation | `0 23 * * *` | Daily at 11:00 PM | Update user memories |
+
+**Benefit**: Chats are summarized within 1-2 hours of inactivity instead of waiting until end of day.
 
 ---
 

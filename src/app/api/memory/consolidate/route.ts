@@ -1,12 +1,13 @@
 /**
- * API endpoint for end-of-day memory consolidation
- * POST /api/memory/consolidate - Consolidate daily chat summaries into user memory
+ * API endpoint for end-of-day AI assistant automation
+ * POST /api/memory/consolidate - Runs inactivity summarization AND memory consolidation
  *
- * This endpoint is triggered by cron job daily at 11:30 PM to:
- * 1. Find all users with chat activity today
- * 2. Gather all summaries created today for each user
- * 3. Send to LLM to extract patterns/preferences
- * 4. Update user memory with consolidated insights
+ * This endpoint is triggered by cron job daily at 11:00 PM to:
+ * 1. FIRST: Summarize all inactive chats (1+ hours inactive)
+ * 2. THEN: Consolidate daily summaries into user memory
+ *
+ * Combined into one endpoint due to Vercel Hobby plan limitation (daily crons only).
+ * Pro plan users can run /api/summaries/inactivity separately for hourly execution.
  *
  * This provides a holistic daily view of user interactions,
  * improving memory quality vs. per-conversation updates.
@@ -67,10 +68,35 @@ export async function POST(request: NextRequest) {
       console.log(`[Memory Consolidation] Authenticated as admin user: ${session.user.id}`);
     }
 
-    // 2. Find all users with summaries created today
+    // 2. FIRST: Run inactivity summarization (Hobby plan workaround)
+    console.log('[Memory Consolidation] Step 1: Running inactivity summarization...');
+    try {
+      const inactivityResponse = await fetch(
+        `${request.nextUrl.origin}/api/summaries/inactivity`,
+        {
+          method: 'POST',
+          headers: {
+            'x-cron-secret': cronSecret || '',
+            'Cookie': request.headers.get('Cookie') || ''
+          }
+        }
+      );
+
+      if (inactivityResponse.ok) {
+        const inactivityResult = await inactivityResponse.json();
+        console.log(`[Memory Consolidation] ✓ Inactivity summarization complete: ${inactivityResult.successful || 0} chats summarized`);
+      } else {
+        console.warn('[Memory Consolidation] ⚠️ Inactivity summarization failed, continuing with memory consolidation');
+      }
+    } catch (error) {
+      console.error('[Memory Consolidation] ⚠️ Inactivity summarization error:', error);
+      // Continue with memory consolidation even if inactivity fails
+    }
+
+    // 3. THEN: Find all users with summaries created today
     const db = getDbConnection();
 
-    console.log('[Memory Consolidation] Finding users with activity today...');
+    console.log('[Memory Consolidation] Step 2: Finding users with activity today...');
 
     const usersWithActivity = await db`
       SELECT DISTINCT
