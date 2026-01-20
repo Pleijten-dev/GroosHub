@@ -38,7 +38,7 @@ export interface ProjectOverviewPageProps {
 
 interface ProjectTasksResponse {
   success: boolean;
-  tasks: Array<{
+  data: Array<{
     id: string;
     title: string;
     status: 'todo' | 'doing' | 'done';
@@ -47,27 +47,27 @@ interface ProjectTasksResponse {
     created_at: string;
     is_overdue: boolean;
     days_until_deadline: number | null;
-    assigned_users: Array<{ id: string; name: string; email: string }>;
+    assigned_users: Array<{ id: string; name: string; email: string }> | null;
   }>;
 }
 
 interface ProjectStatsResponse {
   success: boolean;
-  stats: {
+  data: {
     overall: {
-      total: number;
-      todo: number;
-      doing: number;
-      done: number;
-      overdue: number;
+      total_tasks: number;
+      todo_count: number;
+      doing_count: number;
+      done_count: number;
+      overdue_count: number;
     };
     byUser: Array<{
-      userId: string;
-      userName: string;
-      totalTasks: number;
-      todoCount: number;
-      doingCount: number;
-      doneCount: number;
+      user_id: string;
+      user_name: string;
+      assigned_tasks: number;
+      todo_count: number;
+      doing_count: number;
+      done_count: number;
     }>;
     upcomingDeadlines: Array<{
       id: string;
@@ -167,12 +167,19 @@ export function ProjectOverviewPage({
         const tasksData: ProjectTasksResponse = await tasksResponse.json();
         const statsData: ProjectStatsResponse = await statsResponse.json();
 
-        if (!tasksData.success || !tasksData.tasks) {
-          throw new Error('Failed to fetch tasks');
+        console.log('[ProjectOverviewPage] Tasks response:', tasksData);
+        console.log('[ProjectOverviewPage] Stats response:', statsData);
+
+        // Handle case where data might be empty array (no tasks yet)
+        if (!tasksData.success) {
+          console.error('[ProjectOverviewPage] Tasks API error:', tasksData);
+          // Don't throw - just use empty data
         }
 
+        const tasks = tasksData.data || [];
+
         // Transform tasks for TaskListPreview
-        const transformedTasks: TaskPreview[] = tasksData.tasks.map((task) => ({
+        const transformedTasks: TaskPreview[] = tasks.map((task) => ({
           id: task.id,
           title: task.title,
           status: task.status,
@@ -192,7 +199,7 @@ export function ProjectOverviewPage({
           return p as 'low' | 'medium' | 'high' | 'urgent';
         };
 
-        const upcomingDeadlines: Deadline[] = tasksData.tasks
+        const upcomingDeadlines: Deadline[] = tasks
           .filter((task) => task.deadline && task.status !== 'done')
           .map((task) => ({
             id: task.id,
@@ -205,14 +212,14 @@ export function ProjectOverviewPage({
         setDeadlines(upcomingDeadlines);
 
         // Process stats for task distribution chart
-        if (statsData.success && statsData.stats?.byUser) {
-          const userSegments: StackedBarSegment[] = statsData.stats.byUser
-            .filter((user) => user.todoCount + user.doingCount > 0) // Only show users with open tasks
-            .sort((a, b) => (b.todoCount + b.doingCount) - (a.todoCount + a.doingCount))
+        if (statsData.success && statsData.data?.byUser) {
+          const userSegments: StackedBarSegment[] = statsData.data.byUser
+            .filter((user) => user.todo_count + user.doing_count > 0) // Only show users with open tasks
+            .sort((a, b) => (b.todo_count + b.doing_count) - (a.todo_count + a.doing_count))
             .map((user, index) => ({
-              id: user.userId,
-              label: user.userName,
-              value: user.todoCount + user.doingCount,
+              id: user.user_id,
+              label: user.user_name,
+              value: user.todo_count + user.doing_count,
               color: USER_COLORS[index % USER_COLORS.length],
             }));
 
