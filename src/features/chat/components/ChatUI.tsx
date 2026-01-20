@@ -59,6 +59,13 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
   // File upload state
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
 
+  // Pending attachments - images that are being sent with the current message
+  // These are tracked separately to ensure they display during streaming
+  const [pendingAttachments, setPendingAttachments] = useState<Array<{
+    url: string;
+    mediaType: string;
+  }>>([]);
+
   // Lightbox state
   const [lightboxImage, setLightboxImage] = useState<{ url: string | URL; fileName?: string } | null>(null);
 
@@ -176,10 +183,14 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
           if (response.ok && data.messages) {
             console.log(`[ChatUI] ✅ Refetched ${data.messages.length} messages with visualization data`);
             setMessages(data.messages);
+            // Clear pending attachments - server has the real data now
+            setPendingAttachments([]);
           }
         } catch (error) {
           console.error('[ChatUI] ❌ Failed to refetch messages:', error);
           // Non-critical error, don't show to user
+          // Still clear pending attachments to avoid stale state
+          setPendingAttachments([]);
         }
       }
 
@@ -273,32 +284,19 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
       return;
     }
 
-    // Show user message immediately (optimistic update)
-    const tempUserMessageId = `temp-${Date.now()}`;
+    // Store image attachments to display during streaming
+    // (server will process and store them, but we show preview URLs immediately)
+    const imageAttachments = currentFiles
+      .filter(file => file.type === 'image' && file.previewUrl)
+      .map(file => ({
+        url: file.previewUrl!,
+        mediaType: file.mimeType,
+      }));
 
-    // Build message parts including any uploaded images
-    const messageParts: typeof messages[0]['parts'] = [];
-
-    // Add image parts from uploaded files (so they appear immediately)
-    currentFiles.forEach((file, index) => {
-      if (file.type === 'image' && file.previewUrl) {
-        messageParts.push({
-          type: 'file',
-          mediaType: file.mimeType,
-          url: file.previewUrl,
-        } as any);
-      }
-    });
-
-    // Add text part
-    messageParts.push({ type: 'text', text: queryText });
-
-    const userMessage: typeof messages[0] = {
-      id: tempUserMessageId,
-      role: 'user',
-      parts: messageParts
-    };
-    setMessages([...messages, userMessage]);
+    if (imageAttachments.length > 0) {
+      setPendingAttachments(imageAttachments);
+      console.log(`[ChatUI] Stored ${imageAttachments.length} pending image attachments`);
+    }
 
     // Build base metadata
     const baseMetadata: any = {
@@ -403,10 +401,6 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
         setTimeout(() => setRagStatus(''), 1000);
       }
     }
-
-    // Remove temporary user message before calling sendMessage
-    // (sendMessage will add the real message from backend)
-    setMessages(prev => prev.filter(m => m.id !== tempUserMessageId));
 
     // Always proceed with normal chat (with or without RAG context)
     // This preserves streaming, memory, tool calling, and all existing features
@@ -611,9 +605,26 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
             </div>
           ) : (
             <div className="space-y-base">
-              {messages.map((message) => {
+              {messages.map((message, messageIndex) => {
                 const images = extractImages(message);
                 const hasText = message.parts.some(p => p.type === 'text');
+
+                // Check if this is the last user message and we have pending attachments
+                const isLastUserMessage = message.role === 'user' &&
+                  messageIndex === messages.findLastIndex(m => m.role === 'user');
+                const shouldShowPendingAttachments = isLastUserMessage && pendingAttachments.length > 0;
+
+                // Combine extracted images with pending attachments for the last user message
+                const allImages = shouldShowPendingAttachments
+                  ? [
+                      ...pendingAttachments.map((att, idx) => ({
+                        url: att.url,
+                        fileName: `pending-${idx}.${att.mediaType.split('/')[1] || 'jpg'}`,
+                        index: idx + 1000 // Offset to avoid key conflicts
+                      })),
+                      ...images
+                    ]
+                  : images;
 
                 return (
                   <div
@@ -624,9 +635,9 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
                     )}
                   >
                     {/* Images - displayed above text, separate from bubble */}
-                    {images.length > 0 && (
+                    {allImages.length > 0 && (
                       <div className="flex flex-wrap gap-2">
-                        {images.map((img) => (
+                        {allImages.map((img) => (
                           <ImageAttachment
                             key={`${message.id}-image-${img.index}`}
                             imageUrl={img.url}
