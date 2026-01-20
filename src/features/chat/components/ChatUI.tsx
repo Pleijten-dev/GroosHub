@@ -637,16 +637,8 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
                         </div>
                         <div className="text-sm">
                           {renderMessageContent(message)}
-                        </div>
-                      </div>
-                    )}
-                    <div className="text-xs font-medium mb-1 opacity-70">
-                      {message.role === 'user' ? t.you : t.assistant}
-                    </div>
-                    <div className="text-sm">
-                      {renderMessageContent(message)}
 
-                      {/* Inline RAG Citations - Show within message body */}
+                          {/* Inline RAG Citations - Show within message body */}
                       {message.role === 'assistant' &&
                        message.metadata &&
                        (message.metadata as any).ragSources &&
@@ -792,7 +784,9 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
                         </div>
                         );
                       })()}
-                    </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
