@@ -81,6 +81,10 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   const [mapZoom, setMapZoom] = useState<number>(15);
   const [featureInfo, setFeatureInfo] = useState<WMSFeatureInfo | null>(null);
 
+  // Snapshot data state (for loaded snapshots)
+  const [loadedSnapshotId, setLoadedSnapshotId] = useState<string | null>(null);
+  const [loadedWMSGradingData, setLoadedWMSGradingData] = useState<Record<string, unknown> | null>(null);
+
   // Generate cube colors once and share across all components for consistency
   const cubeColors = React.useMemo(() => generateGradientColors(), []);
 
@@ -89,11 +93,11 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
   // Use WMS grading hook
   const wmsGrading = useWMSGrading({
-    snapshotId: null, // TODO: Get snapshot ID when available
+    snapshotId: loadedSnapshotId,
     latitude: data?.location?.coordinates?.wgs84?.latitude,
     longitude: data?.location?.coordinates?.wgs84?.longitude,
     address: data?.location?.address,
-    existingGradingData: null, // TODO: Get from loaded snapshot
+    existingGradingData: loadedWMSGradingData,
     autoGrade: true, // Auto-start grading when location is loaded
   });
 
@@ -110,6 +114,9 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     if (!data && !isLoading) {
       setCollapsed(true);
       setAnimationStage('welcome');
+      // Clear snapshot data when no data (new search)
+      setLoadedSnapshotId(null);
+      setLoadedWMSGradingData(null);
     }
   }, [data, isLoading, setCollapsed]);
 
@@ -144,9 +151,18 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     const snapshotDataStr = sessionStorage.getItem('grooshub_load_snapshot');
     if (snapshotDataStr) {
       try {
-        const { address, locationData, amenitiesData } = JSON.parse(snapshotDataStr);
+        const { snapshotId, address, locationData, amenitiesData, wmsGradingData } = JSON.parse(snapshotDataStr);
         // Clear from sessionStorage after reading
         sessionStorage.removeItem('grooshub_load_snapshot');
+
+        // Store snapshot metadata for WMS grading
+        if (snapshotId) {
+          setLoadedSnapshotId(snapshotId);
+        }
+        if (wmsGradingData) {
+          setLoadedWMSGradingData(wmsGradingData);
+        }
+
         // Load the snapshot data
         loadSavedData(locationData, amenitiesData, address);
         // Expand sidebar to show data

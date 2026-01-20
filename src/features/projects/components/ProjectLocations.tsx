@@ -171,6 +171,7 @@ export function ProjectLocations({ projectId, locale }: ProjectLocationsProps) {
 
       // Store snapshot data in sessionStorage for the location page to retrieve
       sessionStorage.setItem('grooshub_load_snapshot', JSON.stringify({
+        snapshotId: snapshotData.id, // Include snapshot ID for WMS grading
         address: snapshotData.address,
         locationData: {
           address: snapshotData.address,
@@ -185,7 +186,8 @@ export function ProjectLocations({ projectId, locale }: ProjectLocationsProps) {
           livability: snapshotData.livability_data || {},
           residential: snapshotData.housing_data || {}
         },
-        amenitiesData: snapshotData.amenities_data || null
+        amenitiesData: snapshotData.amenities_data || null,
+        wmsGradingData: snapshotData.wms_grading_data || null // Include WMS grading data if available
       }));
 
       // Navigate to location page
