@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/shared/components/UI/Card/Card';
-import { Button } from '@/shared/components/UI/Button/Button';
 import { cn } from '@/shared/utils/cn';
 import { ProjectMembers } from './ProjectMembers';
 import { ProjectFiles } from './ProjectFiles';
@@ -60,16 +59,7 @@ export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
       locations: 'Locaties',
       lca: 'LCA',
       trash: 'Prullenbak',
-      settings: 'Instellingen',
-      projectStatistics: 'Projectstatistieken',
-      messages: 'Berichten',
-      description: 'Beschrijving',
       projectNumber: 'Projectnummer',
-      status: 'Status',
-      role: 'Jouw rol',
-      created: 'Gemaakt',
-      lastAccessed: 'Laatst geopend',
-      noDescription: 'Geen beschrijving',
       loading: 'Laden...',
       error: 'Fout bij laden project',
       notFound: 'Project niet gevonden'
@@ -83,16 +73,7 @@ export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
       locations: 'Locations',
       lca: 'LCA',
       trash: 'Trash',
-      settings: 'Settings',
-      projectStatistics: 'Project Statistics',
-      messages: 'Messages',
-      description: 'Description',
       projectNumber: 'Project Number',
-      status: 'Status',
-      role: 'Your Role',
-      created: 'Created',
-      lastAccessed: 'Last Accessed',
-      noDescription: 'No description',
       loading: 'Loading...',
       error: 'Error loading project',
       notFound: 'Project not found'
@@ -180,12 +161,6 @@ export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
               </p>
             )}
           </div>
-
-          {project.permissions.can_edit && (
-            <Button variant="secondary" size="sm">
-              {t.settings}
-            </Button>
-          )}
         </div>
 
         {/* Tabs */}
