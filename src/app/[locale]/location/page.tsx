@@ -504,6 +504,26 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
           .filter(Boolean)
           .join(', ');
 
+        // Calculate sampling area from selected layer's grading data
+        const samplingArea = React.useMemo(() => {
+          if (!selectedWMSLayer || !wmsGrading.gradingData) return null;
+
+          const layerGrading = wmsGrading.gradingData.layers[selectedWMSLayer.layerId];
+          if (!layerGrading) return null;
+
+          // Get radius from any available sample (prefer area samples)
+          const radius =
+            layerGrading.average_area_sample?.radius_meters ||
+            layerGrading.max_area_sample?.radius_meters;
+
+          if (!radius) return null;
+
+          return {
+            center: coordinates,
+            radius: radius
+          };
+        }, [selectedWMSLayer, wmsGrading.gradingData, coordinates]);
+
         return (
           <div className="h-full w-full relative">
             <LocationMap
@@ -517,6 +537,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
               onFeatureClick={setFeatureInfo}
               onZoomChange={setMapZoom}
               amenities={amenities}
+              samplingArea={samplingArea}
             >
               {/* WMS Layer Control - Sleek pill at bottom center */}
               <WMSLayerControl

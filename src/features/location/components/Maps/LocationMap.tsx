@@ -36,6 +36,10 @@ interface LocationMapProps {
   onZoomChange?: (zoom: number) => void;
   amenities?: AmenityMultiCategoryResponse | null;
   children?: React.ReactNode;
+  samplingArea?: {
+    center: [number, number];
+    radius: number; // in meters
+  } | null;
 }
 
 /**
@@ -54,6 +58,7 @@ export const LocationMap: React.FC<LocationMapProps> = ({
   onFeatureClick,
   onZoomChange,
   amenities = null,
+  samplingArea = null,
   children,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -62,6 +67,7 @@ export const LocationMap: React.FC<LocationMapProps> = ({
   const wmsLayerRef = useRef<L.TileLayer.WMS | null>(null);
   const amenityMarkersRef = useRef<L.Marker[]>([]);
   const distanceCirclesRef = useRef<L.Circle[]>([]);
+  const samplingCircleRef = useRef<L.Circle | null>(null);
 
   // Accent green color from design system
   const ACCENT_GREEN = '#477638';
@@ -414,6 +420,50 @@ export const LocationMap: React.FC<LocationMapProps> = ({
       }
     };
   }, [wmsLayer, onFeatureClick, handleMapClick]);
+
+  // Render sampling area circle when provided
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    // Remove existing sampling circle
+    if (samplingCircleRef.current) {
+      samplingCircleRef.current.remove();
+      samplingCircleRef.current = null;
+    }
+
+    // Add new sampling circle if data provided
+    if (samplingArea) {
+      const circle = L.circle(samplingArea.center, {
+        radius: samplingArea.radius,
+        color: '#477638', // Primary green
+        fillColor: '#477638',
+        fillOpacity: 0.1,
+        weight: 2,
+        opacity: 0.6,
+        dashArray: '5, 10',
+      }).addTo(mapRef.current);
+
+      samplingCircleRef.current = circle;
+
+      // Add tooltip
+      circle.bindTooltip(
+        `Sampling Area<br/>${samplingArea.radius}m radius`,
+        {
+          permanent: false,
+          direction: 'top',
+          className: 'sampling-area-tooltip'
+        }
+      );
+    }
+
+    // Cleanup
+    return () => {
+      if (samplingCircleRef.current) {
+        samplingCircleRef.current.remove();
+        samplingCircleRef.current = null;
+      }
+    };
+  }, [samplingArea]);
 
   // Handle window resize to invalidate map size
   useEffect(() => {
