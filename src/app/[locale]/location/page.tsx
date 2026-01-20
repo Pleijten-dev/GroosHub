@@ -27,7 +27,7 @@ import housingPersonasData from '../../../features/location/data/sources/housing
 import { LocationMap, MapStyle, WMSLayerControl, WMSLayerSelection, WMSFeatureInfo, WMSGradingScoreCard, WMSLayerScoreCard } from '../../../features/location/components/Maps';
 import { calculateAllAmenityScores, type AmenityScore } from '../../../features/location/data/scoring/amenityScoring';
 import { PVEQuestionnaire } from '../../../features/location/components/PVE';
-import { MapExportButton } from '../../../features/location/components/MapExport';
+import { MapExportButton, ComprehensivePdfExportButton } from '../../../features/location/components/MapExport';
 import type { AccessibleLocation } from '../../../features/location/types/saved-locations';
 import { useWMSGrading } from '../../../features/location/hooks/useWMSGrading';
 
@@ -770,6 +770,36 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                   locale={locale}
                   amenitiesData={amenities}
                   wmsGradingData={wmsGrading.gradingData}
+                />
+              </div>
+
+              {/* Comprehensive PDF Report Section */}
+              <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-lg shadow-sm p-base border border-emerald-200">
+                <h3 className="text-lg font-semibold text-text-primary mb-base flex items-center gap-2">
+                  <svg className="w-6 h-6 text-emerald-600" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                    <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  {locale === 'nl' ? 'Volledig PDF Rapport' : 'Complete PDF Report'}
+                </h3>
+                <p className="text-sm text-text-secondary mb-base">
+                  {locale === 'nl'
+                    ? 'Genereer een uitgebreid PDF rapport met alle locatiegegevens inclusief kaartlagen met legenda\'s, doelgroepen analyse, en alle data tabellen.'
+                    : 'Generate a comprehensive PDF report with all location data including map layers with legends, target groups analysis, and all data tables.'}
+                </p>
+
+                <ComprehensivePdfExportButton
+                  locale={locale}
+                  coordinates={[
+                    data.location.coordinates.wgs84.latitude,
+                    data.location.coordinates.wgs84.longitude,
+                  ]}
+                  address={currentAddress || ''}
+                  locationData={data}
+                  personaScores={sortedPersonas}
+                  scenarios={scenarios}
+                  personas={personas}
+                  wmsGradingData={wmsGrading.gradingData}
+                  amenitiesData={amenities}
                 />
               </div>
 

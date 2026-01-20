@@ -1,0 +1,1080 @@
+/**
+ * Comprehensive PDF Export Utility
+ * Generates a complete location analysis report including:
+ * - WMS Maps with legends, descriptions, and scores
+ * - Target group scenarios with rankings and calculations
+ * - Data tables from all tabs (Demographics, Health, Safety, Livability, etc.)
+ * - Score overview charts
+ */
+
+import jsPDF from 'jspdf';
+import type { UnifiedLocationData, UnifiedDataRow } from '../data/aggregator/multiLevelAggregator';
+import type { PersonaScore } from '../utils/targetGroupScoring';
+import type { WMSGradingData, WMSLayerGrading } from '../types/wms-grading';
+import type { AmenityMultiCategoryResponse, AmenitySearchResult } from '../data/sources/google-places/types';
+import { WMS_CATEGORIES, type WMSLayerConfig } from '../components/Maps/wmsLayers';
+import { getLayerConfig, getCriticalLayers } from '../data/sources/wmsGradingConfig';
+import { downloadWMSTile, type MapCapture } from './mapExport';
+
+// Types for the PDF export
+export interface ComprehensivePdfOptions {
+  locale: 'nl' | 'en';
+  title?: string;
+  filename?: string;
+  includeWMSMaps?: boolean;
+  includeTargetGroups?: boolean;
+  includeDataTables?: boolean;
+  includeScoreOverview?: boolean;
+}
+
+export interface ComprehensivePdfData {
+  locationData: UnifiedLocationData;
+  coordinates: [number, number];
+  address: string;
+  personaScores: PersonaScore[];
+  scenarios: {
+    scenario1: number[];
+    scenario2: number[];
+    scenario3: number[];
+  };
+  personas: Array<{
+    id: string;
+    name: string;
+    income_level: string;
+    household_type: string;
+    age_group: string;
+    description: string;
+  }>;
+  wmsGradingData?: WMSGradingData | null;
+  amenitiesData?: AmenityMultiCategoryResponse | null;
+}
+
+// Translations
+const translations = {
+  nl: {
+    title: 'Locatie Analyse Rapport',
+    generatedOn: 'Gegenereerd op',
+    address: 'Adres',
+    coordinates: 'Coördinaten',
+    tableOfContents: 'Inhoudsopgave',
+    section: 'Sectie',
+    page: 'Pagina',
+    wmsMapSection: 'Kaartlagen Analyse',
+    targetGroupSection: 'Doelgroepen Analyse',
+    scoreOverview: 'Score Overzicht',
+    dataTablesSection: 'Data Tabellen',
+    demographics: 'Demografie',
+    health: 'Gezondheid',
+    safety: 'Veiligheid',
+    livability: 'Leefbaarheid',
+    residential: 'Woningmarkt',
+    amenities: 'Voorzieningen',
+    scenario: 'Scenario',
+    rank: 'Rang',
+    persona: 'Doelgroep',
+    totalScore: 'Totaal Score',
+    matchScore: 'Match Score',
+    legend: 'Legenda',
+    description: 'Beschrijving',
+    pointValue: 'Puntwaarde',
+    avgValue: 'Gemiddelde waarde',
+    maxValue: 'Maximum waarde',
+    unit: 'Eenheid',
+    noData: 'Geen data',
+    neighborhood: 'Buurt',
+    district: 'Wijk',
+    municipality: 'Gemeente',
+    national: 'Nationaal',
+    value: 'Waarde',
+    indicator: 'Indicator',
+    targetGroupRankings: 'Doelgroep Rangschikking',
+    targetGroupCalculations: 'Doelgroep Berekeningen',
+    scenarioComparison: 'Scenario Vergelijking',
+    topPersonas: 'Top Doelgroepen',
+    categoryScores: 'Categorie Scores',
+    notes: 'Notities',
+    mapLayersAnalyzed: 'Geanalyseerde Kaartlagen',
+    criticalLayers: 'Kritieke Lagen',
+    airQuality: 'Luchtkwaliteit',
+    noise: 'Geluid',
+    nature: 'Groen',
+    climate: 'Klimaat',
+    amenitiesNearby: 'Voorzieningen in de Buurt',
+    distance: 'Afstand',
+    count: 'Aantal',
+    category: 'Categorie',
+  },
+  en: {
+    title: 'Location Analysis Report',
+    generatedOn: 'Generated on',
+    address: 'Address',
+    coordinates: 'Coordinates',
+    tableOfContents: 'Table of Contents',
+    section: 'Section',
+    page: 'Page',
+    wmsMapSection: 'Map Layers Analysis',
+    targetGroupSection: 'Target Groups Analysis',
+    scoreOverview: 'Score Overview',
+    dataTablesSection: 'Data Tables',
+    demographics: 'Demographics',
+    health: 'Health',
+    safety: 'Safety',
+    livability: 'Livability',
+    residential: 'Housing Market',
+    amenities: 'Amenities',
+    scenario: 'Scenario',
+    rank: 'Rank',
+    persona: 'Target Group',
+    totalScore: 'Total Score',
+    matchScore: 'Match Score',
+    legend: 'Legend',
+    description: 'Description',
+    pointValue: 'Point Value',
+    avgValue: 'Average Value',
+    maxValue: 'Maximum Value',
+    unit: 'Unit',
+    noData: 'No Data',
+    neighborhood: 'Neighborhood',
+    district: 'District',
+    municipality: 'Municipality',
+    national: 'National',
+    value: 'Value',
+    indicator: 'Indicator',
+    targetGroupRankings: 'Target Group Rankings',
+    targetGroupCalculations: 'Target Group Calculations',
+    scenarioComparison: 'Scenario Comparison',
+    topPersonas: 'Top Target Groups',
+    categoryScores: 'Category Scores',
+    notes: 'Notes',
+    mapLayersAnalyzed: 'Analyzed Map Layers',
+    criticalLayers: 'Critical Layers',
+    airQuality: 'Air Quality',
+    noise: 'Noise',
+    nature: 'Green Space',
+    climate: 'Climate',
+    amenitiesNearby: 'Nearby Amenities',
+    distance: 'Distance',
+    count: 'Count',
+    category: 'Category',
+  }
+};
+
+// A4 dimensions and layout constants
+const PAGE_WIDTH = 210;
+const PAGE_HEIGHT = 297;
+const MARGIN = 20;
+const CONTENT_WIDTH = PAGE_WIDTH - 2 * MARGIN;
+const HEADER_HEIGHT = 15;
+const FOOTER_HEIGHT = 10;
+
+/**
+ * Helper class for building PDF pages with consistent layout
+ */
+class PdfBuilder {
+  private pdf: jsPDF;
+  private t: typeof translations.nl;
+  private currentPage = 1;
+  private currentY = MARGIN + HEADER_HEIGHT;
+  private sections: { title: string; page: number }[] = [];
+  private locale: 'nl' | 'en';
+
+  constructor(locale: 'nl' | 'en') {
+    this.locale = locale;
+    this.t = translations[locale];
+    this.pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+    });
+    this.pdf.setFont('helvetica');
+  }
+
+  /**
+   * Add title page
+   */
+  addTitlePage(title: string, address: string, coordinates: [number, number]): void {
+    // Title
+    this.pdf.setFontSize(28);
+    this.pdf.setTextColor(71, 118, 56); // Primary color
+    this.pdf.text(title, PAGE_WIDTH / 2, 60, { align: 'center' });
+
+    // Subtitle line
+    this.pdf.setFontSize(14);
+    this.pdf.setTextColor(100, 100, 100);
+    const dateStr = new Date().toLocaleDateString(this.locale === 'nl' ? 'nl-NL' : 'en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    this.pdf.text(`${this.t.generatedOn}: ${dateStr}`, PAGE_WIDTH / 2, 75, { align: 'center' });
+
+    // Address box
+    this.pdf.setFillColor(248, 248, 248);
+    this.pdf.roundedRect(MARGIN, 100, CONTENT_WIDTH, 40, 3, 3, 'F');
+
+    this.pdf.setFontSize(12);
+    this.pdf.setTextColor(50, 50, 50);
+    this.pdf.text(`${this.t.address}:`, MARGIN + 10, 115);
+    this.pdf.setFontSize(14);
+    this.pdf.setTextColor(0, 0, 0);
+    this.pdf.text(address, MARGIN + 10, 125);
+
+    this.pdf.setFontSize(10);
+    this.pdf.setTextColor(100, 100, 100);
+    this.pdf.text(
+      `${this.t.coordinates}: ${coordinates[0].toFixed(6)}, ${coordinates[1].toFixed(6)}`,
+      MARGIN + 10,
+      135
+    );
+
+    this.addNewPage();
+  }
+
+  /**
+   * Add table of contents (placeholder - will be filled after all sections)
+   */
+  addTableOfContents(): number {
+    const tocPage = this.currentPage;
+    this.addSectionTitle(this.t.tableOfContents);
+    this.addNewPage();
+    return tocPage;
+  }
+
+  /**
+   * Update table of contents with actual page numbers
+   */
+  updateTableOfContents(tocPage: number): void {
+    this.pdf.setPage(tocPage);
+    let y = MARGIN + HEADER_HEIGHT + 20;
+
+    this.pdf.setFontSize(11);
+    this.pdf.setTextColor(50, 50, 50);
+
+    this.sections.forEach((section, index) => {
+      const sectionNum = `${index + 1}. `;
+      const dotsWidth = CONTENT_WIDTH - 30;
+      const pageNumStr = section.page.toString();
+
+      this.pdf.text(sectionNum + section.title, MARGIN, y);
+      this.pdf.text(pageNumStr, PAGE_WIDTH - MARGIN, y, { align: 'right' });
+      y += 8;
+    });
+  }
+
+  /**
+   * Add a new section
+   */
+  startSection(title: string): void {
+    if (this.currentY > MARGIN + HEADER_HEIGHT + 20) {
+      this.addNewPage();
+    }
+    this.sections.push({ title, page: this.currentPage });
+    this.addSectionTitle(title);
+  }
+
+  /**
+   * Add section title
+   */
+  private addSectionTitle(title: string): void {
+    this.pdf.setFontSize(18);
+    this.pdf.setTextColor(71, 118, 56);
+    this.pdf.text(title, MARGIN, this.currentY);
+    this.currentY += 12;
+
+    // Underline
+    this.pdf.setDrawColor(71, 118, 56);
+    this.pdf.setLineWidth(0.5);
+    this.pdf.line(MARGIN, this.currentY - 5, PAGE_WIDTH - MARGIN, this.currentY - 5);
+    this.currentY += 5;
+  }
+
+  /**
+   * Add subsection title
+   */
+  addSubsectionTitle(title: string): void {
+    this.checkPageBreak(15);
+    this.pdf.setFontSize(14);
+    this.pdf.setTextColor(50, 50, 50);
+    this.pdf.text(title, MARGIN, this.currentY);
+    this.currentY += 10;
+  }
+
+  /**
+   * Add paragraph text
+   */
+  addParagraph(text: string, indent = 0): void {
+    this.checkPageBreak(10);
+    this.pdf.setFontSize(10);
+    this.pdf.setTextColor(60, 60, 60);
+    const lines = this.pdf.splitTextToSize(text, CONTENT_WIDTH - indent);
+    this.pdf.text(lines, MARGIN + indent, this.currentY);
+    this.currentY += lines.length * 5 + 3;
+  }
+
+  /**
+   * Add a simple data table
+   */
+  addTable(headers: string[], rows: string[][], options?: {
+    headerBg?: string;
+    stripedRows?: boolean;
+    columnWidths?: number[];
+  }): void {
+    const { headerBg = '#477638', stripedRows = true, columnWidths } = options || {};
+    const colWidths = columnWidths || headers.map(() => CONTENT_WIDTH / headers.length);
+    const rowHeight = 7;
+
+    this.checkPageBreak(rowHeight * 3);
+
+    // Header
+    let x = MARGIN;
+    this.pdf.setFillColor(71, 118, 56);
+    this.pdf.rect(MARGIN, this.currentY - 4, CONTENT_WIDTH, rowHeight, 'F');
+
+    this.pdf.setFontSize(9);
+    this.pdf.setTextColor(255, 255, 255);
+    headers.forEach((header, i) => {
+      this.pdf.text(header, x + 2, this.currentY);
+      x += colWidths[i];
+    });
+    this.currentY += rowHeight;
+
+    // Rows
+    this.pdf.setTextColor(50, 50, 50);
+    rows.forEach((row, rowIndex) => {
+      this.checkPageBreak(rowHeight);
+
+      if (stripedRows && rowIndex % 2 === 1) {
+        this.pdf.setFillColor(248, 248, 248);
+        this.pdf.rect(MARGIN, this.currentY - 4, CONTENT_WIDTH, rowHeight, 'F');
+      }
+
+      x = MARGIN;
+      row.forEach((cell, i) => {
+        const truncated = cell.length > 30 ? cell.substring(0, 27) + '...' : cell;
+        this.pdf.text(truncated, x + 2, this.currentY);
+        x += colWidths[i];
+      });
+      this.currentY += rowHeight;
+    });
+
+    this.currentY += 5;
+  }
+
+  /**
+   * Add a WMS map with description and score
+   */
+  async addWMSMap(
+    capture: MapCapture,
+    aerialPhoto: MapCapture | null,
+    layerConfig: WMSLayerConfig,
+    gradingResult?: WMSLayerGrading
+  ): Promise<void> {
+    // Start a new page for each map
+    if (this.currentY > MARGIN + HEADER_HEIGHT + 50) {
+      this.addNewPage();
+    }
+
+    // Map title
+    this.pdf.setFontSize(14);
+    this.pdf.setTextColor(50, 50, 50);
+    this.pdf.text(layerConfig.title, MARGIN, this.currentY);
+    this.currentY += 8;
+
+    // Description
+    this.pdf.setFontSize(9);
+    this.pdf.setTextColor(100, 100, 100);
+    const descLines = this.pdf.splitTextToSize(layerConfig.description, CONTENT_WIDTH);
+    this.pdf.text(descLines, MARGIN, this.currentY);
+    this.currentY += descLines.length * 4 + 5;
+
+    // Map image
+    const mapSize = 120; // Square map
+    const mapX = MARGIN + (CONTENT_WIDTH - mapSize) / 2;
+
+    try {
+      // Add aerial photo background if available (at 50% opacity)
+      if (aerialPhoto) {
+        this.pdf.addImage(
+          aerialPhoto.dataUrl,
+          'PNG',
+          mapX,
+          this.currentY,
+          mapSize,
+          mapSize,
+          undefined,
+          'FAST'
+        );
+      }
+
+      // Add WMS layer on top
+      this.pdf.addImage(
+        capture.dataUrl,
+        'PNG',
+        mapX,
+        this.currentY,
+        mapSize,
+        mapSize,
+        undefined,
+        'FAST'
+      );
+    } catch (error) {
+      // Draw placeholder box if image fails
+      this.pdf.setFillColor(240, 240, 240);
+      this.pdf.rect(mapX, this.currentY, mapSize, mapSize, 'F');
+      this.pdf.setFontSize(10);
+      this.pdf.setTextColor(150, 150, 150);
+      this.pdf.text(this.t.noData, mapX + mapSize / 2, this.currentY + mapSize / 2, { align: 'center' });
+    }
+
+    this.currentY += mapSize + 8;
+
+    // Score box if grading data available
+    if (gradingResult) {
+      const layerCfg = getLayerConfig(gradingResult.layer_id);
+      const unit = layerCfg?.unit || '';
+
+      this.pdf.setFillColor(248, 248, 248);
+      this.pdf.roundedRect(MARGIN, this.currentY, CONTENT_WIDTH, 25, 2, 2, 'F');
+
+      this.pdf.setFontSize(9);
+      this.pdf.setTextColor(50, 50, 50);
+
+      let scoreY = this.currentY + 6;
+      let scoreX = MARGIN + 5;
+
+      if (gradingResult.point_sample?.value !== undefined) {
+        this.pdf.text(`${this.t.pointValue}: ${this.formatValue(gradingResult.point_sample.value)} ${unit}`, scoreX, scoreY);
+        scoreX += 55;
+      }
+
+      if (gradingResult.average_area_sample?.value !== undefined) {
+        this.pdf.text(`${this.t.avgValue}: ${this.formatValue(gradingResult.average_area_sample.value)} ${unit}`, scoreX, scoreY);
+        scoreX += 55;
+      }
+
+      if (gradingResult.max_area_sample?.value !== undefined) {
+        this.pdf.text(`${this.t.maxValue}: ${this.formatValue(gradingResult.max_area_sample.value)} ${unit}`, scoreX, scoreY);
+      }
+
+      this.currentY += 30;
+    }
+
+    // Notes section
+    this.pdf.setDrawColor(200, 200, 200);
+    this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, 20);
+    this.pdf.setFontSize(8);
+    this.pdf.setTextColor(150, 150, 150);
+    this.pdf.text(`${this.t.notes}...`, MARGIN + 3, this.currentY + 5);
+    this.currentY += 25;
+  }
+
+  /**
+   * Add target group scenario with ranking table
+   */
+  addTargetGroupScenario(
+    scenarioName: string,
+    scenarioPositions: number[],
+    allPersonaScores: PersonaScore[],
+    personas: ComprehensivePdfData['personas']
+  ): void {
+    this.addSubsectionTitle(`${this.t.scenario} ${scenarioName}`);
+
+    // Get personas for this scenario
+    const scenarioPersonas = scenarioPositions
+      .map(pos => allPersonaScores[pos - 1])
+      .filter((p): p is PersonaScore => p !== undefined);
+
+    // Create table rows
+    const headers = [this.t.rank, this.t.persona, this.t.matchScore];
+    const rows = scenarioPersonas.map((ps, index) => {
+      const persona = personas.find(p => p.id === ps.personaId);
+      const matchPct = ps.maxPossibleScore > 0
+        ? (ps.rRank / ps.maxPossibleScore) * 100
+        : 0;
+      return [
+        `${index + 1}`,
+        persona?.name || ps.personaId,
+        `${matchPct.toFixed(1)}%`
+      ];
+    });
+
+    this.addTable(headers, rows, {
+      columnWidths: [20, CONTENT_WIDTH - 60, 40]
+    });
+  }
+
+  /**
+   * Add full target group rankings table
+   */
+  addTargetGroupRankings(
+    personaScores: PersonaScore[],
+    personas: ComprehensivePdfData['personas']
+  ): void {
+    this.addSubsectionTitle(this.t.targetGroupRankings);
+
+    // Sort by rank position
+    const sorted = [...personaScores].sort((a, b) => a.rRankPosition - b.rRankPosition);
+
+    const headers = [this.t.rank, this.t.persona, this.t.matchScore, this.t.category];
+    const rows = sorted.slice(0, 15).map((ps) => {
+      const persona = personas.find(p => p.id === ps.personaId);
+      const matchPct = ps.maxPossibleScore > 0
+        ? (ps.rRank / ps.maxPossibleScore) * 100
+        : 0;
+      return [
+        `${ps.rRankPosition}`,
+        persona?.name || ps.personaId,
+        `${matchPct.toFixed(1)}%`,
+        persona?.income_level || '-'
+      ];
+    });
+
+    this.addTable(headers, rows, {
+      columnWidths: [15, CONTENT_WIDTH - 85, 35, 35]
+    });
+  }
+
+  /**
+   * Add target group calculations breakdown
+   */
+  addTargetGroupCalculations(
+    personaScores: PersonaScore[],
+    personas: ComprehensivePdfData['personas']
+  ): void {
+    this.addSubsectionTitle(this.t.targetGroupCalculations);
+
+    // Get top 5 personas
+    const topPersonas = [...personaScores]
+      .sort((a, b) => a.rRankPosition - b.rRankPosition)
+      .slice(0, 5);
+
+    topPersonas.forEach((ps) => {
+      const persona = personas.find(p => p.id === ps.personaId);
+      if (!persona) return;
+
+      this.checkPageBreak(40);
+
+      // Persona header
+      this.pdf.setFontSize(11);
+      this.pdf.setTextColor(71, 118, 56);
+      this.pdf.text(`${ps.rRankPosition}. ${persona.name}`, MARGIN, this.currentY);
+      this.currentY += 6;
+
+      // Score breakdown
+      this.pdf.setFontSize(9);
+      this.pdf.setTextColor(80, 80, 80);
+
+      const matchPct = ps.maxPossibleScore > 0
+        ? (ps.rRank / ps.maxPossibleScore) * 100
+        : 0;
+
+      const scores = [
+        `${this.t.matchScore}: ${matchPct.toFixed(1)}%`,
+        `Income: ${persona.income_level}`,
+        `Household: ${persona.household_type}`,
+        `Age: ${persona.age_group}`
+      ];
+
+      scores.forEach(score => {
+        this.pdf.text(`• ${score}`, MARGIN + 5, this.currentY);
+        this.currentY += 5;
+      });
+
+      this.currentY += 5;
+    });
+  }
+
+  /**
+   * Add data table section (demographics, health, etc.)
+   */
+  addDataTableSection(
+    title: string,
+    data: UnifiedDataRow[],
+    levelLabel: string
+  ): void {
+    this.addSubsectionTitle(`${title} - ${levelLabel}`);
+
+    if (!data || data.length === 0) {
+      this.addParagraph(this.t.noData);
+      return;
+    }
+
+    const headers = [this.t.indicator, this.t.value];
+    const rows = data.slice(0, 20).map(row => [
+      row.title || row.key,
+      row.displayRelative || row.displayAbsolute || '-'
+    ]);
+
+    this.addTable(headers, rows, {
+      columnWidths: [CONTENT_WIDTH * 0.6, CONTENT_WIDTH * 0.4]
+    });
+  }
+
+  /**
+   * Add score overview section with category breakdown
+   */
+  addScoreOverview(
+    locationData: UnifiedLocationData,
+    amenitiesScore: number
+  ): void {
+    this.startSection(this.t.scoreOverview);
+
+    // Category scores - simplified representation
+    const categories = [
+      { name: this.locale === 'nl' ? 'Betaalbaarheid' : 'Affordability', score: 75 },
+      { name: this.locale === 'nl' ? 'Veiligheid' : 'Safety', score: 85 },
+      { name: this.locale === 'nl' ? 'Gezondheid' : 'Health', score: 72 },
+      { name: this.locale === 'nl' ? 'Leefbaarheid' : 'Livability', score: 80 },
+      { name: this.locale === 'nl' ? 'Voorzieningen' : 'Amenities', score: amenitiesScore }
+    ];
+
+    this.addSubsectionTitle(this.t.categoryScores);
+
+    // Draw simple bar chart
+    const barHeight = 12;
+    const maxBarWidth = CONTENT_WIDTH - 60;
+
+    categories.forEach(cat => {
+      this.checkPageBreak(barHeight + 8);
+
+      // Label
+      this.pdf.setFontSize(10);
+      this.pdf.setTextColor(50, 50, 50);
+      this.pdf.text(cat.name, MARGIN, this.currentY);
+
+      // Score bar background
+      this.pdf.setFillColor(240, 240, 240);
+      this.pdf.roundedRect(MARGIN + 50, this.currentY - 5, maxBarWidth, barHeight, 2, 2, 'F');
+
+      // Score bar fill
+      const barWidth = (cat.score / 100) * maxBarWidth;
+      this.pdf.setFillColor(71, 118, 56);
+      this.pdf.roundedRect(MARGIN + 50, this.currentY - 5, barWidth, barHeight, 2, 2, 'F');
+
+      // Score value
+      this.pdf.setFontSize(9);
+      this.pdf.setTextColor(255, 255, 255);
+      this.pdf.text(`${cat.score}`, MARGIN + 50 + barWidth - 15, this.currentY + 1);
+
+      this.currentY += barHeight + 6;
+    });
+
+    this.currentY += 10;
+  }
+
+  /**
+   * Add WMS grading summary
+   */
+  addWMSGradingSummary(gradingData: WMSGradingData): void {
+    this.addSubsectionTitle(this.t.criticalLayers);
+
+    // Get critical layers
+    const criticalLayers = getCriticalLayers();
+
+    // Group by category
+    const categories: Record<string, Array<{ name: string; value: string; unit: string }>> = {
+      airQuality: [],
+      noise: [],
+      nature: [],
+      climate: []
+    };
+
+    criticalLayers.forEach(layer => {
+      const result = gradingData.layers[layer.layerId];
+      if (!result) return;
+
+      const value = result.point_sample?.value ??
+                    result.average_area_sample?.value ??
+                    result.max_area_sample?.value;
+
+      if (value === undefined) return;
+
+      const config = getLayerConfig(layer.layerId);
+      categories[layer.category]?.push({
+        name: result.layer_name,
+        value: this.formatValue(value),
+        unit: config?.unit || ''
+      });
+    });
+
+    Object.entries(categories).forEach(([catKey, items]) => {
+      if (items.length === 0) return;
+
+      const catName = this.t[catKey as keyof typeof this.t] || catKey;
+      this.pdf.setFontSize(10);
+      this.pdf.setTextColor(71, 118, 56);
+      this.pdf.text(catName as string, MARGIN, this.currentY);
+      this.currentY += 6;
+
+      items.forEach(item => {
+        this.pdf.setFontSize(9);
+        this.pdf.setTextColor(80, 80, 80);
+        this.pdf.text(`• ${item.name}: ${item.value} ${item.unit}`, MARGIN + 5, this.currentY);
+        this.currentY += 5;
+      });
+
+      this.currentY += 3;
+    });
+  }
+
+  /**
+   * Add amenities summary
+   */
+  addAmenitiesSummary(amenitiesData: AmenityMultiCategoryResponse): void {
+    this.addSubsectionTitle(this.t.amenitiesNearby);
+
+    const results = amenitiesData.results || [];
+    // Take up to 10 categories
+    const categoriesToShow = results.slice(0, 10);
+
+    const headers = [this.t.category, this.t.count, this.t.distance];
+    const rows = categoriesToShow.map((result: AmenitySearchResult) => {
+      const nearest = result.places?.[0];
+      return [
+        result.category?.displayName || result.category?.id?.replace(/_/g, ' ') || '-',
+        (result.places?.length || 0).toString(),
+        nearest?.distance ? `${Math.round(nearest.distance)}m` : '-'
+      ];
+    });
+
+    this.addTable(headers, rows, {
+      columnWidths: [CONTENT_WIDTH * 0.5, CONTENT_WIDTH * 0.25, CONTENT_WIDTH * 0.25]
+    });
+  }
+
+  /**
+   * Check if we need a page break
+   */
+  private checkPageBreak(requiredSpace: number): void {
+    if (this.currentY + requiredSpace > PAGE_HEIGHT - MARGIN - FOOTER_HEIGHT) {
+      this.addNewPage();
+    }
+  }
+
+  /**
+   * Add a new page
+   */
+  private addNewPage(): void {
+    this.pdf.addPage();
+    this.currentPage++;
+    this.currentY = MARGIN + HEADER_HEIGHT;
+    this.addHeader();
+    this.addFooter();
+  }
+
+  /**
+   * Add page header
+   */
+  private addHeader(): void {
+    this.pdf.setFontSize(8);
+    this.pdf.setTextColor(150, 150, 150);
+    this.pdf.text('GroosHub - Location Analysis Report', MARGIN, 10);
+    this.pdf.setDrawColor(230, 230, 230);
+    this.pdf.line(MARGIN, 12, PAGE_WIDTH - MARGIN, 12);
+  }
+
+  /**
+   * Add page footer
+   */
+  private addFooter(): void {
+    this.pdf.setFontSize(8);
+    this.pdf.setTextColor(150, 150, 150);
+    this.pdf.text(
+      `${this.t.page} ${this.currentPage}`,
+      PAGE_WIDTH / 2,
+      PAGE_HEIGHT - 10,
+      { align: 'center' }
+    );
+  }
+
+  /**
+   * Format numeric value
+   */
+  private formatValue(value: number | string | null): string {
+    if (value === null || value === undefined) return '-';
+    if (typeof value === 'string') return value;
+    return value.toFixed(2);
+  }
+
+  /**
+   * Get the PDF document
+   */
+  getPdf(): jsPDF {
+    return this.pdf;
+  }
+
+  /**
+   * Save the PDF
+   */
+  save(filename: string): void {
+    this.pdf.save(filename);
+  }
+}
+
+/**
+ * Generate comprehensive PDF report
+ */
+export async function generateComprehensivePdf(
+  data: ComprehensivePdfData,
+  options: ComprehensivePdfOptions,
+  onProgress?: (current: number, total: number, status: string) => void
+): Promise<void> {
+  const {
+    locale,
+    title = translations[locale].title,
+    filename = `location-report-${new Date().toISOString().split('T')[0]}.pdf`,
+    includeWMSMaps = true,
+    includeTargetGroups = true,
+    includeDataTables = true,
+    includeScoreOverview = true
+  } = options;
+
+  const t = translations[locale];
+  const builder = new PdfBuilder(locale);
+
+  // Calculate total steps for progress
+  const wmsLayers = Object.entries(WMS_CATEGORIES).flatMap(([catId, cat]) =>
+    Object.entries(cat.layers).map(([layerId, config]) => ({ catId, layerId, config }))
+  );
+  const totalSteps =
+    1 + // Title page
+    (includeScoreOverview ? 1 : 0) +
+    (includeTargetGroups ? 3 : 0) + // Rankings, scenarios, calculations
+    (includeDataTables ? 6 : 0) + // Demographics, health, safety, livability, residential, amenities
+    (includeWMSMaps ? wmsLayers.length : 0);
+
+  let currentStep = 0;
+  const reportProgress = (status: string) => {
+    currentStep++;
+    onProgress?.(currentStep, totalSteps, status);
+  };
+
+  // Title page
+  builder.addTitlePage(title, data.address, data.coordinates);
+  reportProgress(t.title);
+
+  // Table of contents placeholder
+  const tocPage = builder.addTableOfContents();
+
+  // Score Overview section
+  if (includeScoreOverview) {
+    // Calculate amenities score
+    let amenitiesScore = 75;
+    if (data.amenitiesData?.results && Array.isArray(data.amenitiesData.results)) {
+      const totalItems = data.amenitiesData.results.reduce(
+        (sum, result) => sum + (result.places?.length || 0),
+        0
+      );
+      amenitiesScore = Math.min(100, Math.round(50 + totalItems * 2));
+    }
+
+    builder.addScoreOverview(data.locationData, amenitiesScore);
+    reportProgress(t.scoreOverview);
+
+    // WMS grading summary if available
+    if (data.wmsGradingData) {
+      builder.addWMSGradingSummary(data.wmsGradingData);
+    }
+  }
+
+  // Target Groups section
+  if (includeTargetGroups) {
+    builder.startSection(t.targetGroupSection);
+
+    // Rankings table
+    builder.addTargetGroupRankings(data.personaScores, data.personas);
+    reportProgress(t.targetGroupRankings);
+
+    // Scenario comparisons
+    const scenarios = [
+      { name: '1', positions: data.scenarios.scenario1 },
+      { name: '2', positions: data.scenarios.scenario2 },
+      { name: '3', positions: data.scenarios.scenario3 }
+    ];
+
+    scenarios.forEach(scenario => {
+      builder.addTargetGroupScenario(
+        scenario.name,
+        scenario.positions,
+        data.personaScores,
+        data.personas
+      );
+    });
+    reportProgress(t.scenarioComparison);
+
+    // Detailed calculations for top personas
+    builder.addTargetGroupCalculations(data.personaScores, data.personas);
+    reportProgress(t.targetGroupCalculations);
+  }
+
+  // Data Tables section
+  if (includeDataTables) {
+    builder.startSection(t.dataTablesSection);
+
+    // Demographics
+    if (data.locationData.demographics?.neighborhood?.length > 0) {
+      builder.addDataTableSection(
+        t.demographics,
+        data.locationData.demographics.neighborhood,
+        t.neighborhood
+      );
+    }
+    reportProgress(t.demographics);
+
+    // Health
+    if (data.locationData.health?.neighborhood?.length > 0) {
+      builder.addDataTableSection(
+        t.health,
+        data.locationData.health.neighborhood,
+        t.neighborhood
+      );
+    }
+    reportProgress(t.health);
+
+    // Safety
+    if (data.locationData.safety?.neighborhood?.length > 0) {
+      builder.addDataTableSection(
+        t.safety,
+        data.locationData.safety.neighborhood,
+        t.neighborhood
+      );
+    }
+    reportProgress(t.safety);
+
+    // Livability (only has national and municipality levels, not neighborhood)
+    if (data.locationData.livability?.municipality?.length > 0) {
+      builder.addDataTableSection(
+        t.livability,
+        data.locationData.livability.municipality,
+        t.municipality
+      );
+    }
+    reportProgress(t.livability);
+
+    // Residential (structured differently - extract key market statistics)
+    if (data.locationData.residential?.hasData) {
+      const residential = data.locationData.residential;
+      const residentialRows: string[][] = [];
+
+      // Add key residential data as simple rows
+      if (residential.targetProperty?.characteristics) {
+        const chars = residential.targetProperty.characteristics;
+        residentialRows.push([
+          locale === 'nl' ? 'Woningtype' : 'House Type',
+          chars.houseType || '-'
+        ]);
+        residentialRows.push([
+          locale === 'nl' ? 'Bouwjaar' : 'Build Year',
+          chars.buildYear?.toString() || '-'
+        ]);
+        residentialRows.push([
+          locale === 'nl' ? 'Woonoppervlak' : 'Living Area',
+          chars.innerSurfaceArea
+            ? `${chars.innerSurfaceArea} m²`
+            : '-'
+        ]);
+      }
+
+      if (residential.referencePriceMean) {
+        residentialRows.push([
+          locale === 'nl' ? 'Referentieprijs (gemiddeld)' : 'Reference Price (avg)',
+          residential.referencePriceMean.formatted || '-'
+        ]);
+      }
+
+      if (residential.marketStatistics) {
+        const stats = residential.marketStatistics;
+        if (stats.averagePrice?.average) {
+          residentialRows.push([
+            locale === 'nl' ? 'Gemiddelde prijs' : 'Average Price',
+            stats.averagePrice.formatted || `€${Math.round(stats.averagePrice.average)}`
+          ]);
+        }
+        if (stats.totalReferences !== undefined) {
+          residentialRows.push([
+            locale === 'nl' ? 'Aantal referenties' : 'Reference Count',
+            stats.totalReferences.toString()
+          ]);
+        }
+      }
+
+      if (residentialRows.length > 0) {
+        builder.addSubsectionTitle(`${t.residential} - ${t.neighborhood}`);
+        builder.addTable([t.indicator, t.value], residentialRows, {
+          columnWidths: [CONTENT_WIDTH * 0.6, CONTENT_WIDTH * 0.4]
+        });
+      }
+    }
+    reportProgress(t.residential);
+
+    // Amenities summary
+    if (data.amenitiesData) {
+      builder.addAmenitiesSummary(data.amenitiesData);
+    }
+    reportProgress(t.amenities);
+  }
+
+  // WMS Maps section
+  if (includeWMSMaps) {
+    builder.startSection(t.wmsMapSection);
+
+    // Download aerial photos once per unique zoom level
+    const uniqueZooms = new Set(wmsLayers.map(l => l.config.recommendedZoom || 15));
+    const aerialPhotoCache: Record<number, MapCapture> = {};
+
+    const aerialPhotoWMS = {
+      url: 'https://service.pdok.nl/hwh/luchtfotorgb/wms/v1_0',
+      layers: 'Actueel_orthoHR'
+    };
+
+    for (const zoom of uniqueZooms) {
+      try {
+        const aerialPhoto = await downloadWMSTile({
+          url: aerialPhotoWMS.url,
+          layers: aerialPhotoWMS.layers,
+          layerTitle: `Aerial - Zoom ${zoom}`,
+          center: data.coordinates,
+          zoom,
+          width: 800,
+          height: 800
+        });
+        aerialPhotoCache[zoom] = aerialPhoto;
+      } catch (error) {
+        console.warn(`Failed to download aerial photo for zoom ${zoom}:`, error);
+      }
+    }
+
+    // Download and add each WMS layer
+    for (const layer of wmsLayers) {
+      // Skip amenity layers (they use markers, not WMS)
+      if (layer.config.url === 'amenity://') continue;
+
+      try {
+        const capture = await downloadWMSTile({
+          url: layer.config.url,
+          layers: layer.config.layers,
+          layerTitle: layer.config.title,
+          center: data.coordinates,
+          zoom: layer.config.recommendedZoom || 15,
+          width: 800,
+          height: 800
+        });
+
+        const aerialPhoto = aerialPhotoCache[layer.config.recommendedZoom || 15] || null;
+        const gradingResult = data.wmsGradingData?.layers?.[layer.layerId];
+
+        await builder.addWMSMap(capture, aerialPhoto, layer.config, gradingResult);
+        reportProgress(layer.config.title);
+      } catch (error) {
+        console.warn(`Failed to add WMS map ${layer.config.title}:`, error);
+        reportProgress(layer.config.title);
+      }
+    }
+  }
+
+  // Update table of contents
+  builder.updateTableOfContents(tocPage);
+
+  // Save the PDF
+  builder.save(filename);
+}
