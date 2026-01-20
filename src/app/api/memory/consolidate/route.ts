@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
         console.log(`[Memory Consolidation] Processing user ${user.user_id} (${user.summary_count} summaries)`);
 
         // Get all summaries created today for this user
-        const todaySummaries = await db`
+        const todaySummariesRaw = await db`
           SELECT
             cs.summary_text,
             cs.key_points,
@@ -145,6 +145,13 @@ export async function POST(request: NextRequest) {
             AND cc.deleted_at IS NULL
           ORDER BY cs.created_at ASC;
         `;
+
+        // Cast to proper type
+        const todaySummaries = todaySummariesRaw as Array<{
+          summary_text: string;
+          key_points: unknown;
+          chat_title: string | null;
+        }>;
 
         if (todaySummaries.length === 0) {
           results.push({
