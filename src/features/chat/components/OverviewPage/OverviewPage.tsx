@@ -276,8 +276,9 @@ export function OverviewPage({ locale, className, isEntering = false }: Overview
           throw new Error(data.error || 'Failed to create chat');
         }
 
-        // Navigate to the new chat with initial message
-        router.push(`/${locale}/ai-assistant?chat=${data.chat.id}&message=${encodeURIComponent(message)}`);
+        // Navigate to the new chat with initial message and file IDs
+        const fileIdsParam = files && files.length > 0 ? `&fileIds=${files.map(f => f.id).join(',')}` : '';
+        router.push(`/${locale}/ai-assistant?chat=${data.chat.id}&message=${encodeURIComponent(message)}${fileIdsParam}`);
       } catch (error) {
         console.error('[OverviewPage] Error creating chat:', error);
         setIsCreatingChat(false);

@@ -43,10 +43,11 @@ export interface ChatUIProps {
   chatId?: string; // Optional: for loading existing chats
   projectId?: string; // Optional: for project-specific chats
   initialMessage?: string; // Optional: message to send automatically on load
+  initialFileIds?: string[]; // Optional: file IDs to include with the initial message
   isEntering?: boolean; // Optional: signals that the component is entering (for animations)
 }
 
-export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering = false }: ChatUIProps) {
+export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileIds, isEntering = false }: ChatUIProps) {
   const [selectedModel, setSelectedModel] = useState<ModelId>(DEFAULT_MODEL);
   const [input, setInput] = useState('');
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
@@ -207,6 +208,7 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
   // Track if initial message has been sent
   const initialMessageSentRef = useRef(false);
   const pendingInitialMessageRef = useRef<string | null>(null);
+  const pendingInitialFileIdsRef = useRef<string[] | null>(initialFileIds || null);
 
   // Auto-send initial message when provided and chat is ready
   useEffect(() => {
@@ -278,10 +280,18 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
     setInput(''); // Clear input immediately
     const currentFiles = [...uploadedFiles];
 
+    // Check for pending initial file IDs (from URL when navigating from OverviewPage)
+    const initialFileIdsToUse = pendingInitialFileIdsRef.current;
+    if (initialFileIdsToUse) {
+      pendingInitialFileIdsRef.current = null; // Clear after use
+      console.log('[ChatUI] 📎 Using initial file IDs from URL:', initialFileIdsToUse);
+    }
+
     console.log('[ChatUI] 📎 Files at submit time:', {
       uploadedFilesCount: uploadedFiles.length,
       currentFilesCount: currentFiles.length,
-      files: currentFiles.map(f => ({ id: f.id, name: f.name, type: f.type }))
+      files: currentFiles.map(f => ({ id: f.id, name: f.name, type: f.type })),
+      initialFileIds: initialFileIdsToUse
     });
 
     setUploadedFiles([]); // Clear uploaded files
@@ -305,12 +315,16 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
       console.log(`[ChatUI] Stored ${imageAttachments.length} pending image attachments`);
     }
 
+    // Combine file IDs from uploaded files and initial file IDs (from URL)
+    const uploadedFileIds = currentFiles.filter(f => f.id).map(f => f.id);
+    const allFileIds = [...uploadedFileIds, ...(initialFileIdsToUse || [])];
+
     // Build base metadata
     const baseMetadata: any = {
       chatId: currentChatIdRef.current,
       modelId: selectedModel,
       locale: locale,
-      fileIds: currentFiles.filter(f => f.id).map(f => f.id),
+      fileIds: allFileIds,
       ...(projectId && { projectId }), // Include projectId if provided (for project-specific chats)
     };
 
