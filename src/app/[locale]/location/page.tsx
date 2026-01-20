@@ -490,10 +490,9 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
       if (activeTab === 'kaarten') {
         // Use exact geocoded coordinates from the address search
         // These are already in WGS84 format (latitude/longitude)
-        const coordinates: [number, number] = [
-          data.location.coordinates.wgs84.latitude,
-          data.location.coordinates.wgs84.longitude,
-        ];
+        const lat = data.location.coordinates.wgs84.latitude;
+        const lng = data.location.coordinates.wgs84.longitude;
+        const coordinates: [number, number] = [lat, lng];
 
         // Build location name
         const locationName = [
@@ -519,10 +518,10 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
           if (!radius) return null;
 
           return {
-            center: coordinates,
+            center: [lat, lng] as [number, number],
             radius: radius
           };
-        }, [selectedWMSLayer, wmsGrading.gradingData, coordinates]);
+        }, [selectedWMSLayer, wmsGrading.gradingData, lat, lng]);
 
         return (
           <div className="h-full w-full relative">
