@@ -20,7 +20,7 @@ export interface ImageAttachmentProps {
 export function ImageAttachment({
   imageUrl,
   onClick,
-  maxWidth = 300,
+  maxWidth = 120,
   alt = 'Attached image',
 }: ImageAttachmentProps) {
   const [isLoading, setIsLoading] = useState(true);
@@ -33,27 +33,28 @@ export function ImageAttachment({
       className={cn(
         'relative rounded-lg overflow-hidden cursor-pointer',
         'hover:opacity-90 transition-opacity',
-        'border border-gray-200 shadow-sm'
+        'border border-gray-200 shadow-sm',
+        'bg-gray-100' // Ensure background is visible
       )}
-      style={{ maxWidth: `${maxWidth}px` }}
+      style={{ maxWidth: `${maxWidth}px`, minHeight: isLoading ? '100px' : 'auto' }}
       onClick={onClick}
     >
       {/* Loading State */}
       {isLoading && !hasError && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
           <div className="flex flex-col items-center gap-2">
-            <div className="w-8 h-8 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
-            <p className="text-xs text-gray-500">Loading image...</p>
+            <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+            <p className="text-xs text-gray-500">Loading...</p>
           </div>
         </div>
       )}
 
       {/* Error State */}
       {hasError && (
-        <div className="flex items-center justify-center bg-gray-100 p-4">
+        <div className="flex items-center justify-center bg-gray-100 p-4 min-h-[100px]">
           <div className="text-center">
             <svg
-              className="w-12 h-12 text-gray-400 mx-auto mb-2"
+              className="w-8 h-8 text-gray-400 mx-auto mb-2"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -66,7 +67,7 @@ export function ImageAttachment({
                 d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
               />
             </svg>
-            <p className="text-xs text-gray-600">Failed to load image</p>
+            <p className="text-xs text-gray-600">Failed to load</p>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -81,13 +82,12 @@ export function ImageAttachment({
         </div>
       )}
 
-      {/* Image */}
+      {/* Image - removed lazy loading for data URLs */}
       <img
         src={imageUrlString}
         alt={alt}
-        loading="lazy"
         className={cn(
-          'w-full h-auto',
+          'w-full h-auto block',
           isLoading && 'invisible',
           hasError && 'hidden'
         )}
