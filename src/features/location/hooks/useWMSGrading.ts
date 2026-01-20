@@ -149,17 +149,18 @@ export function useWMSGrading(options: UseWMSGradingOptions): UseWMSGradingRetur
   useEffect(() => {
     // If we have existing valid grading data, use it
     if (hasValidGradingData()) {
-      setGradingData(existingGradingData as WMSGradingData);
+      // Safe cast: hasValidGradingData() validates structure at runtime
+      const validatedData = existingGradingData as unknown as WMSGradingData;
+      setGradingData(validatedData);
       setIsCriticalComplete(true);
       setProgress(100);
 
       // Count successful layers
-      const data = existingGradingData as WMSGradingData;
-      const successful = Object.values(data.layers).filter(
+      const successful = Object.values(validatedData.layers).filter(
         layer => layer.point_sample || layer.average_area_sample || layer.max_area_sample
       ).length;
       setLayersCompleted(successful);
-      setLayersTotal(Object.keys(data.layers).length);
+      setLayersTotal(Object.keys(validatedData.layers).length);
 
       return;
     }
