@@ -6,6 +6,7 @@ import { Button } from '../../../../shared/components/UI';
 import { AlertDialog } from '@/shared/components/UI/Modal/AlertDialog';
 import {
   generateComprehensivePdf,
+  isValidNetherlandsCoordinate,
   type ComprehensivePdfData,
   type ComprehensivePdfOptions
 } from '../../utils/comprehensivePdfExport';
@@ -80,6 +81,9 @@ export const ComprehensivePdfExportButton: React.FC<ComprehensivePdfExportButton
     message: ''
   });
 
+  // Check if coordinates are valid for Netherlands WMS services
+  const hasValidCoordinates = isValidNetherlandsCoordinate(coordinates[0], coordinates[1]);
+
   const t = {
     nl: {
       title: 'Volledig PDF Rapport',
@@ -100,7 +104,9 @@ export const ComprehensivePdfExportButton: React.FC<ComprehensivePdfExportButton
       wmsContents: 'Alle WMS kaartlagen met beschrijving, legenda en gemeten waarden',
       targetGroupContents: 'Doelgroep rangschikking, scenario vergelijkingen en berekeningen',
       dataTableContents: 'Tabellen voor demografie, gezondheid, veiligheid, leefbaarheid en voorzieningen',
-      scoreContents: 'Score overzicht met categorieaanduiding'
+      scoreContents: 'Score overzicht met categorieaanduiding',
+      coordWarning: 'Waarschuwing: De coördinaten zijn ongeldig of niet geladen. Kaartlagen worden niet opgenomen in het rapport. Probeer de locatie opnieuw te zoeken of een andere snapshot te laden.',
+      coordInvalid: 'Coördinaten: ongeldig'
     },
     en: {
       title: 'Complete PDF Report',
@@ -121,7 +127,9 @@ export const ComprehensivePdfExportButton: React.FC<ComprehensivePdfExportButton
       wmsContents: 'All WMS map layers with description, legend, and measured values',
       targetGroupContents: 'Target group rankings, scenario comparisons, and calculations',
       dataTableContents: 'Tables for demographics, health, safety, livability, and amenities',
-      scoreContents: 'Score overview with category breakdown'
+      scoreContents: 'Score overview with category breakdown',
+      coordWarning: 'Warning: Coordinates are invalid or not loaded. Map layers will not be included in the report. Try searching for the location again or load a different snapshot.',
+      coordInvalid: 'Coordinates: invalid'
     }
   }[locale];
 
@@ -181,6 +189,21 @@ export const ComprehensivePdfExportButton: React.FC<ComprehensivePdfExportButton
         <h4 className="text-sm font-semibold text-gray-900 mb-1">{t.title}</h4>
         <p className="text-xs text-gray-600">{t.description}</p>
       </div>
+
+      {/* Coordinate Warning */}
+      {!hasValidCoordinates && exportOptions.includeWMSMaps && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs">
+          <div className="flex items-start gap-2">
+            <svg className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+              <p className="text-amber-800 font-medium mb-1">{t.coordInvalid}</p>
+              <p className="text-amber-700">{t.coordWarning}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Contents list */}
       <div className="bg-gray-50 rounded-lg p-3 text-xs space-y-2">

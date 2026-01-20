@@ -121,6 +121,7 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
       const { data: snapshotData } = await response.json();
 
       // Transform to AccessibleLocation format
+      // Structure must match UnifiedLocationData with location.coordinates.wgs84 nesting
       const accessibleLocation: AccessibleLocation = {
         id: snapshotData.id,
         userId: snapshotData.user_id,
@@ -131,12 +132,24 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
           lng: snapshotData.longitude,
         },
         locationData: {
-          address: snapshotData.address,
-          latitude: snapshotData.latitude,
-          longitude: snapshotData.longitude,
-          neighborhood: snapshotData.neighborhood_code ? { statcode: snapshotData.neighborhood_code } : null,
-          district: snapshotData.district_code ? { statcode: snapshotData.district_code } : null,
-          municipality: snapshotData.municipality_code ? { statcode: snapshotData.municipality_code } : null,
+          // Location data with proper coordinate nesting
+          location: {
+            address: snapshotData.address,
+            coordinates: {
+              wgs84: {
+                latitude: snapshotData.latitude,
+                longitude: snapshotData.longitude,
+              },
+              rd: {
+                x: 0,
+                y: 0,
+              }
+            },
+            neighborhood: snapshotData.neighborhood_code ? { statcode: snapshotData.neighborhood_code } : null,
+            district: snapshotData.district_code ? { statcode: snapshotData.district_code } : null,
+            municipality: snapshotData.municipality_code ? { statcode: snapshotData.municipality_code } : null,
+          },
+          // Data sections at root level
           demographics: snapshotData.demographics_data || {},
           health: snapshotData.health_data || {},
           safety: snapshotData.safety_data || {},

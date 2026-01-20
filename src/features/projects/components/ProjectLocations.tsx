@@ -170,16 +170,29 @@ export function ProjectLocations({ projectId, locale }: ProjectLocationsProps) {
       const { data: snapshotData } = await res.json();
 
       // Store snapshot data in sessionStorage for the location page to retrieve
+      // Structure must match UnifiedLocationData with location.coordinates.wgs84 nesting
       sessionStorage.setItem('grooshub_load_snapshot', JSON.stringify({
         snapshotId: snapshotData.id, // Include snapshot ID for WMS grading
         address: snapshotData.address,
         locationData: {
-          address: snapshotData.address,
-          latitude: snapshotData.latitude,
-          longitude: snapshotData.longitude,
-          neighborhood: snapshotData.neighborhood_code ? { statcode: snapshotData.neighborhood_code } : null,
-          district: snapshotData.district_code ? { statcode: snapshotData.district_code } : null,
-          municipality: snapshotData.municipality_code ? { statcode: snapshotData.municipality_code } : null,
+          // Location data with proper coordinate nesting
+          location: {
+            address: snapshotData.address,
+            coordinates: {
+              wgs84: {
+                latitude: snapshotData.latitude,
+                longitude: snapshotData.longitude,
+              },
+              rd: {
+                x: 0,
+                y: 0,
+              }
+            },
+            neighborhood: snapshotData.neighborhood_code ? { statcode: snapshotData.neighborhood_code } : null,
+            district: snapshotData.district_code ? { statcode: snapshotData.district_code } : null,
+            municipality: snapshotData.municipality_code ? { statcode: snapshotData.municipality_code } : null,
+          },
+          // Data sections at root level
           demographics: snapshotData.demographics_data || {},
           health: snapshotData.health_data || {},
           safety: snapshotData.safety_data || {},

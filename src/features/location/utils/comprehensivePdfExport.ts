@@ -167,6 +167,31 @@ const CONTENT_WIDTH = PAGE_WIDTH - 2 * MARGIN;
 const HEADER_HEIGHT = 15;
 const FOOTER_HEIGHT = 10;
 
+// Netherlands bounding box (approximate)
+const NL_BOUNDS = {
+  minLat: 50.75,
+  maxLat: 53.55,
+  minLng: 3.35,
+  maxLng: 7.25,
+};
+
+/**
+ * Check if coordinates are valid for Netherlands WMS services
+ */
+export function isValidNetherlandsCoordinate(lat: number, lng: number): boolean {
+  // Check for [0, 0] or invalid coordinates
+  if (lat === 0 && lng === 0) return false;
+  if (isNaN(lat) || isNaN(lng)) return false;
+
+  // Check if within Netherlands bounds
+  return (
+    lat >= NL_BOUNDS.minLat &&
+    lat <= NL_BOUNDS.maxLat &&
+    lng >= NL_BOUNDS.minLng &&
+    lng <= NL_BOUNDS.maxLng
+  );
+}
+
 /**
  * Helper class for building PDF pages with consistent layout
  */
@@ -1018,57 +1043,90 @@ export async function generateComprehensivePdf(
   if (includeWMSMaps) {
     builder.startSection(t.wmsMapSection);
 
-    // Download aerial photos once per unique zoom level
-    const uniqueZooms = new Set(wmsLayers.map(l => l.config.recommendedZoom || 15));
-    const aerialPhotoCache: Record<number, MapCapture> = {};
+    // Validate coordinates before attempting WMS downloads
+    const [lat, lng] = data.coordinates;
+    const hasValidCoordinates = isValidNetherlandsCoordinate(lat, lng);
 
-    const aerialPhotoWMS = {
-      url: 'https://service.pdok.nl/hwh/luchtfotorgb/wms/v1_0',
-      layers: 'Actueel_orthoHR'
-    };
+    if (!hasValidCoordinates) {
+      // Add a message explaining why maps are not available
+      const noMapsMessage = locale === 'nl'
+        ? 'Kaartlagen konden niet worden gegenereerd. De coördinaten zijn ongeldig of bevinden zich buiten Nederland. Controleer of de locatiegegevens correct zijn geladen.'
+        : 'Map layers could not be generated. The coordinates are invalid or outside the Netherlands. Please verify the location data was loaded correctly.';
 
-    for (const zoom of uniqueZooms) {
-      try {
-        const aerialPhoto = await downloadWMSTile({
-          url: aerialPhotoWMS.url,
-          layers: aerialPhotoWMS.layers,
-          layerTitle: `Aerial - Zoom ${zoom}`,
-          center: data.coordinates,
-          zoom,
-          width: 800,
-          height: 800
-        });
-        aerialPhotoCache[zoom] = aerialPhoto;
-      } catch (error) {
-        console.warn(`Failed to download aerial photo for zoom ${zoom}:`, error);
+      builder.addParagraph(noMapsMessage);
+      console.warn(`Invalid coordinates for WMS maps: [${lat}, ${lng}]. Maps section skipped.`);
+
+      // Mark all WMS layer progress as complete (skipped)
+      wmsLayers.forEach(layer => {
+        if (layer.config.url !== 'amenity://') {
+          reportProgress(`${layer.config.title} (skipped)`);
+        }
+      });
+    } else {
+      // Download aerial photos once per unique zoom level
+      const uniqueZooms = new Set(wmsLayers.map(l => l.config.recommendedZoom || 15));
+      const aerialPhotoCache: Record<number, MapCapture> = {};
+
+      const aerialPhotoWMS = {
+        url: 'https://service.pdok.nl/hwh/luchtfotorgb/wms/v1_0',
+        layers: 'Actueel_orthoHR'
+      };
+
+      console.log(`Starting WMS map downloads for coordinates: [${lat}, ${lng}]`);
+
+      for (const zoom of uniqueZooms) {
+        try {
+          const aerialPhoto = await downloadWMSTile({
+            url: aerialPhotoWMS.url,
+            layers: aerialPhotoWMS.layers,
+            layerTitle: `Aerial - Zoom ${zoom}`,
+            center: data.coordinates,
+            zoom,
+            width: 800,
+            height: 800
+          });
+          aerialPhotoCache[zoom] = aerialPhoto;
+          console.log(`Downloaded aerial photo for zoom ${zoom}`);
+        } catch (error) {
+          console.warn(`Failed to download aerial photo for zoom ${zoom}:`, error);
+        }
       }
-    }
 
-    // Download and add each WMS layer
-    for (const layer of wmsLayers) {
-      // Skip amenity layers (they use markers, not WMS)
-      if (layer.config.url === 'amenity://') continue;
+      // Track successful and failed downloads
+      let successCount = 0;
+      let failCount = 0;
 
-      try {
-        const capture = await downloadWMSTile({
-          url: layer.config.url,
-          layers: layer.config.layers,
-          layerTitle: layer.config.title,
-          center: data.coordinates,
-          zoom: layer.config.recommendedZoom || 15,
-          width: 800,
-          height: 800
-        });
+      // Download and add each WMS layer
+      for (const layer of wmsLayers) {
+        // Skip amenity layers (they use markers, not WMS)
+        if (layer.config.url === 'amenity://') continue;
 
-        const aerialPhoto = aerialPhotoCache[layer.config.recommendedZoom || 15] || null;
-        const gradingResult = data.wmsGradingData?.layers?.[layer.layerId];
+        try {
+          console.log(`Downloading WMS layer: ${layer.config.title}`);
+          const capture = await downloadWMSTile({
+            url: layer.config.url,
+            layers: layer.config.layers,
+            layerTitle: layer.config.title,
+            center: data.coordinates,
+            zoom: layer.config.recommendedZoom || 15,
+            width: 800,
+            height: 800
+          });
 
-        await builder.addWMSMap(capture, aerialPhoto, layer.config, gradingResult);
-        reportProgress(layer.config.title);
-      } catch (error) {
-        console.warn(`Failed to add WMS map ${layer.config.title}:`, error);
-        reportProgress(layer.config.title);
+          const aerialPhoto = aerialPhotoCache[layer.config.recommendedZoom || 15] || null;
+          const gradingResult = data.wmsGradingData?.layers?.[layer.layerId];
+
+          await builder.addWMSMap(capture, aerialPhoto, layer.config, gradingResult);
+          successCount++;
+          reportProgress(layer.config.title);
+        } catch (error) {
+          console.warn(`Failed to add WMS map ${layer.config.title}:`, error);
+          failCount++;
+          reportProgress(layer.config.title);
+        }
       }
+
+      console.log(`WMS map downloads complete: ${successCount} successful, ${failCount} failed`);
     }
   }
 
