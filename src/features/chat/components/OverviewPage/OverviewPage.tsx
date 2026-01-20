@@ -208,8 +208,8 @@ export function OverviewPage({ locale, className }: OverviewPageProps) {
           throw new Error(data.error || 'Failed to create chat');
         }
 
-        // Navigate to the new chat
-        router.push(`/${locale}/ai-assistant?chat=${data.chat.id}`);
+        // Navigate to the new chat with initial message
+        router.push(`/${locale}/ai-assistant?chat=${data.chat.id}&message=${encodeURIComponent(message)}`);
       } catch (error) {
         console.error('[OverviewPage] Error creating chat:', error);
         setIsCreatingChat(false);

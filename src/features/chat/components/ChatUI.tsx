@@ -42,9 +42,10 @@ export interface ChatUIProps {
   locale: 'nl' | 'en';
   chatId?: string; // Optional: for loading existing chats
   projectId?: string; // Optional: for project-specific chats
+  initialMessage?: string; // Optional: message to send automatically on load
 }
 
-export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
+export function ChatUI({ locale, chatId, projectId, initialMessage }: ChatUIProps) {
   const [selectedModel, setSelectedModel] = useState<ModelId>(DEFAULT_MODEL);
   const [input, setInput] = useState('');
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
@@ -190,6 +191,44 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
 
   // Compute loading state from status
   const isLoading = status === 'submitted' || status === 'streaming' || isRagLoading;
+
+  // Track if initial message has been sent
+  const initialMessageSentRef = useRef(false);
+  const pendingInitialMessageRef = useRef<string | null>(null);
+
+  // Auto-send initial message when provided and chat is ready
+  useEffect(() => {
+    // Only queue once, when not loading, and when we have an initial message
+    if (
+      initialMessage &&
+      !initialMessageSentRef.current &&
+      !isLoadingChat &&
+      currentChatIdRef.current &&
+      !isLoading
+    ) {
+      initialMessageSentRef.current = true;
+      pendingInitialMessageRef.current = initialMessage;
+      console.log('[ChatUI] Queuing initial message:', initialMessage.substring(0, 50) + '...');
+      setInput(initialMessage);
+    }
+  }, [initialMessage, isLoadingChat, isLoading]);
+
+  // Watch for input change to trigger auto-send
+  useEffect(() => {
+    if (
+      pendingInitialMessageRef.current &&
+      input === pendingInitialMessageRef.current &&
+      !isLoading &&
+      currentChatIdRef.current
+    ) {
+      pendingInitialMessageRef.current = null;
+      // Trigger submit via a fake form event
+      const submitButton = document.querySelector('button[type="submit"]') as HTMLButtonElement;
+      if (submitButton) {
+        submitButton.click();
+      }
+    }
+  }, [input, isLoading]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {

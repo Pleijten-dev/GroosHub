@@ -15,6 +15,8 @@ interface AIAssistantClientProps {
   projectId?: string;
   /** Current active view from sidebar navigation */
   activeView?: 'overview' | 'chats' | 'tasks' | 'files' | 'notes' | 'members' | 'trash';
+  /** Initial message to send automatically when chat loads */
+  initialMessage?: string;
 }
 
 export function AIAssistantClient({
@@ -23,7 +25,8 @@ export function AIAssistantClient({
   userName,
   chatId,
   projectId,
-  activeView = 'overview'
+  activeView = 'overview',
+  initialMessage
 }: AIAssistantClientProps) {
   const { isCollapsed, toggleSidebar, isLoaded } = useProjectsSidebar();
 
@@ -75,6 +78,7 @@ export function AIAssistantClient({
           locale={locale as 'nl' | 'en'}
           chatId={chatId}
           projectId={projectId}
+          initialMessage={initialMessage}
         />
       );
     }

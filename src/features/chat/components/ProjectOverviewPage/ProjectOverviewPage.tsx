@@ -292,8 +292,8 @@ export function ProjectOverviewPage({
           throw new Error(data.error || 'Failed to create chat');
         }
 
-        // Navigate to the new chat within the project context
-        router.push(`/${locale}/projects/${projectId}?chat=${data.chat.id}`);
+        // Navigate to the new chat in AI assistant with project context
+        router.push(`/${locale}/ai-assistant?chat=${data.chat.id}&project_id=${projectId}&message=${encodeURIComponent(message)}`);
       } catch (error) {
         console.error('[ProjectOverviewPage] Error creating chat:', error);
         setIsCreatingChat(false);
