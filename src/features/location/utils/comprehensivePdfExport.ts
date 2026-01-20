@@ -15,6 +15,7 @@ import type { AmenityMultiCategoryResponse, AmenitySearchResult } from '../data/
 import { WMS_CATEGORIES, type WMSLayerConfig } from '../components/Maps/wmsLayers';
 import { getLayerConfig, getCriticalLayers } from '../data/sources/wmsGradingConfig';
 import { downloadWMSTile, downloadWMSLegend, type MapCapture, type LegendCapture } from './mapExport';
+import { captureAllScenarioCubes, type CubeCaptureResult } from './cubeCapture';
 
 // Types for the PDF export
 export interface ComprehensivePdfOptions {
@@ -36,7 +37,10 @@ export interface ComprehensivePdfData {
     scenario1: number[];
     scenario2: number[];
     scenario3: number[];
+    customScenario?: number[];
   };
+  /** Cube colors for each position (0-26) */
+  cubeColors?: string[];
   personas: Array<{
     id: string;
     name: string;
@@ -103,6 +107,17 @@ const translations = {
     distance: 'Afstand',
     count: 'Aantal',
     category: 'Categorie',
+    scenarioCubes: 'Doelgroep Scenario Visualisaties',
+    scenario1Title: 'Scenario 1: Starters & Jonge Gezinnen',
+    scenario1Desc: 'Focus op betaalbare woningen voor starters en jonge gezinnen met lage tot middeninkomens.',
+    scenario2Title: 'Scenario 2: Doorstromers',
+    scenario2Desc: 'Focus op gezinnen en alleenstaanden met middeninkomens die willen doorstromen naar een grotere woning.',
+    scenario3Title: 'Scenario 3: Senioren & Vermogenden',
+    scenario3Desc: 'Focus op oudere huishoudens en huishoudens met hogere inkomens of vermogen.',
+    customScenarioTitle: 'Aangepast Scenario',
+    customScenarioDesc: 'Door gebruiker geselecteerde doelgroepen.',
+    cubeVisualization: 'Kubus Visualisatie',
+    cubeExplanation: 'De 3x3x3 kubus toont de doelgroepen gepositioneerd op basis van inkomen (X-as), leeftijd (Y-as) en huishoudtype (Z-as). Gekleurde kubussen vertegenwoordigen de geselecteerde doelgroepen voor dit scenario.',
   },
   en: {
     title: 'Location Analysis Report',
@@ -156,6 +171,17 @@ const translations = {
     distance: 'Distance',
     count: 'Count',
     category: 'Category',
+    scenarioCubes: 'Target Group Scenario Visualizations',
+    scenario1Title: 'Scenario 1: Starters & Young Families',
+    scenario1Desc: 'Focus on affordable housing for starters and young families with low to middle incomes.',
+    scenario2Title: 'Scenario 2: Move-up Buyers',
+    scenario2Desc: 'Focus on families and singles with middle incomes looking to move up to a larger home.',
+    scenario3Title: 'Scenario 3: Seniors & Affluent',
+    scenario3Desc: 'Focus on older households and households with higher incomes or wealth.',
+    customScenarioTitle: 'Custom Scenario',
+    customScenarioDesc: 'User-selected target groups.',
+    cubeVisualization: 'Cube Visualization',
+    cubeExplanation: 'The 3x3x3 cube shows target groups positioned by income (X-axis), age (Y-axis), and household type (Z-axis). Colored cubes represent the selected target groups for this scenario.',
   }
 };
 
@@ -813,6 +839,214 @@ class PdfBuilder {
   }
 
   /**
+   * Add a cube visualization page for a scenario with persona cards
+   */
+  addCubeVisualizationPage(
+    cubeCapture: CubeCaptureResult,
+    scenarioTitle: string,
+    scenarioDescription: string,
+    scenarioPersonas?: Array<{
+      id: string;
+      name: string;
+      income_level: string;
+      household_type: string;
+      age_group: string;
+      description: string;
+      current_property_types?: string[];
+      desired_property_types?: string[];
+    }>
+  ): void {
+    // Start new page for cube
+    this.addNewPage();
+
+    // Title
+    this.pdf.setFontSize(16);
+    this.pdf.setTextColor(71, 118, 56);
+    this.pdf.text(scenarioTitle, MARGIN, this.currentY);
+    this.currentY += 10;
+
+    // Description
+    this.pdf.setFontSize(10);
+    this.pdf.setTextColor(80, 80, 80);
+    const descLines = this.pdf.splitTextToSize(scenarioDescription, CONTENT_WIDTH);
+    this.pdf.text(descLines, MARGIN, this.currentY);
+    this.currentY += descLines.length * 5 + 5;
+
+    // Layout: Cube on left, explanation on right
+    const cubeSize = 80; // Smaller cube to fit cards
+    const cubeX = MARGIN;
+
+    try {
+      // Add dark background for the cube
+      this.pdf.setFillColor(26, 26, 46); // #1a1a2e
+      this.pdf.roundedRect(cubeX - 3, this.currentY - 3, cubeSize + 6, cubeSize + 6, 2, 2, 'F');
+
+      // Add cube image
+      this.pdf.addImage(
+        cubeCapture.dataUrl,
+        'PNG',
+        cubeX,
+        this.currentY,
+        cubeSize,
+        cubeSize,
+        undefined,
+        'FAST'
+      );
+
+      // Explanation text to the right of cube
+      const textX = cubeX + cubeSize + 10;
+      const textWidth = CONTENT_WIDTH - cubeSize - 10;
+
+      this.pdf.setFontSize(9);
+      this.pdf.setTextColor(100, 100, 100);
+      const explainLines = this.pdf.splitTextToSize(this.t.cubeExplanation, textWidth);
+      this.pdf.text(explainLines, textX, this.currentY + 5);
+    } catch (error) {
+      // Placeholder if image fails
+      this.pdf.setFillColor(240, 240, 240);
+      this.pdf.rect(cubeX, this.currentY, cubeSize, cubeSize, 'F');
+      this.pdf.setFontSize(10);
+      this.pdf.setTextColor(150, 150, 150);
+      this.pdf.text(this.t.noData, cubeX + cubeSize / 2, this.currentY + cubeSize / 2, { align: 'center' });
+    }
+
+    this.currentY += cubeSize + 10;
+
+    // Add persona cards if available
+    if (scenarioPersonas && scenarioPersonas.length > 0) {
+      this.addPersonaCardsSection(scenarioPersonas);
+    }
+  }
+
+  /**
+   * Add persona cards section to a page
+   */
+  private addPersonaCardsSection(
+    personas: Array<{
+      id: string;
+      name: string;
+      income_level: string;
+      household_type: string;
+      age_group: string;
+      description: string;
+      current_property_types?: string[];
+      desired_property_types?: string[];
+    }>
+  ): void {
+    const cardWidth = (CONTENT_WIDTH - 10) / 2; // 2 cards per row
+    const cardHeight = 55; // Fixed height per card
+    const cardGap = 10;
+
+    // Section title
+    this.pdf.setFontSize(11);
+    this.pdf.setTextColor(71, 118, 56);
+    this.pdf.text(this.t.topPersonas, MARGIN, this.currentY);
+    this.currentY += 8;
+
+    // Draw cards in 2-column grid
+    personas.forEach((persona, index) => {
+      // Check if we need a new page
+      if (this.currentY + cardHeight > PAGE_HEIGHT - MARGIN - FOOTER_HEIGHT) {
+        this.addNewPage();
+      }
+
+      const col = index % 2;
+      const cardX = MARGIN + col * (cardWidth + cardGap);
+
+      // Start new row every 2 cards
+      if (col === 0 && index > 0) {
+        this.currentY += cardHeight + 5;
+      }
+
+      // Card background
+      this.pdf.setFillColor(250, 250, 250);
+      this.pdf.setDrawColor(220, 220, 220);
+      this.pdf.roundedRect(cardX, this.currentY, cardWidth, cardHeight, 2, 2, 'FD');
+
+      let cardY = this.currentY + 5;
+
+      // Persona name
+      this.pdf.setFontSize(9);
+      this.pdf.setTextColor(50, 50, 50);
+      this.pdf.setFont('helvetica', 'bold');
+      this.pdf.text(persona.name, cardX + 4, cardY);
+      cardY += 6;
+
+      // Stats row: Income | Age | Household
+      this.pdf.setFont('helvetica', 'normal');
+      this.pdf.setFontSize(7);
+
+      const statWidth = (cardWidth - 12) / 3;
+
+      // Income
+      this.pdf.setFillColor(240, 240, 240);
+      this.pdf.roundedRect(cardX + 4, cardY, statWidth - 2, 12, 1, 1, 'F');
+      this.pdf.setTextColor(100, 100, 100);
+      this.pdf.text(this.t.indicator === 'Indicator' ? 'Income' : 'Inkomen', cardX + 5, cardY + 4);
+      this.pdf.setTextColor(50, 50, 50);
+      this.pdf.setFont('helvetica', 'bold');
+      const incomeText = this.pdf.splitTextToSize(persona.income_level, statWidth - 6);
+      this.pdf.text(incomeText[0] || '-', cardX + 5, cardY + 9);
+
+      // Age
+      this.pdf.setFont('helvetica', 'normal');
+      const ageX = cardX + 4 + statWidth;
+      this.pdf.setFillColor(240, 240, 240);
+      this.pdf.roundedRect(ageX, cardY, statWidth - 2, 12, 1, 1, 'F');
+      this.pdf.setTextColor(100, 100, 100);
+      this.pdf.text(this.t.indicator === 'Indicator' ? 'Age' : 'Leeftijd', ageX + 1, cardY + 4);
+      this.pdf.setTextColor(50, 50, 50);
+      this.pdf.setFont('helvetica', 'bold');
+      const ageText = this.pdf.splitTextToSize(persona.age_group, statWidth - 6);
+      this.pdf.text(ageText[0] || '-', ageX + 1, cardY + 9);
+
+      // Household
+      this.pdf.setFont('helvetica', 'normal');
+      const hhX = cardX + 4 + statWidth * 2;
+      this.pdf.setFillColor(240, 240, 240);
+      this.pdf.roundedRect(hhX, cardY, statWidth - 2, 12, 1, 1, 'F');
+      this.pdf.setTextColor(100, 100, 100);
+      this.pdf.text(this.t.indicator === 'Indicator' ? 'Household' : 'Huishouden', hhX + 1, cardY + 4);
+      this.pdf.setTextColor(50, 50, 50);
+      this.pdf.setFont('helvetica', 'bold');
+      const hhText = this.pdf.splitTextToSize(persona.household_type, statWidth - 6);
+      this.pdf.text(hhText[0] || '-', hhX + 1, cardY + 9);
+
+      cardY += 15;
+
+      // Description (truncated)
+      this.pdf.setFont('helvetica', 'normal');
+      this.pdf.setFontSize(7);
+      this.pdf.setTextColor(80, 80, 80);
+      const descLines = this.pdf.splitTextToSize(persona.description, cardWidth - 8);
+      const maxLines = 3;
+      const truncatedDesc = descLines.slice(0, maxLines);
+      if (descLines.length > maxLines) {
+        truncatedDesc[maxLines - 1] = truncatedDesc[maxLines - 1].slice(0, -3) + '...';
+      }
+      this.pdf.text(truncatedDesc, cardX + 4, cardY);
+      cardY += truncatedDesc.length * 3 + 3;
+
+      // Housing preferences (if available)
+      if (persona.desired_property_types && persona.desired_property_types.length > 0) {
+        this.pdf.setFontSize(6);
+        this.pdf.setTextColor(100, 100, 100);
+        const prefText = `${this.t.indicator === 'Indicator' ? 'Desired housing' : 'Gewenst woningtype'}: ${persona.desired_property_types.slice(0, 3).join(', ')}`;
+        const prefLines = this.pdf.splitTextToSize(prefText, cardWidth - 8);
+        this.pdf.text(prefLines[0] || '', cardX + 4, cardY);
+      }
+    });
+
+    // Move Y position after all cards
+    const totalRows = Math.ceil(personas.length / 2);
+    if (personas.length % 2 === 1) {
+      this.currentY += cardHeight + 5;
+    } else if (personas.length > 0) {
+      this.currentY += cardHeight + 5;
+    }
+  }
+
+  /**
    * Check if we need a page break
    */
   private checkPageBreak(requiredSpace: number): void {
@@ -906,10 +1140,13 @@ export async function generateComprehensivePdf(
   const wmsLayers = Object.entries(WMS_CATEGORIES).flatMap(([catId, cat]) =>
     Object.entries(cat.layers).map(([layerId, config]) => ({ catId, layerId, config }))
   );
+  const hasCubes = data.cubeColors && data.cubeColors.length > 0;
+  const hasCustomScenario = data.scenarios.customScenario && data.scenarios.customScenario.length > 0;
   const totalSteps =
     1 + // Title page
     (includeScoreOverview ? 1 : 0) +
     (includeTargetGroups ? 3 : 0) + // Rankings, scenarios, calculations
+    (includeTargetGroups && hasCubes ? (hasCustomScenario ? 4 : 3) : 0) + // Cube pages (3 scenarios + optional custom)
     (includeDataTables ? 6 : 0) + // Demographics, health, safety, livability, residential, amenities
     (includeWMSMaps ? wmsLayers.length : 0);
 
@@ -975,6 +1212,86 @@ export async function generateComprehensivePdf(
     // Detailed calculations for top personas
     builder.addTargetGroupCalculations(data.personaScores, data.personas);
     reportProgress(t.targetGroupCalculations);
+
+    // Cube Visualizations section - capture and add all 4 scenario cubes
+    if (data.cubeColors && data.cubeColors.length > 0) {
+      builder.startSection(t.scenarioCubes);
+
+      try {
+        console.log('Capturing cube visualizations for PDF...');
+
+        // Capture all scenario cubes
+        const cubeCaptures = await captureAllScenarioCubes(
+          {
+            scenario1: data.scenarios.scenario1,
+            scenario2: data.scenarios.scenario2,
+            scenario3: data.scenarios.scenario3,
+            customScenario: data.scenarios.customScenario,
+          },
+          data.cubeColors,
+          { width: 600, height: 600, backgroundColor: '#1a1a2e' }
+        );
+
+        // Helper function to get personas for a scenario
+        const getScenarioPersonas = (positions: number[]) => {
+          return positions
+            .map(pos => {
+              const personaScore = data.personaScores[pos - 1];
+              if (!personaScore) return null;
+              const persona = data.personas.find(p => p.id === personaScore.personaId);
+              return persona || null;
+            })
+            .filter((p): p is NonNullable<typeof p> => p !== null);
+        };
+
+        // Add scenario 1 cube page with persona cards
+        builder.addCubeVisualizationPage(
+          cubeCaptures.scenario1,
+          t.scenario1Title,
+          t.scenario1Desc,
+          getScenarioPersonas(data.scenarios.scenario1)
+        );
+        reportProgress(t.scenario1Title);
+
+        // Add scenario 2 cube page with persona cards
+        builder.addCubeVisualizationPage(
+          cubeCaptures.scenario2,
+          t.scenario2Title,
+          t.scenario2Desc,
+          getScenarioPersonas(data.scenarios.scenario2)
+        );
+        reportProgress(t.scenario2Title);
+
+        // Add scenario 3 cube page with persona cards
+        builder.addCubeVisualizationPage(
+          cubeCaptures.scenario3,
+          t.scenario3Title,
+          t.scenario3Desc,
+          getScenarioPersonas(data.scenarios.scenario3)
+        );
+        reportProgress(t.scenario3Title);
+
+        // Add custom scenario if available
+        if (cubeCaptures.customScenario && data.scenarios.customScenario) {
+          builder.addCubeVisualizationPage(
+            cubeCaptures.customScenario,
+            t.customScenarioTitle,
+            t.customScenarioDesc,
+            getScenarioPersonas(data.scenarios.customScenario)
+          );
+          reportProgress(t.customScenarioTitle);
+        }
+
+        console.log('Cube visualizations added to PDF');
+      } catch (error) {
+        console.warn('Failed to capture cube visualizations:', error);
+        builder.addParagraph(
+          locale === 'nl'
+            ? 'Kubus visualisaties konden niet worden gegenereerd.'
+            : 'Cube visualizations could not be generated.'
+        );
+      }
+    }
   }
 
   // Data Tables section

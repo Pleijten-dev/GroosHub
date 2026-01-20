@@ -802,6 +802,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                   personaScores={sortedPersonas}
                   scenarios={scenarios}
                   personas={personas}
+                  cubeColors={cubeColors}
                   wmsGradingData={wmsGrading.gradingData}
                   amenitiesData={amenities}
                 />

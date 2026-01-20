@@ -31,6 +31,7 @@ interface ComprehensivePdfExportButtonProps {
     scenario1: number[];
     scenario2: number[];
     scenario3: number[];
+    customScenario?: number[];
   };
   /** All personas data */
   personas: Array<{
@@ -40,7 +41,11 @@ interface ComprehensivePdfExportButtonProps {
     household_type: string;
     age_group: string;
     description: string;
+    current_property_types?: string[];
+    desired_property_types?: string[];
   }>;
+  /** Cube colors for visualization (0-26 positions) */
+  cubeColors?: string[];
   /** WMS grading data (optional) */
   wmsGradingData?: WMSGradingData | null;
   /** Amenities data (optional) */
@@ -62,6 +67,7 @@ export const ComprehensivePdfExportButton: React.FC<ComprehensivePdfExportButton
   personaScores,
   scenarios,
   personas,
+  cubeColors,
   wmsGradingData,
   amenitiesData
 }) => {
@@ -146,6 +152,7 @@ export const ComprehensivePdfExportButton: React.FC<ComprehensivePdfExportButton
         personaScores,
         scenarios,
         personas,
+        cubeColors,
         wmsGradingData,
         amenitiesData
       };
