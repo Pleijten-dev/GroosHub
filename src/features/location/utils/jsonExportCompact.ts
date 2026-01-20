@@ -8,6 +8,7 @@
 import type { UnifiedLocationData, UnifiedDataRow } from '../data/aggregator/multiLevelAggregator';
 import type { PersonaScore } from './targetGroupScoring';
 import type { AmenityMultiCategoryResponse } from '../data/sources/google-places/types';
+import type { WMSGradingData, WMSLayerGrading } from '../types/wms-grading';
 import housingPersonasData from '../data/sources/housing-personas.json';
 import { pveConfigCache } from '../data/cache/pveConfigCache';
 
@@ -153,6 +154,26 @@ export interface CompactLocationExport {
     priceDistribution: Array<{ range: string; percentage: number }>;
   };
 
+  // WMS Map Layer Analysis - Environmental data from geospatial layers
+  wmsLayers?: {
+    description: string;
+    analyzedAt: string;
+    samplingRadius: number; // in meters
+    totalLayers: number;
+    successfulLayers: number;
+    layers: Array<{
+      id: string;
+      name: string;
+      category: string;
+      pointValue?: number | string | null;
+      averageValue?: number | null;
+      maxValue?: number | null;
+      unit?: string;
+      sampleCount?: number;
+      description: string;
+    }>;
+  };
+
   // Target groups - all 27 personas ranked
   targetGroups: {
     description: string;
@@ -217,7 +238,8 @@ export function exportCompactForLLM(
   scenarios: { scenario1: number[]; scenario2: number[]; scenario3: number[] },
   locale: 'nl' | 'en' = 'nl',
   customScenarioPersonaIds: string[] = [],
-  amenitiesData: AmenityMultiCategoryResponse | null = null
+  amenitiesData: AmenityMultiCategoryResponse | null = null,
+  wmsGradingData: WMSGradingData | null = null
 ): CompactLocationExport {
   // Format location string
   const locationParts = [
@@ -617,6 +639,93 @@ export function exportCompactForLLM(
     });
   }
 
+  // === WMS LAYER ANALYSIS ===
+  let wmsLayers: CompactLocationExport['wmsLayers'];
+  if (wmsGradingData && wmsGradingData.layers) {
+    const layerCategories: Record<string, string> = {
+      'rivm_20190326_no2jaargemiddelde': locale === 'nl' ? 'Luchtkwaliteit (NO2)' : 'Air Quality (NO2)',
+      'rivm_20190326_pm10jaargemiddelde': locale === 'nl' ? 'Luchtkwaliteit (PM10)' : 'Air Quality (PM10)',
+      'rivm_20190326_pm25jaargemiddelde': locale === 'nl' ? 'Luchtkwaliteit (PM2.5)' : 'Air Quality (PM2.5)',
+      'risicokaart_geluid': locale === 'nl' ? 'Geluid (wegverkeer)' : 'Noise (road traffic)',
+      'rivm_20190326_percbomenbuurt': locale === 'nl' ? 'Groen (bomen)' : 'Green Space (trees)',
+      '20200629_gm_Graskaart_v2': locale === 'nl' ? 'Groen (gras)' : 'Green Space (grass)',
+      '20200629_gm_Struikenkaart_v2': locale === 'nl' ? 'Groen (struiken)' : 'Green Space (shrubs)',
+      'hittestress_2020_gm': locale === 'nl' ? 'Klimaat (hittestress)' : 'Climate (heat stress)',
+      'gm_BuiRegen2018': locale === 'nl' ? 'Klimaat (regenval)' : 'Climate (rainfall)',
+      '20200629_gm_Bomenkaart_v2': locale === 'nl' ? 'Groen (boomkronen)' : 'Green Space (tree canopy)',
+    };
+
+    const layerDescriptions: Record<string, { nl: string; en: string }> = {
+      'rivm_20190326_no2jaargemiddelde': {
+        nl: 'Jaargemiddelde concentratie stikstofdioxide (NO2) in de buitenlucht, voornamelijk afkomstig van verkeer',
+        en: 'Annual average nitrogen dioxide (NO2) concentration in outdoor air, mainly from traffic'
+      },
+      'rivm_20190326_pm10jaargemiddelde': {
+        nl: 'Jaargemiddelde concentratie fijnstof (PM10) in de buitenlucht',
+        en: 'Annual average particulate matter (PM10) concentration in outdoor air'
+      },
+      'rivm_20190326_pm25jaargemiddelde': {
+        nl: 'Jaargemiddelde concentratie ultrafijnstof (PM2.5) in de buitenlucht',
+        en: 'Annual average fine particulate matter (PM2.5) concentration in outdoor air'
+      },
+      'risicokaart_geluid': {
+        nl: 'Gemiddeld geluidsniveau veroorzaakt door wegverkeer',
+        en: 'Average noise level caused by road traffic'
+      },
+      'rivm_20190326_percbomenbuurt': {
+        nl: 'Percentage groen door bomen in de buurt',
+        en: 'Percentage of green space from trees in the neighborhood'
+      },
+      '20200629_gm_Graskaart_v2': {
+        nl: 'Grasindex - Maat voor de aanwezigheid van grasvelden',
+        en: 'Grass index - Measure of grass field presence'
+      },
+      '20200629_gm_Struikenkaart_v2': {
+        nl: 'Struikenindex - Maat voor de aanwezigheid van struikgewas',
+        en: 'Shrub index - Measure of shrub vegetation presence'
+      },
+      'hittestress_2020_gm': {
+        nl: 'Hittestress indicator - Risico op oververhitting tijdens warme dagen',
+        en: 'Heat stress indicator - Risk of overheating during hot days'
+      },
+      'gm_BuiRegen2018': {
+        nl: 'Buiregenkans - Frequentie van hevige regenbuien',
+        en: 'Heavy rainfall chance - Frequency of intense rain showers'
+      },
+      '20200629_gm_Bomenkaart_v2': {
+        nl: 'Boomkroonindex - Maat voor boomkruinbedekking',
+        en: 'Tree canopy index - Measure of tree canopy coverage'
+      },
+    };
+
+    const layers = Object.entries(wmsGradingData.layers)
+      .map(([layerId, grading]: [string, WMSLayerGrading]) => ({
+        id: layerId,
+        name: grading.layer_name,
+        category: layerCategories[layerId] || (locale === 'nl' ? 'Overig' : 'Other'),
+        pointValue: grading.point_sample?.value,
+        averageValue: grading.average_area_sample?.value,
+        maxValue: grading.max_area_sample?.value,
+        unit: grading.point_sample?.raw_data?.unit as string | undefined,
+        sampleCount: grading.average_area_sample?.sample_count || grading.max_area_sample?.sample_count,
+        description: layerDescriptions[layerId]?.[locale] || (locale === 'nl' ? 'Kaartlaag analyse' : 'Map layer analysis'),
+      }))
+      .filter(layer => layer.pointValue !== undefined || layer.averageValue !== undefined || layer.maxValue !== undefined);
+
+    if (layers.length > 0) {
+      wmsLayers = {
+        description: locale === 'nl'
+          ? 'Geospatiale analyse van omgevingsfactoren zoals luchtkwaliteit, geluid, groen en klimaat. Waarden zijn gemeten op de exacte locatie (punt) en als gemiddelde/maximum in een gebied (500m straal).'
+          : 'Geospatial analysis of environmental factors such as air quality, noise, greenery and climate. Values are measured at the exact location (point) and as average/maximum in an area (500m radius).',
+        analyzedAt: wmsGradingData.graded_at ? new Date(wmsGradingData.graded_at).toISOString() : new Date().toISOString(),
+        samplingRadius: wmsGradingData.sampling_config?.area_radius_meters || 500,
+        totalLayers: Object.keys(wmsGradingData.layers).length,
+        successfulLayers: layers.length,
+        layers: layers.sort((a, b) => a.category.localeCompare(b.category)),
+      };
+    }
+  }
+
   return {
     metadata: {
       location: locationString,
@@ -642,6 +751,7 @@ export function exportCompactForLLM(
       items: amenities,
     },
     housingMarket,
+    wmsLayers,
     targetGroups: {
       description: locale === 'nl'
         ? 'Alle 27 woonpersona\'s gerangschikt op geschiktheid voor deze locatie, met geautomatiseerde scenario\'s en optioneel een op maat samengesteld scenario'

@@ -40,6 +40,7 @@ export function WMSGradingScoreCard({
       title: 'WMS Kaartlagen Analyse',
       loading: 'Kaartlagen analyseren...',
       completed: 'Analyse voltooid',
+      completedWithErrors: 'Analyse voltooid met waarschuwingen',
       notStarted: 'Nog niet geanalyseerd',
       criticalLayers: 'Kritieke lagen',
       allLayers: 'Alle lagen',
@@ -55,11 +56,15 @@ export function WMSGradingScoreCard({
       avgValue: 'Gem. waarde',
       pointValue: 'Punt waarde',
       noData: 'Geen data',
+      failedLayers: 'Mislukte lagen',
+      layersFailed: 'lagen mislukt',
+      retryFailed: 'Probeer opnieuw',
     },
     en: {
       title: 'WMS Map Layer Analysis',
       loading: 'Analyzing map layers...',
       completed: 'Analysis complete',
+      completedWithErrors: 'Analysis completed with warnings',
       notStarted: 'Not yet analyzed',
       criticalLayers: 'Critical layers',
       allLayers: 'All layers',
@@ -75,6 +80,9 @@ export function WMSGradingScoreCard({
       avgValue: 'Avg value',
       pointValue: 'Point value',
       noData: 'No data',
+      failedLayers: 'Failed layers',
+      layersFailed: 'layers failed',
+      retryFailed: 'Retry failed',
     }
   }[locale];
 
@@ -134,6 +142,9 @@ export function WMSGradingScoreCard({
   const successfulLayers = Object.values(gradingData.layers).filter(
     layer => layer.point_sample || layer.average_area_sample || layer.max_area_sample
   ).length;
+  const failedLayers = Object.values(gradingData.layers).filter(
+    layer => !layer.point_sample && !layer.average_area_sample && !layer.max_area_sample && layer.errors && layer.errors.length > 0
+  );
 
   // Group critical layers by category
   const criticalByCategory: Record<string, typeof criticalResults> = {};
@@ -183,10 +194,21 @@ export function WMSGradingScoreCard({
           </p>
         </div>
         <div className="flex items-center gap-xs">
-          <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
-          <span className="text-sm font-medium text-green-700">{t.completed}</span>
+          {failedLayers.length > 0 ? (
+            <>
+              <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span className="text-sm font-medium text-amber-700">{t.completedWithErrors}</span>
+            </>
+          ) : (
+            <>
+              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="text-sm font-medium text-green-700">{t.completed}</span>
+            </>
+          )}
         </div>
       </div>
 
@@ -229,8 +251,35 @@ export function WMSGradingScoreCard({
         ))}
       </div>
 
+      {/* Failed Layers */}
+      {failedLayers.length > 0 && (
+        <div className="space-y-sm">
+          <div className="flex items-center gap-xs">
+            <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <h4 className="text-sm font-semibold text-amber-700">{t.failedLayers}</h4>
+          </div>
+
+          <div className="bg-amber-50 border border-amber-200 rounded-md p-sm space-y-xs">
+            {failedLayers.map(layer => (
+              <div key={layer.layer_id} className="text-xs">
+                <div className="font-medium text-amber-900">{layer.layer_name}</div>
+                {layer.errors && layer.errors.length > 0 && (
+                  <div className="text-amber-700 mt-xs">
+                    {layer.errors.map((error, idx) => (
+                      <div key={idx}>• {error}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Summary Stats */}
-      <div className="grid grid-cols-2 gap-sm pt-sm border-t border-gray-200">
+      <div className={`grid ${failedLayers.length > 0 ? 'grid-cols-3' : 'grid-cols-2'} gap-sm pt-sm border-t border-gray-200`}>
         <div>
           <div className="text-xs text-gray-500">{t.allLayers}</div>
           <div className="text-lg font-bold text-gray-900">{totalLayers}</div>
@@ -239,6 +288,12 @@ export function WMSGradingScoreCard({
           <div className="text-xs text-gray-500">{t.completed}</div>
           <div className="text-lg font-bold text-green-600">{successfulLayers}</div>
         </div>
+        {failedLayers.length > 0 && (
+          <div>
+            <div className="text-xs text-gray-500">{t.layersFailed}</div>
+            <div className="text-lg font-bold text-amber-600">{failedLayers.length}</div>
+          </div>
+        )}
       </div>
 
       {/* View Details Button */}

@@ -739,6 +739,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                   scenarios={scenarios}
                   locale={locale}
                   amenitiesData={amenities}
+                  wmsGradingData={wmsGrading.gradingData}
                 />
               </div>
 
