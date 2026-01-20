@@ -11,6 +11,7 @@ import { exportCompactForLLM } from '../../utils/jsonExportCompact';
 import type { UnifiedLocationData } from '../../data/aggregator/multiLevelAggregator';
 import type { PersonaScore } from '../../utils/targetGroupScoring';
 import type { AmenityMultiCategoryResponse } from '../../data/sources/google-places/types';
+import type { WMSGradingData } from '../../types/wms-grading';
 import type { BuildingProgram } from '@/app/api/generate-building-program/route';
 import { llmRapportCache } from '../../data/cache/llmRapportCache';
 import { GenerationProgressModal, type GenerationStep } from './GenerationProgressModal';
@@ -25,6 +26,7 @@ export interface GenerateProgramButtonProps {
   };
   locale: 'nl' | 'en';
   amenitiesData: AmenityMultiCategoryResponse | null;
+  wmsGradingData: WMSGradingData | null;
 }
 
 export const GenerateProgramButton: React.FC<GenerateProgramButtonProps> = ({
@@ -33,6 +35,7 @@ export const GenerateProgramButton: React.FC<GenerateProgramButtonProps> = ({
   scenarios,
   locale,
   amenitiesData,
+  wmsGradingData,
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -118,7 +121,7 @@ export const GenerateProgramButton: React.FC<GenerateProgramButtonProps> = ({
       }
 
       // Generate the compact rapport data
-      const rapportData = exportCompactForLLM(data, personaScores, scenarios, locale, customScenarioPersonaIds, amenitiesData);
+      const rapportData = exportCompactForLLM(data, personaScores, scenarios, locale, customScenarioPersonaIds, amenitiesData, wmsGradingData);
 
       updateStepStatus('analyze', 'completed');
       updateStepStatus('location_summary', 'in_progress');

@@ -24,11 +24,12 @@ import { calculatePersonaScores } from '../../../features/location/utils/targetG
 import { getPersonaCubePosition } from '../../../features/location/utils/cubePositionMapping';
 import { calculateConnections, calculateScenarios } from '../../../features/location/utils/connectionCalculations';
 import housingPersonasData from '../../../features/location/data/sources/housing-personas.json';
-import { LocationMap, MapStyle, WMSLayerControl, WMSLayerSelection, WMSFeatureInfo } from '../../../features/location/components/Maps';
+import { LocationMap, MapStyle, WMSLayerControl, WMSLayerSelection, WMSFeatureInfo, WMSGradingScoreCard, WMSLayerScoreCard } from '../../../features/location/components/Maps';
 import { calculateAllAmenityScores, type AmenityScore } from '../../../features/location/data/scoring/amenityScoring';
 import { PVEQuestionnaire } from '../../../features/location/components/PVE';
 import { MapExportButton } from '../../../features/location/components/MapExport';
 import type { AccessibleLocation } from '../../../features/location/types/saved-locations';
+import { useWMSGrading } from '../../../features/location/hooks/useWMSGrading';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -80,11 +81,25 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   const [mapZoom, setMapZoom] = useState<number>(15);
   const [featureInfo, setFeatureInfo] = useState<WMSFeatureInfo | null>(null);
 
+  // Snapshot data state (for loaded snapshots)
+  const [loadedSnapshotId, setLoadedSnapshotId] = useState<string | null>(null);
+  const [loadedWMSGradingData, setLoadedWMSGradingData] = useState<Record<string, unknown> | null>(null);
+
   // Generate cube colors once and share across all components for consistency
   const cubeColors = React.useMemo(() => generateGradientColors(), []);
 
   // Use location data hook
   const { data, amenities, loading, error, isLoading, hasError, fetchData, loadSavedData, clearData } = useLocationData();
+
+  // Use WMS grading hook
+  const wmsGrading = useWMSGrading({
+    snapshotId: loadedSnapshotId,
+    latitude: data?.location?.coordinates?.wgs84?.latitude,
+    longitude: data?.location?.coordinates?.wgs84?.longitude,
+    address: data?.location?.address,
+    existingGradingData: loadedWMSGradingData,
+    autoGrade: true, // Auto-start grading when location is loaded
+  });
 
   // Use sidebar hook for state management
   const { isCollapsed, toggle, setCollapsed } = useSidebar({
@@ -99,6 +114,9 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     if (!data && !isLoading) {
       setCollapsed(true);
       setAnimationStage('welcome');
+      // Clear snapshot data when no data (new search)
+      setLoadedSnapshotId(null);
+      setLoadedWMSGradingData(null);
     }
   }, [data, isLoading, setCollapsed]);
 
@@ -133,9 +151,18 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     const snapshotDataStr = sessionStorage.getItem('grooshub_load_snapshot');
     if (snapshotDataStr) {
       try {
-        const { address, locationData, amenitiesData } = JSON.parse(snapshotDataStr);
+        const { snapshotId, address, locationData, amenitiesData, wmsGradingData } = JSON.parse(snapshotDataStr);
         // Clear from sessionStorage after reading
         sessionStorage.removeItem('grooshub_load_snapshot');
+
+        // Store snapshot metadata for WMS grading
+        if (snapshotId) {
+          setLoadedSnapshotId(snapshotId);
+        }
+        if (wmsGradingData) {
+          setLoadedWMSGradingData(wmsGradingData);
+        }
+
         // Load the snapshot data
         loadSavedData(locationData, amenitiesData, address);
         // Expand sidebar to show data
@@ -181,6 +208,63 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     const address = localStorage.getItem('grooshub_current_address');
     setCurrentAddress(address);
   }, [data]);
+
+  // Memoize coordinates and sampling area at top level (not conditionally!)
+  // This ensures hooks are always called in the same order (Rules of Hooks)
+  const coordinates: [number, number] | null = React.useMemo(() => {
+    if (!data?.location?.coordinates?.wgs84) return null;
+    return [
+      data.location.coordinates.wgs84.latitude,
+      data.location.coordinates.wgs84.longitude
+    ];
+  }, [data?.location?.coordinates?.wgs84?.latitude, data?.location?.coordinates?.wgs84?.longitude]);
+
+  const samplingArea = React.useMemo(() => {
+    if (!selectedWMSLayer || !wmsGrading.gradingData || !coordinates) return null;
+
+    const layerGrading = wmsGrading.gradingData.layers[selectedWMSLayer.layerId];
+    if (!layerGrading) return null;
+
+    // Get radius from any available sample (prefer area samples)
+    const radius =
+      layerGrading.average_area_sample?.radius_meters ||
+      layerGrading.max_area_sample?.radius_meters;
+
+    if (!radius) return null;
+
+    return {
+      center: coordinates,
+      radius: radius
+    };
+  }, [selectedWMSLayer?.layerId, coordinates, wmsGrading.gradingData]);
+
+  // Memoize score calculations to prevent recalculation when data is cached
+  const calculatedScores = React.useMemo(() => {
+    if (!data) return null;
+
+    const locationScores = extractLocationScores(data);
+    const personas = housingPersonasData[locale].housing_personas;
+    const personaScores = calculatePersonaScores(personas, locationScores);
+    const sortedPersonas = [...personaScores].sort((a, b) => a.rRankPosition - b.rRankPosition);
+    const connections = calculateConnections(personas);
+    const scenarios = calculateScenarios(personas, sortedPersonas, connections);
+
+    return {
+      locationScores,
+      personas,
+      personaScores,
+      sortedPersonas,
+      connections,
+      scenarios
+    };
+  }, [data, locale]);
+
+  // Memoize amenity scores calculation
+  const amenityScores = React.useMemo(() => {
+    if (!amenities) return null;
+    return calculateAllAmenityScores(amenities.results);
+  }, [amenities]);
+
 
   // Handle loading a saved location
   const handleLoadSavedLocation = async (location: AccessibleLocation) => {
@@ -272,22 +356,11 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     }
 
     // Show data if available
-    if (data) {
+    if (data && calculatedScores) {
       // For Doelgroepen tab - show result with cube and scenarios
       if (activeTab === 'doelgroepen') {
-        // Extract location scores and calculate persona scores
-        const locationScores = extractLocationScores(data);
-        const personas = housingPersonasData[locale].housing_personas;
-        const personaScores = calculatePersonaScores(personas, locationScores);
-
-        // Sort by R-rank position (1 = best)
-        const sortedPersonas = [...personaScores].sort((a, b) => a.rRankPosition - b.rRankPosition);
-
-        // Calculate connections between personas
-        const connections = calculateConnections(personas);
-
-        // Calculate scenarios using R-rank and connection cross-reference
-        const scenarios = calculateScenarios(personas, sortedPersonas, connections);
+        // Use memoized score calculations (prevents recalculation for cached data)
+        const { locationScores, personas, personaScores, sortedPersonas, connections, scenarios } = calculatedScores;
 
         // Create scenario mappings based on calculated positions
         const getScenarioData = (scenario: string) => {
@@ -347,10 +420,8 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         // Calculate Voorzieningen score from amenities data
         let voorzieningenScore = 75; // Default value if no amenities data
 
-        if (amenities) {
-          // Calculate all amenity scores
-          const amenityScores = calculateAllAmenityScores(amenities.results);
-
+        if (amenityScores) {
+          // Use memoized amenity scores (prevents recalculation for cached data)
           // Sum up all countScore and proximityBonus values
           const rawScore = amenityScores.reduce((sum: number, score: AmenityScore) => {
             return sum + score.countScore + score.proximityBonus;
@@ -461,12 +532,18 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
       // For Kaarten tab - show Leaflet map with WMS layer support
       if (activeTab === 'kaarten') {
-        // Use exact geocoded coordinates from the address search
-        // These are already in WGS84 format (latitude/longitude)
-        const coordinates: [number, number] = [
-          data.location.coordinates.wgs84.latitude,
-          data.location.coordinates.wgs84.longitude,
-        ];
+        // Guard: coordinates must be available
+        if (!coordinates) {
+          return (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <p className="text-gray-500">
+                  {locale === 'nl' ? 'Locatiegegevens laden...' : 'Loading location data...'}
+                </p>
+              </div>
+            </div>
+          );
+        }
 
         // Build location name
         const locationName = [
@@ -490,6 +567,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
               onFeatureClick={setFeatureInfo}
               onZoomChange={setMapZoom}
               amenities={amenities}
+              samplingArea={samplingArea}
             >
               {/* WMS Layer Control - Sleek pill at bottom center */}
               <WMSLayerControl
@@ -502,6 +580,28 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                 onClearFeatureInfo={() => setFeatureInfo(null)}
               />
             </LocationMap>
+
+            {/* WMS Score Cards - Top right overlay */}
+            <div className="absolute top-4 right-4 z-[1000] max-w-sm space-y-sm">
+              {/* Overall Summary Card */}
+              <WMSGradingScoreCard
+                gradingData={wmsGrading.gradingData}
+                isGrading={wmsGrading.isGrading}
+                progress={wmsGrading.progress}
+                layersCompleted={wmsGrading.layersCompleted}
+                layersTotal={wmsGrading.layersTotal}
+                locale={locale}
+                compact={true}
+              />
+
+              {/* Selected Layer Score Card */}
+              <WMSLayerScoreCard
+                selectedLayer={selectedWMSLayer}
+                gradingData={wmsGrading.gradingData}
+                isGrading={wmsGrading.isGrading}
+                locale={locale}
+              />
+            </div>
           </div>
         );
       }
@@ -669,6 +769,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                   scenarios={scenarios}
                   locale={locale}
                   amenitiesData={amenities}
+                  wmsGradingData={wmsGrading.gradingData}
                 />
               </div>
 

@@ -665,10 +665,11 @@ export async function POST(request: NextRequest) {
         - livability: Playgrounds, youth facilities, public amenities
         - residential: Housing market prices, typologies, ownership data
         - amenities: Nearby restaurants, shops, schools, services
+        - wms_grading: WMS map layer analysis (soil types, noise, green space, etc.)
         - all: Returns summary of all categories`,
         inputSchema: z.object({
           locationId: z.string().uuid(),
-          category: z.enum(['demographics', 'health', 'safety', 'livability', 'residential', 'amenities', 'all']),
+          category: z.enum(['demographics', 'health', 'safety', 'livability', 'residential', 'amenities', 'wms_grading', 'all']),
         }),
         async execute({ locationId, category }) {
           try {
@@ -680,7 +681,8 @@ export async function POST(request: NextRequest) {
                 ls.safety_data,
                 ls.livability_data,
                 ls.amenities_data,
-                ls.housing_data
+                ls.housing_data,
+                ls.wms_grading_data
               FROM location_snapshots ls
               JOIN project_projects p ON ls.project_id = p.id
               JOIN project_members pm ON p.id = pm.project_id
@@ -703,7 +705,8 @@ export async function POST(request: NextRequest) {
               safety: row.safety_data || {},
               livability: row.livability_data || {},
               residential: row.housing_data || {},
-              amenities: row.amenities_data || []
+              amenities: row.amenities_data || [],
+              wms_grading: row.wms_grading_data || {}
             };
 
             // Return simplified data based on category
