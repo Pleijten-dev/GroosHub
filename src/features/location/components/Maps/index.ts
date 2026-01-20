@@ -18,3 +18,5 @@ export {
 export type { WMSLayerConfig, WMSCategory } from './wmsLayers';
 export { WMSGradingScoreCard } from './WMSGradingScoreCard';
 export type { WMSGradingScoreCardProps } from './WMSGradingScoreCard';
+export { WMSLayerScoreCard } from './WMSLayerScoreCard';
+export type { WMSLayerScoreCardProps } from './WMSLayerScoreCard';

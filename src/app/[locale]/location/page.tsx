@@ -24,7 +24,7 @@ import { calculatePersonaScores } from '../../../features/location/utils/targetG
 import { getPersonaCubePosition } from '../../../features/location/utils/cubePositionMapping';
 import { calculateConnections, calculateScenarios } from '../../../features/location/utils/connectionCalculations';
 import housingPersonasData from '../../../features/location/data/sources/housing-personas.json';
-import { LocationMap, MapStyle, WMSLayerControl, WMSLayerSelection, WMSFeatureInfo, WMSGradingScoreCard } from '../../../features/location/components/Maps';
+import { LocationMap, MapStyle, WMSLayerControl, WMSLayerSelection, WMSFeatureInfo, WMSGradingScoreCard, WMSLayerScoreCard } from '../../../features/location/components/Maps';
 import { calculateAllAmenityScores, type AmenityScore } from '../../../features/location/data/scoring/amenityScoring';
 import { PVEQuestionnaire } from '../../../features/location/components/PVE';
 import { MapExportButton } from '../../../features/location/components/MapExport';
@@ -530,8 +530,9 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
               />
             </LocationMap>
 
-            {/* WMS Grading Score Card - Top right overlay */}
-            <div className="absolute top-4 right-4 z-[1000] max-w-sm">
+            {/* WMS Score Cards - Top right overlay */}
+            <div className="absolute top-4 right-4 z-[1000] max-w-sm space-y-sm">
+              {/* Overall Summary Card */}
               <WMSGradingScoreCard
                 gradingData={wmsGrading.gradingData}
                 isGrading={wmsGrading.isGrading}
@@ -539,7 +540,15 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                 layersCompleted={wmsGrading.layersCompleted}
                 layersTotal={wmsGrading.layersTotal}
                 locale={locale}
-                compact={false}
+                compact={true}
+              />
+
+              {/* Selected Layer Score Card */}
+              <WMSLayerScoreCard
+                selectedLayer={selectedWMSLayer}
+                gradingData={wmsGrading.gradingData}
+                isGrading={wmsGrading.isGrading}
+                locale={locale}
               />
             </div>
           </div>
