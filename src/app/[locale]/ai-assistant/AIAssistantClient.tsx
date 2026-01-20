@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ProjectsSidebarEnhanced } from '@/features/projects/components/ProjectsSidebarEnhanced';
 import { ChatUI } from '@/features/chat/components/ChatUI';
 import { OverviewPage } from '@/features/chat/components/OverviewPage';
@@ -19,6 +19,8 @@ interface AIAssistantClientProps {
   initialMessage?: string;
 }
 
+type TransitionPhase = 'idle' | 'exiting' | 'entering';
+
 export function AIAssistantClient({
   locale,
   userEmail,
@@ -31,28 +33,43 @@ export function AIAssistantClient({
   const { isCollapsed, toggleSidebar, isLoaded } = useProjectsSidebar();
 
   // Track current view for transitions
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [currentView, setCurrentView] = useState<'overview' | 'chat'>('overview');
+  const [transitionPhase, setTransitionPhase] = useState<TransitionPhase>('idle');
+  const [currentView, setCurrentView] = useState<'overview' | 'chat'>(chatId ? 'chat' : 'overview');
+  const [displayedContent, setDisplayedContent] = useState<'overview' | 'chat'>(chatId ? 'chat' : 'overview');
   const previousChatId = useRef<string | undefined>(chatId);
+  const animationKey = useRef(0);
 
-  // Handle view transitions
+  // Handle view transitions with phased animation
   useEffect(() => {
     const newView = chatId ? 'chat' : 'overview';
 
     // Detect view change
-    if (newView !== currentView || chatId !== previousChatId.current) {
-      setIsTransitioning(true);
+    if (newView !== currentView || (chatId && chatId !== previousChatId.current)) {
+      // Start exit animation
+      setTransitionPhase('exiting');
 
-      // Brief transition delay for smooth effect
-      const timer = setTimeout(() => {
+      // After exit animation, switch content and start enter animation
+      const exitTimer = setTimeout(() => {
+        setDisplayedContent(newView);
         setCurrentView(newView);
         previousChatId.current = chatId;
-        setIsTransitioning(false);
-      }, 150);
+        animationKey.current += 1;
+        setTransitionPhase('entering');
 
-      return () => clearTimeout(timer);
+        // After enter animation, return to idle
+        const enterTimer = setTimeout(() => {
+          setTransitionPhase('idle');
+        }, 400);
+
+        return () => clearTimeout(enterTimer);
+      }, 200);
+
+      return () => clearTimeout(exitTimer);
     }
   }, [chatId, currentView]);
+
+  // Generate unique key for content to trigger fresh animations
+  const contentKey = `${displayedContent}-${chatId || 'overview'}-${animationKey.current}`;
 
   // Navbar height is 64px
   const NAVBAR_HEIGHT = 64;
@@ -69,16 +86,18 @@ export function AIAssistantClient({
     );
   }
 
-  // Determine which content to show
-  const renderContent = () => {
-    // If a specific chat is selected, show ChatUI
-    if (chatId) {
+  // Determine which content to show based on displayed content (which updates during transition)
+  const renderContent = useCallback(() => {
+    // If displaying chat view
+    if (displayedContent === 'chat') {
       return (
         <ChatUI
+          key={contentKey}
           locale={locale as 'nl' | 'en'}
           chatId={chatId}
           projectId={projectId}
           initialMessage={initialMessage}
+          isEntering={transitionPhase === 'entering'}
         />
       );
     }
@@ -87,7 +106,9 @@ export function AIAssistantClient({
     if (activeView === 'overview' || !activeView) {
       return (
         <OverviewPage
+          key={contentKey}
           locale={locale as 'nl' | 'en'}
+          isEntering={transitionPhase === 'entering'}
         />
       );
     }
@@ -96,11 +117,25 @@ export function AIAssistantClient({
     // These will be handled by their own pages in the future
     return (
       <ChatUI
+        key={contentKey}
         locale={locale as 'nl' | 'en'}
         chatId={chatId}
         projectId={projectId}
+        isEntering={transitionPhase === 'entering'}
       />
     );
+  }, [displayedContent, contentKey, locale, chatId, projectId, initialMessage, activeView, transitionPhase]);
+
+  // Get transition classes based on current phase
+  const getTransitionClasses = () => {
+    switch (transitionPhase) {
+      case 'exiting':
+        return 'page-exit-active';
+      case 'entering':
+        return 'animate-content-flow';
+      default:
+        return '';
+    }
   };
 
   return (
@@ -116,9 +151,8 @@ export function AIAssistantClient({
       {/* Main content area - adjust margin based on sidebar state */}
       <main
         className={cn(
-          'flex-1 overflow-hidden transition-all duration-200',
-          // Fade transition when switching views
-          isTransitioning ? 'opacity-0 translate-y-1' : 'opacity-100 translate-y-0'
+          'flex-1 overflow-hidden transition-[margin] duration-200',
+          getTransitionClasses()
         )}
         style={{
           marginLeft: isCollapsed ? '60px' : '280px'

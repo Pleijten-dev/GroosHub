@@ -35,6 +35,7 @@ export interface ProjectOverviewPageProps {
   projectName?: string;
   className?: string;
   onNavigateToTasks?: () => void;
+  isEntering?: boolean; // Optional: signals that the component is entering (for animations)
 }
 
 interface ProjectTasksResponse {
@@ -143,6 +144,7 @@ export function ProjectOverviewPage({
   projectName,
   className,
   onNavigateToTasks,
+  isEntering = false,
 }: ProjectOverviewPageProps) {
   const router = useRouter();
   const t = translations[locale];
@@ -348,10 +350,19 @@ export function ProjectOverviewPage({
       {/* Main Section */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Welcome area */}
-        <div className="flex-1 flex flex-col items-center justify-center px-base py-2xl">
-          <div className="w-full max-w-2xl">
+        <div className={cn(
+          "flex-1 flex flex-col items-center justify-center px-base py-2xl",
+          isEntering && "animate-initial"
+        )}>
+          <div className={cn(
+            "w-full max-w-2xl",
+            isEntering && "animate-scale-fade-in fill-both"
+          )}>
             {/* Welcome message */}
-            <div className="text-center mb-2xl">
+            <div className={cn(
+              "text-center mb-2xl",
+              isEntering && "animate-fade-slide-up fill-both"
+            )}>
               <h1 className="text-3xl font-bold text-gray-900 mb-sm">
                 {t.welcomeTitle}
               </h1>
@@ -367,16 +378,23 @@ export function ProjectOverviewPage({
             </div>
 
             {/* Sample prompts - filtered for project context */}
-            <SamplePrompts
-              onSelectPrompt={handleSelectPrompt}
-              locale={locale}
-              count={4}
-              refreshKey={promptRefreshKey}
-              className="mb-xl"
-            />
+            <div className={cn(
+              isEntering && "animate-fade-slide-up fill-both stagger-1"
+            )}>
+              <SamplePrompts
+                onSelectPrompt={handleSelectPrompt}
+                locale={locale}
+                count={4}
+                refreshKey={promptRefreshKey}
+                className="mb-xl"
+              />
+            </div>
 
             {/* Refresh prompts button */}
-            <div className="flex justify-center mb-lg">
+            <div className={cn(
+              "flex justify-center mb-lg",
+              isEntering && "animate-fade-slide-up fill-both stagger-2"
+            )}>
               <button
                 type="button"
                 onClick={() => setPromptRefreshKey((k) => k + 1)}
@@ -392,24 +410,33 @@ export function ProjectOverviewPage({
         </div>
 
         {/* Message input - anchored at bottom with RAG for project docs */}
-        <MessageInput
-          onSubmit={handleStartChat}
-          locale={locale}
-          disabled={isCreatingChat}
-          isLoading={isCreatingChat}
-          showRagToggle={true}
-          ragEnabled={true}
-          showFileAttachment={false}
-          autoFocus
-          className="shadow-lg"
-        />
+        <div className={cn(
+          isEntering && "animate-message-flow fill-both stagger-3"
+        )}>
+          <MessageInput
+            onSubmit={handleStartChat}
+            locale={locale}
+            disabled={isCreatingChat}
+            isLoading={isCreatingChat}
+            showRagToggle={true}
+            ragEnabled={true}
+            showFileAttachment={false}
+            autoFocus
+            className="shadow-lg"
+          />
+        </div>
       </div>
 
       {/* Side Section */}
-      <div className="w-80 flex-shrink-0 border-l border-gray-200 bg-gray-50 overflow-y-auto">
+      <div className={cn(
+        "w-80 flex-shrink-0 border-l border-gray-200 bg-gray-50 overflow-y-auto",
+        isEntering && "animate-slide-in-left fill-both stagger-2"
+      )}>
         <div className="p-base space-y-base">
           {/* Calendar with project deadlines */}
-          <div>
+          <div className={cn(
+            isEntering && "animate-fade-slide-up fill-both stagger-3"
+          )}>
             <h3 className="text-sm font-medium text-gray-700 mb-sm">
               {t.projectDeadlines}
             </h3>

@@ -43,9 +43,10 @@ export interface ChatUIProps {
   chatId?: string; // Optional: for loading existing chats
   projectId?: string; // Optional: for project-specific chats
   initialMessage?: string; // Optional: message to send automatically on load
+  isEntering?: boolean; // Optional: signals that the component is entering (for animations)
 }
 
-export function ChatUI({ locale, chatId, projectId, initialMessage }: ChatUIProps) {
+export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering = false }: ChatUIProps) {
   const [selectedModel, setSelectedModel] = useState<ModelId>(DEFAULT_MODEL);
   const [input, setInput] = useState('');
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
@@ -523,7 +524,10 @@ export function ChatUI({ locale, chatId, projectId, initialMessage }: ChatUIProp
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-base py-sm shadow-sm">
+      <div className={cn(
+        "bg-white border-b border-gray-200 px-base py-sm shadow-sm",
+        isEntering && "animate-fade-slide-up fill-both"
+      )}>
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-900">{t.title}</h1>
 
@@ -557,7 +561,10 @@ export function ChatUI({ locale, chatId, projectId, initialMessage }: ChatUIProp
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto">
+      <div className={cn(
+        "flex-1 overflow-y-auto",
+        isEntering && "animate-scale-fade-in fill-both stagger-1"
+      )}>
         <div className="max-w-4xl mx-auto px-base py-lg">
           {isLoadingChat ? (
             <div className="flex items-center justify-center h-full text-gray-500">
@@ -792,7 +799,10 @@ export function ChatUI({ locale, chatId, projectId, initialMessage }: ChatUIProp
       )}
 
       {/* Input Area */}
-      <div className="bg-white border-t border-gray-200 px-base py-sm shadow-lg">
+      <div className={cn(
+        "bg-white border-t border-gray-200 px-base py-sm shadow-lg",
+        isEntering && "animate-message-flow fill-both stagger-2"
+      )}>
         <div className="max-w-4xl mx-auto space-y-sm">
           {/* File Upload Zone - Only shown if model supports vision */}
           {currentChatId && (
