@@ -47,14 +47,14 @@ export class WMSSamplingService {
       const featureInfo = await this.getFeatureInfoWithRetry(url, layers, coordinates);
 
       if (!featureInfo || Object.keys(featureInfo).length === 0) {
-        console.log(`[DEBUG] Point sample: No feature data for ${layers}`);
+        // console.log(`[DEBUG] Point sample: No feature data for ${layers}`);
         return null;
       }
 
       // Extract numeric value if possible
       const value = this.extractValue(featureInfo);
 
-      console.log(`[DEBUG] Point sample for ${layers}: extracted value=${value}, keys=${Object.keys(featureInfo).join(',')}`);
+      // console.log(`[DEBUG] Point sample for ${layers}: extracted value=${value}, keys=${Object.keys(featureInfo).join(',')}`);
 
       return {
         value,
@@ -97,14 +97,14 @@ export class WMSSamplingService {
       });
 
       if (values.length === 0) {
-        console.log(`[DEBUG] Average area: No valid samples for ${layers} (${results.length} requests, ${results.filter(r => r.status === 'fulfilled').length} succeeded)`);
+        // console.log(`[DEBUG] Average area: No valid samples for ${layers} (${results.length} requests, ${results.filter(r => r.status === 'fulfilled').length} succeeded)`);
         return null;
       }
 
       // Calculate average
       const average = values.reduce((sum, val) => sum + val, 0) / values.length;
 
-      console.log(`[DEBUG] Average area for ${layers}: ${values.length} samples, avg=${average.toFixed(2)}`);
+      // console.log(`[DEBUG] Average area for ${layers}: ${values.length} samples, avg=${average.toFixed(2)}`);
 
       return {
         value: average,
@@ -399,15 +399,15 @@ export class WMSSamplingService {
 
     const data = await response.json();
 
-    // Debug: Log response structure for first request
-    if (Math.random() < 0.05) { // Log ~5% of requests to avoid spam
-      console.log(`[DEBUG] WMS Response for ${layers}:`, {
-        hasFeatures: !!data.features,
-        featureCount: data.features?.length || 0,
-        firstFeature: data.features?.[0] ? JSON.stringify(data.features[0]).substring(0, 200) : 'none',
-        responseKeys: Object.keys(data)
-      });
-    }
+    // Debug: Log response structure (commented out to reduce log output)
+    // if (Math.random() < 0.01) { // Log ~1% of requests to avoid spam
+    //   console.log(`[DEBUG] WMS Response for ${layers}:`, {
+    //     hasFeatures: !!data.features,
+    //     featureCount: data.features?.length || 0,
+    //     firstFeature: data.features?.[0] ? JSON.stringify(data.features[0]).substring(0, 200) : 'none',
+    //     responseKeys: Object.keys(data)
+    //   });
+    // }
 
     // Extract features from response
     if (data.features && data.features.length > 0) {
