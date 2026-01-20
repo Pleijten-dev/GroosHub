@@ -231,7 +231,11 @@ export async function POST(request: NextRequest) {
     // Process layers in parallel batches
     for (let i = 0; i < layersToGrade.length; i += PARALLEL_LAYERS) {
       const batch = layersToGrade.slice(i, i + PARALLEL_LAYERS);
-      console.log(`📦 Processing batch ${Math.floor(i / PARALLEL_LAYERS) + 1}/${Math.ceil(layersToGrade.length / PARALLEL_LAYERS)} (${batch.length} layers)`);
+      const batchNum = Math.floor(i / PARALLEL_LAYERS) + 1;
+      const totalBatches = Math.ceil(layersToGrade.length / PARALLEL_LAYERS);
+
+      console.log(`📦 Processing batch ${batchNum}/${totalBatches} (${batch.length} layers)`);
+      console.log(`   Layers: ${batch.map(l => l.name).join(', ')}`);
 
       try {
         // Grade all layers in this batch in parallel
@@ -240,8 +244,15 @@ export async function POST(request: NextRequest) {
         );
 
         gradingResults.push(...batchResults);
+
+        // Log batch completion with memory usage if available
+        const memUsage = process.memoryUsage();
+        console.log(`✅ Batch ${batchNum} complete. Memory: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB / ${Math.round(memUsage.heapTotal / 1024 / 1024)}MB`);
+
       } catch (error) {
-        console.error(`❌ Error processing batch:`, error);
+        console.error(`❌ Error processing batch ${batchNum}:`, error);
+        console.error(`   Error stack:`, error instanceof Error ? error.stack : 'No stack trace');
+
         // Add failed layers from this batch
         batch.forEach(layerConfig => {
           gradingResults.push({
@@ -256,6 +267,8 @@ export async function POST(request: NextRequest) {
         });
       }
     }
+
+    console.log(`🏁 All batches processed. Total results: ${gradingResults.length}`);
 
     // Convert to record format
     const layersRecord: Record<string, WMSLayerGrading> = {};
