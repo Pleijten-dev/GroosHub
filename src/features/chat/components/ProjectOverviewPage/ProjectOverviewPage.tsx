@@ -34,6 +34,7 @@ export interface ProjectOverviewPageProps {
   projectId: string;
   projectName?: string;
   className?: string;
+  onNavigateToTasks?: () => void;
 }
 
 interface ProjectTasksResponse {
@@ -96,6 +97,7 @@ const translations = {
     doing: 'Bezig',
     done: 'Gereed',
     overdue: 'Achterstallig',
+    unassigned: 'Niet toegewezen',
   },
   en: {
     welcomeTitle: 'Project Assistant',
@@ -110,6 +112,7 @@ const translations = {
     doing: 'In progress',
     done: 'Done',
     overdue: 'Overdue',
+    unassigned: 'Unassigned',
   },
 };
 
@@ -139,6 +142,7 @@ export function ProjectOverviewPage({
   projectId,
   projectName,
   className,
+  onNavigateToTasks,
 }: ProjectOverviewPageProps) {
   const router = useRouter();
   const t = translations[locale];
@@ -212,8 +216,23 @@ export function ProjectOverviewPage({
         setDeadlines(upcomingDeadlines);
 
         // Process stats for task distribution chart
-        if (statsData.success && statsData.data?.byUser) {
-          const userSegments: StackedBarSegment[] = statsData.data.byUser
+        if (statsData.success && statsData.data) {
+          const { overall, byUser } = statsData.data;
+
+          // Calculate total open tasks (todo + doing)
+          const totalOpenTasks = (overall?.todo_count || 0) + (overall?.doing_count || 0);
+
+          // Calculate total assigned open tasks
+          const totalAssignedOpenTasks = (byUser || []).reduce(
+            (sum, user) => sum + user.todo_count + user.doing_count,
+            0
+          );
+
+          // Calculate unassigned open tasks
+          const unassignedOpenTasks = totalOpenTasks - totalAssignedOpenTasks;
+
+          // Build segments for assigned users
+          const userSegments: StackedBarSegment[] = (byUser || [])
             .filter((user) => user.todo_count + user.doing_count > 0) // Only show users with open tasks
             .sort((a, b) => (b.todo_count + b.doing_count) - (a.todo_count + a.doing_count))
             .map((user, index) => ({
@@ -222,6 +241,16 @@ export function ProjectOverviewPage({
               value: user.todo_count + user.doing_count,
               color: USER_COLORS[index % USER_COLORS.length],
             }));
+
+          // Add unassigned segment in grey if there are unassigned tasks
+          if (unassignedOpenTasks > 0) {
+            userSegments.push({
+              id: 'unassigned',
+              label: translations[locale].unassigned,
+              value: unassignedOpenTasks,
+              color: '#9ca3af', // Grey color for unassigned
+            });
+          }
 
           setTasksByUser(userSegments);
         }
@@ -297,10 +326,14 @@ export function ProjectOverviewPage({
     [handleTaskClick]
   );
 
-  // Handle view all tasks
+  // Handle view all tasks - use callback if provided, otherwise navigate
   const handleViewAllTasks = useCallback(() => {
-    router.push(`/${locale}/projects/${projectId}/tasks`);
-  }, [locale, projectId, router]);
+    if (onNavigateToTasks) {
+      onNavigateToTasks();
+    } else {
+      router.push(`/${locale}/projects/${projectId}/tasks`);
+    }
+  }, [locale, projectId, router, onNavigateToTasks]);
 
   // Handle user segment click
   const handleUserClick = useCallback(

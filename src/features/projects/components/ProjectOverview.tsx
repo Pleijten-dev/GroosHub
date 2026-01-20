@@ -216,11 +216,12 @@ export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
       {/* Content */}
       <div className="space-y-base">
         {activeTab === 'overview' && (
-          <div className="-mx-lg -mb-lg" style={{ height: 'calc(100vh - 180px)' }}>
+          <div className="-mx-lg -mb-lg" style={{ height: 'calc(100vh - 220px)' }}>
             <ProjectOverviewPage
               locale={locale as 'nl' | 'en'}
               projectId={projectId}
               projectName={project.name}
+              onNavigateToTasks={() => setActiveTab('tasks')}
             />
           </div>
         )}
