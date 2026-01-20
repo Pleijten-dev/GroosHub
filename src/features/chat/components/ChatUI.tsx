@@ -277,6 +277,13 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
     const queryText = input;
     setInput(''); // Clear input immediately
     const currentFiles = [...uploadedFiles];
+
+    console.log('[ChatUI] 📎 Files at submit time:', {
+      uploadedFilesCount: uploadedFiles.length,
+      currentFilesCount: currentFiles.length,
+      files: currentFiles.map(f => ({ id: f.id, name: f.name, type: f.type }))
+    });
+
     setUploadedFiles([]); // Clear uploaded files
 
     if (!currentChatIdRef.current) {
@@ -414,6 +421,7 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
 
   // File upload handlers
   const handleFilesUploaded = (newFiles: UploadedFile[]) => {
+    console.log('[ChatUI] 📎 Files uploaded:', newFiles.map(f => ({ id: f.id, name: f.name, type: f.type })));
     setUploadedFiles(prev => [...prev, ...newFiles]);
   };
 
