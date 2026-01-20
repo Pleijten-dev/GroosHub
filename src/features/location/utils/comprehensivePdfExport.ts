@@ -14,7 +14,7 @@ import type { WMSGradingData, WMSLayerGrading } from '../types/wms-grading';
 import type { AmenityMultiCategoryResponse, AmenitySearchResult } from '../data/sources/google-places/types';
 import { WMS_CATEGORIES, type WMSLayerConfig } from '../components/Maps/wmsLayers';
 import { getLayerConfig, getCriticalLayers } from '../data/sources/wmsGradingConfig';
-import { downloadWMSTile, type MapCapture } from './mapExport';
+import { downloadWMSTile, downloadWMSLegend, type MapCapture, type LegendCapture } from './mapExport';
 
 // Types for the PDF export
 export interface ComprehensivePdfOptions {
@@ -386,13 +386,14 @@ class PdfBuilder {
   }
 
   /**
-   * Add a WMS map with description and score
+   * Add a WMS map with description, legend, and score
    */
   async addWMSMap(
     capture: MapCapture,
     aerialPhoto: MapCapture | null,
     layerConfig: WMSLayerConfig,
-    gradingResult?: WMSLayerGrading
+    gradingResult?: WMSLayerGrading,
+    legend?: LegendCapture | null
   ): Promise<void> {
     // Start a new page for each map
     if (this.currentY > MARGIN + HEADER_HEIGHT + 50) {
@@ -412,9 +413,12 @@ class PdfBuilder {
     this.pdf.text(descLines, MARGIN, this.currentY);
     this.currentY += descLines.length * 4 + 5;
 
-    // Map image
-    const mapSize = 120; // Square map
-    const mapX = MARGIN + (CONTENT_WIDTH - mapSize) / 2;
+    // Calculate layout: map on left, legend on right (if available)
+    const hasLegend = legend && legend.dataUrl;
+    const mapSize = hasLegend ? 100 : 120; // Smaller map when legend is present
+    const legendWidth = 60; // Width reserved for legend
+    const mapX = hasLegend ? MARGIN : MARGIN + (CONTENT_WIDTH - mapSize) / 2;
+    const legendX = MARGIN + mapSize + 10;
 
     try {
       // Add aerial photo background if available (at 50% opacity)
@@ -442,6 +446,47 @@ class PdfBuilder {
         undefined,
         'FAST'
       );
+
+      // Add legend if available
+      if (hasLegend) {
+        // Legend header
+        this.pdf.setFontSize(10);
+        this.pdf.setTextColor(71, 118, 56);
+        this.pdf.text(this.t.legend, legendX, this.currentY + 5);
+
+        // Legend image - scale to fit while maintaining aspect ratio
+        const maxLegendHeight = mapSize - 10;
+        const maxLegendWidth = legendWidth - 5;
+
+        // Calculate scaled dimensions
+        const legendAspect = legend.width / legend.height;
+        let scaledWidth = maxLegendWidth;
+        let scaledHeight = scaledWidth / legendAspect;
+
+        if (scaledHeight > maxLegendHeight) {
+          scaledHeight = maxLegendHeight;
+          scaledWidth = scaledHeight * legendAspect;
+        }
+
+        try {
+          this.pdf.addImage(
+            legend.dataUrl,
+            'PNG',
+            legendX,
+            this.currentY + 10,
+            scaledWidth,
+            scaledHeight,
+            undefined,
+            'FAST'
+          );
+        } catch (legendError) {
+          console.warn('Failed to add legend image:', legendError);
+          // Draw placeholder for legend
+          this.pdf.setFontSize(8);
+          this.pdf.setTextColor(150, 150, 150);
+          this.pdf.text('(Legend unavailable)', legendX, this.currentY + 20);
+        }
+      }
     } catch (error) {
       // Draw placeholder box if image fails
       this.pdf.setFillColor(240, 240, 240);
@@ -1096,27 +1141,40 @@ export async function generateComprehensivePdf(
       let successCount = 0;
       let failCount = 0;
 
-      // Download and add each WMS layer
+      // Download and add each WMS layer with its legend
       for (const layer of wmsLayers) {
         // Skip amenity layers (they use markers, not WMS)
         if (layer.config.url === 'amenity://') continue;
 
         try {
           console.log(`Downloading WMS layer: ${layer.config.title}`);
-          const capture = await downloadWMSTile({
-            url: layer.config.url,
-            layers: layer.config.layers,
-            layerTitle: layer.config.title,
-            center: data.coordinates,
-            zoom: layer.config.recommendedZoom || 15,
-            width: 800,
-            height: 800
-          });
+
+          // Download map tile and legend in parallel
+          const [capture, legend] = await Promise.all([
+            downloadWMSTile({
+              url: layer.config.url,
+              layers: layer.config.layers,
+              layerTitle: layer.config.title,
+              center: data.coordinates,
+              zoom: layer.config.recommendedZoom || 15,
+              width: 800,
+              height: 800
+            }),
+            // Download legend - catch errors separately to not fail the whole layer
+            downloadWMSLegend(
+              layer.config.url,
+              layer.config.layers,
+              layer.config.title
+            ).catch(err => {
+              console.warn(`Failed to download legend for ${layer.config.title}:`, err);
+              return null;
+            })
+          ]);
 
           const aerialPhoto = aerialPhotoCache[layer.config.recommendedZoom || 15] || null;
           const gradingResult = data.wmsGradingData?.layers?.[layer.layerId];
 
-          await builder.addWMSMap(capture, aerialPhoto, layer.config, gradingResult);
+          await builder.addWMSMap(capture, aerialPhoto, layer.config, gradingResult, legend);
           successCount++;
           reportProgress(layer.config.title);
         } catch (error) {

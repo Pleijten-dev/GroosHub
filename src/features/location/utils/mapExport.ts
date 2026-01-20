@@ -36,6 +36,87 @@ export interface MapCapture {
   height: number;
 }
 
+export interface LegendCapture {
+  /** Layer title */
+  title: string;
+  /** Base64 encoded PNG data */
+  dataUrl: string;
+  /** Blob of the image */
+  blob: Blob;
+  /** Image width (actual size from image) */
+  width: number;
+  /** Image height (actual size from image) */
+  height: number;
+}
+
+/**
+ * Download a WMS legend using GetLegendGraphic request
+ */
+export async function downloadWMSLegend(
+  url: string,
+  layers: string,
+  layerTitle: string
+): Promise<LegendCapture> {
+  // Construct WMS GetLegendGraphic request
+  const params = new URLSearchParams({
+    service: 'WMS',
+    version: '1.3.0',
+    request: 'GetLegendGraphic',
+    layer: layers,
+    format: 'image/png',
+    width: '20',
+    height: '20',
+  });
+
+  const requestUrl = `${url}?${params.toString()}`;
+
+  try {
+    const response = await fetch(requestUrl, {
+      mode: 'cors',
+    });
+
+    if (!response.ok) {
+      throw new Error(`WMS legend request failed: ${response.status} ${response.statusText}`);
+    }
+
+    const blob = await response.blob();
+
+    // Convert blob to base64 data URL
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+
+    // Get actual image dimensions
+    const dimensions = await getImageDimensions(dataUrl);
+
+    return {
+      title: layerTitle,
+      dataUrl,
+      blob,
+      width: dimensions.width,
+      height: dimensions.height,
+    };
+  } catch (error) {
+    console.error(`Failed to download WMS legend for ${layerTitle}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Get image dimensions from data URL
+ */
+async function getImageDimensions(dataUrl: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve({ width: img.width, height: img.height });
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = dataUrl;
+  });
+}
+
 /**
  * Calculate bounding box for a given center point and zoom level
  */
