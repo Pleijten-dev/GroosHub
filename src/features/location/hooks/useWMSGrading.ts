@@ -209,7 +209,8 @@ export function useWMSGrading(options: UseWMSGradingOptions): UseWMSGradingRetur
    */
   useEffect(() => {
     // If we have existing valid grading data, use it
-    if (hasValidGradingData()) {
+    // BUT only if we don't already have grading data in state (to prevent infinite loop)
+    if (hasValidGradingData() && !gradingData) {
       // Safe cast: hasValidGradingData() validates structure at runtime
       const validatedData = existingGradingData as unknown as WMSGradingData;
       setGradingData(validatedData);
