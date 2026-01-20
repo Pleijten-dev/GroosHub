@@ -790,7 +790,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                 <ComprehensivePdfExportButton
                   locale={locale}
                   coordinates={
-                    data.location.coordinates?.wgs84
+                    data.location?.coordinates?.wgs84
                       ? [
                           data.location.coordinates.wgs84.latitude,
                           data.location.coordinates.wgs84.longitude,
@@ -821,7 +821,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                 <MapExportButton
                   locale={locale}
                   coordinates={
-                    data.location.coordinates?.wgs84
+                    data.location?.coordinates?.wgs84
                       ? [
                           data.location.coordinates.wgs84.latitude,
                           data.location.coordinates.wgs84.longitude,
@@ -829,9 +829,9 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                       : [0, 0]
                   }
                   locationName={[
-                    data.location.neighborhood?.statnaam,
-                    data.location.district?.statnaam,
-                    data.location.municipality?.statnaam,
+                    data.location?.neighborhood?.statnaam,
+                    data.location?.district?.statnaam,
+                    data.location?.municipality?.statnaam,
                   ]
                     .filter(Boolean)
                     .join(', ')}
