@@ -78,6 +78,44 @@ export function useWMSGrading(options: UseWMSGradingOptions): UseWMSGradingRetur
   }, [existingGradingData]);
 
   /**
+   * Poll for grading results (for when initial request times out but backend continues)
+   */
+  const pollForResults = useCallback(async () => {
+    if (!snapshotId) return;
+
+    try {
+      const response = await fetch(`/api/location/snapshots/${snapshotId}`);
+      const result = await response.json();
+
+      if (result.data?.wms_grading_data) {
+        const data = result.data.wms_grading_data;
+        // Check if it has the expected structure
+        if (data.layers && Object.keys(data.layers).length > 0) {
+          setGradingData(data);
+          setProgress(100);
+
+          // Count successful layers
+          const successful = Object.values(data.layers).filter(
+            (layer: any) => layer.point_sample || layer.average_area_sample || layer.max_area_sample
+          ).length;
+          setLayersCompleted(successful);
+          setLayersTotal(Object.keys(data.layers).length);
+          setIsCriticalComplete(true);
+          setIsGrading(false);
+
+          // Stop polling
+          if (pollTimerRef.current) {
+            clearInterval(pollTimerRef.current);
+            pollTimerRef.current = null;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error polling for WMS grading results:', error);
+    }
+  }, [snapshotId]);
+
+  /**
    * Start WMS grading
    */
   const startGrading = useCallback(async () => {
@@ -94,25 +132,48 @@ export function useWMSGrading(options: UseWMSGradingOptions): UseWMSGradingRetur
     try {
       // If we have a snapshot ID, use the auto-grade endpoint
       if (snapshotId) {
-        const response = await fetch(`/api/location/snapshots/${snapshotId}/grade-wms`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({})
-        });
+        // Create abort controller with 4 minute timeout (grading takes ~3 min)
+        const abortController = new AbortController();
+        const timeoutId = setTimeout(() => abortController.abort(), 240000);
 
-        const result = await response.json();
+        try {
+          const response = await fetch(`/api/location/snapshots/${snapshotId}/grade-wms`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({}),
+            signal: abortController.signal
+          });
 
-        if (result.success && result.data) {
-          setGradingData(result.data.snapshot.wms_grading_data);
-          setProgress(100);
-          setLayersCompleted(result.data.grading_statistics?.successful_layers || 0);
-          setLayersTotal(result.data.grading_statistics?.total_layers || 25);
-          setIsCriticalComplete(true);
-        } else {
-          setError(result.error || 'Grading failed');
+          clearTimeout(timeoutId);
+
+          const result = await response.json();
+
+          if (result.success && result.data) {
+            setGradingData(result.data.snapshot.wms_grading_data);
+            setProgress(100);
+            setLayersCompleted(result.data.grading_statistics?.successful_layers || 0);
+            setLayersTotal(result.data.grading_statistics?.total_layers || 25);
+            setIsCriticalComplete(true);
+            setIsGrading(false);
+          } else {
+            setError(result.error || 'Grading failed');
+            setIsGrading(false);
+          }
+        } catch (fetchError) {
+          clearTimeout(timeoutId);
+
+          // If request was aborted or timed out, start polling for results
+          if (fetchError instanceof Error && (fetchError.name === 'AbortError' || fetchError.message.includes('aborted'))) {
+            console.log('WMS grading request timed out, polling for results...');
+            // Keep isGrading = true and start polling
+            pollTimerRef.current = setInterval(pollForResults, 5000);
+          } else {
+            setError('Failed to start grading');
+            setIsGrading(false);
+          }
         }
       } else {
-        // No snapshot yet, grade directly
+        // No snapshot yet, grade directly (no timeout needed for new locations)
         const response = await fetch('/api/location/wms-grading', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -134,14 +195,14 @@ export function useWMSGrading(options: UseWMSGradingOptions): UseWMSGradingRetur
         } else {
           setError(result.error || 'Grading failed');
         }
+        setIsGrading(false);
       }
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start grading');
-    } finally {
       setIsGrading(false);
     }
-  }, [snapshotId, latitude, longitude, address]);
+  }, [snapshotId, latitude, longitude, address, pollForResults]);
 
   /**
    * Initialize grading data from existing data or auto-start
