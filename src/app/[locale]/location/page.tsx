@@ -506,6 +506,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
           .join(', ');
 
         // Calculate sampling area from selected layer's grading data
+        // Use primitive values in dependencies to avoid circular refs
         const samplingArea = React.useMemo(() => {
           if (!selectedWMSLayer || !wmsGrading.gradingData) return null;
 
@@ -520,10 +521,10 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
           if (!radius) return null;
 
           return {
-            center: coordinates,
+            center: [lat, lng] as [number, number],
             radius: radius
           };
-        }, [selectedWMSLayer, wmsGrading.gradingData, coordinates]);
+        }, [selectedWMSLayer?.layerId, lat, lng, wmsGrading.gradingData]);
 
         return (
           <div className="h-full w-full relative">
