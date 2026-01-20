@@ -349,11 +349,14 @@ export class WMSSamplingService {
   ): Promise<Record<string, unknown> | null> {
     // Create a small bounding box around the point
     const bbox_size = 0.001; // ~100m at Netherlands latitude
+
+    // IMPORTANT: WMS 1.3.0 with EPSG:4326 uses lat,lng order (not lng,lat)
+    // Format: minLat, minLng, maxLat, maxLng (matching LocationMap implementation)
     const bbox: [number, number, number, number] = [
-      coordinates.lng - bbox_size,
-      coordinates.lat - bbox_size,
-      coordinates.lng + bbox_size,
-      coordinates.lat + bbox_size,
+      coordinates.lat - bbox_size,  // minLat (south)
+      coordinates.lng - bbox_size,  // minLng (west)
+      coordinates.lat + bbox_size,  // maxLat (north)
+      coordinates.lng + bbox_size,  // maxLng (east)
     ];
 
     // Map dimensions (pixels)
