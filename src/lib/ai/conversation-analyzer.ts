@@ -66,7 +66,7 @@ const ANALYZER_CONFIG = {
   // Summarization config
   summarization: {
     enabled: true,
-    summarizeAfterMessages: 20, // Summarize when >20 messages
+    summarizeAfterMessages: 10, // Summarize when >10 messages
     keepRecentMessages: 10, // Keep last 10 unsummarized
     summaryChunkSize: 15, // Summarize in chunks of 15 messages
   },

@@ -10,6 +10,7 @@
     "db:migrate": "tsx scripts/init-database.ts",
     "validate:data": "tsx scripts/validate-data-integrity.ts",
     "setup:hooks": "bash scripts/install-git-hooks.sh",
+    "cleanup:files": "tsx scripts/cleanup-deleted-files.ts",
     "test:rag": "tsx scripts/test-rag-system.ts"
   },
   "dependencies": {
