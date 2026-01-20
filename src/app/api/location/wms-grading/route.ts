@@ -1,23 +1,31 @@
 /**
  * WMS Grading API Endpoint
- * Performs point, average, and maximum sampling on WMS layers for a given location
+ * Performs configured sampling on WMS layers based on wmsGradingConfig
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createWMSSamplingService } from '@/features/location/data/sources/WMSSamplingService';
-import { WMS_CATEGORIES } from '@/features/location/components/Maps/wmsLayers';
+import { getWMSLayer } from '@/features/location/components/Maps/wmsLayers';
+import {
+  getLayersByPriority,
+  getLayerConfig,
+  getSamplingConfig,
+  SCALE_CONFIGS,
+  type LayerGradingConfig,
+} from '@/features/location/data/sources/wmsGradingConfig';
 import type {
   WMSGradingRequest,
   WMSGradingResponse,
   WMSGradingData,
   WMSLayerGrading,
-  SamplingConfig,
+  PointSample,
+  AreaSample,
+  MaxAreaSample,
 } from '@/features/location/types/wms-grading';
-import type { WMSLayerConfig } from '@/features/location/components/Maps/wmsLayers';
 
 /**
  * POST /api/location/wms-grading
- * Grade WMS layers at a specific location
+ * Grade WMS layers at a specific location using configured sampling methods
  */
 export async function POST(request: NextRequest) {
   try {
@@ -52,80 +60,161 @@ export async function POST(request: NextRequest) {
 
     const location = { lat: body.latitude, lng: body.longitude };
 
-    // Create sampling service with custom config if provided
-    const samplingService = createWMSSamplingService(body.sampling_config);
+    // Get configured layers (25 layers, skips historical/amenity layers)
+    // Sorted by priority (critical layers first)
+    const configuredLayers = getLayersByPriority();
 
-    // Get all WMS layers to grade
-    const layersToGrade = getAllWMSLayers(body.layer_ids);
+    // Filter by layer_ids if provided
+    const layersToGrade = body.layer_ids && body.layer_ids.length > 0
+      ? configuredLayers.filter(layer => body.layer_ids!.includes(layer.layerId))
+      : configuredLayers;
 
-    console.log(`Grading ${layersToGrade.length} WMS layers at ${body.address}`);
+    console.log(`🎯 Grading ${layersToGrade.length} configured WMS layers at ${body.address}`);
+    console.log(`📊 Critical layers: ${layersToGrade.filter(l => l.critical).length}`);
 
-    // Grade each layer
-    const gradingPromises = layersToGrade.map(async (layerConfig) => {
-      const layerId = layerConfig.layerId;
-      const errors: string[] = [];
+    const gradingResults: WMSLayerGrading[] = [];
+    let totalSamplesTaken = 0;
 
+    // Grade each layer according to its configuration
+    for (const layerConfig of layersToGrade) {
       try {
-        // Skip amenity marker layers (they're not real WMS layers)
-        if (layerConfig.config.amenityCategoryId) {
-          return null;
+        const wmsLayer = getWMSLayer(layerConfig.category, layerConfig.layerId);
+
+        if (!wmsLayer) {
+          console.warn(`⚠️ WMS layer not found: ${layerConfig.layerId}`);
+          continue;
         }
 
-        console.log(`Grading layer: ${layerConfig.config.title}`);
-
-        // Perform all three sampling methods in parallel
-        const [pointSample, averageSample, maxSample] = await Promise.all([
-          samplingService.pointSample(
-            layerConfig.config.url,
-            layerConfig.config.layers,
-            location
-          ),
-          samplingService.averageAreaSample(
-            layerConfig.config.url,
-            layerConfig.config.layers,
-            location
-          ),
-          samplingService.maxAreaSample(
-            layerConfig.config.url,
-            layerConfig.config.layers,
-            location
-          ),
-        ]);
-
-        // Check if all samples failed
-        if (!pointSample && !averageSample && !maxSample) {
-          errors.push('All sampling methods failed - layer may not have data at this location');
+        // Skip amenity layers
+        if (wmsLayer.amenityCategoryId) {
+          continue;
         }
 
-        const grading: WMSLayerGrading = {
-          layer_id: layerId,
-          layer_name: layerConfig.config.title,
-          wms_layer_name: layerConfig.config.layers,
-          point_sample: pointSample,
-          average_area_sample: averageSample,
-          max_area_sample: maxSample,
-          errors: errors.length > 0 ? errors : undefined,
+        console.log(`🔍 Grading: ${layerConfig.name} (${layerConfig.category})`);
+
+        const grading: Partial<WMSLayerGrading> = {
+          layer_id: layerConfig.layerId,
+          layer_name: layerConfig.name,
+          wms_layer_name: wmsLayer.layers,
+          errors: [],
         };
 
-        return grading;
+        // Perform configured sampling methods
+        const samplingTasks: Promise<void>[] = [];
+
+        // Point sample
+        if (layerConfig.methods.point) {
+          const config = getSamplingConfig(layerConfig.layerId, 'point');
+          if (config) {
+            const service = createWMSSamplingService(config.config);
+            samplingTasks.push(
+              service.pointSample(wmsLayer.url, wmsLayer.layers, location)
+                .then(result => {
+                  grading.point_sample = result;
+                  if (result) totalSamplesTaken += 1;
+                })
+                .catch(err => {
+                  grading.errors!.push(`Point sample failed: ${err.message}`);
+                })
+            );
+          }
+        }
+
+        // Average area sample
+        if (layerConfig.methods.average) {
+          const config = getSamplingConfig(layerConfig.layerId, 'average');
+          if (config) {
+            const service = createWMSSamplingService(config.config);
+            samplingTasks.push(
+              service.averageAreaSample(wmsLayer.url, wmsLayer.layers, location)
+                .then(result => {
+                  grading.average_area_sample = result;
+                  if (result) totalSamplesTaken += result.sample_count;
+                })
+                .catch(err => {
+                  grading.errors!.push(`Average area sample failed: ${err.message}`);
+                })
+            );
+          }
+        }
+
+        // Max area sample
+        if (layerConfig.methods.max) {
+          const config = getSamplingConfig(layerConfig.layerId, 'max');
+          if (config) {
+            const service = createWMSSamplingService(config.config);
+            samplingTasks.push(
+              service.maxAreaSample(wmsLayer.url, wmsLayer.layers, location)
+                .then(result => {
+                  grading.max_area_sample = result;
+                  if (result) totalSamplesTaken += result.sample_count;
+                })
+                .catch(err => {
+                  grading.errors!.push(`Max area sample failed: ${err.message}`);
+                })
+            );
+          }
+        }
+
+        // Handle alternate scales (e.g., road traffic noise with BOTH quick and default)
+        if (layerConfig.alternateScales) {
+          for (const altScale of layerConfig.alternateScales) {
+            const altConfig = SCALE_CONFIGS[altScale.scale];
+            const service = createWMSSamplingService(altConfig);
+
+            if (altScale.method === 'max') {
+              samplingTasks.push(
+                service.maxAreaSample(wmsLayer.url, wmsLayer.layers, location)
+                  .then(result => {
+                    // Store alternate scale result
+                    // For now, we'll keep the larger radius result as the primary
+                    if (result && grading.max_area_sample) {
+                      if (result.radius_meters > grading.max_area_sample.radius_meters) {
+                        grading.max_area_sample = result;
+                      }
+                    } else if (result) {
+                      grading.max_area_sample = result;
+                    }
+                    if (result) totalSamplesTaken += result.sample_count;
+                  })
+                  .catch(err => {
+                    grading.errors!.push(`Alt max sample (${altScale.scale}) failed: ${err.message}`);
+                  })
+              );
+            }
+          }
+        }
+
+        // Wait for all sampling tasks to complete
+        await Promise.all(samplingTasks);
+
+        // Check if all samples failed
+        if (!grading.point_sample && !grading.average_area_sample && !grading.max_area_sample) {
+          grading.errors!.push('All sampling methods failed - layer may not have data at this location');
+        }
+
+        // Clean up errors array
+        if (grading.errors!.length === 0) {
+          delete grading.errors;
+        }
+
+        gradingResults.push(grading as WMSLayerGrading);
+
+        console.log(`✅ ${layerConfig.name}: ${grading.point_sample ? '✓Point ' : ''}${grading.average_area_sample ? '✓Avg ' : ''}${grading.max_area_sample ? '✓Max' : ''}`);
+
       } catch (error) {
-        console.error(`Error grading layer ${layerId}:`, error);
-        return {
-          layer_id: layerId,
-          layer_name: layerConfig.config.title,
-          wms_layer_name: layerConfig.config.layers,
+        console.error(`❌ Error grading layer ${layerConfig.layerId}:`, error);
+        gradingResults.push({
+          layer_id: layerConfig.layerId,
+          layer_name: layerConfig.name,
+          wms_layer_name: '',
           point_sample: null,
           average_area_sample: null,
           max_area_sample: null,
           errors: [error instanceof Error ? error.message : 'Unknown error'],
-        } as WMSLayerGrading;
+        });
       }
-    });
-
-    // Wait for all grading operations
-    const gradingResults = (await Promise.all(gradingPromises)).filter(
-      (result): result is WMSLayerGrading => result !== null
-    );
+    }
 
     // Convert to record format
     const layersRecord: Record<string, WMSLayerGrading> = {};
@@ -142,14 +231,7 @@ export async function POST(request: NextRequest) {
       failed_layers: gradingResults.filter(
         (g) => !g.point_sample && !g.average_area_sample && !g.max_area_sample
       ).length,
-      total_samples_taken: gradingResults.reduce(
-        (sum, g) =>
-          sum +
-          (g.point_sample ? 1 : 0) +
-          (g.average_area_sample?.sample_count || 0) +
-          (g.max_area_sample?.sample_count || 0),
-        0
-      ),
+      total_samples_taken: totalSamplesTaken,
     };
 
     // Build response
@@ -159,15 +241,15 @@ export async function POST(request: NextRequest) {
       layers: layersRecord,
       graded_at: new Date(),
       sampling_config: {
-        area_radius_meters: body.sampling_config?.area_radius_meters ?? 500,
-        grid_resolution_meters: body.sampling_config?.grid_resolution_meters ?? 50,
-        max_samples_per_layer: body.sampling_config?.max_samples_per_layer ?? 400,
+        area_radius_meters: 500, // Default/most common
+        grid_resolution_meters: 50,
+        max_samples_per_layer: 400,
       },
       statistics,
     };
 
     console.log(
-      `WMS grading complete: ${statistics.successful_layers}/${statistics.total_layers} layers successful`
+      `🎉 WMS grading complete: ${statistics.successful_layers}/${statistics.total_layers} layers successful (${statistics.total_samples_taken} total samples)`
     );
 
     return NextResponse.json<WMSGradingResponse>({
@@ -175,7 +257,7 @@ export async function POST(request: NextRequest) {
       data: response,
     });
   } catch (error) {
-    console.error('WMS grading API error:', error);
+    console.error('❌ WMS grading API error:', error);
     return NextResponse.json<WMSGradingResponse>(
       {
         success: false,
@@ -188,29 +270,30 @@ export async function POST(request: NextRequest) {
 
 /**
  * GET /api/location/wms-grading?info=true
- * Get information about available WMS layers
+ * Get information about configured WMS layers
  */
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const info = searchParams.get('info');
 
   if (info === 'true') {
-    const layers = getAllWMSLayers();
+    const layers = getLayersByPriority();
 
     return NextResponse.json({
       success: true,
       data: {
         total_layers: layers.length,
-        categories: Object.keys(WMS_CATEGORIES).map((categoryId) => ({
-          id: categoryId,
-          name: WMS_CATEGORIES[categoryId].name,
-          layer_count: Object.keys(WMS_CATEGORIES[categoryId].layers).length,
-        })),
+        critical_layers: layers.filter(l => l.critical).length,
+        categories: Array.from(new Set(layers.map(l => l.category))),
         layers: layers.map((layer) => ({
           id: layer.layerId,
-          category: layer.categoryId,
-          name: layer.config.title,
-          description: layer.config.description,
+          category: layer.category,
+          name: layer.name,
+          methods: layer.methods,
+          scale: layer.scale,
+          priority: layer.priority,
+          critical: layer.critical,
+          unit: layer.unit,
         })),
       },
     });
@@ -218,31 +301,6 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     success: false,
-    error: 'Use POST to grade WMS layers, or GET with ?info=true to list available layers',
+    error: 'Use POST to grade WMS layers, or GET with ?info=true to list configured layers',
   });
-}
-
-/**
- * Helper: Get all WMS layers or specific layers by ID
- */
-function getAllWMSLayers(
-  layerIds?: string[]
-): Array<{ layerId: string; categoryId: string; config: WMSLayerConfig }> {
-  const allLayers: Array<{ layerId: string; categoryId: string; config: WMSLayerConfig }> = [];
-
-  // Iterate through all categories
-  Object.entries(WMS_CATEGORIES).forEach(([categoryId, category]) => {
-    Object.entries(category.layers).forEach(([layerId, config]) => {
-      // Filter by layerIds if provided
-      if (!layerIds || layerIds.length === 0 || layerIds.includes(layerId)) {
-        allLayers.push({
-          layerId,
-          categoryId,
-          config,
-        });
-      }
-    });
-  });
-
-  return allLayers;
 }
