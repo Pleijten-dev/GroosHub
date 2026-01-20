@@ -72,11 +72,12 @@ export async function POST(request: NextRequest) {
     const userId = session.user.id;
     const body = await request.json();
 
-    const { title, projectId, modelId, initialMessage } = body;
+    const { title, projectId, modelId, initialMessage, chatId: providedChatId } = body;
 
-    // Create the chat
+    // Create the chat (use provided chatId if available - for file uploads that happen before chat creation)
     const chatId = await createChat({
       userId: typeof userId === 'string' ? parseInt(userId) : userId,
+      chatId: providedChatId || undefined, // Use provided ID or let createChat generate one
       title: title || 'New Chat',
       projectId: projectId || undefined,
       modelId: modelId || undefined,
