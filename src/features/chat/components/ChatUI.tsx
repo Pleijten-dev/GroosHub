@@ -275,10 +275,28 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
 
     // Show user message immediately (optimistic update)
     const tempUserMessageId = `temp-${Date.now()}`;
+
+    // Build message parts including any uploaded images
+    const messageParts: typeof messages[0]['parts'] = [];
+
+    // Add image parts from uploaded files (so they appear immediately)
+    currentFiles.forEach((file, index) => {
+      if (file.type === 'image' && file.previewUrl) {
+        messageParts.push({
+          type: 'file',
+          mediaType: file.mimeType,
+          url: file.previewUrl,
+        } as any);
+      }
+    });
+
+    // Add text part
+    messageParts.push({ type: 'text', text: queryText });
+
     const userMessage: typeof messages[0] = {
       id: tempUserMessageId,
       role: 'user',
-      parts: [{ type: 'text', text: queryText }]
+      parts: messageParts
     };
     setMessages([...messages, userMessage]);
 
@@ -626,9 +644,9 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
                     {hasText && (
                       <div
                         className={cn(
-                          'max-w-[80%] rounded-lg px-base py-sm shadow-sm',
+                          'max-w-[80%] min-w-[240px] rounded-lg px-base py-sm shadow-sm',
                           message.role === 'user'
-                            ? 'bg-blue-600 text-white'
+                            ? 'bg-[#8a976b] text-white'
                             : 'bg-white text-gray-900 border border-gray-200'
                         )}
                       >

@@ -48,9 +48,9 @@ export function ImageAttachment({
         'relative rounded-lg overflow-hidden cursor-pointer',
         'hover:opacity-90 transition-opacity',
         'border border-gray-200 shadow-sm',
-        'bg-gray-100' // Ensure background is visible
+        'bg-white' // Use white background for better image visibility
       )}
-      style={{ maxWidth: `${maxWidth}px`, minHeight: isLoading ? '100px' : 'auto' }}
+      style={{ maxWidth: `${maxWidth}px`, minHeight: '60px' }}
       onClick={onClick}
     >
       {/* Loading State */}
@@ -101,11 +101,17 @@ export function ImageAttachment({
         src={imageUrlString}
         alt={alt}
         className={cn(
-          'w-full h-auto block object-contain',
+          'w-full h-auto block',
           isLoading && 'opacity-0',
           hasError && 'hidden'
         )}
-        style={{ minHeight: isLoading ? '100px' : 'auto' }}
+        style={{
+          minHeight: '60px',
+          maxHeight: '200px',
+          objectFit: 'contain',
+          backgroundColor: 'transparent'
+        }}
+        crossOrigin={!isDataUrl ? 'anonymous' : undefined}
         onLoad={() => {
           console.log('[ImageAttachment] Image loaded successfully');
           setIsLoading(false);
