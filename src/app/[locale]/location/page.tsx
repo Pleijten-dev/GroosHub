@@ -209,6 +209,36 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     setCurrentAddress(address);
   }, [data]);
 
+  // Memoize coordinates and sampling area at top level (not conditionally!)
+  // This ensures hooks are always called in the same order (Rules of Hooks)
+  const coordinates: [number, number] | null = React.useMemo(() => {
+    if (!data?.location?.coordinates?.wgs84) return null;
+    return [
+      data.location.coordinates.wgs84.latitude,
+      data.location.coordinates.wgs84.longitude
+    ];
+  }, [data?.location?.coordinates?.wgs84?.latitude, data?.location?.coordinates?.wgs84?.longitude]);
+
+  const samplingArea = React.useMemo(() => {
+    if (!selectedWMSLayer || !wmsGrading.gradingData || !coordinates) return null;
+
+    const layerGrading = wmsGrading.gradingData.layers[selectedWMSLayer.layerId];
+    if (!layerGrading) return null;
+
+    // Get radius from any available sample (prefer area samples)
+    const radius =
+      layerGrading.average_area_sample?.radius_meters ||
+      layerGrading.max_area_sample?.radius_meters;
+
+    if (!radius) return null;
+
+    return {
+      center: coordinates,
+      radius: radius
+    };
+  }, [selectedWMSLayer?.layerId, coordinates, wmsGrading.gradingData]);
+
+
   // Handle loading a saved location
   const handleLoadSavedLocation = async (location: AccessibleLocation) => {
     try {
@@ -488,13 +518,8 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
       // For Kaarten tab - show Leaflet map with WMS layer support
       if (activeTab === 'kaarten') {
-        // Use exact geocoded coordinates from the address search
-        // These are already in WGS84 format (latitude/longitude)
-        const lat = data.location.coordinates.wgs84.latitude;
-        const lng = data.location.coordinates.wgs84.longitude;
-
-        // Memoize coordinates array to prevent re-render loops
-        const coordinates: [number, number] = React.useMemo(() => [lat, lng], [lat, lng]);
+        // Guard: coordinates must be available
+        if (!coordinates) return null;
 
         // Build location name
         const locationName = [
@@ -504,27 +529,6 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         ]
           .filter(Boolean)
           .join(', ');
-
-        // Calculate sampling area from selected layer's grading data
-        // Use primitive values in dependencies to avoid circular refs
-        const samplingArea = React.useMemo(() => {
-          if (!selectedWMSLayer || !wmsGrading.gradingData) return null;
-
-          const layerGrading = wmsGrading.gradingData.layers[selectedWMSLayer.layerId];
-          if (!layerGrading) return null;
-
-          // Get radius from any available sample (prefer area samples)
-          const radius =
-            layerGrading.average_area_sample?.radius_meters ||
-            layerGrading.max_area_sample?.radius_meters;
-
-          if (!radius) return null;
-
-          return {
-            center: [lat, lng] as [number, number],
-            radius: radius
-          };
-        }, [selectedWMSLayer?.layerId, lat, lng, wmsGrading.gradingData]);
 
         return (
           <div className="h-full w-full relative">
