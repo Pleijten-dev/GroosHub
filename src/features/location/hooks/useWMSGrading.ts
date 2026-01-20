@@ -236,7 +236,9 @@ export function useWMSGrading(options: UseWMSGradingOptions): UseWMSGradingRetur
 
       return () => clearTimeout(timer);
     }
-  }, [existingGradingData, hasValidGradingData, autoGrade, latitude, longitude, address, isGrading, gradingData, startGrading]);
+    // Note: startGrading and hasValidGradingData are intentionally excluded from deps to prevent infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existingGradingData, autoGrade, latitude, longitude, address, isGrading, gradingData]);
 
   /**
    * Cleanup poll timer
