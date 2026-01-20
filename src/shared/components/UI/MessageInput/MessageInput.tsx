@@ -2,15 +2,14 @@
  * MessageInput Component
  *
  * Reusable message input with file attachment, RAG toggle, and keyboard shortcuts.
- * Used across the AI assistant for consistent messaging experience.
+ * Layout: |file attachment| |RAG| |text input field| |send|
  *
  * Features:
  * - Auto-resize textarea
- * - RAG toggle button
+ * - RAG toggle button (project view only)
  * - File attachment with drag and drop
  * - Send button with keyboard shortcuts (Ctrl/Cmd + Enter)
  * - Loading/disabled states
- * - Model-aware file uploads (vision support detection)
  */
 
 'use client';
@@ -48,8 +47,6 @@ export interface MessageInputProps {
   onRagToggle?: (enabled: boolean) => void;
   /** Show file attachment functionality */
   showFileAttachment?: boolean;
-  /** Whether the current model supports vision (images) */
-  modelSupportsVision?: boolean;
   /** Chat ID for file uploads */
   chatId?: string;
   /** Accepted file types */
@@ -83,12 +80,11 @@ const translations = {
     placeholder: 'Typ je bericht...',
     send: 'Versturen',
     stop: 'Stop',
-    ragOn: 'RAG AAN',
-    ragOff: 'RAG UIT',
+    ragTooltipOn: 'RAG is ingeschakeld - klik om uit te schakelen',
+    ragTooltipOff: 'RAG is uitgeschakeld - klik om in te schakelen',
     attachFiles: 'Bestanden bijvoegen',
-    dragDrop: 'Sleep bestanden hierheen',
+    dragDrop: 'Sleep bestanden hierheen om bij te voegen',
     shortcuts: 'Ctrl+Enter om te versturen',
-    modelWarning: 'Dit model ondersteunt geen afbeeldingen',
     uploading: 'Uploaden...',
     removeFile: 'Verwijderen',
   },
@@ -96,16 +92,88 @@ const translations = {
     placeholder: 'Type your message...',
     send: 'Send',
     stop: 'Stop',
-    ragOn: 'RAG ON',
-    ragOff: 'RAG OFF',
+    ragTooltipOn: 'RAG is enabled - click to disable',
+    ragTooltipOff: 'RAG is disabled - click to enable',
     attachFiles: 'Attach files',
-    dragDrop: 'Drop files here',
+    dragDrop: 'Drop files here to attach',
     shortcuts: 'Ctrl+Enter to send',
-    modelWarning: 'This model does not support images',
     uploading: 'Uploading...',
     removeFile: 'Remove',
   },
 };
+
+// ============================================================================
+// Icons
+// ============================================================================
+
+// Paperclip icon for file attachment
+const PaperclipIcon = () => (
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13"
+    />
+  </svg>
+);
+
+// Document/RAG icon
+const DocumentIcon = ({ filled = false }: { filled?: boolean }) => (
+  <svg
+    className="w-5 h-5"
+    fill={filled ? 'currentColor' : 'none'}
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+    />
+  </svg>
+);
+
+// Send icon (arrow up)
+const SendIcon = () => (
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18"
+    />
+  </svg>
+);
+
+// Stop icon (square)
+const StopIcon = () => (
+  <svg
+    className="w-5 h-5"
+    fill="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <rect x="6" y="6" width="12" height="12" rx="1" />
+  </svg>
+);
+
+// Close icon
+const CloseIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
 
 // ============================================================================
 // Component
@@ -120,7 +188,6 @@ export function MessageInput({
   ragEnabled = false,
   onRagToggle,
   showFileAttachment = true,
-  modelSupportsVision = false,
   chatId,
   acceptedFileTypes = 'image/png,image/jpeg,image/webp,image/gif,application/pdf',
   maxFiles = 5,
@@ -133,14 +200,21 @@ export function MessageInput({
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [uploadingFiles, setUploadingFiles] = useState<FileWithProgress[]>([]);
   const [isDragging, setIsDragging] = useState(false);
-  const [showModelWarning, setShowModelWarning] = useState(false);
+  const [internalRagEnabled, setInternalRagEnabled] = useState(ragEnabled);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
 
   const t = translations[locale];
   const isDisabled = disabled || isLoading;
   const hasFiles = uploadedFiles.length > 0 || uploadingFiles.length > 0;
+  const hasContent = input.trim().length > 0 || hasFiles;
+
+  // Sync internal RAG state with prop
+  useEffect(() => {
+    setInternalRagEnabled(ragEnabled);
+  }, [ragEnabled]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -158,14 +232,25 @@ export function MessageInput({
     }
   }, [autoFocus]);
 
+  // Handle RAG toggle
+  const handleRagToggle = useCallback(() => {
+    const newValue = !internalRagEnabled;
+    setInternalRagEnabled(newValue);
+    onRagToggle?.(newValue);
+  }, [internalRagEnabled, onRagToggle]);
+
   // Handle form submission
   const handleSubmit = useCallback(() => {
-    if (!input.trim() || isDisabled) return;
+    if (!hasContent || isDisabled) return;
 
-    onSubmit(input.trim(), uploadedFiles.length > 0 ? uploadedFiles : undefined, ragEnabled);
+    onSubmit(
+      input.trim(),
+      uploadedFiles.length > 0 ? uploadedFiles : undefined,
+      internalRagEnabled
+    );
     setInput('');
     setUploadedFiles([]);
-  }, [input, isDisabled, onSubmit, uploadedFiles, ragEnabled]);
+  }, [input, hasContent, isDisabled, onSubmit, uploadedFiles, internalRagEnabled]);
 
   // Handle keyboard shortcuts
   const handleKeyDown = useCallback(
@@ -181,63 +266,41 @@ export function MessageInput({
 
   // File upload handler
   const uploadFile = async (fileWithProgress: FileWithProgress) => {
-    if (!chatId) return;
-
+    // For now, we'll store files locally and upload when message is sent
+    // This can be enhanced to upload to server if chatId is available
     const { file, id } = fileWithProgress;
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('chatId', chatId);
+      // Simulate upload progress for local files
+      for (let progress = 0; progress <= 100; progress += 20) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        setUploadingFiles((prev) =>
+          prev.map((f) => (f.id === id ? { ...f, progress } : f))
+        );
+      }
 
-      const xhr = new XMLHttpRequest();
+      // Create preview URL for images
+      let previewUrl: string | undefined;
+      if (file.type.startsWith('image/')) {
+        previewUrl = URL.createObjectURL(file);
+      }
 
-      // Track upload progress
-      xhr.upload.addEventListener('progress', (event) => {
-        if (event.lengthComputable) {
-          const progress = Math.round((event.loaded / event.total) * 100);
-          setUploadingFiles((prev) =>
-            prev.map((f) => (f.id === id ? { ...f, progress } : f))
-          );
-        }
-      });
+      // Determine file type
+      let fileType: 'image' | 'pdf' | 'document' = 'document';
+      if (file.type.startsWith('image/')) {
+        fileType = 'image';
+      } else if (file.type === 'application/pdf') {
+        fileType = 'pdf';
+      }
 
-      // Handle completion
-      const uploadPromise = new Promise<UploadedFile>((resolve, reject) => {
-        xhr.addEventListener('load', () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            const response = JSON.parse(xhr.responseText);
-            if (response.success && response.files?.length > 0) {
-              const uploadedFile = response.files[0];
-              let previewUrl: string | undefined;
-              if (uploadedFile.fileType === 'image') {
-                previewUrl = URL.createObjectURL(file);
-              }
-
-              resolve({
-                id: uploadedFile.id,
-                name: uploadedFile.fileName,
-                type: uploadedFile.fileType,
-                mimeType: uploadedFile.mimeType,
-                size: uploadedFile.fileSize,
-                previewUrl,
-              });
-            } else {
-              reject(new Error('Invalid server response'));
-            }
-          } else {
-            reject(new Error(`HTTP ${xhr.status}`));
-          }
-        });
-
-        xhr.addEventListener('error', () => reject(new Error('Network error')));
-        xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
-      });
-
-      xhr.open('POST', '/api/upload');
-      xhr.send(formData);
-
-      const uploaded = await uploadPromise;
+      const uploaded: UploadedFile = {
+        id,
+        name: file.name,
+        type: fileType,
+        mimeType: file.type,
+        size: file.size,
+        previewUrl,
+      };
 
       setUploadingFiles((prev) =>
         prev.map((f) => (f.id === id ? { ...f, progress: 100, uploaded } : f))
@@ -248,13 +311,13 @@ export function MessageInput({
       // Remove from uploading after delay
       setTimeout(() => {
         setUploadingFiles((prev) => prev.filter((f) => f.id !== id));
-      }, 500);
+      }, 300);
     } catch (error) {
-      console.error('[MessageInput] Upload error:', error);
+      console.error('[MessageInput] File processing error:', error);
       setUploadingFiles((prev) =>
         prev.map((f) =>
           f.id === id
-            ? { ...f, error: error instanceof Error ? error.message : 'Upload failed' }
+            ? { ...f, error: error instanceof Error ? error.message : 'Processing failed' }
             : f
         )
       );
@@ -264,12 +327,6 @@ export function MessageInput({
   // Handle file selection
   const handleFiles = useCallback(
     async (files: FileList | File[]) => {
-      if (!modelSupportsVision) {
-        setShowModelWarning(true);
-        setTimeout(() => setShowModelWarning(false), 3000);
-        return;
-      }
-
       const fileArray = Array.from(files).slice(0, maxFiles - uploadedFiles.length);
 
       const filesWithProgress: FileWithProgress[] = fileArray.map((file) => ({
@@ -284,25 +341,24 @@ export function MessageInput({
         await uploadFile(fwp);
       }
     },
-    [chatId, maxFiles, uploadedFiles.length, modelSupportsVision]
+    [maxFiles, uploadedFiles.length]
   );
 
   // Drag and drop handlers
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(true);
-    if (!modelSupportsVision) {
-      setShowModelWarning(true);
+    if (showFileAttachment) {
+      setIsDragging(true);
     }
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(false);
-    if (showModelWarning) {
-      setTimeout(() => setShowModelWarning(false), 2000);
+    // Only set dragging to false if we're leaving the drop zone entirely
+    if (dropZoneRef.current && !dropZoneRef.current.contains(e.relatedTarget as Node)) {
+      setIsDragging(false);
     }
   };
 
@@ -316,11 +372,7 @@ export function MessageInput({
     e.stopPropagation();
     setIsDragging(false);
 
-    if (!modelSupportsVision) {
-      setShowModelWarning(true);
-      setTimeout(() => setShowModelWarning(false), 3000);
-      return;
-    }
+    if (!showFileAttachment) return;
 
     if (e.dataTransfer.files?.length > 0) {
       handleFiles(e.dataTransfer.files);
@@ -329,7 +381,13 @@ export function MessageInput({
 
   // Remove file
   const handleRemoveFile = (fileId: string) => {
-    setUploadedFiles((prev) => prev.filter((f) => f.id !== fileId));
+    setUploadedFiles((prev) => {
+      const file = prev.find((f) => f.id === fileId);
+      if (file?.previewUrl) {
+        URL.revokeObjectURL(file.previewUrl);
+      }
+      return prev.filter((f) => f.id !== fileId);
+    });
     setUploadingFiles((prev) => prev.filter((f) => f.id !== fileId));
   };
 
@@ -340,8 +398,16 @@ export function MessageInput({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  // Button base styles - consistent height and styling
+  const buttonBaseStyles = cn(
+    'w-10 h-10 flex items-center justify-center rounded-lg flex-shrink-0',
+    'transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400',
+    'disabled:opacity-40 disabled:cursor-not-allowed'
+  );
+
   return (
     <div
+      ref={dropZoneRef}
       className={cn('bg-white border-t border-gray-200 px-base py-sm', className)}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
@@ -349,24 +415,10 @@ export function MessageInput({
       onDrop={handleDrop}
     >
       <div className="max-w-4xl mx-auto space-y-sm">
-        {/* Model Warning */}
-        {showModelWarning && (
-          <div className="bg-yellow-50 border border-yellow-300 rounded-md px-3 py-2 flex items-center gap-2">
-            <svg className="w-5 h-5 text-yellow-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <p className="text-sm text-yellow-800">{t.modelWarning}</p>
-          </div>
-        )}
-
         {/* Drag overlay */}
-        {isDragging && modelSupportsVision && (
-          <div className="border-2 border-dashed border-blue-400 bg-blue-50 rounded-lg p-base text-center">
-            <p className="text-sm text-blue-600 font-medium">{t.dragDrop}</p>
+        {isDragging && (
+          <div className="border-2 border-dashed border-gray-400 bg-gray-50 rounded-lg p-base text-center">
+            <p className="text-sm text-gray-600 font-medium">{t.dragDrop}</p>
           </div>
         )}
 
@@ -386,8 +438,18 @@ export function MessageInput({
                     className="w-8 h-8 object-cover rounded"
                   />
                 ) : (
-                  <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  <svg
+                    className="w-5 h-5 text-gray-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
                   </svg>
                 )}
                 <span className="truncate max-w-[120px]">{file.name}</span>
@@ -398,9 +460,7 @@ export function MessageInput({
                   className="text-gray-400 hover:text-red-500 transition-colors"
                   title={t.removeFile}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <CloseIcon />
                 </button>
               </div>
             ))}
@@ -413,60 +473,45 @@ export function MessageInput({
               >
                 <div className="w-5 h-5 flex items-center justify-center">
                   {fwp.error ? (
-                    <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg
+                      className="w-5 h-5 text-red-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                   ) : (
-                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-gray-500 border-t-transparent rounded-full animate-spin" />
                   )}
                 </div>
                 <span className="truncate max-w-[120px]">{fwp.file.name}</span>
                 {fwp.error ? (
                   <span className="text-red-500 text-xs">{fwp.error}</span>
                 ) : (
-                  <span className="text-blue-500 text-xs">{fwp.progress}%</span>
+                  <span className="text-gray-500 text-xs">{fwp.progress}%</span>
                 )}
                 <button
                   type="button"
                   onClick={() => handleRemoveFile(fwp.id)}
                   className="text-gray-400 hover:text-red-500 transition-colors"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <CloseIcon />
                 </button>
               </div>
             ))}
           </div>
         )}
 
-        {/* Input row */}
-        <div className="flex gap-sm items-end">
-          {/* RAG Toggle */}
-          {showRagToggle && (
-            <button
-              type="button"
-              onClick={() => onRagToggle?.(!ragEnabled)}
-              disabled={isDisabled}
-              title={ragEnabled ? t.ragOn : t.ragOff}
-              className={cn(
-                'px-3 py-sm rounded-lg text-xs font-bold transition-colors flex items-center gap-xs flex-shrink-0',
-                'focus:outline-none focus:ring-2 focus:ring-primary',
-                'disabled:opacity-50 disabled:cursor-not-allowed',
-                ragEnabled
-                  ? 'bg-green-600 text-white hover:bg-green-700'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              )}
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <span>RAG</span>
-            </button>
-          )}
-
+        {/* Input row: |file| |RAG| |input| |send| */}
+        <div className="flex gap-sm items-center">
           {/* File attachment button */}
-          {showFileAttachment && modelSupportsVision && chatId && (
+          {showFileAttachment && (
             <>
               <input
                 ref={fileInputRef}
@@ -481,20 +526,35 @@ export function MessageInput({
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isDisabled}
                 className={cn(
-                  'p-sm rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100',
-                  'transition-colors focus:outline-none focus:ring-2 focus:ring-primary',
-                  'disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0'
+                  buttonBaseStyles,
+                  'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800'
                 )}
                 title={t.attachFiles}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                </svg>
+                <PaperclipIcon />
               </button>
             </>
           )}
 
-          {/* Textarea */}
+          {/* RAG Toggle */}
+          {showRagToggle && (
+            <button
+              type="button"
+              onClick={handleRagToggle}
+              disabled={isDisabled}
+              title={internalRagEnabled ? t.ragTooltipOn : t.ragTooltipOff}
+              className={cn(
+                buttonBaseStyles,
+                internalRagEnabled
+                  ? 'bg-gray-800 text-white hover:bg-gray-700'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800'
+              )}
+            >
+              <DocumentIcon filled={internalRagEnabled} />
+            </button>
+          )}
+
+          {/* Text Input */}
           <textarea
             ref={textareaRef}
             value={input}
@@ -504,8 +564,8 @@ export function MessageInput({
             disabled={isDisabled}
             rows={1}
             className={cn(
-              'flex-1 px-base py-sm bg-white border border-gray-300 rounded-lg resize-none',
-              'text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent',
+              'flex-1 px-base py-2 bg-gray-50 border border-gray-200 rounded-lg resize-none',
+              'text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent',
               'disabled:bg-gray-100 disabled:cursor-not-allowed',
               'min-h-[40px] max-h-[200px]'
             )}
@@ -517,34 +577,33 @@ export function MessageInput({
               type="button"
               onClick={onStop}
               className={cn(
-                'px-base py-sm bg-red-600 text-white rounded-lg flex-shrink-0',
-                'text-sm font-medium hover:bg-red-700',
-                'focus:outline-none focus:ring-2 focus:ring-red-500',
-                'transition-colors'
+                buttonBaseStyles,
+                'bg-gray-800 text-white hover:bg-gray-700'
               )}
+              title={t.stop}
             >
-              {t.stop}
+              <StopIcon />
             </button>
           ) : (
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={!input.trim() || isDisabled}
+              disabled={!hasContent || isDisabled}
               className={cn(
-                'px-base py-sm bg-primary text-white rounded-lg flex-shrink-0',
-                'text-sm font-medium hover:bg-primary-hover',
-                'focus:outline-none focus:ring-2 focus:ring-primary',
-                'disabled:bg-gray-300 disabled:cursor-not-allowed',
-                'transition-colors'
+                buttonBaseStyles,
+                hasContent && !isDisabled
+                  ? 'bg-gray-800 text-white hover:bg-gray-700'
+                  : 'bg-gray-100 text-gray-400'
               )}
+              title={t.send}
             >
-              {t.send}
+              <SendIcon />
             </button>
           )}
         </div>
 
         {/* Shortcuts hint */}
-        <p className="text-xs text-gray-500 text-center">{t.shortcuts}</p>
+        <p className="text-xs text-gray-400 text-center">{t.shortcuts}</p>
       </div>
     </div>
   );

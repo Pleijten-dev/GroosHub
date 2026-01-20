@@ -99,6 +99,9 @@ const translations = {
     done: 'Gereed',
     overdue: 'Achterstallig',
     unassigned: 'Niet toegewezen',
+    quickNotes: 'Project notities',
+    notesPlaceholder: 'Schrijf een notitie...',
+    noNotes: 'Geen notities',
   },
   en: {
     welcomeTitle: 'Project Assistant',
@@ -114,6 +117,9 @@ const translations = {
     done: 'Done',
     overdue: 'Overdue',
     unassigned: 'Unassigned',
+    quickNotes: 'Project notes',
+    notesPlaceholder: 'Write a note...',
+    noNotes: 'No notes',
   },
 };
 
@@ -157,6 +163,60 @@ export function ProjectOverviewPage({
   const [taskSortBy, setTaskSortBy] = useState<'created' | 'deadline'>('deadline');
   const [isCreatingChat, setIsCreatingChat] = useState(false);
   const [promptRefreshKey, setPromptRefreshKey] = useState(0);
+  const [ragEnabled, setRagEnabled] = useState(true);
+
+  // Notes state (project-specific storage key)
+  const [notes, setNotes] = useState<Array<{ id: string; text: string; createdAt: Date }>>([]);
+  const [noteInput, setNoteInput] = useState('');
+  const notesStorageKey = `projectNotes_${projectId}`;
+
+  // Load notes from localStorage on mount
+  useEffect(() => {
+    const savedNotes = localStorage.getItem(notesStorageKey);
+    if (savedNotes) {
+      try {
+        const parsed = JSON.parse(savedNotes);
+        setNotes(parsed.map((n: { id: string; text: string; createdAt: string }) => ({
+          ...n,
+          createdAt: new Date(n.createdAt)
+        })));
+      } catch (e) {
+        console.error('[ProjectOverviewPage] Error parsing saved notes:', e);
+      }
+    }
+  }, [notesStorageKey]);
+
+  // Save notes to localStorage when they change
+  useEffect(() => {
+    if (notes.length > 0) {
+      localStorage.setItem(notesStorageKey, JSON.stringify(notes));
+    }
+  }, [notes, notesStorageKey]);
+
+  // Add a new note
+  const handleAddNote = useCallback(() => {
+    if (!noteInput.trim()) return;
+
+    const newNote = {
+      id: crypto.randomUUID(),
+      text: noteInput.trim(),
+      createdAt: new Date(),
+    };
+
+    setNotes((prev) => [newNote, ...prev]);
+    setNoteInput('');
+  }, [noteInput]);
+
+  // Delete a note
+  const handleDeleteNote = useCallback((noteId: string) => {
+    setNotes((prev) => {
+      const updated = prev.filter((n) => n.id !== noteId);
+      if (updated.length === 0) {
+        localStorage.removeItem(notesStorageKey);
+      }
+      return updated;
+    });
+  }, [notesStorageKey]);
 
   // Fetch project tasks and stats
   useEffect(() => {
@@ -419,8 +479,9 @@ export function ProjectOverviewPage({
             disabled={isCreatingChat}
             isLoading={isCreatingChat}
             showRagToggle={true}
-            ragEnabled={true}
-            showFileAttachment={false}
+            ragEnabled={ragEnabled}
+            onRagToggle={setRagEnabled}
+            showFileAttachment={true}
             autoFocus
             className="shadow-lg"
           />
@@ -483,6 +544,68 @@ export function ProjectOverviewPage({
               locale={locale}
               title={t.projectTasks}
             />
+          </div>
+
+          {/* Quick Notes Section */}
+          <div className={cn(
+            isEntering && "animate-fade-slide-up fill-both stagger-5"
+          )}>
+            <h3 className="text-sm font-medium text-gray-700 mb-sm">
+              {t.quickNotes}
+            </h3>
+            <div className="bg-white rounded-lg border border-gray-200 p-sm">
+              {/* Note input */}
+              <div className="flex gap-xs mb-sm">
+                <input
+                  type="text"
+                  value={noteInput}
+                  onChange={(e) => setNoteInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddNote()}
+                  placeholder={t.notesPlaceholder}
+                  className="flex-1 px-sm py-xs text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddNote}
+                  disabled={!noteInput.trim()}
+                  className={cn(
+                    'px-sm py-xs rounded-md text-sm transition-colors',
+                    noteInput.trim()
+                      ? 'bg-gray-800 text-white hover:bg-gray-700'
+                      : 'bg-gray-100 text-gray-400'
+                  )}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Notes list */}
+              <div className="space-y-xs max-h-40 overflow-y-auto">
+                {notes.length === 0 ? (
+                  <p className="text-xs text-gray-400 text-center py-sm">{t.noNotes}</p>
+                ) : (
+                  notes.slice(0, 5).map((note) => (
+                    <div
+                      key={note.id}
+                      className="flex items-start gap-xs p-xs bg-gray-50 rounded group"
+                    >
+                      <p className="flex-1 text-xs text-gray-700 break-words">{note.text}</p>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteNote(note.id)}
+                        className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all flex-shrink-0"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
