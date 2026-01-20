@@ -122,14 +122,19 @@ export default function TestHistoricDataPage() {
       const data = historicData.get(year);
       if (data) {
         const hasData = data.data.neighborhood || data.data.district || data.data.municipality;
+        // Calculate record count from whichever level has data
+        const recordCount =
+          Object.keys(data.data.neighborhood?.data || {}).length ||
+          Object.keys(data.data.district?.data || {}).length ||
+          Object.keys(data.data.municipality?.data || {}).length;
         updatedResults.push({
           year,
           status: hasData ? 'success' : 'error',
           message: hasData ? 'Data fetched successfully' : 'No data available',
           datasetId: data.datasetId,
-          recordCount: Object.keys(data.data.neighborhood?.data || {}).length
+          recordCount
         });
-        addLog(`✅ ${year}: Dataset ${data.datasetId}, ${hasData ? 'data found' : 'no data'}`);
+        addLog(`✅ ${year}: Dataset ${data.datasetId}, ${hasData ? 'data found' : 'no data'} (${recordCount} records)`);
       } else {
         updatedResults.push({
           year,
@@ -163,13 +168,18 @@ export default function TestHistoricDataPage() {
       const data = historicData.get(year);
       if (data) {
         const hasData = data.data.neighborhood || data.data.district || data.data.municipality;
+        // Calculate record count from whichever level has data
+        const recordCount =
+          Object.keys(data.data.neighborhood?.data || {}).length ||
+          Object.keys(data.data.district?.data || {}).length ||
+          Object.keys(data.data.municipality?.data || {}).length;
         updatedResults.push({
           year,
           status: hasData ? 'success' : 'error',
           message: hasData ? 'Data fetched successfully' : 'No data available',
-          recordCount: Object.keys(data.data.neighborhood?.data || {}).length
+          recordCount
         });
-        addLog(`✅ ${year}: ${hasData ? 'data found' : 'no data'}`);
+        addLog(`✅ ${year}: ${hasData ? 'data found' : 'no data'} (${recordCount} records)`);
       } else {
         updatedResults.push({
           year,
@@ -203,13 +213,18 @@ export default function TestHistoricDataPage() {
       const data = historicData.get(year);
       if (data) {
         const hasData = data.data.neighborhood || data.data.district || data.data.municipality;
+        // Calculate record count from whichever level has data
+        const recordCount =
+          Object.keys(data.data.neighborhood?.data || {}).length ||
+          Object.keys(data.data.district?.data || {}).length ||
+          Object.keys(data.data.municipality?.data || {}).length;
         updatedResults.push({
           year,
           status: hasData ? 'success' : 'error',
           message: hasData ? 'Data fetched successfully' : 'No data available',
-          recordCount: Object.keys(data.data.neighborhood?.data || {}).length
+          recordCount
         });
-        addLog(`✅ ${year}: ${hasData ? 'data found' : 'no data'}`);
+        addLog(`✅ ${year}: ${hasData ? 'data found' : 'no data'} (${recordCount} records)`);
       } else {
         updatedResults.push({
           year,
@@ -243,13 +258,14 @@ export default function TestHistoricDataPage() {
       const data = historicData.get(year);
       if (data) {
         const hasData = data.data.municipality;
+        const recordCount = Object.keys(data.data.municipality?.data || {}).length;
         updatedResults.push({
           year,
           status: hasData ? 'success' : 'error',
           message: hasData ? 'Data fetched successfully' : 'No data available',
-          recordCount: Object.keys(data.data.municipality?.data || {}).length
+          recordCount
         });
-        addLog(`✅ ${year}: ${hasData ? 'data found' : 'no data'}`);
+        addLog(`✅ ${year}: ${hasData ? 'data found' : 'no data'} (${recordCount} records)`);
       } else {
         updatedResults.push({
           year,
