@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/shared/utils/cn';
 
 export interface ImageAttachmentProps {
@@ -23,10 +23,24 @@ export function ImageAttachment({
   maxWidth = 120,
   alt = 'Attached image',
 }: ImageAttachmentProps) {
-  const [isLoading, setIsLoading] = useState(true);
+  const imageUrlString = typeof imageUrl === 'string' ? imageUrl : imageUrl.toString();
+
+  // Data URLs load instantly, no need for loading state
+  const isDataUrl = imageUrlString.startsWith('data:');
+  const [isLoading, setIsLoading] = useState(!isDataUrl);
   const [hasError, setHasError] = useState(false);
 
-  const imageUrlString = typeof imageUrl === 'string' ? imageUrl : imageUrl.toString();
+  // Fallback timeout: force show image after 2 seconds if onLoad doesn't fire
+  useEffect(() => {
+    if (!isDataUrl && isLoading) {
+      const timeout = setTimeout(() => {
+        console.log('[ImageAttachment] Timeout: forcing image to show');
+        setIsLoading(false);
+      }, 2000);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [isDataUrl, isLoading]);
 
   return (
     <div
@@ -87,12 +101,17 @@ export function ImageAttachment({
         src={imageUrlString}
         alt={alt}
         className={cn(
-          'w-full h-auto block',
-          isLoading && 'invisible',
+          'w-full h-auto block object-contain',
+          isLoading && 'opacity-0',
           hasError && 'hidden'
         )}
-        onLoad={() => setIsLoading(false)}
-        onError={() => {
+        style={{ minHeight: isLoading ? '100px' : 'auto' }}
+        onLoad={() => {
+          console.log('[ImageAttachment] Image loaded successfully');
+          setIsLoading(false);
+        }}
+        onError={(e) => {
+          console.error('[ImageAttachment] Image failed to load:', e);
           setIsLoading(false);
           setHasError(true);
         }}
