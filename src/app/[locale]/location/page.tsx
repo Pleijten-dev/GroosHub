@@ -492,7 +492,9 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         // These are already in WGS84 format (latitude/longitude)
         const lat = data.location.coordinates.wgs84.latitude;
         const lng = data.location.coordinates.wgs84.longitude;
-        const coordinates: [number, number] = [lat, lng];
+
+        // Memoize coordinates array to prevent re-render loops
+        const coordinates: [number, number] = React.useMemo(() => [lat, lng], [lat, lng]);
 
         // Build location name
         const locationName = [
@@ -518,10 +520,10 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
           if (!radius) return null;
 
           return {
-            center: [lat, lng] as [number, number],
+            center: coordinates,
             radius: radius
           };
-        }, [selectedWMSLayer, wmsGrading.gradingData, lat, lng]);
+        }, [selectedWMSLayer, wmsGrading.gradingData, coordinates]);
 
         return (
           <div className="h-full w-full relative">
