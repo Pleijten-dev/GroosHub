@@ -174,10 +174,10 @@ export function ImageAttachment({
         }}
       />
 
-      {/* Click Hint Overlay */}
+      {/* Click Hint Overlay - only visible on hover */}
       {!isLoading && !hasError && (
-        <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-all flex items-center justify-center">
-          <div className="opacity-0 hover:opacity-100 transition-opacity">
+        <div className="absolute inset-0 hover:bg-black/10 transition-colors flex items-center justify-center group">
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
             <svg
               className="w-8 h-8 text-white drop-shadow-lg"
               fill="none"
