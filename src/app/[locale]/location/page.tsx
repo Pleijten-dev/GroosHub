@@ -238,6 +238,33 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     };
   }, [selectedWMSLayer?.layerId, coordinates, wmsGrading.gradingData]);
 
+  // Memoize score calculations to prevent recalculation when data is cached
+  const calculatedScores = React.useMemo(() => {
+    if (!data) return null;
+
+    const locationScores = extractLocationScores(data);
+    const personas = housingPersonasData[locale].housing_personas;
+    const personaScores = calculatePersonaScores(personas, locationScores);
+    const sortedPersonas = [...personaScores].sort((a, b) => a.rRankPosition - b.rRankPosition);
+    const connections = calculateConnections(personas);
+    const scenarios = calculateScenarios(personas, sortedPersonas, connections);
+
+    return {
+      locationScores,
+      personas,
+      personaScores,
+      sortedPersonas,
+      connections,
+      scenarios
+    };
+  }, [data, locale]);
+
+  // Memoize amenity scores calculation
+  const amenityScores = React.useMemo(() => {
+    if (!amenities) return null;
+    return calculateAllAmenityScores(amenities.results);
+  }, [amenities]);
+
 
   // Handle loading a saved location
   const handleLoadSavedLocation = async (location: AccessibleLocation) => {
@@ -329,22 +356,11 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     }
 
     // Show data if available
-    if (data) {
+    if (data && calculatedScores) {
       // For Doelgroepen tab - show result with cube and scenarios
       if (activeTab === 'doelgroepen') {
-        // Extract location scores and calculate persona scores
-        const locationScores = extractLocationScores(data);
-        const personas = housingPersonasData[locale].housing_personas;
-        const personaScores = calculatePersonaScores(personas, locationScores);
-
-        // Sort by R-rank position (1 = best)
-        const sortedPersonas = [...personaScores].sort((a, b) => a.rRankPosition - b.rRankPosition);
-
-        // Calculate connections between personas
-        const connections = calculateConnections(personas);
-
-        // Calculate scenarios using R-rank and connection cross-reference
-        const scenarios = calculateScenarios(personas, sortedPersonas, connections);
+        // Use memoized score calculations (prevents recalculation for cached data)
+        const { locationScores, personas, personaScores, sortedPersonas, connections, scenarios } = calculatedScores;
 
         // Create scenario mappings based on calculated positions
         const getScenarioData = (scenario: string) => {
@@ -404,10 +420,8 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         // Calculate Voorzieningen score from amenities data
         let voorzieningenScore = 75; // Default value if no amenities data
 
-        if (amenities) {
-          // Calculate all amenity scores
-          const amenityScores = calculateAllAmenityScores(amenities.results);
-
+        if (amenityScores) {
+          // Use memoized amenity scores (prevents recalculation for cached data)
           // Sum up all countScore and proximityBonus values
           const rawScore = amenityScores.reduce((sum: number, score: AmenityScore) => {
             return sum + score.countScore + score.proximityBonus;
