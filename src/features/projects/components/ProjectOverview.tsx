@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/shared/components/UI/Card/Card';
-import { Button } from '@/shared/components/UI/Button/Button';
 import { cn } from '@/shared/utils/cn';
 import { ProjectMembers } from './ProjectMembers';
 import { ProjectFiles } from './ProjectFiles';
 import { ProjectChats } from './ProjectChats';
 import { ProjectLocations } from './ProjectLocations';
 import { ProjectTrash } from './ProjectTrash';
+import { ProjectTasks } from '@/features/tasks/components/ProjectTasks';
+import { ProjectOverviewPage } from '@/features/chat/components/ProjectOverviewPage';
 
 interface ProjectOverviewProps {
   projectId: string;
@@ -40,7 +41,7 @@ interface Project {
   last_accessed_at: string;
 }
 
-type Tab = 'overview' | 'files' | 'members' | 'chats' | 'locations' | 'lca' | 'trash';
+type Tab = 'overview' | 'tasks' | 'files' | 'members' | 'chats' | 'locations' | 'lca' | 'trash';
 
 export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
   const [project, setProject] = useState<Project | null>(null);
@@ -51,44 +52,28 @@ export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
   const translations = {
     nl: {
       overview: 'Overzicht',
+      tasks: 'Taken',
       files: 'Bestanden',
       members: 'Leden',
       chats: 'Chats',
       locations: 'Locaties',
       lca: 'LCA',
       trash: 'Prullenbak',
-      settings: 'Instellingen',
-      projectStatistics: 'Projectstatistieken',
-      messages: 'Berichten',
-      description: 'Beschrijving',
       projectNumber: 'Projectnummer',
-      status: 'Status',
-      role: 'Jouw rol',
-      created: 'Gemaakt',
-      lastAccessed: 'Laatst geopend',
-      noDescription: 'Geen beschrijving',
       loading: 'Laden...',
       error: 'Fout bij laden project',
       notFound: 'Project niet gevonden'
     },
     en: {
       overview: 'Overview',
+      tasks: 'Tasks',
       files: 'Files',
       members: 'Members',
       chats: 'Chats',
       locations: 'Locations',
       lca: 'LCA',
       trash: 'Trash',
-      settings: 'Settings',
-      projectStatistics: 'Project Statistics',
-      messages: 'Messages',
-      description: 'Description',
       projectNumber: 'Project Number',
-      status: 'Status',
-      role: 'Your Role',
-      created: 'Created',
-      lastAccessed: 'Last Accessed',
-      noDescription: 'No description',
       loading: 'Loading...',
       error: 'Error loading project',
       notFound: 'Project not found'
@@ -152,6 +137,7 @@ export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
 
   const tabs: { id: Tab; label: string; count?: number }[] = [
     { id: 'overview', label: t.overview },
+    { id: 'tasks', label: t.tasks },
     { id: 'chats', label: t.chats, count: project.chat_count },
     { id: 'files', label: t.files, count: project.file_count },
     { id: 'locations', label: t.locations, count: project.location_count },
@@ -161,176 +147,137 @@ export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
   ];
 
   return (
-    <div className="p-lg h-full overflow-y-auto">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="flex items-start justify-between mb-base pb-base border-b border-gray-200">
-        <div className="flex-1 min-w-0">
-          <h1 className="text-3xl font-bold text-text-primary mb-xs truncate">
-            {project.name}
-          </h1>
-          {project.project_number && (
-            <p className="text-sm text-gray-500">
-              {t.projectNumber}: {project.project_number}
-            </p>
-          )}
+      <div className="flex-shrink-0 px-lg pt-lg">
+        <div className="flex items-start justify-between mb-base pb-base border-b border-gray-200">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-3xl font-bold text-text-primary mb-xs truncate">
+              {project.name}
+            </h1>
+            {project.project_number && (
+              <p className="text-sm text-gray-500">
+                {t.projectNumber}: {project.project_number}
+              </p>
+            )}
+          </div>
         </div>
 
-        {project.permissions.can_edit && (
-          <Button variant="secondary" size="sm">
-            {t.settings}
-          </Button>
-        )}
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-base border-b border-gray-200 mb-base overflow-x-auto">
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={cn(
-              'pb-sm px-xs whitespace-nowrap transition-colors relative',
-              activeTab === tab.id
-                ? 'text-primary font-medium'
-                : 'text-gray-600 hover:text-gray-900'
-            )}
-          >
-            <span>{tab.label}</span>
-            {tab.count !== undefined && tab.count > 0 && (
-              <span className="ml-xs text-xs bg-gray-200 text-gray-700 px-xs py-0.5 rounded-full">
-                {tab.count}
-              </span>
-            )}
-            {activeTab === tab.id && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Content */}
-      <div className="space-y-base">
-        {activeTab === 'overview' && (
-          <>
-            {/* Project Info Card */}
-            <Card>
-              <h2 className="text-xl font-semibold mb-base">{t.description}</h2>
-              {project.description ? (
-                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                  {project.description}
-                </p>
-              ) : (
-                <p className="text-gray-500 italic">{t.noDescription}</p>
+        {/* Tabs */}
+        <div className="flex gap-base border-b border-gray-200 overflow-x-auto">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                'pb-sm px-xs whitespace-nowrap transition-colors relative',
+                activeTab === tab.id
+                  ? 'text-primary font-medium'
+                  : 'text-gray-600 hover:text-gray-900'
               )}
-            </Card>
+            >
+              <span>{tab.label}</span>
+              {tab.count !== undefined && tab.count > 0 && (
+                <span className="ml-xs text-xs bg-gray-200 text-gray-700 px-xs py-0.5 rounded-full">
+                  {tab.count}
+                </span>
+              )}
+              {activeTab === tab.id && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
 
-            {/* Statistics Card */}
-            <Card>
-              <h2 className="text-xl font-semibold mb-base">{t.projectStatistics}</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-base">
-                <div className="text-center p-base bg-gray-50 rounded-lg">
-                  <div className="text-3xl font-bold text-primary">{project.chat_count}</div>
-                  <div className="text-sm text-gray-600 mt-xs">{t.chats}</div>
-                </div>
-                <div className="text-center p-base bg-gray-50 rounded-lg">
-                  <div className="text-3xl font-bold text-primary">{project.file_count}</div>
-                  <div className="text-sm text-gray-600 mt-xs">{t.files}</div>
-                </div>
-                <div className="text-center p-base bg-gray-50 rounded-lg">
-                  <div className="text-3xl font-bold text-primary">{project.member_count}</div>
-                  <div className="text-sm text-gray-600 mt-xs">{t.members}</div>
-                </div>
-                <div className="text-center p-base bg-gray-50 rounded-lg">
-                  <div className="text-3xl font-bold text-primary">{project.location_count}</div>
-                  <div className="text-sm text-gray-600 mt-xs">{t.locations}</div>
-                </div>
-                <div className="text-center p-base bg-gray-50 rounded-lg">
-                  <div className="text-3xl font-bold text-primary">{project.lca_count}</div>
-                  <div className="text-sm text-gray-600 mt-xs">{t.lca}</div>
-                </div>
-              </div>
-            </Card>
+      {/* Content - fills remaining space */}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        {activeTab === 'overview' && (
+          <div className="h-full">
+            <ProjectOverviewPage
+              locale={locale as 'nl' | 'en'}
+              projectId={projectId}
+              projectName={project.name}
+              onNavigateToTasks={() => setActiveTab('tasks')}
+            />
+          </div>
+        )}
 
-            {/* Metadata Card */}
+        {activeTab === 'tasks' && (
+          <div className="h-full overflow-y-auto p-lg">
             <Card>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-base">
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-600 mb-xs">{t.status}</h3>
-                  <p className="text-base capitalize">{project.status}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-600 mb-xs">{t.role}</h3>
-                  <p className="text-base capitalize">{project.user_role}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-600 mb-xs">{t.created}</h3>
-                  <p className="text-base">
-                    {new Date(project.created_at).toLocaleDateString(locale)}
-                  </p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-600 mb-xs">{t.lastAccessed}</h3>
-                  <p className="text-base">
-                    {new Date(project.last_accessed_at).toLocaleDateString(locale)}
-                  </p>
-                </div>
-              </div>
+              <ProjectTasks
+                projectId={projectId}
+                locale={locale}
+              />
             </Card>
-          </>
+          </div>
         )}
 
         {activeTab === 'chats' && (
-          <Card>
-            <ProjectChats
-              projectId={projectId}
-              locale={locale}
-            />
-          </Card>
+          <div className="h-full overflow-y-auto p-lg">
+            <Card>
+              <ProjectChats
+                projectId={projectId}
+                locale={locale}
+              />
+            </Card>
+          </div>
         )}
 
         {activeTab === 'files' && (
-          <Card>
-            <ProjectFiles
-              projectId={projectId}
-              locale={locale}
-              canManageFiles={project.permissions.can_manage_files}
-            />
-          </Card>
+          <div className="h-full overflow-y-auto p-lg">
+            <Card>
+              <ProjectFiles
+                projectId={projectId}
+                locale={locale}
+                canManageFiles={project.permissions.can_manage_files}
+              />
+            </Card>
+          </div>
         )}
 
         {activeTab === 'members' && (
-          <Card>
-            <ProjectMembers
-              projectId={projectId}
-              locale={locale}
-              canManageMembers={project.permissions.can_manage_members}
-            />
-          </Card>
+          <div className="h-full overflow-y-auto p-lg">
+            <Card>
+              <ProjectMembers
+                projectId={projectId}
+                locale={locale}
+                canManageMembers={project.permissions.can_manage_members}
+              />
+            </Card>
+          </div>
         )}
 
         {activeTab === 'locations' && (
-          <Card>
-            <ProjectLocations
-              projectId={projectId}
-              locale={locale}
-            />
-          </Card>
+          <div className="h-full overflow-y-auto p-lg">
+            <Card>
+              <ProjectLocations
+                projectId={projectId}
+                locale={locale}
+              />
+            </Card>
+          </div>
         )}
 
         {activeTab === 'lca' && (
-          <Card>
-            <h2 className="text-xl font-semibold mb-base">{t.lca}</h2>
-            <p className="text-gray-600">LCA snapshots coming soon...</p>
-          </Card>
+          <div className="h-full overflow-y-auto p-lg">
+            <Card>
+              <h2 className="text-xl font-semibold mb-base">{t.lca}</h2>
+              <p className="text-gray-600">LCA snapshots coming soon...</p>
+            </Card>
+          </div>
         )}
 
         {activeTab === 'trash' && (
-          <Card>
-            <ProjectTrash
-              projectId={projectId}
-              locale={locale}
-            />
-          </Card>
+          <div className="h-full overflow-y-auto p-lg">
+            <Card>
+              <ProjectTrash
+                projectId={projectId}
+                locale={locale}
+              />
+            </Card>
+          </div>
         )}
       </div>
     </div>
