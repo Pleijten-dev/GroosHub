@@ -1,15 +1,17 @@
 /**
- * OverviewPage Component
+ * ProjectOverviewPage Component
  *
- * Landing page for the AI Assistant showing:
+ * Project-specific landing page showing:
  * - Main section: Welcome message, sample prompts, message input
- * - Side section: Calendar with deadlines, task distribution, open tasks list
+ * - Side section: Calendar with project deadlines, task distribution by team member, project tasks
+ *
+ * This component is designed to replace the "Overzicht" tab on project pages.
  *
  * Features:
- * - Sample prompts that change on each load
- * - Quick message input to start new chat
- * - Task overview from across all projects
- * - Smooth transition to chat when message is sent
+ * - Project-specific sample prompts
+ * - Quick message input to start project-specific chat
+ * - Project task overview with team member distribution
+ * - Project deadlines calendar
  */
 
 'use client';
@@ -19,6 +21,7 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/shared/utils/cn';
 import { MessageInput, type UploadedFile } from '@/shared/components/UI/MessageInput';
 import { MiniCalendar, type Deadline } from '@/shared/components/UI/MiniCalendar';
+import { HorizontalStackedBarChart, type StackedBarSegment } from '@/shared/components/common/HorizontalStackedBarChart';
 import { TaskListPreview, type TaskPreview } from '@/features/tasks/components/TaskListPreview';
 import { SamplePrompts } from '../SamplePrompts';
 
@@ -26,35 +29,52 @@ import { SamplePrompts } from '../SamplePrompts';
 // Types
 // ============================================================================
 
-export interface OverviewPageProps {
+export interface ProjectOverviewPageProps {
   locale: 'nl' | 'en';
+  projectId: string;
+  projectName?: string;
   className?: string;
 }
 
-interface UserTasksResponse {
+interface ProjectTasksResponse {
   success: boolean;
-  data: {
-    tasks: Array<{
+  tasks: Array<{
+    id: string;
+    title: string;
+    status: 'todo' | 'doing' | 'done';
+    priority: 'low' | 'normal' | 'high' | 'urgent';
+    deadline: string | null;
+    created_at: string;
+    is_overdue: boolean;
+    days_until_deadline: number | null;
+    assigned_users: Array<{ id: string; name: string; email: string }>;
+  }>;
+}
+
+interface ProjectStatsResponse {
+  success: boolean;
+  stats: {
+    overall: {
+      total: number;
+      todo: number;
+      doing: number;
+      done: number;
+      overdue: number;
+    };
+    byUser: Array<{
+      userId: string;
+      userName: string;
+      totalTasks: number;
+      todoCount: number;
+      doingCount: number;
+      doneCount: number;
+    }>;
+    upcomingDeadlines: Array<{
       id: string;
       title: string;
-      status: 'todo' | 'doing' | 'done';
-      priority: 'low' | 'normal' | 'high' | 'urgent';
-      deadline: string | null;
-      created_at: string;
-      project_name: string;
-      is_overdue: boolean;
-      days_until_deadline: number | null;
-      assigned_users: Array<{ id: string; name: string; email: string }>;
+      deadline: string;
+      priority: string;
     }>;
-    stats: {
-      total_tasks: number;
-      todo_count: number;
-      doing_count: number;
-      done_count: number;
-      overdue_count: number;
-      due_this_week: number;
-      urgent_count: number;
-    };
   };
 }
 
@@ -64,82 +84,101 @@ interface UserTasksResponse {
 
 const translations = {
   nl: {
-    welcomeTitle: 'Hoe kan ik je helpen?',
-    welcomeSubtitle: 'Stel een vraag of kies een voorbeeld om te beginnen',
-    myDeadlines: 'Mijn deadlines',
-    taskSummary: 'Taak overzicht',
-    myTasks: 'Mijn taken',
+    welcomeTitle: 'Project Assistent',
+    welcomeSubtitle: 'Stel een vraag over dit project of kies een voorbeeld',
+    projectDeadlines: 'Project deadlines',
+    teamTasks: 'Taken per teamlid',
+    projectTasks: 'Project taken',
     loadingTasks: 'Taken laden...',
     errorLoading: 'Kon taken niet laden',
     noUpcomingDeadlines: 'Geen komende deadlines',
     todo: 'Te doen',
     doing: 'Bezig',
+    done: 'Gereed',
     overdue: 'Achterstallig',
-    dueThisWeek: 'Deze week',
   },
   en: {
-    welcomeTitle: 'How can I help you?',
-    welcomeSubtitle: 'Ask a question or choose an example to get started',
-    myDeadlines: 'My deadlines',
-    taskSummary: 'Task summary',
-    myTasks: 'My tasks',
+    welcomeTitle: 'Project Assistant',
+    welcomeSubtitle: 'Ask a question about this project or choose an example',
+    projectDeadlines: 'Project deadlines',
+    teamTasks: 'Tasks per team member',
+    projectTasks: 'Project tasks',
     loadingTasks: 'Loading tasks...',
     errorLoading: 'Could not load tasks',
     noUpcomingDeadlines: 'No upcoming deadlines',
     todo: 'To do',
     doing: 'In progress',
+    done: 'Done',
     overdue: 'Overdue',
-    dueThisWeek: 'Due this week',
   },
 };
+
+// ============================================================================
+// Default user colors for task distribution
+// ============================================================================
+
+const USER_COLORS = [
+  '#477638', // Primary green
+  '#48806a', // Teal green
+  '#8a976b', // Sage green
+  '#d4af37', // Gold
+  '#3b82f6', // Blue
+  '#ef4444', // Red
+  '#f59e0b', // Orange
+  '#10b981', // Emerald
+  '#8b5cf6', // Purple
+  '#ec4899', // Pink
+];
 
 // ============================================================================
 // Component
 // ============================================================================
 
-export function OverviewPage({ locale, className }: OverviewPageProps) {
+export function ProjectOverviewPage({
+  locale,
+  projectId,
+  projectName,
+  className,
+}: ProjectOverviewPageProps) {
   const router = useRouter();
   const t = translations[locale];
 
   // State
   const [tasks, setTasks] = useState<TaskPreview[]>([]);
   const [deadlines, setDeadlines] = useState<Deadline[]>([]);
-  const [taskStats, setTaskStats] = useState<{
-    todo: number;
-    doing: number;
-    overdue: number;
-    dueThisWeek: number;
-  }>({ todo: 0, doing: 0, overdue: 0, dueThisWeek: 0 });
+  const [tasksByUser, setTasksByUser] = useState<StackedBarSegment[]>([]);
   const [isLoadingTasks, setIsLoadingTasks] = useState(true);
   const [taskSortBy, setTaskSortBy] = useState<'created' | 'deadline'>('deadline');
   const [isCreatingChat, setIsCreatingChat] = useState(false);
   const [promptRefreshKey, setPromptRefreshKey] = useState(0);
 
-  // Fetch user tasks
+  // Fetch project tasks and stats
   useEffect(() => {
-    async function fetchTasks() {
+    async function fetchProjectData() {
       try {
         setIsLoadingTasks(true);
 
-        // Fetch all user tasks with deadlines
-        const response = await fetch('/api/tasks/user?withDeadline=false');
-        const data: UserTasksResponse = await response.json();
+        // Fetch tasks and stats in parallel
+        const [tasksResponse, statsResponse] = await Promise.all([
+          fetch(`/api/projects/${projectId}/tasks`),
+          fetch(`/api/projects/${projectId}/tasks/stats`),
+        ]);
 
-        if (!data.success || !data.data) {
+        const tasksData: ProjectTasksResponse = await tasksResponse.json();
+        const statsData: ProjectStatsResponse = await statsResponse.json();
+
+        if (!tasksData.success || !tasksData.tasks) {
           throw new Error('Failed to fetch tasks');
         }
 
-        const { tasks: rawTasks } = data.data;
-
         // Transform tasks for TaskListPreview
-        const transformedTasks: TaskPreview[] = rawTasks.map((task) => ({
+        const transformedTasks: TaskPreview[] = tasksData.tasks.map((task) => ({
           id: task.id,
           title: task.title,
           status: task.status,
           priority: task.priority,
           deadline: task.deadline,
           createdAt: task.created_at,
-          projectName: task.project_name,
           isOverdue: task.is_overdue,
           daysUntilDeadline: task.days_until_deadline,
           assignedUsers: task.assigned_users?.filter((u) => u && u.id) || [],
@@ -148,13 +187,12 @@ export function OverviewPage({ locale, className }: OverviewPageProps) {
         setTasks(transformedTasks);
 
         // Extract deadlines for calendar
-        // Map priority from task ('normal') to calendar ('medium')
         const mapPriority = (p: string): 'low' | 'medium' | 'high' | 'urgent' => {
           if (p === 'normal') return 'medium';
           return p as 'low' | 'medium' | 'high' | 'urgent';
         };
 
-        const upcomingDeadlines: Deadline[] = rawTasks
+        const upcomingDeadlines: Deadline[] = tasksData.tasks
           .filter((task) => task.deadline && task.status !== 'done')
           .map((task) => ({
             id: task.id,
@@ -166,24 +204,33 @@ export function OverviewPage({ locale, className }: OverviewPageProps) {
 
         setDeadlines(upcomingDeadlines);
 
-        // Set task stats from API response
-        setTaskStats({
-          todo: data.data.stats.todo_count,
-          doing: data.data.stats.doing_count,
-          overdue: data.data.stats.overdue_count,
-          dueThisWeek: data.data.stats.due_this_week,
-        });
+        // Process stats for task distribution chart
+        if (statsData.success && statsData.stats?.byUser) {
+          const userSegments: StackedBarSegment[] = statsData.stats.byUser
+            .filter((user) => user.todoCount + user.doingCount > 0) // Only show users with open tasks
+            .sort((a, b) => (b.todoCount + b.doingCount) - (a.todoCount + a.doingCount))
+            .map((user, index) => ({
+              id: user.userId,
+              label: user.userName,
+              value: user.todoCount + user.doingCount,
+              color: USER_COLORS[index % USER_COLORS.length],
+            }));
+
+          setTasksByUser(userSegments);
+        }
       } catch (error) {
-        console.error('[OverviewPage] Error fetching tasks:', error);
+        console.error('[ProjectOverviewPage] Error fetching project data:', error);
       } finally {
         setIsLoadingTasks(false);
       }
     }
 
-    fetchTasks();
-  }, []);
+    if (projectId) {
+      fetchProjectData();
+    }
+  }, [projectId]);
 
-  // Handle starting a new chat
+  // Handle starting a new project-specific chat
   const handleStartChat = useCallback(
     async (message: string, files?: UploadedFile[]) => {
       if (isCreatingChat) return;
@@ -191,13 +238,14 @@ export function OverviewPage({ locale, className }: OverviewPageProps) {
       setIsCreatingChat(true);
 
       try {
-        // Create a new chat
+        // Create a new chat linked to this project
         const response = await fetch('/api/chats', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: message.substring(0, 50) + (message.length > 50 ? '...' : ''),
             initialMessage: message,
+            projectId: projectId,
             fileIds: files?.map((f) => f.id) || [],
           }),
         });
@@ -208,14 +256,14 @@ export function OverviewPage({ locale, className }: OverviewPageProps) {
           throw new Error(data.error || 'Failed to create chat');
         }
 
-        // Navigate to the new chat
-        router.push(`/${locale}/ai-assistant?chat=${data.chat.id}`);
+        // Navigate to the new chat within the project context
+        router.push(`/${locale}/projects/${projectId}?chat=${data.chat.id}`);
       } catch (error) {
-        console.error('[OverviewPage] Error creating chat:', error);
+        console.error('[ProjectOverviewPage] Error creating chat:', error);
         setIsCreatingChat(false);
       }
     },
-    [isCreatingChat, locale, router]
+    [isCreatingChat, locale, projectId, router]
   );
 
   // Handle prompt selection
@@ -226,16 +274,12 @@ export function OverviewPage({ locale, className }: OverviewPageProps) {
     [handleStartChat]
   );
 
-  // Handle task click - navigate to tasks page
+  // Handle task click - navigate to project task
   const handleTaskClick = useCallback(
     (taskId: string) => {
-      const task = tasks.find((t) => t.id === taskId);
-      if (task) {
-        // Navigate to project tasks page
-        router.push(`/${locale}/ai-assistant/tasks`);
-      }
+      router.push(`/${locale}/projects/${projectId}/tasks?task=${taskId}`);
     },
-    [locale, router, tasks]
+    [locale, projectId, router]
   );
 
   // Handle deadline click
@@ -248,8 +292,16 @@ export function OverviewPage({ locale, className }: OverviewPageProps) {
 
   // Handle view all tasks
   const handleViewAllTasks = useCallback(() => {
-    router.push(`/${locale}/ai-assistant/tasks`);
-  }, [locale, router]);
+    router.push(`/${locale}/projects/${projectId}/tasks`);
+  }, [locale, projectId, router]);
+
+  // Handle user segment click
+  const handleUserClick = useCallback(
+    (segment: StackedBarSegment) => {
+      router.push(`/${locale}/projects/${projectId}/tasks?assignee=${segment.id}`);
+    },
+    [locale, projectId, router]
+  );
 
   return (
     <div className={cn('flex h-full', className)}>
@@ -264,11 +316,17 @@ export function OverviewPage({ locale, className }: OverviewPageProps) {
                 {t.welcomeTitle}
               </h1>
               <p className="text-gray-500">
-                {t.welcomeSubtitle}
+                {projectName ? (
+                  <>
+                    {t.welcomeSubtitle} <span className="font-medium text-gray-700">{projectName}</span>
+                  </>
+                ) : (
+                  t.welcomeSubtitle
+                )}
               </p>
             </div>
 
-            {/* Sample prompts */}
+            {/* Sample prompts - filtered for project context */}
             <SamplePrompts
               onSelectPrompt={handleSelectPrompt}
               locale={locale}
@@ -293,13 +351,14 @@ export function OverviewPage({ locale, className }: OverviewPageProps) {
           </div>
         </div>
 
-        {/* Message input - anchored at bottom */}
+        {/* Message input - anchored at bottom with RAG for project docs */}
         <MessageInput
           onSubmit={handleStartChat}
           locale={locale}
           disabled={isCreatingChat}
           isLoading={isCreatingChat}
-          showRagToggle={false}
+          showRagToggle={true}
+          ragEnabled={true}
           showFileAttachment={false}
           autoFocus
           className="shadow-lg"
@@ -309,10 +368,10 @@ export function OverviewPage({ locale, className }: OverviewPageProps) {
       {/* Side Section */}
       <div className="w-80 flex-shrink-0 border-l border-gray-200 bg-gray-50 overflow-y-auto">
         <div className="p-base space-y-base">
-          {/* Calendar with personal deadlines */}
+          {/* Calendar with project deadlines */}
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-sm">
-              {t.myDeadlines}
+              {t.projectDeadlines}
             </h3>
             <MiniCalendar
               deadlines={deadlines}
@@ -321,74 +380,30 @@ export function OverviewPage({ locale, className }: OverviewPageProps) {
             />
           </div>
 
-          {/* Personal task summary */}
+          {/* Task distribution by team member */}
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-sm">
-              {t.taskSummary}
+              {t.teamTasks}
             </h3>
             {isLoadingTasks ? (
               <div className="bg-white rounded-lg border border-gray-200 p-base">
-                <div className="grid grid-cols-2 gap-sm">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="h-16 bg-gray-100 rounded animate-pulse" />
-                  ))}
-                </div>
+                <div className="h-8 bg-gray-100 rounded animate-pulse" />
               </div>
             ) : (
               <div className="bg-white rounded-lg border border-gray-200 p-base">
-                <div className="grid grid-cols-2 gap-sm">
-                  {/* To Do */}
-                  <div className="bg-gray-50 rounded-md p-sm text-center">
-                    <div className="text-2xl font-bold text-gray-900">{taskStats.todo}</div>
-                    <div className="text-xs text-gray-500">{t.todo}</div>
-                  </div>
-                  {/* In Progress */}
-                  <div className="bg-blue-50 rounded-md p-sm text-center">
-                    <div className="text-2xl font-bold text-blue-600">{taskStats.doing}</div>
-                    <div className="text-xs text-blue-600">{t.doing}</div>
-                  </div>
-                  {/* Overdue */}
-                  <div className={cn(
-                    'rounded-md p-sm text-center',
-                    taskStats.overdue > 0 ? 'bg-red-50' : 'bg-gray-50'
-                  )}>
-                    <div className={cn(
-                      'text-2xl font-bold',
-                      taskStats.overdue > 0 ? 'text-red-600' : 'text-gray-400'
-                    )}>
-                      {taskStats.overdue}
-                    </div>
-                    <div className={cn(
-                      'text-xs',
-                      taskStats.overdue > 0 ? 'text-red-600' : 'text-gray-400'
-                    )}>
-                      {t.overdue}
-                    </div>
-                  </div>
-                  {/* Due this week */}
-                  <div className={cn(
-                    'rounded-md p-sm text-center',
-                    taskStats.dueThisWeek > 0 ? 'bg-yellow-50' : 'bg-gray-50'
-                  )}>
-                    <div className={cn(
-                      'text-2xl font-bold',
-                      taskStats.dueThisWeek > 0 ? 'text-yellow-600' : 'text-gray-400'
-                    )}>
-                      {taskStats.dueThisWeek}
-                    </div>
-                    <div className={cn(
-                      'text-xs',
-                      taskStats.dueThisWeek > 0 ? 'text-yellow-600' : 'text-gray-400'
-                    )}>
-                      {t.dueThisWeek}
-                    </div>
-                  </div>
-                </div>
+                <HorizontalStackedBarChart
+                  data={tasksByUser}
+                  height={24}
+                  showLegend={true}
+                  showValues={true}
+                  onSegmentClick={handleUserClick}
+                  locale={locale}
+                />
               </div>
             )}
           </div>
 
-          {/* Personal tasks list */}
+          {/* Project tasks list */}
           <div>
             <TaskListPreview
               tasks={tasks}
@@ -397,9 +412,9 @@ export function OverviewPage({ locale, className }: OverviewPageProps) {
               onTaskClick={handleTaskClick}
               onViewAllClick={handleViewAllTasks}
               maxVisible={5}
-              showProject={true}
+              showProject={false}
               locale={locale}
-              title={t.myTasks}
+              title={t.projectTasks}
             />
           </div>
         </div>
@@ -408,6 +423,6 @@ export function OverviewPage({ locale, className }: OverviewPageProps) {
   );
 }
 
-OverviewPage.displayName = 'OverviewPage';
+ProjectOverviewPage.displayName = 'ProjectOverviewPage';
 
-export default OverviewPage;
+export default ProjectOverviewPage;

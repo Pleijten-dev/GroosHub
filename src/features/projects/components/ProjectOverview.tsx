@@ -10,6 +10,7 @@ import { ProjectChats } from './ProjectChats';
 import { ProjectLocations } from './ProjectLocations';
 import { ProjectTrash } from './ProjectTrash';
 import { ProjectTasks } from '@/features/tasks/components/ProjectTasks';
+import { ProjectOverviewPage } from '@/features/chat/components/ProjectOverviewPage';
 
 interface ProjectOverviewProps {
   projectId: string;
@@ -215,72 +216,13 @@ export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
       {/* Content */}
       <div className="space-y-base">
         {activeTab === 'overview' && (
-          <>
-            {/* Project Info Card */}
-            <Card>
-              <h2 className="text-xl font-semibold mb-base">{t.description}</h2>
-              {project.description ? (
-                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                  {project.description}
-                </p>
-              ) : (
-                <p className="text-gray-500 italic">{t.noDescription}</p>
-              )}
-            </Card>
-
-            {/* Statistics Card */}
-            <Card>
-              <h2 className="text-xl font-semibold mb-base">{t.projectStatistics}</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-base">
-                <div className="text-center p-base bg-gray-50 rounded-lg">
-                  <div className="text-3xl font-bold text-primary">{project.chat_count}</div>
-                  <div className="text-sm text-gray-600 mt-xs">{t.chats}</div>
-                </div>
-                <div className="text-center p-base bg-gray-50 rounded-lg">
-                  <div className="text-3xl font-bold text-primary">{project.file_count}</div>
-                  <div className="text-sm text-gray-600 mt-xs">{t.files}</div>
-                </div>
-                <div className="text-center p-base bg-gray-50 rounded-lg">
-                  <div className="text-3xl font-bold text-primary">{project.member_count}</div>
-                  <div className="text-sm text-gray-600 mt-xs">{t.members}</div>
-                </div>
-                <div className="text-center p-base bg-gray-50 rounded-lg">
-                  <div className="text-3xl font-bold text-primary">{project.location_count}</div>
-                  <div className="text-sm text-gray-600 mt-xs">{t.locations}</div>
-                </div>
-                <div className="text-center p-base bg-gray-50 rounded-lg">
-                  <div className="text-3xl font-bold text-primary">{project.lca_count}</div>
-                  <div className="text-sm text-gray-600 mt-xs">{t.lca}</div>
-                </div>
-              </div>
-            </Card>
-
-            {/* Metadata Card */}
-            <Card>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-base">
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-600 mb-xs">{t.status}</h3>
-                  <p className="text-base capitalize">{project.status}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-600 mb-xs">{t.role}</h3>
-                  <p className="text-base capitalize">{project.user_role}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-600 mb-xs">{t.created}</h3>
-                  <p className="text-base">
-                    {new Date(project.created_at).toLocaleDateString(locale)}
-                  </p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-600 mb-xs">{t.lastAccessed}</h3>
-                  <p className="text-base">
-                    {new Date(project.last_accessed_at).toLocaleDateString(locale)}
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </>
+          <div className="h-[calc(100vh-200px)]">
+            <ProjectOverviewPage
+              locale={locale as 'nl' | 'en'}
+              projectId={projectId}
+              projectName={project.name}
+            />
+          </div>
         )}
 
         {activeTab === 'tasks' && (

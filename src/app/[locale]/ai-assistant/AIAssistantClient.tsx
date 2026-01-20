@@ -51,10 +51,16 @@ export function AIAssistantClient({
     }
   }, [chatId, currentView]);
 
+  // Navbar height is 64px
+  const NAVBAR_HEIGHT = 64;
+
   // Don't render until sidebar state is loaded from localStorage
   if (!isLoaded) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div
+        className="flex items-center justify-center"
+        style={{ height: `calc(100vh - ${NAVBAR_HEIGHT}px)` }}
+      >
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
@@ -94,7 +100,7 @@ export function AIAssistantClient({
   };
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex overflow-hidden" style={{ height: `calc(100vh - ${NAVBAR_HEIGHT}px)` }}>
       <ProjectsSidebarEnhanced
         isCollapsed={isCollapsed}
         onToggle={toggleSidebar}
