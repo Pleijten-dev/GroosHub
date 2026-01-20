@@ -398,14 +398,14 @@ export const SCALE_CONFIGS = {
   default: {
     area_radius_meters: 500,
     grid_resolution_meters: 50,
-    max_samples_per_layer: 400,
-    description: 'Standard scan (500m radius, ~100-300 samples)'
+    max_samples_per_layer: 100,  // Reduced from 400 to prevent log overflow
+    description: 'Standard scan (500m radius, ~100 samples)'
   },
   detailed: {
     area_radius_meters: 1000,
     grid_resolution_meters: 25,
-    max_samples_per_layer: 1600,
-    description: 'Detailed scan (1000m radius, ~1300 samples)'
+    max_samples_per_layer: 400,  // Reduced from 1600 to prevent log overflow
+    description: 'Detailed scan (1000m radius, ~400 samples)'
   }
 } as const;
 
@@ -486,8 +486,8 @@ export const GRADING_STATS = {
   },
   estimated_time_seconds: {
     quick: 2,
-    default: 10,
-    detailed: 130
+    default: 5,    // Reduced with lower sample count (was 10)
+    detailed: 30   // Reduced with lower sample count (was 130)
   }
 };
 
