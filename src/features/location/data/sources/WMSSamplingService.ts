@@ -23,6 +23,9 @@ import type {
  */
 export class WMSSamplingService {
   private config: SamplingConfig;
+  private readonly MAX_RETRIES = 3;
+  private readonly RETRY_DELAY_MS = 1000;
+  private readonly CONCURRENT_REQUESTS = 5; // Max parallel requests at once
 
   constructor(config: Partial<SamplingConfig> = {}) {
     this.config = {
@@ -76,12 +79,8 @@ export class WMSSamplingService {
       // Limit samples for performance
       const samplesToTake = gridPoints.slice(0, this.config.max_samples_per_layer);
 
-      // Fetch all samples in parallel
-      const samplePromises = samplesToTake.map((point) =>
-        this.getFeatureInfo(url, layers, point.coordinates)
-      );
-
-      const results = await Promise.allSettled(samplePromises);
+      // Fetch samples in batches to avoid overwhelming the server
+      const results = await this.fetchInBatches(url, layers, samplesToTake);
 
       // Extract numeric values from successful samples
       const values: number[] = [];
@@ -130,15 +129,8 @@ export class WMSSamplingService {
       // Limit samples for performance
       const samplesToTake = gridPoints.slice(0, this.config.max_samples_per_layer);
 
-      // Fetch all samples in parallel
-      const samplePromises = samplesToTake.map((point) =>
-        this.getFeatureInfo(url, layers, point.coordinates).then((data) => ({
-          data,
-          location: point.coordinates,
-        }))
-      );
-
-      const results = await Promise.allSettled(samplePromises);
+      // Fetch samples in batches with location tracking
+      const results = await this.fetchInBatchesWithLocation(url, layers, samplesToTake);
 
       // Extract numeric values with locations
       const samplesWithValues: Array<{ value: number; location: LatLng }> = [];
@@ -249,71 +241,162 @@ export class WMSSamplingService {
   }
 
   /**
+   * Fetch samples in batches to avoid overwhelming the WMS server
+   */
+  private async fetchInBatches(
+    url: string,
+    layers: string,
+    gridPoints: GridPoint[]
+  ): Promise<PromiseSettledResult<Record<string, unknown> | null>[]> {
+    const results: PromiseSettledResult<Record<string, unknown> | null>[] = [];
+
+    // Process in batches
+    for (let i = 0; i < gridPoints.length; i += this.CONCURRENT_REQUESTS) {
+      const batch = gridPoints.slice(i, i + this.CONCURRENT_REQUESTS);
+      const batchPromises = batch.map(point =>
+        this.getFeatureInfoWithRetry(url, layers, point.coordinates)
+      );
+
+      const batchResults = await Promise.allSettled(batchPromises);
+      results.push(...batchResults);
+
+      // Small delay between batches to respect rate limits
+      if (i + this.CONCURRENT_REQUESTS < gridPoints.length) {
+        await this.delay(200);
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Fetch samples in batches with location tracking (for max area sampling)
+   */
+  private async fetchInBatchesWithLocation(
+    url: string,
+    layers: string,
+    gridPoints: GridPoint[]
+  ): Promise<PromiseSettledResult<{ data: Record<string, unknown> | null; location: LatLng }>[]> {
+    const results: PromiseSettledResult<{ data: Record<string, unknown> | null; location: LatLng }>[] = [];
+
+    // Process in batches
+    for (let i = 0; i < gridPoints.length; i += this.CONCURRENT_REQUESTS) {
+      const batch = gridPoints.slice(i, i + this.CONCURRENT_REQUESTS);
+      const batchPromises = batch.map(point =>
+        this.getFeatureInfoWithRetry(url, layers, point.coordinates).then(data => ({
+          data,
+          location: point.coordinates
+        }))
+      );
+
+      const batchResults = await Promise.allSettled(batchPromises);
+      results.push(...batchResults);
+
+      // Small delay between batches
+      if (i + this.CONCURRENT_REQUESTS < gridPoints.length) {
+        await this.delay(200);
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Get feature info with retry logic and exponential backoff
+   */
+  private async getFeatureInfoWithRetry(
+    url: string,
+    layers: string,
+    coordinates: LatLng,
+    retryCount = 0
+  ): Promise<Record<string, unknown> | null> {
+    try {
+      return await this.getFeatureInfo(url, layers, coordinates);
+    } catch (error) {
+      if (retryCount < this.MAX_RETRIES) {
+        // Exponential backoff: 1s, 2s, 4s
+        const delayMs = this.RETRY_DELAY_MS * Math.pow(2, retryCount);
+        await this.delay(delayMs);
+        return this.getFeatureInfoWithRetry(url, layers, coordinates, retryCount + 1);
+      }
+      // Max retries exceeded, return null
+      console.error(`GetFeatureInfo failed after ${this.MAX_RETRIES} retries:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Delay helper for rate limiting and backoff
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
    * Perform WMS GetFeatureInfo request
+   * Throws errors on network failures (retryable), returns null on empty results (not retryable)
    */
   private async getFeatureInfo(
     url: string,
     layers: string,
     coordinates: LatLng
   ): Promise<Record<string, unknown> | null> {
-    try {
-      // Create a small bounding box around the point
-      const bbox_size = 0.001; // ~100m at Netherlands latitude
-      const bbox: [number, number, number, number] = [
-        coordinates.lng - bbox_size,
-        coordinates.lat - bbox_size,
-        coordinates.lng + bbox_size,
-        coordinates.lat + bbox_size,
-      ];
+    // Create a small bounding box around the point
+    const bbox_size = 0.001; // ~100m at Netherlands latitude
+    const bbox: [number, number, number, number] = [
+      coordinates.lng - bbox_size,
+      coordinates.lat - bbox_size,
+      coordinates.lng + bbox_size,
+      coordinates.lat + bbox_size,
+    ];
 
-      // Map dimensions (pixels)
-      const width = 101;
-      const height = 101;
-      const x = 50; // Center pixel
-      const y = 50; // Center pixel
+    // Map dimensions (pixels)
+    const width = 101;
+    const height = 101;
+    const x = 50; // Center pixel
+    const y = 50; // Center pixel
 
-      // Build GetFeatureInfo URL
-      const params = new URLSearchParams({
-        SERVICE: 'WMS',
-        VERSION: '1.3.0',
-        REQUEST: 'GetFeatureInfo',
-        LAYERS: layers,
-        QUERY_LAYERS: layers,
-        BBOX: bbox.join(','),
-        CRS: 'EPSG:4326',
-        WIDTH: width.toString(),
-        HEIGHT: height.toString(),
-        I: x.toString(),
-        J: y.toString(),
-        INFO_FORMAT: 'application/json',
-      });
+    // Build GetFeatureInfo URL
+    const params = new URLSearchParams({
+      SERVICE: 'WMS',
+      VERSION: '1.3.0',
+      REQUEST: 'GetFeatureInfo',
+      LAYERS: layers,
+      QUERY_LAYERS: layers,
+      BBOX: bbox.join(','),
+      CRS: 'EPSG:4326',
+      WIDTH: width.toString(),
+      HEIGHT: height.toString(),
+      I: x.toString(),
+      J: y.toString(),
+      INFO_FORMAT: 'application/json',
+    });
 
-      const requestUrl = `${url}?${params.toString()}`;
+    const requestUrl = `${url}?${params.toString()}`;
 
-      const response = await fetch(requestUrl, {
-        method: 'GET',
-        headers: {
-          Accept: 'application/json',
-        },
-      });
+    // Let fetch throw on network errors (will be caught by retry logic)
+    const response = await fetch(requestUrl, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+      },
+    });
 
-      if (!response.ok) {
-        console.warn(`GetFeatureInfo failed: ${response.status} ${response.statusText}`);
-        return null;
-      }
-
-      const data = await response.json();
-
-      // Extract features from response
-      if (data.features && data.features.length > 0) {
-        return data.features[0].properties || {};
-      }
-
-      return null;
-    } catch (error) {
-      console.error('GetFeatureInfo error:', error);
+    // HTTP errors (4xx, 5xx) - don't retry, return null
+    if (!response.ok) {
+      console.warn(`GetFeatureInfo HTTP error: ${response.status} ${response.statusText}`);
       return null;
     }
+
+    const data = await response.json();
+
+    // Extract features from response
+    if (data.features && data.features.length > 0) {
+      return data.features[0].properties || {};
+    }
+
+    // No features found - not an error, just no data at this location
+    return null;
   }
 
   /**
