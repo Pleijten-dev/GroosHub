@@ -81,7 +81,7 @@ export function WMSLayerScoreCard({
         <div className="flex items-center gap-sm">
           <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full"></div>
           <div>
-            <h4 className="text-sm font-semibold text-gray-900">{selectedLayer.config.name}</h4>
+            <h4 className="text-sm font-semibold text-gray-900">{selectedLayer.config.title}</h4>
             <p className="text-xs text-gray-500">{t.analyzing}</p>
           </div>
         </div>
