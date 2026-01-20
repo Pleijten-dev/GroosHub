@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ProjectsSidebarEnhanced } from '@/features/projects/components/ProjectsSidebarEnhanced';
 import { ChatUI } from '@/features/chat/components/ChatUI';
 import { OverviewPage } from '@/features/chat/components/OverviewPage';
@@ -20,6 +20,9 @@ interface AIAssistantClientProps {
 }
 
 type TransitionPhase = 'idle' | 'exiting' | 'entering';
+
+// Navbar height is 64px
+const NAVBAR_HEIGHT = 64;
 
 export function AIAssistantClient({
   locale,
@@ -71,23 +74,20 @@ export function AIAssistantClient({
   // Generate unique key for content to trigger fresh animations
   const contentKey = `${displayedContent}-${chatId || 'overview'}-${animationKey.current}`;
 
-  // Navbar height is 64px
-  const NAVBAR_HEIGHT = 64;
-
-  // Don't render until sidebar state is loaded from localStorage
-  if (!isLoaded) {
-    return (
-      <div
-        className="flex items-center justify-center"
-        style={{ height: `calc(100vh - ${NAVBAR_HEIGHT}px)` }}
-      >
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+  // Get transition classes based on current phase
+  const getTransitionClasses = () => {
+    switch (transitionPhase) {
+      case 'exiting':
+        return 'page-exit-active';
+      case 'entering':
+        return 'animate-content-flow';
+      default:
+        return '';
+    }
+  };
 
   // Determine which content to show based on displayed content (which updates during transition)
-  const renderContent = useCallback(() => {
+  const renderContent = () => {
     // If displaying chat view
     if (displayedContent === 'chat') {
       return (
@@ -124,19 +124,19 @@ export function AIAssistantClient({
         isEntering={transitionPhase === 'entering'}
       />
     );
-  }, [displayedContent, contentKey, locale, chatId, projectId, initialMessage, activeView, transitionPhase]);
-
-  // Get transition classes based on current phase
-  const getTransitionClasses = () => {
-    switch (transitionPhase) {
-      case 'exiting':
-        return 'page-exit-active';
-      case 'entering':
-        return 'animate-content-flow';
-      default:
-        return '';
-    }
   };
+
+  // Don't render until sidebar state is loaded from localStorage
+  if (!isLoaded) {
+    return (
+      <div
+        className="flex items-center justify-center"
+        style={{ height: `calc(100vh - ${NAVBAR_HEIGHT}px)` }}
+      >
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex overflow-hidden" style={{ height: `calc(100vh - ${NAVBAR_HEIGHT}px)` }}>
