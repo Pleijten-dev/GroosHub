@@ -7,6 +7,7 @@ import { ConfirmDialog } from '@/shared/components/UI/Modal/ConfirmDialog';
 import { AlertDialog } from '@/shared/components/UI/Modal/AlertDialog';
 import { cn } from '@/shared/utils/cn';
 import type { Locale } from '@/lib/i18n/config';
+import type { AccessibleLocation } from '@/features/location/types/saved-locations';
 
 interface LocationSnapshot {
   id: string;
@@ -30,7 +31,7 @@ interface Project {
 
 interface ProjectSnapshotsListProps {
   locale: Locale;
-  onLoadSnapshot?: (snapshot: LocationSnapshot) => void;
+  onLoadSnapshot?: (location: AccessibleLocation) => void;
   refreshTrigger?: number;
 }
 
@@ -100,6 +101,70 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
       setError(err instanceof Error ? err.message : 'Failed to load projects');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleLoadSnapshot = async (snapshot: LocationSnapshot) => {
+    try {
+      // Fetch full snapshot data from API
+      const response = await fetch(`/api/location/snapshots/${snapshot.id}`);
+
+      if (!response.ok) {
+        console.error('Failed to fetch snapshot data');
+        setErrorDialog({
+          isOpen: true,
+          message: locale === 'nl' ? 'Snapshot laden mislukt' : 'Failed to load snapshot',
+        });
+        return;
+      }
+
+      const { data: snapshotData } = await response.json();
+
+      // Transform to AccessibleLocation format
+      const accessibleLocation: AccessibleLocation = {
+        id: snapshotData.id,
+        userId: snapshotData.user_id,
+        name: snapshotData.address,
+        address: snapshotData.address,
+        coordinates: {
+          lat: snapshotData.latitude,
+          lng: snapshotData.longitude,
+        },
+        locationData: {
+          address: snapshotData.address,
+          latitude: snapshotData.latitude,
+          longitude: snapshotData.longitude,
+          neighborhood: snapshotData.neighborhood_code ? { statcode: snapshotData.neighborhood_code } : null,
+          district: snapshotData.district_code ? { statcode: snapshotData.district_code } : null,
+          municipality: snapshotData.municipality_code ? { statcode: snapshotData.municipality_code } : null,
+          demographics: snapshotData.demographics_data || {},
+          health: snapshotData.health_data || {},
+          safety: snapshotData.safety_data || {},
+          livability: snapshotData.livability_data || {},
+          residential: snapshotData.housing_data || {},
+        } as any, // Type assertion to bypass strict type checking for now
+        amenitiesData: snapshotData.amenities_data || null,
+        dataVersion: '1.0.0',
+        completionStatus: 'location_only',
+        createdAt: new Date(snapshotData.created_at),
+        updatedAt: new Date(snapshotData.updated_at),
+        ownerId: snapshotData.user_id,
+        ownerName: 'Current User', // Default value
+        ownerEmail: '', // Default value
+        isShared: false,
+        canEdit: true,
+      };
+
+      // Call the callback with transformed data
+      if (onLoadSnapshot) {
+        onLoadSnapshot(accessibleLocation);
+      }
+    } catch (err) {
+      console.error('Failed to load snapshot:', err);
+      setErrorDialog({
+        isOpen: true,
+        message: err instanceof Error ? err.message : (locale === 'nl' ? 'Snapshot laden mislukt' : 'Failed to load snapshot'),
+      });
     }
   };
 
@@ -256,7 +321,7 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
                         {/* Action Buttons */}
                         <div className="flex gap-xs">
                           <Button
-                            onClick={() => onLoadSnapshot?.(snapshot)}
+                            onClick={() => handleLoadSnapshot(snapshot)}
                             variant="primary"
                             size="sm"
                             className="text-xs"
