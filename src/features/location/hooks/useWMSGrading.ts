@@ -227,7 +227,8 @@ export function useWMSGrading(options: UseWMSGradingOptions): UseWMSGradingRetur
     }
 
     // Auto-start grading if enabled and we have the required data
-    if (autoGrade && latitude && longitude && address && !isGrading) {
+    // BUT only if we don't already have grading data in state
+    if (autoGrade && latitude && longitude && address && !isGrading && !gradingData) {
       // Delay slightly to avoid starting grading immediately on page load
       const timer = setTimeout(() => {
         startGrading();
@@ -235,7 +236,7 @@ export function useWMSGrading(options: UseWMSGradingOptions): UseWMSGradingRetur
 
       return () => clearTimeout(timer);
     }
-  }, [existingGradingData, hasValidGradingData, autoGrade, latitude, longitude, address, isGrading, startGrading]);
+  }, [existingGradingData, hasValidGradingData, autoGrade, latitude, longitude, address, isGrading, gradingData, startGrading]);
 
   /**
    * Cleanup poll timer
