@@ -519,7 +519,17 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
       // For Kaarten tab - show Leaflet map with WMS layer support
       if (activeTab === 'kaarten') {
         // Guard: coordinates must be available
-        if (!coordinates) return null;
+        if (!coordinates) {
+          return (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <p className="text-gray-500">
+                  {locale === 'nl' ? 'Locatiegegevens laden...' : 'Loading location data...'}
+                </p>
+              </div>
+            </div>
+          );
+        }
 
         // Build location name
         const locationName = [
