@@ -42,9 +42,11 @@ export interface ChatUIProps {
   locale: 'nl' | 'en';
   chatId?: string; // Optional: for loading existing chats
   projectId?: string; // Optional: for project-specific chats
+  initialMessage?: string; // Optional: message to send automatically on load
+  isEntering?: boolean; // Optional: signals that the component is entering (for animations)
 }
 
-export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
+export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering = false }: ChatUIProps) {
   const [selectedModel, setSelectedModel] = useState<ModelId>(DEFAULT_MODEL);
   const [input, setInput] = useState('');
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
@@ -190,6 +192,44 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
 
   // Compute loading state from status
   const isLoading = status === 'submitted' || status === 'streaming' || isRagLoading;
+
+  // Track if initial message has been sent
+  const initialMessageSentRef = useRef(false);
+  const pendingInitialMessageRef = useRef<string | null>(null);
+
+  // Auto-send initial message when provided and chat is ready
+  useEffect(() => {
+    // Only queue once, when not loading, and when we have an initial message
+    if (
+      initialMessage &&
+      !initialMessageSentRef.current &&
+      !isLoadingChat &&
+      currentChatIdRef.current &&
+      !isLoading
+    ) {
+      initialMessageSentRef.current = true;
+      pendingInitialMessageRef.current = initialMessage;
+      console.log('[ChatUI] Queuing initial message:', initialMessage.substring(0, 50) + '...');
+      setInput(initialMessage);
+    }
+  }, [initialMessage, isLoadingChat, isLoading]);
+
+  // Watch for input change to trigger auto-send
+  useEffect(() => {
+    if (
+      pendingInitialMessageRef.current &&
+      input === pendingInitialMessageRef.current &&
+      !isLoading &&
+      currentChatIdRef.current
+    ) {
+      pendingInitialMessageRef.current = null;
+      // Trigger submit via a fake form event
+      const submitButton = document.querySelector('button[type="submit"]') as HTMLButtonElement;
+      if (submitButton) {
+        submitButton.click();
+      }
+    }
+  }, [input, isLoading]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -484,7 +524,10 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-base py-sm shadow-sm">
+      <div className={cn(
+        "bg-white border-b border-gray-200 px-base py-sm shadow-sm",
+        isEntering && "animate-fade-slide-up fill-both"
+      )}>
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-900">{t.title}</h1>
 
@@ -518,7 +561,10 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto">
+      <div className={cn(
+        "flex-1 overflow-y-auto",
+        isEntering && "animate-scale-fade-in fill-both stagger-1"
+      )}>
         <div className="max-w-4xl mx-auto px-base py-lg">
           {isLoadingChat ? (
             <div className="flex items-center justify-center h-full text-gray-500">
@@ -753,7 +799,10 @@ export function ChatUI({ locale, chatId, projectId }: ChatUIProps) {
       )}
 
       {/* Input Area */}
-      <div className="bg-white border-t border-gray-200 px-base py-sm shadow-lg">
+      <div className={cn(
+        "bg-white border-t border-gray-200 px-base py-sm shadow-lg",
+        isEntering && "animate-message-flow fill-both stagger-2"
+      )}>
         <div className="max-w-4xl mx-auto space-y-sm">
           {/* File Upload Zone - Only shown if model supports vision */}
           {currentChatId && (

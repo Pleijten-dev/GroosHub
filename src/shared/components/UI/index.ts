@@ -13,6 +13,12 @@ export { default as Input } from './Input/Input';
 export { default as Card } from './Card/Card';
 export { default as StatusBadge } from './StatusBadge/StatusBadge';
 
+// Message input component
+export { MessageInput, type MessageInputProps, type UploadedFile } from './MessageInput';
+
+// Mini calendar component
+export { MiniCalendar, type MiniCalendarProps, type Deadline } from './MiniCalendar';
+
 // Panel system components
 export { Panel, PanelOuter, PanelInner } from './Panel';
 export type { PanelProps, PanelOuterProps, PanelInnerProps, CombinedPanelProps } from './Panel';

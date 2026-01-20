@@ -30,7 +30,7 @@ export function ProjectPageClient({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex overflow-hidden" style={{ height: 'calc(100vh - 64px)' }}>
       <ProjectsSidebarEnhanced
         isCollapsed={isCollapsed}
         onToggle={toggleSidebar}
@@ -41,7 +41,7 @@ export function ProjectPageClient({
 
       {/* Main content area - adjust margin based on sidebar state */}
       <main
-        className="flex-1 overflow-hidden transition-all duration-normal"
+        className="flex-1 min-h-0 overflow-hidden transition-all duration-normal"
         style={{
           marginLeft: isCollapsed ? '60px' : '280px'
         }}

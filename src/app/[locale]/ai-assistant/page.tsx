@@ -16,13 +16,15 @@ export interface AIAssistantPageProps {
   searchParams: Promise<{
     chat?: string;
     project_id?: string;
+    view?: 'overview' | 'chats' | 'tasks' | 'files' | 'notes' | 'members' | 'trash';
+    message?: string; // Initial message to send automatically
   }>;
 }
 
 export default async function AIAssistantPage({ params, searchParams }: AIAssistantPageProps) {
   const session = await auth();
   const { locale } = await params;
-  const { chat, project_id } = await searchParams;
+  const { chat, project_id, view, message } = await searchParams;
 
   if (!session?.user) {
     redirect(`/${locale}/login`);
@@ -40,6 +42,8 @@ export default async function AIAssistantPage({ params, searchParams }: AIAssist
         userName={session.user.name || undefined}
         chatId={chat}
         projectId={project_id}
+        activeView={view || 'overview'}
+        initialMessage={message}
       />
     </Suspense>
   );
