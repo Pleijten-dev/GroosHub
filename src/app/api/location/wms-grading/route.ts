@@ -75,143 +75,184 @@ export async function POST(request: NextRequest) {
     const gradingResults: WMSLayerGrading[] = [];
     let totalSamplesTaken = 0;
 
-    // Grade each layer according to its configuration
-    for (const layerConfig of layersToGrade) {
-      try {
-        const wmsLayer = getWMSLayer(layerConfig.category, layerConfig.layerId);
+    // Process layers in parallel batches to speed up grading
+    const PARALLEL_LAYERS = 3; // Process 3 layers at once to stay under timeout
 
-        if (!wmsLayer) {
-          console.warn(`⚠️ WMS layer not found: ${layerConfig.layerId}`);
-          continue;
-        }
+    /**
+     * Grade a single layer with all its configured sampling methods
+     */
+    const gradeLayer = async (layerConfig: LayerGradingConfig): Promise<WMSLayerGrading> => {
+      const wmsLayer = getWMSLayer(layerConfig.category, layerConfig.layerId);
 
-        // Skip amenity layers
-        if (wmsLayer.amenityCategoryId) {
-          continue;
-        }
-
-        console.log(`🔍 Grading: ${layerConfig.name} (${layerConfig.category})`);
-
-        const grading: Partial<WMSLayerGrading> = {
-          layer_id: layerConfig.layerId,
-          layer_name: layerConfig.name,
-          wms_layer_name: wmsLayer.layers,
-          errors: [],
-        };
-
-        // Perform configured sampling methods
-        const samplingTasks: Promise<void>[] = [];
-
-        // Point sample
-        if (layerConfig.methods.point) {
-          const config = getSamplingConfig(layerConfig.layerId, 'point');
-          if (config) {
-            const service = createWMSSamplingService(config.config);
-            samplingTasks.push(
-              service.pointSample(wmsLayer.url, wmsLayer.layers, location)
-                .then(result => {
-                  grading.point_sample = result;
-                  if (result) totalSamplesTaken += 1;
-                })
-                .catch(err => {
-                  grading.errors!.push(`Point sample failed: ${err.message}`);
-                })
-            );
-          }
-        }
-
-        // Average area sample
-        if (layerConfig.methods.average) {
-          const config = getSamplingConfig(layerConfig.layerId, 'average');
-          if (config) {
-            const service = createWMSSamplingService(config.config);
-            samplingTasks.push(
-              service.averageAreaSample(wmsLayer.url, wmsLayer.layers, location)
-                .then(result => {
-                  grading.average_area_sample = result;
-                  if (result) totalSamplesTaken += result.sample_count;
-                })
-                .catch(err => {
-                  grading.errors!.push(`Average area sample failed: ${err.message}`);
-                })
-            );
-          }
-        }
-
-        // Max area sample
-        if (layerConfig.methods.max) {
-          const config = getSamplingConfig(layerConfig.layerId, 'max');
-          if (config) {
-            const service = createWMSSamplingService(config.config);
-            samplingTasks.push(
-              service.maxAreaSample(wmsLayer.url, wmsLayer.layers, location)
-                .then(result => {
-                  grading.max_area_sample = result;
-                  if (result) totalSamplesTaken += result.sample_count;
-                })
-                .catch(err => {
-                  grading.errors!.push(`Max area sample failed: ${err.message}`);
-                })
-            );
-          }
-        }
-
-        // Handle alternate scales (e.g., road traffic noise with BOTH quick and default)
-        if (layerConfig.alternateScales) {
-          for (const altScale of layerConfig.alternateScales) {
-            const altConfig = SCALE_CONFIGS[altScale.scale];
-            const service = createWMSSamplingService(altConfig);
-
-            if (altScale.method === 'max') {
-              samplingTasks.push(
-                service.maxAreaSample(wmsLayer.url, wmsLayer.layers, location)
-                  .then(result => {
-                    // Store alternate scale result
-                    // For now, we'll keep the larger radius result as the primary
-                    if (result && grading.max_area_sample) {
-                      if (result.radius_meters > grading.max_area_sample.radius_meters) {
-                        grading.max_area_sample = result;
-                      }
-                    } else if (result) {
-                      grading.max_area_sample = result;
-                    }
-                    if (result) totalSamplesTaken += result.sample_count;
-                  })
-                  .catch(err => {
-                    grading.errors!.push(`Alt max sample (${altScale.scale}) failed: ${err.message}`);
-                  })
-              );
-            }
-          }
-        }
-
-        // Wait for all sampling tasks to complete
-        await Promise.all(samplingTasks);
-
-        // Check if all samples failed
-        if (!grading.point_sample && !grading.average_area_sample && !grading.max_area_sample) {
-          grading.errors!.push('All sampling methods failed - layer may not have data at this location');
-        }
-
-        // Clean up errors array
-        if (grading.errors!.length === 0) {
-          delete grading.errors;
-        }
-
-        gradingResults.push(grading as WMSLayerGrading);
-
-        console.log(`✅ ${layerConfig.name}: ${grading.point_sample ? '✓Point ' : ''}${grading.average_area_sample ? '✓Avg ' : ''}${grading.max_area_sample ? '✓Max' : ''}`);
-
-      } catch (error) {
-        console.error(`❌ Error grading layer ${layerConfig.layerId}:`, error);
-        gradingResults.push({
+      if (!wmsLayer) {
+        console.warn(`⚠️ WMS layer not found: ${layerConfig.layerId}`);
+        return {
           layer_id: layerConfig.layerId,
           layer_name: layerConfig.name,
           wms_layer_name: '',
           point_sample: null,
           average_area_sample: null,
           max_area_sample: null,
-          errors: [error instanceof Error ? error.message : 'Unknown error'],
+          errors: ['Layer not found in WMS configuration'],
+        };
+      }
+
+      // Skip amenity layers
+      if (wmsLayer.amenityCategoryId) {
+        return {
+          layer_id: layerConfig.layerId,
+          layer_name: layerConfig.name,
+          wms_layer_name: wmsLayer.layers,
+          point_sample: null,
+          average_area_sample: null,
+          max_area_sample: null,
+          errors: ['Amenity layer - skipped'],
+        };
+      }
+
+      console.log(`🔍 Grading: ${layerConfig.name} (${layerConfig.category})`);
+
+      const grading: Partial<WMSLayerGrading> = {
+        layer_id: layerConfig.layerId,
+        layer_name: layerConfig.name,
+        wms_layer_name: wmsLayer.layers,
+        errors: [],
+      };
+
+      let layerSampleCount = 0;
+
+      // Perform configured sampling methods in parallel
+      const samplingTasks: Promise<void>[] = [];
+
+      // Point sample
+      if (layerConfig.methods.point) {
+        const config = getSamplingConfig(layerConfig.layerId, 'point');
+        if (config) {
+          const service = createWMSSamplingService(config.config);
+          samplingTasks.push(
+            service.pointSample(wmsLayer.url, wmsLayer.layers, location)
+              .then(result => {
+                grading.point_sample = result;
+                if (result) layerSampleCount += 1;
+              })
+              .catch(err => {
+                grading.errors!.push(`Point sample failed: ${err.message}`);
+              })
+          );
+        }
+      }
+
+      // Average area sample
+      if (layerConfig.methods.average) {
+        const config = getSamplingConfig(layerConfig.layerId, 'average');
+        if (config) {
+          const service = createWMSSamplingService(config.config);
+          samplingTasks.push(
+            service.averageAreaSample(wmsLayer.url, wmsLayer.layers, location)
+              .then(result => {
+                grading.average_area_sample = result;
+                if (result) layerSampleCount += result.sample_count;
+              })
+              .catch(err => {
+                grading.errors!.push(`Average area sample failed: ${err.message}`);
+              })
+          );
+        }
+      }
+
+      // Max area sample
+      if (layerConfig.methods.max) {
+        const config = getSamplingConfig(layerConfig.layerId, 'max');
+        if (config) {
+          const service = createWMSSamplingService(config.config);
+          samplingTasks.push(
+            service.maxAreaSample(wmsLayer.url, wmsLayer.layers, location)
+              .then(result => {
+                grading.max_area_sample = result;
+                if (result) layerSampleCount += result.sample_count;
+              })
+              .catch(err => {
+                grading.errors!.push(`Max area sample failed: ${err.message}`);
+              })
+          );
+        }
+      }
+
+      // Handle alternate scales (e.g., road traffic noise with BOTH quick and default)
+      if (layerConfig.alternateScales) {
+        for (const altScale of layerConfig.alternateScales) {
+          const altConfig = SCALE_CONFIGS[altScale.scale];
+          const service = createWMSSamplingService(altConfig);
+
+          if (altScale.method === 'max') {
+            samplingTasks.push(
+              service.maxAreaSample(wmsLayer.url, wmsLayer.layers, location)
+                .then(result => {
+                  // Store alternate scale result
+                  // For now, we'll keep the larger radius result as the primary
+                  if (result && grading.max_area_sample) {
+                    if (result.radius_meters > grading.max_area_sample.radius_meters) {
+                      grading.max_area_sample = result;
+                    }
+                  } else if (result) {
+                    grading.max_area_sample = result;
+                  }
+                  if (result) layerSampleCount += result.sample_count;
+                })
+                .catch(err => {
+                  grading.errors!.push(`Alt max sample (${altScale.scale}) failed: ${err.message}`);
+                })
+            );
+          }
+        }
+      }
+
+      // Wait for all sampling tasks to complete
+      await Promise.all(samplingTasks);
+
+      // Update total sample count (thread-safe since we're awaiting each batch)
+      totalSamplesTaken += layerSampleCount;
+
+      // Check if all samples failed
+      if (!grading.point_sample && !grading.average_area_sample && !grading.max_area_sample) {
+        grading.errors!.push('All sampling methods failed - layer may not have data at this location');
+      }
+
+      // Clean up errors array
+      if (grading.errors!.length === 0) {
+        delete grading.errors;
+      }
+
+      console.log(`✅ ${layerConfig.name}: ${grading.point_sample ? '✓Point ' : ''}${grading.average_area_sample ? '✓Avg ' : ''}${grading.max_area_sample ? '✓Max' : ''}`);
+
+      return grading as WMSLayerGrading;
+    };
+
+    // Process layers in parallel batches
+    for (let i = 0; i < layersToGrade.length; i += PARALLEL_LAYERS) {
+      const batch = layersToGrade.slice(i, i + PARALLEL_LAYERS);
+      console.log(`📦 Processing batch ${Math.floor(i / PARALLEL_LAYERS) + 1}/${Math.ceil(layersToGrade.length / PARALLEL_LAYERS)} (${batch.length} layers)`);
+
+      try {
+        // Grade all layers in this batch in parallel
+        const batchResults = await Promise.all(
+          batch.map(layerConfig => gradeLayer(layerConfig))
+        );
+
+        gradingResults.push(...batchResults);
+      } catch (error) {
+        console.error(`❌ Error processing batch:`, error);
+        // Add failed layers from this batch
+        batch.forEach(layerConfig => {
+          gradingResults.push({
+            layer_id: layerConfig.layerId,
+            layer_name: layerConfig.name,
+            wms_layer_name: '',
+            point_sample: null,
+            average_area_sample: null,
+            max_area_sample: null,
+            errors: [error instanceof Error ? error.message : 'Batch processing error'],
+          });
         });
       }
     }
