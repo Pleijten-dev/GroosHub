@@ -97,7 +97,7 @@ export function WMSLayerScoreCard({
   if (!layerGrading) {
     return (
       <div className="bg-white/90 backdrop-blur-sm rounded-lg border border-gray-200 p-base shadow-sm">
-        <h4 className="text-sm font-semibold text-gray-900 mb-xs">{selectedLayer.config.name}</h4>
+        <h4 className="text-sm font-semibold text-gray-900 mb-xs">{selectedLayer.config.title}</h4>
         <div className="flex items-center gap-xs text-amber-600">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -116,7 +116,7 @@ export function WMSLayerScoreCard({
     <div className="bg-white/90 backdrop-blur-sm rounded-lg border border-gray-200 shadow-sm overflow-hidden">
       {/* Header */}
       <div className="bg-gradient-to-r from-primary/10 to-secondary/10 px-base py-sm border-b border-gray-200">
-        <h4 className="text-sm font-semibold text-gray-900">{selectedLayer.config.name}</h4>
+        <h4 className="text-sm font-semibold text-gray-900">{selectedLayer.config.title}</h4>
         <p className="text-xs text-gray-600">{selectedLayer.categoryId}</p>
       </div>
 
@@ -145,7 +145,7 @@ export function WMSLayerScoreCard({
           )}
 
           {/* Average Area Sample */}
-          {layerGrading.average_area_sample && (
+          {layerGrading.average_area_sample && layerGrading.average_area_sample.value !== null && (
             <div className="flex items-center justify-between py-xs border-b border-gray-100 last:border-0">
               <div className="flex items-center gap-xs">
                 <svg className="w-4 h-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -168,7 +168,7 @@ export function WMSLayerScoreCard({
           )}
 
           {/* Max Area Sample */}
-          {layerGrading.max_area_sample && (
+          {layerGrading.max_area_sample && layerGrading.max_area_sample.value !== null && (
             <div className="flex items-center justify-between py-xs border-b border-gray-100 last:border-0">
               <div className="flex items-center gap-xs">
                 <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
