@@ -30,7 +30,7 @@ export function ProjectPageClient({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex overflow-hidden" style={{ height: 'calc(100vh - 64px)' }}>
       <ProjectsSidebarEnhanced
         isCollapsed={isCollapsed}
         onToggle={toggleSidebar}
