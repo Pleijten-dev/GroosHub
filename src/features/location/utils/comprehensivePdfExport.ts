@@ -1094,7 +1094,7 @@ class PdfBuilder {
 
   /**
    * Add compact persona cards (4 cards on same page as cube)
-   * More condensed format to fit with cube visualization
+   * Simplified layout showing only essential info to fit with cube visualization
    */
   private addCompactPersonaCards(
     personas: Array<{
@@ -1111,9 +1111,10 @@ class PdfBuilder {
       imageDataUrl?: string;
     }>
   ): void {
-    const cardWidth = (CONTENT_WIDTH - 6) / 2;
-    const cardHeight = 75; // Compact height
-    const cardGap = 6;
+    const cardWidth = (CONTENT_WIDTH - 8) / 2; // 2 cards per row with gap
+    const cardHeight = 42; // Compact height - just essentials
+    const cardGap = 4;
+    const padding = 3;
 
     personas.forEach((persona, index) => {
       const col = index % 2;
@@ -1121,84 +1122,68 @@ class PdfBuilder {
       const cardX = MARGIN + col * (cardWidth + cardGap);
       const cardY = this.currentY + row * (cardHeight + cardGap);
 
-      // Card background
+      // Card background with border
       this.pdf.setFillColor(255, 255, 255);
-      this.pdf.setDrawColor(229, 231, 235);
+      this.pdf.setDrawColor(200, 200, 200);
+      this.pdf.setLineWidth(0.3);
       this.pdf.roundedRect(cardX, cardY, cardWidth, cardHeight, 2, 2, 'FD');
 
-      let y = cardY + 3;
-      const imageSize = 25;
+      // Layout: Small image on left, text on right
+      const imageSize = 18;
+      const textX = cardX + padding + imageSize + 4;
+      const textWidth = cardWidth - imageSize - padding * 2 - 6;
 
-      // Small image
+      // Image placeholder or actual image
       if (persona.imageDataUrl) {
         try {
-          this.pdf.addImage(persona.imageDataUrl, 'PNG', cardX + 3, y, imageSize, imageSize, undefined, 'FAST');
+          this.pdf.addImage(
+            persona.imageDataUrl, 'PNG',
+            cardX + padding, cardY + padding,
+            imageSize, imageSize,
+            undefined, 'FAST'
+          );
         } catch {
-          this.pdf.setFillColor(243, 244, 246);
-          this.pdf.rect(cardX + 3, y, imageSize, imageSize, 'F');
+          this.pdf.setFillColor(230, 230, 230);
+          this.pdf.rect(cardX + padding, cardY + padding, imageSize, imageSize, 'F');
         }
       } else {
-        this.pdf.setFillColor(243, 244, 246);
-        this.pdf.rect(cardX + 3, y, imageSize, imageSize, 'F');
+        this.pdf.setFillColor(230, 230, 230);
+        this.pdf.rect(cardX + padding, cardY + padding, imageSize, imageSize, 'F');
       }
 
-      // Name next to image
+      // Name (bold, on right side of image)
       this.pdf.setFontSize(8);
-      this.pdf.setTextColor(17, 24, 39);
+      this.pdf.setTextColor(30, 30, 30);
       this.pdf.setFont('helvetica', 'bold');
-      this.pdf.text(persona.name, cardX + imageSize + 8, y + 5);
+      const nameLines = this.pdf.splitTextToSize(persona.name, textWidth);
+      this.pdf.text(nameLines[0] || persona.name, textX, cardY + padding + 4);
 
-      // Stats on same line
+      // Stats line (smaller, below name)
       this.pdf.setFontSize(6);
-      this.pdf.setTextColor(75, 85, 99);
+      this.pdf.setTextColor(80, 80, 80);
       this.pdf.setFont('helvetica', 'normal');
-      const statsText = `${persona.income_level} | ${persona.age_group} | ${persona.household_type}`;
-      this.pdf.text(statsText, cardX + imageSize + 8, y + 11);
+      const statsText = `${persona.income_level} · ${persona.age_group} · ${persona.household_type}`;
+      const statsLines = this.pdf.splitTextToSize(statsText, textWidth);
+      this.pdf.text(statsLines[0] || '', textX, cardY + padding + 10);
 
-      y += imageSize + 5;
-
-      // Description (2 lines max)
+      // Description (2 lines max, below image)
       this.pdf.setFontSize(6);
-      this.pdf.setTextColor(55, 65, 81);
-      const descLines = this.pdf.splitTextToSize(persona.description || '', cardWidth - 8);
-      this.pdf.text(descLines.slice(0, 2), cardX + 3, y);
-      y += 9;
+      this.pdf.setTextColor(60, 60, 60);
+      const descLines = this.pdf.splitTextToSize(persona.description || '', cardWidth - padding * 2);
+      const descY = cardY + padding + imageSize + 4;
+      this.pdf.text(descLines.slice(0, 2).join(' ').substring(0, 120), cardX + padding, descY);
 
-      // Current situation (condensed)
-      if (persona.current_situation) {
+      // Housing types on bottom line (if available)
+      if (persona.current_property_types?.[0] || persona.desired_property_types?.[0]) {
         this.pdf.setFontSize(5);
         this.pdf.setTextColor(71, 118, 56);
-        this.pdf.setFont('helvetica', 'bold');
-        this.pdf.text(this.locale === 'nl' ? 'Nu:' : 'Now:', cardX + 3, y);
-        this.pdf.setFont('helvetica', 'normal');
-        this.pdf.setTextColor(55, 65, 81);
-        const currentLine = this.pdf.splitTextToSize(persona.current_situation, cardWidth - 20)[0];
-        this.pdf.text(currentLine || '', cardX + 12, y);
-        y += 5;
-
-        if (persona.current_property_types?.[0]) {
-          this.pdf.setTextColor(100, 100, 100);
-          this.pdf.text(`→ ${persona.current_property_types[0]}`, cardX + 12, y);
-          y += 5;
-        }
-      }
-
-      // Desired situation (condensed)
-      if (persona.desired_situation) {
-        this.pdf.setFontSize(5);
-        this.pdf.setTextColor(71, 118, 56);
-        this.pdf.setFont('helvetica', 'bold');
-        this.pdf.text(this.locale === 'nl' ? 'Wens:' : 'Want:', cardX + 3, y);
-        this.pdf.setFont('helvetica', 'normal');
-        this.pdf.setTextColor(55, 65, 81);
-        const desiredLine = this.pdf.splitTextToSize(persona.desired_situation, cardWidth - 20)[0];
-        this.pdf.text(desiredLine || '', cardX + 15, y);
-        y += 5;
-
-        if (persona.desired_property_types?.[0]) {
-          this.pdf.setTextColor(100, 100, 100);
-          this.pdf.text(`→ ${persona.desired_property_types[0]}`, cardX + 15, y);
-        }
+        const currentType = persona.current_property_types?.[0] || '';
+        const desiredType = persona.desired_property_types?.[0] || '';
+        const housingText = currentType && desiredType
+          ? `${currentType} → ${desiredType}`
+          : currentType || desiredType;
+        const housingLines = this.pdf.splitTextToSize(housingText, cardWidth - padding * 2);
+        this.pdf.text(housingLines[0] || '', cardX + padding, cardY + cardHeight - 3);
       }
     });
 
