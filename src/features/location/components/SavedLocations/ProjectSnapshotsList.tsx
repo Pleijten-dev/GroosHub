@@ -8,6 +8,7 @@ import { AlertDialog } from '@/shared/components/UI/Modal/AlertDialog';
 import { cn } from '@/shared/utils/cn';
 import type { Locale } from '@/lib/i18n/config';
 import type { AccessibleLocation } from '@/features/location/types/saved-locations';
+import { convertAmenitiesToRows } from '../Amenities/amenityDataConverter';
 
 interface LocationSnapshot {
   id: string;
@@ -130,6 +131,17 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
         ? parseFloat(snapshotData.longitude)
         : Number(snapshotData.longitude) || 0;
 
+      // Convert raw amenities data to UnifiedDataRow[] format for locationData.amenities
+      // This ensures consistency with fresh data where amenities are converted by the aggregator
+      const amenitiesDataRaw = snapshotData.amenities_data || null;
+      const amenitiesRows = amenitiesDataRaw
+        ? convertAmenitiesToRows(
+            amenitiesDataRaw,
+            snapshotData.municipality_code || '',
+            snapshotData.address || ''
+          )
+        : [];
+
       const accessibleLocation: AccessibleLocation = {
         id: snapshotData.id,
         userId: snapshotData.user_id,
@@ -163,8 +175,10 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
           safety: snapshotData.safety_data || {},
           livability: snapshotData.livability_data || {},
           residential: snapshotData.housing_data || {},
+          // Amenities as UnifiedDataRow[] (converted from raw data)
+          amenities: amenitiesRows,
         } as any, // Type assertion to bypass strict type checking for now
-        amenitiesData: snapshotData.amenities_data || null,
+        amenitiesData: amenitiesDataRaw,
         dataVersion: '1.0.0',
         completionStatus: 'location_only',
         createdAt: new Date(snapshotData.created_at),
