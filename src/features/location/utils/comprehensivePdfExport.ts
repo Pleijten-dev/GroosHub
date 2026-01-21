@@ -1736,6 +1736,9 @@ export async function generateComprehensivePdf(
     onProgress?.(currentStep, totalSteps, status);
   };
 
+  // Report initial progress immediately so UI doesn't show 0/0
+  onProgress?.(0, totalSteps, locale === 'nl' ? 'Voorbereiden...' : 'Preparing...');
+
   // === NEW PAGE ORDER ===
   // 1. Title page
   builder.addTitlePage(title, data.address, data.coordinates);
@@ -1763,6 +1766,13 @@ export async function generateComprehensivePdf(
   // 4-7. Scenario pages with cube + 4 cards (ONE page per scenario)
   if (includeTargetGroups && data.cubeColors && data.cubeColors.length > 0) {
     builder.startSection(t.scenarioCubes);
+
+    // Report that cube capture is starting (this can take a while)
+    onProgress?.(
+      currentStep,
+      totalSteps,
+      locale === 'nl' ? 'Kubus visualisaties genereren...' : 'Generating cube visualizations...'
+    );
 
     try {
       console.log('Capturing cube visualizations for PDF...');

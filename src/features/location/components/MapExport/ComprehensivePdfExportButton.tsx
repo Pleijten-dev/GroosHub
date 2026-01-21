@@ -173,27 +173,34 @@ export const ComprehensivePdfExportButton: React.FC<ComprehensivePdfExportButton
 
   /**
    * Pre-fetch all persona images for use in PDF
+   * Uses timeout to skip slow/failing image loads
    */
   const fetchAllPersonaImages = async (personaIds: string[]): Promise<Record<string, string>> => {
     const images: Record<string, string> = {};
 
-    // Fetch in parallel (max 5 at a time to avoid overwhelming)
-    const batchSize = 5;
-    for (let i = 0; i < personaIds.length; i += batchSize) {
-      const batch = personaIds.slice(i, i + batchSize);
-      const results = await Promise.all(
-        batch.map(async (id) => {
-          const dataUrl = await fetchPersonaImage(id);
-          return { id, dataUrl };
-        })
-      );
+    // Fetch with a 2-second timeout per image to avoid long waits on 404s
+    const fetchWithTimeout = async (id: string): Promise<{ id: string; dataUrl: string | undefined }> => {
+      try {
+        const timeoutPromise = new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), 2000));
+        const fetchPromise = fetchPersonaImage(id);
+        const dataUrl = await Promise.race([fetchPromise, timeoutPromise]);
+        return { id, dataUrl };
+      } catch {
+        return { id, dataUrl: undefined };
+      }
+    };
 
-      results.forEach(({ id, dataUrl }) => {
-        if (dataUrl) {
-          images[id] = dataUrl;
-        }
-      });
-    }
+    // Fetch all in parallel with timeout (faster than sequential batches)
+    const results = await Promise.all(personaIds.map(fetchWithTimeout));
+
+    results.forEach(({ id, dataUrl }) => {
+      if (dataUrl) {
+        images[id] = dataUrl;
+      }
+    });
+
+    // Update status to show we're done with images
+    setCurrentStatus(locale === 'nl' ? 'PDF genereren...' : 'Generating PDF...');
 
     return images;
   };
@@ -366,7 +373,9 @@ export const ComprehensivePdfExportButton: React.FC<ComprehensivePdfExportButton
         className="w-full"
       >
         {isExporting
-          ? `${t.generating} ${exportProgress}/${exportTotal}`
+          ? exportTotal > 0
+            ? `${t.generating} ${exportProgress}/${exportTotal}`
+            : t.generating
           : t.generate
         }
       </Button>
@@ -377,15 +386,19 @@ export const ComprehensivePdfExportButton: React.FC<ComprehensivePdfExportButton
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-blue-900">{t.progress}</span>
             <span className="text-sm text-blue-700">
-              {exportProgress} / {exportTotal}
+              {exportTotal > 0 ? `${exportProgress} / ${exportTotal}` : '...'}
             </span>
           </div>
 
           <div className="w-full bg-blue-200 rounded-full h-2 mb-2">
-            <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${exportTotal > 0 ? (exportProgress / exportTotal) * 100 : 0}%` }}
-            />
+            {exportTotal > 0 ? (
+              <div
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${(exportProgress / exportTotal) * 100}%` }}
+              />
+            ) : (
+              <div className="bg-blue-400 h-2 rounded-full animate-pulse" style={{ width: '30%' }} />
+            )}
           </div>
 
           {currentStatus && (
