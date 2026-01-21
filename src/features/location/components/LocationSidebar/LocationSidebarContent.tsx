@@ -14,6 +14,7 @@ import { ProjectSnapshotsList } from '../SavedLocations/ProjectSnapshotsList';
 import type { UnifiedLocationData } from '../../data/aggregator/multiLevelAggregator';
 import type { AmenityMultiCategoryResponse } from '../../data/sources/google-places/types';
 import type { AccessibleLocation } from '../../types/saved-locations';
+import type { WMSGradingData } from '../../types/wms-grading';
 
 // Types for location analysis sections
 const MAIN_SECTIONS = [
@@ -51,6 +52,7 @@ interface LocationSidebarContentProps {
   currentAddress?: string | null;
   locationData?: UnifiedLocationData | null;
   amenitiesData?: AmenityMultiCategoryResponse | null;
+  wmsGradingData?: WMSGradingData | null;
   onLoadSavedLocation?: (location: AccessibleLocation) => void;
 }
 
@@ -65,6 +67,7 @@ export const useLocationSidebarSections = ({
   currentAddress = null,
   locationData = null,
   amenitiesData = null,
+  wmsGradingData = null,
   onLoadSavedLocation,
 }: LocationSidebarContentProps): SidebarSection[] => {
   const router = useRouter();
@@ -303,6 +306,7 @@ export const useLocationSidebarSections = ({
       longitude={locationData?.location?.coordinates?.wgs84?.longitude || 0}
       locationData={locationData}
       amenitiesData={amenitiesData}
+      wmsGradingData={wmsGradingData}
       onSaveSuccess={() => {
         // Refresh the snapshots list
         setSavedLocationsRefresh(prev => prev + 1);

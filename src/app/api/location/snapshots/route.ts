@@ -12,7 +12,7 @@ import {
   createLocationSnapshot,
 } from '@/lib/db/queries/locations';
 import { isProjectMember } from '@/lib/db/queries/projects';
-import { ensureWmsGradingMigration } from '@/lib/db/migrations/migrationHelper';
+import { ensureAllMigrations } from '@/lib/db/migrations/migrationHelper';
 
 /**
  * GET /api/location/snapshots
@@ -26,8 +26,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Auto-run WMS grading migration if needed
-    await ensureWmsGradingMigration();
+    // Auto-run migrations if needed (WMS grading, PVE data)
+    await ensureAllMigrations();
 
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('project_id');
@@ -105,6 +105,7 @@ export async function POST(request: NextRequest) {
       amenities_data,
       housing_data,
       wms_grading_data,
+      pve_data,
       overall_score,
       category_scores,
       data_sources,
@@ -151,6 +152,7 @@ export async function POST(request: NextRequest) {
       amenitiesData: amenities_data,
       housingData: housing_data,
       wmsGradingData: wms_grading_data,
+      pveData: pve_data,
       overallScore: overall_score ? parseFloat(overall_score) : undefined,
       categoryScores: category_scores,
       dataSources: data_sources,

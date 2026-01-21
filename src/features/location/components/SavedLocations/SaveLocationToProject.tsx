@@ -7,6 +7,10 @@ import { AlertDialog } from '@/shared/components/UI/Modal/AlertDialog';
 import type { Locale } from '@/lib/i18n/config';
 import { calculateResidentialScores } from '../../data/scoring/residentialScoring';
 import type { ResidentialData } from '../../data/sources/altum-ai/types';
+import type { WMSGradingData } from '../../types/wms-grading';
+import { pveConfigCache, type PVEFinalState } from '../../data/cache/pveConfigCache';
+import { calculateAllAmenityScores, type AmenityScore } from '../../data/scoring/amenityScoring';
+import type { AmenityMultiCategoryResponse } from '../../data/sources/google-places/types';
 
 interface Project {
   id: string;
@@ -21,6 +25,7 @@ interface SaveLocationToProjectProps {
   longitude: number;
   locationData?: any;
   amenitiesData?: any;
+  wmsGradingData?: WMSGradingData | null;
   onSaveSuccess?: () => void;
 }
 
@@ -31,6 +36,7 @@ export const SaveLocationToProject: React.FC<SaveLocationToProjectProps> = ({
   longitude,
   locationData,
   amenitiesData,
+  wmsGradingData,
   onSaveSuccess,
 }) => {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -112,6 +118,28 @@ export const SaveLocationToProject: React.FC<SaveLocationToProjectProps> = ({
         };
       }
 
+      // Get PVE data from localStorage cache
+      const pveData = pveConfigCache.getFinalPVE();
+
+      // Pre-compute amenity scores to ensure consistency on load
+      // The raw amenities data is saved, but we also save the computed scores
+      let enrichedAmenitiesData = amenitiesData || {};
+      if (amenitiesData?.results && Array.isArray(amenitiesData.results)) {
+        const precomputedAmenityScores = calculateAllAmenityScores(amenitiesData.results);
+
+        // Calculate the overall voorzieningen score (same formula as UI)
+        const rawScore = precomputedAmenityScores.reduce((sum: number, score: AmenityScore) => {
+          return sum + score.countScore + score.proximityBonus;
+        }, 0);
+        const voorzieningenScore = Math.round(((rawScore + 21) / 63) * 90 + 10);
+
+        enrichedAmenitiesData = {
+          ...amenitiesData,
+          precomputedScores: precomputedAmenityScores,
+          voorzieningenScore: Math.max(10, Math.min(100, voorzieningenScore)),
+        };
+      }
+
       const response = await fetch('/api/location/snapshots', {
         method: 'POST',
         headers: {
@@ -126,8 +154,10 @@ export const SaveLocationToProject: React.FC<SaveLocationToProjectProps> = ({
           health_data: locationData?.health || {},
           safety_data: locationData?.safety || {},
           livability_data: locationData?.livability || {},
-          amenities_data: amenitiesData || [],
+          amenities_data: enrichedAmenitiesData,
           housing_data: housingData,
+          wms_grading_data: wmsGradingData || null,
+          pve_data: pveData || null,
           notes: null,
           tags: [],
         }),

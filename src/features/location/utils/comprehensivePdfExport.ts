@@ -17,6 +17,8 @@ import { getLayerConfig, getCriticalLayers } from '../data/sources/wmsGradingCon
 import { downloadWMSTile, downloadWMSLegend, type MapCapture, type LegendCapture } from './mapExport';
 import { captureAllScenarioCubes, type CubeCaptureResult } from './cubeCapture';
 import { getPersonaCubePosition } from './cubePositionMapping';
+import { calculateAllAmenityScores, type AmenityScore } from '../data/scoring/amenityScoring';
+import { getOmgevingChartData } from './calculateOmgevingScores';
 
 // Types for the PDF export
 export interface ComprehensivePdfOptions {
@@ -772,14 +774,14 @@ class PdfBuilder {
   ): void {
     this.startSection(this.t.scoreOverview);
 
-    // Category scores - simplified representation
-    const categories = [
-      { name: this.locale === 'nl' ? 'Betaalbaarheid' : 'Affordability', score: 75 },
-      { name: this.locale === 'nl' ? 'Veiligheid' : 'Safety', score: 85 },
-      { name: this.locale === 'nl' ? 'Gezondheid' : 'Health', score: 72 },
-      { name: this.locale === 'nl' ? 'Leefbaarheid' : 'Livability', score: 80 },
-      { name: this.locale === 'nl' ? 'Voorzieningen' : 'Amenities', score: amenitiesScore }
-    ];
+    // Calculate all category scores from actual data (same as UI)
+    const omgevingData = getOmgevingChartData(locationData, amenitiesScore, this.locale);
+
+    // Convert to categories format for the bar chart
+    const categories = omgevingData.map(item => ({
+      name: item.name,
+      score: item.value
+    }));
 
     this.addSubsectionTitle(this.t.categoryScores);
 
@@ -1231,14 +1233,24 @@ export async function generateComprehensivePdf(
 
   // Score Overview section
   if (includeScoreOverview) {
-    // Calculate amenities score
-    let amenitiesScore = 75;
+    // Calculate amenities score using the same formula as the UI
+    // This ensures consistency between PDF export and on-screen display
+    let amenitiesScore = 50; // Default fallback
     if (data.amenitiesData?.results && Array.isArray(data.amenitiesData.results)) {
-      const totalItems = data.amenitiesData.results.reduce(
-        (sum, result) => sum + (result.places?.length || 0),
-        0
-      );
-      amenitiesScore = Math.min(100, Math.round(50 + totalItems * 2));
+      // Use the proper amenity scoring system
+      const amenityScores = calculateAllAmenityScores(data.amenitiesData.results);
+
+      // Sum up all countScore and proximityBonus values
+      const rawScore = amenityScores.reduce((sum: number, score: AmenityScore) => {
+        return sum + score.countScore + score.proximityBonus;
+      }, 0);
+
+      // Map from [-21, 42] range to [10, 100] range (same formula as UI)
+      // Formula: ((rawScore + 21) / 63) * 90 + 10
+      amenitiesScore = Math.round(((rawScore + 21) / 63) * 90 + 10);
+
+      // Clamp to valid range
+      amenitiesScore = Math.max(10, Math.min(100, amenitiesScore));
     }
 
     builder.addScoreOverview(data.locationData, amenitiesScore);

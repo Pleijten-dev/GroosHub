@@ -26,6 +26,7 @@ import { calculateConnections, calculateScenarios } from '../../../features/loca
 import housingPersonasData from '../../../features/location/data/sources/housing-personas.json';
 import { LocationMap, MapStyle, WMSLayerControl, WMSLayerSelection, WMSFeatureInfo, WMSGradingScoreCard, WMSLayerScoreCard } from '../../../features/location/components/Maps';
 import { calculateAllAmenityScores, type AmenityScore } from '../../../features/location/data/scoring/amenityScoring';
+import { getOmgevingChartData } from '../../../features/location/utils/calculateOmgevingScores';
 import { PVEQuestionnaire } from '../../../features/location/components/PVE';
 import { MapExportButton, ComprehensivePdfExportButton } from '../../../features/location/components/MapExport';
 import type { AccessibleLocation } from '../../../features/location/types/saved-locations';
@@ -303,6 +304,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     currentAddress,
     locationData: data,
     amenitiesData: amenities,
+    wmsGradingData: wmsGrading.gradingData,
     onLoadSavedLocation: handleLoadSavedLocation,
   });
 
@@ -432,14 +434,9 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
           voorzieningenScore = Math.round(((rawScore + 21) / 63) * 90 + 10);
         }
 
-        // Define the 5 omgeving categories
-        const omgevingData = [
-          { name: locale === 'nl' ? 'Betaalbaarheid' : 'Affordability', value: 75, color: '#48806a' },
-          { name: locale === 'nl' ? 'Veiligheid' : 'Safety', value: 85, color: '#477638' },
-          { name: locale === 'nl' ? 'Gezondheid' : 'Health', value: 72, color: '#8a976b' },
-          { name: locale === 'nl' ? 'Leefbaarheid' : 'Livability', value: 80, color: '#0c211a' },
-          { name: locale === 'nl' ? 'Voorzieningen' : 'Amenities', value: voorzieningenScore, color: '#48806a' }
-        ];
+        // Calculate all 5 omgeving category scores from actual data
+        // This uses the real data from health, safety, livability, and residential sources
+        const omgevingData = getOmgevingChartData(data, voorzieningenScore, locale);
 
         // Map category names to tab IDs
         const categoryToTab: Record<string, TabName> = {
