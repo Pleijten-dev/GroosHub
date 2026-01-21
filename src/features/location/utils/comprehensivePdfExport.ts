@@ -16,6 +16,7 @@ import { WMS_CATEGORIES, type WMSLayerConfig } from '../components/Maps/wmsLayer
 import { getLayerConfig, getCriticalLayers } from '../data/sources/wmsGradingConfig';
 import { downloadWMSTile, downloadWMSLegend, type MapCapture, type LegendCapture } from './mapExport';
 import { captureAllScenarioCubes, type CubeCaptureResult } from './cubeCapture';
+import { getPersonaCubePosition } from './cubePositionMapping';
 
 // Types for the PDF export
 export interface ComprehensivePdfOptions {
@@ -1278,19 +1279,7 @@ export async function generateComprehensivePdf(
       try {
         console.log('Capturing cube visualizations for PDF...');
 
-        // Capture all scenario cubes (white background, higher resolution for larger display)
-        const cubeCaptures = await captureAllScenarioCubes(
-          {
-            scenario1: data.scenarios.scenario1,
-            scenario2: data.scenarios.scenario2,
-            scenario3: data.scenarios.scenario3,
-            customScenario: data.scenarios.customScenario,
-          },
-          data.cubeColors,
-          { width: 800, height: 800, backgroundColor: '#ffffff' }
-        );
-
-        // Helper function to get personas for a scenario
+        // Helper function to get personas for a scenario (from rRankPositions)
         const getScenarioPersonas = (positions: number[]) => {
           return positions
             .map(pos => {
@@ -1301,6 +1290,47 @@ export async function generateComprehensivePdf(
             })
             .filter((p): p is NonNullable<typeof p> => p !== null);
         };
+
+        // Helper function to convert rRankPositions to cube indices (0-26)
+        // Scenario positions are rRankPositions (1-based ranking), not cube indices
+        const positionsToCubeIndices = (positions: number[]): number[] => {
+          return positions
+            .map(pos => {
+              const personaScore = data.personaScores[pos - 1];
+              if (!personaScore) return -1;
+              const persona = data.personas.find(p => p.id === personaScore.personaId);
+              if (!persona) return -1;
+
+              // Get the cube index based on persona characteristics
+              const { index } = getPersonaCubePosition({
+                income_level: persona.income_level,
+                age_group: persona.age_group,
+                household_type: persona.household_type,
+              });
+              return index;
+            })
+            .filter(idx => idx !== -1);
+        };
+
+        // Convert scenario positions to cube indices for visualization
+        const cubeIndicesScenario1 = positionsToCubeIndices(data.scenarios.scenario1);
+        const cubeIndicesScenario2 = positionsToCubeIndices(data.scenarios.scenario2);
+        const cubeIndicesScenario3 = positionsToCubeIndices(data.scenarios.scenario3);
+        const cubeIndicesCustom = data.scenarios.customScenario
+          ? positionsToCubeIndices(data.scenarios.customScenario)
+          : undefined;
+
+        // Capture all scenario cubes (white background, higher resolution for larger display)
+        const cubeCaptures = await captureAllScenarioCubes(
+          {
+            scenario1: cubeIndicesScenario1,
+            scenario2: cubeIndicesScenario2,
+            scenario3: cubeIndicesScenario3,
+            customScenario: cubeIndicesCustom,
+          },
+          data.cubeColors,
+          { width: 800, height: 800, backgroundColor: '#ffffff' }
+        );
 
         // Add scenario 1 cube page with persona cards
         builder.addCubeVisualizationPage(
