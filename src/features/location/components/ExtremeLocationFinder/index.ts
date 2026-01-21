@@ -1,2 +1,1 @@
-export { ExtremeLocationFinder } from './ExtremeLocationFinder';
-export default ExtremeLocationFinder;
+export { ExtremeLocationFinder, ExtremeLocationFinder as default } from './ExtremeLocationFinder';
