@@ -48,7 +48,10 @@ export interface ComprehensivePdfData {
     household_type: string;
     age_group: string;
     description: string;
+    imageDataUrl?: string;
   }>;
+  /** Pre-fetched persona images mapped by persona ID */
+  personaImages?: Record<string, string>;
   wmsGradingData?: WMSGradingData | null;
   amenitiesData?: AmenityMultiCategoryResponse | null;
 }
@@ -428,18 +431,24 @@ class PdfBuilder {
     // Layout constants for WMS maps (1cm = 10mm margin from page edge)
     const WMS_MARGIN = 10;
     const WMS_CONTENT_WIDTH = PAGE_WIDTH - 2 * WMS_MARGIN; // 190mm
-    const MAP_SIZE = 130; // Square map size (130mm x 130mm)
-    const LEGEND_WIDTH = Math.floor(MAP_SIZE * 0.25); // 20% of map+legend width = 25% of map width ≈ 32.5mm
+
+    // 80/20 ratio: map takes 80% of width, legend takes 20%
+    const MAP_SIZE = Math.floor(WMS_CONTENT_WIDTH * 0.8); // 152mm square
+    const LEGEND_WIDTH = WMS_CONTENT_WIDTH - MAP_SIZE; // 38mm
     const TEXT_INDENT = 40; // 4cm indent for title/description (leaves space for score markers)
 
     const hasLegend = legend && legend.dataUrl;
     const mapX = WMS_MARGIN;
     const mapY = MARGIN + HEADER_HEIGHT;
-    const legendX = WMS_MARGIN + MAP_SIZE + 3; // Small gap between map and legend
+    const legendX = WMS_MARGIN + MAP_SIZE; // No gap, legend directly adjacent to map
 
     try {
-      // Add aerial photo background if available
+      // Add aerial photo background if available (at 50% opacity)
       if (aerialPhoto) {
+        // Create graphics state for 50% opacity
+        const gState = this.pdf.GState({ opacity: 0.5 });
+        this.pdf.setGState(gState);
+
         this.pdf.addImage(
           aerialPhoto.dataUrl,
           'PNG',
@@ -450,9 +459,13 @@ class PdfBuilder {
           undefined,
           'FAST'
         );
+
+        // Reset to full opacity for WMS layer
+        const fullOpacity = this.pdf.GState({ opacity: 1.0 });
+        this.pdf.setGState(fullOpacity);
       }
 
-      // Add WMS layer on top
+      // Add WMS layer on top (full opacity)
       this.pdf.addImage(
         capture.dataUrl,
         'PNG',
@@ -466,10 +479,9 @@ class PdfBuilder {
 
       // Add legend if available (same height as map, 20% width)
       if (hasLegend) {
-        // Legend container background
-        this.pdf.setFillColor(252, 252, 252);
-        this.pdf.setDrawColor(230, 230, 230);
-        this.pdf.roundedRect(legendX, mapY, LEGEND_WIDTH, MAP_SIZE, 2, 2, 'FD');
+        // Simple white background for legend (no border)
+        this.pdf.setFillColor(255, 255, 255);
+        this.pdf.rect(legendX, mapY, LEGEND_WIDTH, MAP_SIZE, 'F');
 
         // Legend header
         this.pdf.setFontSize(9);
@@ -891,6 +903,7 @@ class PdfBuilder {
       description: string;
       current_property_types?: string[];
       desired_property_types?: string[];
+      imageDataUrl?: string;
     }>
   ): void {
     // Start new page for cube
@@ -909,16 +922,12 @@ class PdfBuilder {
     this.pdf.text(descLines, MARGIN, this.currentY);
     this.currentY += descLines.length * 5 + 5;
 
-    // Layout: Cube on left, explanation on right
-    const cubeSize = 80; // Smaller cube to fit cards
-    const cubeX = MARGIN;
+    // Layout: Large cube centered, explanation below
+    const cubeSize = 150; // Large cube (about 3x original size)
+    const cubeX = MARGIN + (CONTENT_WIDTH - cubeSize) / 2; // Center the cube
 
     try {
-      // Add dark background for the cube
-      this.pdf.setFillColor(26, 26, 46); // #1a1a2e
-      this.pdf.roundedRect(cubeX - 3, this.currentY - 3, cubeSize + 6, cubeSize + 6, 2, 2, 'F');
-
-      // Add cube image
+      // Add cube image directly on white background (no dark background)
       this.pdf.addImage(
         cubeCapture.dataUrl,
         'PNG',
@@ -929,25 +938,23 @@ class PdfBuilder {
         undefined,
         'FAST'
       );
-
-      // Explanation text to the right of cube
-      const textX = cubeX + cubeSize + 10;
-      const textWidth = CONTENT_WIDTH - cubeSize - 10;
-
-      this.pdf.setFontSize(9);
-      this.pdf.setTextColor(100, 100, 100);
-      const explainLines = this.pdf.splitTextToSize(this.t.cubeExplanation, textWidth);
-      this.pdf.text(explainLines, textX, this.currentY + 5);
     } catch (error) {
       // Placeholder if image fails
-      this.pdf.setFillColor(240, 240, 240);
+      this.pdf.setFillColor(245, 245, 245);
       this.pdf.rect(cubeX, this.currentY, cubeSize, cubeSize, 'F');
       this.pdf.setFontSize(10);
       this.pdf.setTextColor(150, 150, 150);
       this.pdf.text(this.t.noData, cubeX + cubeSize / 2, this.currentY + cubeSize / 2, { align: 'center' });
     }
 
-    this.currentY += cubeSize + 10;
+    this.currentY += cubeSize + 8;
+
+    // Explanation text below cube (full width)
+    this.pdf.setFontSize(9);
+    this.pdf.setTextColor(100, 100, 100);
+    const explainLines = this.pdf.splitTextToSize(this.t.cubeExplanation, CONTENT_WIDTH);
+    this.pdf.text(explainLines, MARGIN, this.currentY);
+    this.currentY += explainLines.length * 4 + 5;
 
     // Add persona cards if available
     if (scenarioPersonas && scenarioPersonas.length > 0) {
@@ -957,6 +964,7 @@ class PdfBuilder {
 
   /**
    * Add persona cards section to a page
+   * Styled to match the DoelgroepenCard component
    */
   private addPersonaCardsSection(
     personas: Array<{
@@ -968,11 +976,13 @@ class PdfBuilder {
       description: string;
       current_property_types?: string[];
       desired_property_types?: string[];
+      imageDataUrl?: string;
     }>
   ): void {
-    const cardWidth = (CONTENT_WIDTH - 10) / 2; // 2 cards per row
-    const cardHeight = 55; // Fixed height per card
-    const cardGap = 10;
+    const cardWidth = (CONTENT_WIDTH - 8) / 2; // 2 cards per row with small gap
+    const imageHeight = cardWidth * 0.5625; // 16:9 aspect ratio
+    const cardHeight = imageHeight + 50; // Image + content area
+    const cardGap = 8;
 
     // Section title
     this.pdf.setFontSize(11);
@@ -995,83 +1005,94 @@ class PdfBuilder {
         this.currentY += cardHeight + 5;
       }
 
-      // Card background
-      this.pdf.setFillColor(250, 250, 250);
-      this.pdf.setDrawColor(220, 220, 220);
+      // Card background with border
+      this.pdf.setFillColor(255, 255, 255);
+      this.pdf.setDrawColor(229, 231, 235); // gray-200
       this.pdf.roundedRect(cardX, this.currentY, cardWidth, cardHeight, 2, 2, 'FD');
 
-      let cardY = this.currentY + 5;
+      let cardY = this.currentY;
+
+      // 16:9 Image area
+      if (persona.imageDataUrl) {
+        try {
+          this.pdf.addImage(
+            persona.imageDataUrl,
+            'PNG',
+            cardX,
+            cardY,
+            cardWidth,
+            imageHeight,
+            undefined,
+            'FAST'
+          );
+        } catch (imgError) {
+          // Gray placeholder if image fails
+          this.pdf.setFillColor(243, 244, 246); // gray-100
+          this.pdf.rect(cardX, cardY, cardWidth, imageHeight, 'F');
+          this.pdf.setFontSize(7);
+          this.pdf.setTextColor(156, 163, 175); // gray-400
+          this.pdf.text(this.locale === 'nl' ? 'Afbeelding' : 'Image', cardX + cardWidth / 2, cardY + imageHeight / 2, { align: 'center' });
+        }
+      } else {
+        // Gray placeholder
+        this.pdf.setFillColor(243, 244, 246); // gray-100
+        this.pdf.rect(cardX, cardY, cardWidth, imageHeight, 'F');
+        this.pdf.setFontSize(7);
+        this.pdf.setTextColor(156, 163, 175); // gray-400
+        this.pdf.text(this.locale === 'nl' ? 'Afbeelding' : 'Image', cardX + cardWidth / 2, cardY + imageHeight / 2, { align: 'center' });
+      }
+
+      cardY += imageHeight + 4;
 
       // Persona name
       this.pdf.setFontSize(9);
-      this.pdf.setTextColor(50, 50, 50);
+      this.pdf.setTextColor(17, 24, 39); // gray-900
       this.pdf.setFont('helvetica', 'bold');
-      this.pdf.text(persona.name, cardX + 4, cardY);
-      cardY += 6;
+      this.pdf.text(persona.name, cardX + 4, cardY + 3);
+      cardY += 7;
 
-      // Stats row: Income | Age | Household
-      this.pdf.setFont('helvetica', 'normal');
-      this.pdf.setFontSize(7);
+      // Three stat boxes in a row
+      const statBoxWidth = (cardWidth - 12) / 3;
+      const statBoxHeight = 10;
+      const labels = this.locale === 'nl'
+        ? ['Inkomen', 'Leeftijd', 'Huishouden']
+        : ['Income', 'Age', 'Household'];
+      const values = [persona.income_level, persona.age_group, persona.household_type];
 
-      const statWidth = (cardWidth - 12) / 3;
+      for (let i = 0; i < 3; i++) {
+        const boxX = cardX + 4 + i * (statBoxWidth + 2);
 
-      // Income
-      this.pdf.setFillColor(240, 240, 240);
-      this.pdf.roundedRect(cardX + 4, cardY, statWidth - 2, 12, 1, 1, 'F');
-      this.pdf.setTextColor(100, 100, 100);
-      this.pdf.text(this.t.indicator === 'Indicator' ? 'Income' : 'Inkomen', cardX + 5, cardY + 4);
-      this.pdf.setTextColor(50, 50, 50);
-      this.pdf.setFont('helvetica', 'bold');
-      const incomeText = this.pdf.splitTextToSize(persona.income_level, statWidth - 6);
-      this.pdf.text(incomeText[0] || '-', cardX + 5, cardY + 9);
+        // Stat box background
+        this.pdf.setFillColor(249, 250, 251); // gray-50
+        this.pdf.roundedRect(boxX, cardY, statBoxWidth, statBoxHeight, 1, 1, 'F');
 
-      // Age
-      this.pdf.setFont('helvetica', 'normal');
-      const ageX = cardX + 4 + statWidth;
-      this.pdf.setFillColor(240, 240, 240);
-      this.pdf.roundedRect(ageX, cardY, statWidth - 2, 12, 1, 1, 'F');
-      this.pdf.setTextColor(100, 100, 100);
-      this.pdf.text(this.t.indicator === 'Indicator' ? 'Age' : 'Leeftijd', ageX + 1, cardY + 4);
-      this.pdf.setTextColor(50, 50, 50);
-      this.pdf.setFont('helvetica', 'bold');
-      const ageText = this.pdf.splitTextToSize(persona.age_group, statWidth - 6);
-      this.pdf.text(ageText[0] || '-', ageX + 1, cardY + 9);
+        // Label
+        this.pdf.setFontSize(5);
+        this.pdf.setTextColor(75, 85, 99); // gray-600
+        this.pdf.setFont('helvetica', 'normal');
+        this.pdf.text(labels[i], boxX + 2, cardY + 3.5);
 
-      // Household
-      this.pdf.setFont('helvetica', 'normal');
-      const hhX = cardX + 4 + statWidth * 2;
-      this.pdf.setFillColor(240, 240, 240);
-      this.pdf.roundedRect(hhX, cardY, statWidth - 2, 12, 1, 1, 'F');
-      this.pdf.setTextColor(100, 100, 100);
-      this.pdf.text(this.t.indicator === 'Indicator' ? 'Household' : 'Huishouden', hhX + 1, cardY + 4);
-      this.pdf.setTextColor(50, 50, 50);
-      this.pdf.setFont('helvetica', 'bold');
-      const hhText = this.pdf.splitTextToSize(persona.household_type, statWidth - 6);
-      this.pdf.text(hhText[0] || '-', hhX + 1, cardY + 9);
+        // Value (truncated)
+        this.pdf.setFontSize(5);
+        this.pdf.setTextColor(17, 24, 39); // gray-900
+        this.pdf.setFont('helvetica', 'bold');
+        const valueLines = this.pdf.splitTextToSize(values[i], statBoxWidth - 4);
+        this.pdf.text(valueLines[0] || '-', boxX + 2, cardY + 7.5);
+      }
 
-      cardY += 15;
+      cardY += statBoxHeight + 3;
 
       // Description (truncated)
       this.pdf.setFont('helvetica', 'normal');
-      this.pdf.setFontSize(7);
-      this.pdf.setTextColor(80, 80, 80);
+      this.pdf.setFontSize(6);
+      this.pdf.setTextColor(55, 65, 81); // gray-700
       const descLines = this.pdf.splitTextToSize(persona.description, cardWidth - 8);
-      const maxLines = 3;
+      const maxLines = 2;
       const truncatedDesc = descLines.slice(0, maxLines);
       if (descLines.length > maxLines) {
         truncatedDesc[maxLines - 1] = truncatedDesc[maxLines - 1].slice(0, -3) + '...';
       }
-      this.pdf.text(truncatedDesc, cardX + 4, cardY);
-      cardY += truncatedDesc.length * 3 + 3;
-
-      // Housing preferences (if available)
-      if (persona.desired_property_types && persona.desired_property_types.length > 0) {
-        this.pdf.setFontSize(6);
-        this.pdf.setTextColor(100, 100, 100);
-        const prefText = `${this.t.indicator === 'Indicator' ? 'Desired housing' : 'Gewenst woningtype'}: ${persona.desired_property_types.slice(0, 3).join(', ')}`;
-        const prefLines = this.pdf.splitTextToSize(prefText, cardWidth - 8);
-        this.pdf.text(prefLines[0] || '', cardX + 4, cardY);
-      }
+      this.pdf.text(truncatedDesc, cardX + 4, cardY + 3);
     });
 
     // Move Y position after all cards
@@ -1257,7 +1278,7 @@ export async function generateComprehensivePdf(
       try {
         console.log('Capturing cube visualizations for PDF...');
 
-        // Capture all scenario cubes
+        // Capture all scenario cubes (white background, higher resolution for larger display)
         const cubeCaptures = await captureAllScenarioCubes(
           {
             scenario1: data.scenarios.scenario1,
@@ -1266,7 +1287,7 @@ export async function generateComprehensivePdf(
             customScenario: data.scenarios.customScenario,
           },
           data.cubeColors,
-          { width: 600, height: 600, backgroundColor: '#1a1a2e' }
+          { width: 800, height: 800, backgroundColor: '#ffffff' }
         );
 
         // Helper function to get personas for a scenario

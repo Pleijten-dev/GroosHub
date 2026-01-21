@@ -139,20 +139,78 @@ export const ComprehensivePdfExportButton: React.FC<ComprehensivePdfExportButton
     }
   }[locale];
 
+  /**
+   * Fetch persona image and convert to data URL
+   */
+  const fetchPersonaImage = async (personaId: string): Promise<string | undefined> => {
+    try {
+      const response = await fetch(`/personas/${personaId}.png`);
+      if (!response.ok) return undefined;
+
+      const blob = await response.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => resolve(undefined);
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return undefined;
+    }
+  };
+
+  /**
+   * Pre-fetch all persona images for use in PDF
+   */
+  const fetchAllPersonaImages = async (personaIds: string[]): Promise<Record<string, string>> => {
+    const images: Record<string, string> = {};
+
+    // Fetch in parallel (max 5 at a time to avoid overwhelming)
+    const batchSize = 5;
+    for (let i = 0; i < personaIds.length; i += batchSize) {
+      const batch = personaIds.slice(i, i + batchSize);
+      const results = await Promise.all(
+        batch.map(async (id) => {
+          const dataUrl = await fetchPersonaImage(id);
+          return { id, dataUrl };
+        })
+      );
+
+      results.forEach(({ id, dataUrl }) => {
+        if (dataUrl) {
+          images[id] = dataUrl;
+        }
+      });
+    }
+
+    return images;
+  };
+
   const handleExport = async () => {
     setIsExporting(true);
     setExportProgress(0);
-    setCurrentStatus('');
+    setCurrentStatus(locale === 'nl' ? 'Afbeeldingen laden...' : 'Loading images...');
 
     try {
+      // Pre-fetch persona images
+      const personaIds = personas.map(p => p.id);
+      const personaImages = await fetchAllPersonaImages(personaIds);
+
+      // Add imageDataUrl to personas
+      const personasWithImages = personas.map(p => ({
+        ...p,
+        imageDataUrl: personaImages[p.id]
+      }));
+
       const pdfData: ComprehensivePdfData = {
         locationData,
         coordinates,
         address,
         personaScores,
         scenarios,
-        personas,
+        personas: personasWithImages,
         cubeColors,
+        personaImages,
         wmsGradingData,
         amenitiesData
       };
