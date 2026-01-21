@@ -57,8 +57,8 @@ export async function captureCubeVisualization(
     scene.background = new THREE.Color(backgroundColor);
   }
 
-  // Create orthographic camera (matching StaticCube component)
-  const zoom = 80;
+  // Create orthographic camera - increased zoom to fill more of the canvas
+  const zoom = 200; // Increased from 80 to make cube larger in frame
   const aspect = width / height;
   const camera = new THREE.OrthographicCamera(
     -width / zoom * aspect,

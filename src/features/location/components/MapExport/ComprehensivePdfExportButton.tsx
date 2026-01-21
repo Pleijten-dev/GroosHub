@@ -140,11 +140,23 @@ export const ComprehensivePdfExportButton: React.FC<ComprehensivePdfExportButton
   }[locale];
 
   /**
+   * Convert persona ID to image filename
+   * e.g., "jonge-starters" → "Jonge_Starters.png"
+   */
+  const personaIdToFilename = (id: string): string => {
+    return id
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join('_') + '.png';
+  };
+
+  /**
    * Fetch persona image and convert to data URL
    */
   const fetchPersonaImage = async (personaId: string): Promise<string | undefined> => {
     try {
-      const response = await fetch(`/personas/${personaId}.png`);
+      const filename = personaIdToFilename(personaId);
+      const response = await fetch(`/personas/${filename}`);
       if (!response.ok) return undefined;
 
       const blob = await response.blob();

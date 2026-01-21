@@ -466,7 +466,10 @@ class PdfBuilder {
         this.pdf.setGState(fullOpacity);
       }
 
-      // Add WMS layer on top (full opacity)
+      // Add WMS layer on top (90% opacity)
+      const wmsOpacity = this.pdf.GState({ opacity: 0.9 });
+      this.pdf.setGState(wmsOpacity);
+
       this.pdf.addImage(
         capture.dataUrl,
         'PNG',
@@ -477,6 +480,10 @@ class PdfBuilder {
         undefined,
         'FAST'
       );
+
+      // Reset to full opacity for legend and text
+      const fullOpacityReset = this.pdf.GState({ opacity: 1.0 });
+      this.pdf.setGState(fullOpacityReset);
 
       // Add legend if available (same height as map, 20% width)
       if (hasLegend) {
