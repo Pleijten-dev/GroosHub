@@ -121,12 +121,17 @@ export function convertResidentialToRows(
   }
 
   const rows: UnifiedDataRow[] = [];
-  const referenceHouses = residentialData.referenceHouses;
-  const geographicCode = residentialData.targetProperty.address.postcode;
-  const geographicName = residentialData.targetProperty.address.postcode;
+  const referenceHouses = residentialData.referenceHouses || [];
+  const geographicCode = residentialData.targetProperty?.address?.postcode || '';
+  const geographicName = residentialData.targetProperty?.address?.postcode || '';
 
-  // Calculate all residential scores
-  const scores: ResidentialScores = calculateResidentialScores(referenceHouses);
+  // Use pre-computed scores if available (from database snapshot),
+  // otherwise calculate from referenceHouses
+  // This fixes the issue where scores would be recalculated with potentially
+  // corrupted/empty referenceHouses after JSON serialization round-trip
+  const scores: ResidentialScores = residentialData.precomputedScores
+    ? residentialData.precomputedScores
+    : calculateResidentialScores(referenceHouses);
 
   // === SCORED CATEGORIES ===
 

@@ -5,6 +5,8 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/shared/components/UI/Button/Button';
 import { AlertDialog } from '@/shared/components/UI/Modal/AlertDialog';
 import type { Locale } from '@/lib/i18n/config';
+import { calculateResidentialScores } from '../../data/scoring/residentialScoring';
+import type { ResidentialData } from '../../data/sources/altum-ai/types';
 
 interface Project {
   id: string;
@@ -97,6 +99,19 @@ export const SaveLocationToProject: React.FC<SaveLocationToProjectProps> = ({
     setIsSaving(true);
 
     try {
+      // Prepare housing data with pre-computed scores to prevent recalculation issues
+      // when loading from database (referenceHouses array may lose data during serialization)
+      let housingData = locationData?.residential || {};
+      const residential = locationData?.residential as ResidentialData | undefined;
+      if (residential?.hasData && residential?.referenceHouses?.length > 0) {
+        // Compute and store the scores now so they don't need to be recalculated
+        const precomputedScores = calculateResidentialScores(residential.referenceHouses);
+        housingData = {
+          ...residential,
+          precomputedScores, // Store the computed scores for later use
+        };
+      }
+
       const response = await fetch('/api/location/snapshots', {
         method: 'POST',
         headers: {
@@ -112,7 +127,7 @@ export const SaveLocationToProject: React.FC<SaveLocationToProjectProps> = ({
           safety_data: locationData?.safety || {},
           livability_data: locationData?.livability || {},
           amenities_data: amenitiesData || [],
-          housing_data: locationData?.residential || {},
+          housing_data: housingData,
           notes: null,
           tags: [],
         }),
