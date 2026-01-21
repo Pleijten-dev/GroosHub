@@ -9,6 +9,8 @@ import { cn } from '@/shared/utils/cn';
 import type { Locale } from '@/lib/i18n/config';
 import type { AccessibleLocation } from '@/features/location/types/saved-locations';
 import { convertAmenitiesToRows } from '../Amenities/amenityDataConverter';
+import { validateLoadedSnapshot } from '../../utils/jsonValidation';
+import { isVersionCompatible, CURRENT_SCORING_VERSION } from '../../data/scoring/scoringVersion';
 
 interface LocationSnapshot {
   id: string;
@@ -120,6 +122,26 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
       }
 
       const { data: snapshotData } = await response.json();
+
+      // Phase 3.1: Validate loaded snapshot data
+      const validationResult = validateLoadedSnapshot(snapshotData);
+      if (!validationResult.isValid) {
+        console.warn('Loaded snapshot has validation issues:', validationResult.summary);
+        if (validationResult.missingFields.length > 0) {
+          console.warn('Missing fields:', validationResult.missingFields);
+        }
+        if (validationResult.invalidFields.length > 0) {
+          console.warn('Invalid fields:', validationResult.invalidFields);
+        }
+      }
+
+      // Phase 3.3: Check scoring version compatibility
+      const versionCheck = isVersionCompatible(snapshotData.scoring_algorithm_version);
+      if (!versionCheck.compatible) {
+        console.warn('Scoring version warning:', versionCheck.message);
+      } else if (snapshotData.scoring_algorithm_version !== CURRENT_SCORING_VERSION) {
+        console.info(`Snapshot uses scoring version ${snapshotData.scoring_algorithm_version || 'unknown'}, current is ${CURRENT_SCORING_VERSION}`);
+      }
 
       // Transform to AccessibleLocation format
       // Structure must match UnifiedLocationData with location.coordinates.wgs84 nesting

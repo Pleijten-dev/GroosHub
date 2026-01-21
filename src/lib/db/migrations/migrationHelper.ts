@@ -43,6 +43,13 @@ export async function checkPveDataColumnExists(): Promise<boolean> {
 }
 
 /**
+ * Check if scoring_algorithm_version column exists in location_snapshots table
+ */
+export async function checkScoringVersionColumnExists(): Promise<boolean> {
+  return checkColumnExists('location_snapshots', 'scoring_algorithm_version');
+}
+
+/**
  * Run WMS grading migration if column doesn't exist
  */
 export async function ensureWmsGradingMigration(): Promise<{
@@ -161,20 +168,82 @@ export async function ensurePveDataMigration(): Promise<{
 }
 
 /**
+ * Run scoring version migration if column doesn't exist
+ */
+export async function ensureScoringVersionMigration(): Promise<{
+  success: boolean;
+  message: string;
+  migrationRan?: boolean;
+}> {
+  try {
+    const exists = await checkScoringVersionColumnExists();
+
+    if (exists) {
+      return {
+        success: true,
+        message: 'Scoring version column already exists',
+        migrationRan: false
+      };
+    }
+
+    // Column doesn't exist, run migration
+    console.log('Scoring version column not found, running migration...');
+
+    const db = getDbConnection();
+
+    // Read migration file
+    const migrationPath = path.join(
+      process.cwd(),
+      'src/lib/db/migrations/015_add_scoring_version.sql'
+    );
+
+    if (!fs.existsSync(migrationPath)) {
+      return {
+        success: false,
+        message: 'Migration file not found. Please run migration manually.',
+      };
+    }
+
+    const migrationSQL = fs.readFileSync(migrationPath, 'utf-8');
+
+    // Execute migration
+    await db.unsafe(migrationSQL);
+
+    console.log('Scoring version migration completed successfully');
+
+    return {
+      success: true,
+      message: 'Scoring version migration completed successfully',
+      migrationRan: true
+    };
+
+  } catch (error) {
+    console.error('Error running scoring version migration:', error);
+    return {
+      success: false,
+      message: `Migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    };
+  }
+}
+
+/**
  * Ensure all necessary migrations are run
  */
 export async function ensureAllMigrations(): Promise<{
   wmsGrading: { success: boolean; message: string; migrationRan?: boolean };
   pveData: { success: boolean; message: string; migrationRan?: boolean };
+  scoringVersion: { success: boolean; message: string; migrationRan?: boolean };
 }> {
-  const [wmsResult, pveResult] = await Promise.all([
+  const [wmsResult, pveResult, scoringVersionResult] = await Promise.all([
     ensureWmsGradingMigration(),
-    ensurePveDataMigration()
+    ensurePveDataMigration(),
+    ensureScoringVersionMigration()
   ]);
 
   return {
     wmsGrading: wmsResult,
-    pveData: pveResult
+    pveData: pveResult,
+    scoringVersion: scoringVersionResult
   };
 }
 

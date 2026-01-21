@@ -11,6 +11,8 @@ import type { WMSGradingData } from '../../types/wms-grading';
 import { pveConfigCache, type PVEFinalState } from '../../data/cache/pveConfigCache';
 import { calculateAllAmenityScores, type AmenityScore } from '../../data/scoring/amenityScoring';
 import type { AmenityMultiCategoryResponse } from '../../data/sources/google-places/types';
+import { validateSnapshotData } from '../../utils/jsonValidation';
+import { CURRENT_SCORING_VERSION } from '../../data/scoring/scoringVersion';
 
 interface Project {
   id: string;
@@ -140,6 +142,22 @@ export const SaveLocationToProject: React.FC<SaveLocationToProjectProps> = ({
         };
       }
 
+      // Validate data before saving (Phase 3.1: JSON round-trip validation)
+      const validationResult = validateSnapshotData({
+        demographicsData: locationData?.demographics,
+        healthData: locationData?.health,
+        safetyData: locationData?.safety,
+        livabilityData: locationData?.livability,
+        amenitiesData: enrichedAmenitiesData,
+        housingData: housingData,
+        wmsGradingData: wmsGradingData || undefined,
+        pveData: pveData || undefined,
+      });
+
+      if (!validationResult.isValid) {
+        console.warn('Snapshot data validation warnings:', validationResult.fieldResults);
+      }
+
       const response = await fetch('/api/location/snapshots', {
         method: 'POST',
         headers: {
@@ -158,6 +176,7 @@ export const SaveLocationToProject: React.FC<SaveLocationToProjectProps> = ({
           housing_data: housingData,
           wms_grading_data: wmsGradingData || null,
           pve_data: pveData || null,
+          scoring_algorithm_version: CURRENT_SCORING_VERSION,
           notes: null,
           tags: [],
         }),

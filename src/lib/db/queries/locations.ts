@@ -25,6 +25,7 @@ export interface LocationSnapshot {
   housing_data: Record<string, unknown>;
   wms_grading_data?: Record<string, unknown>; // Optional - may not exist before migration
   pve_data?: Record<string, unknown>; // Program van Eisen data - may not exist before migration
+  scoring_algorithm_version?: string; // Scoring version - may not exist before migration
   overall_score: number | null;
   category_scores: Record<string, unknown>;
   data_sources: Record<string, unknown>;
@@ -50,7 +51,8 @@ export async function getActiveLocationSnapshot(
       neighborhood_code, district_code, municipality_code,
       snapshot_date, version_number, is_active,
       demographics_data, health_data, safety_data, livability_data,
-      amenities_data, housing_data, wms_grading_data, pve_data, overall_score, category_scores,
+      amenities_data, housing_data, wms_grading_data, pve_data, scoring_algorithm_version,
+      overall_score, category_scores,
       data_sources, api_versions, notes, tags, metadata,
       created_at, updated_at
     FROM location_snapshots
@@ -76,7 +78,8 @@ export async function getProjectLocationSnapshots(
       neighborhood_code, district_code, municipality_code,
       snapshot_date, version_number, is_active,
       demographics_data, health_data, safety_data, livability_data,
-      amenities_data, housing_data, wms_grading_data, pve_data, overall_score, category_scores,
+      amenities_data, housing_data, wms_grading_data, pve_data, scoring_algorithm_version,
+      overall_score, category_scores,
       data_sources, api_versions, notes, tags, metadata,
       created_at, updated_at
     FROM location_snapshots
@@ -101,7 +104,8 @@ export async function getLocationSnapshotById(
       neighborhood_code, district_code, municipality_code,
       snapshot_date, version_number, is_active,
       demographics_data, health_data, safety_data, livability_data,
-      amenities_data, housing_data, wms_grading_data, pve_data, overall_score, category_scores,
+      amenities_data, housing_data, wms_grading_data, pve_data, scoring_algorithm_version,
+      overall_score, category_scores,
       data_sources, api_versions, notes, tags, metadata,
       created_at, updated_at
     FROM location_snapshots
@@ -133,6 +137,7 @@ export async function createLocationSnapshot(params: {
   housingData?: Record<string, unknown>;
   wmsGradingData?: Record<string, unknown>;
   pveData?: Record<string, unknown>;
+  scoringAlgorithmVersion?: string;
   overallScore?: number;
   categoryScores?: Record<string, unknown>;
   dataSources?: Record<string, unknown>;
@@ -167,7 +172,8 @@ export async function createLocationSnapshot(params: {
       neighborhood_code, district_code, municipality_code,
       snapshot_date, version_number, is_active,
       demographics_data, health_data, safety_data, livability_data,
-      amenities_data, housing_data, wms_grading_data, pve_data, overall_score, category_scores,
+      amenities_data, housing_data, wms_grading_data, pve_data, scoring_algorithm_version,
+      overall_score, category_scores,
       data_sources, api_versions, notes, tags,
       created_at, updated_at
     ) VALUES (
@@ -190,6 +196,7 @@ export async function createLocationSnapshot(params: {
       ${JSON.stringify(params.housingData || {})},
       ${JSON.stringify(params.wmsGradingData || {})},
       ${JSON.stringify(params.pveData || {})},
+      ${params.scoringAlgorithmVersion || '1.0.0'},
       ${params.overallScore || null},
       ${JSON.stringify(params.categoryScores || {})},
       ${JSON.stringify(params.dataSources || {})},
@@ -204,7 +211,8 @@ export async function createLocationSnapshot(params: {
       neighborhood_code, district_code, municipality_code,
       snapshot_date, version_number, is_active,
       demographics_data, health_data, safety_data, livability_data,
-      amenities_data, housing_data, wms_grading_data, pve_data, overall_score, category_scores,
+      amenities_data, housing_data, wms_grading_data, pve_data, scoring_algorithm_version,
+      overall_score, category_scores,
       data_sources, api_versions, notes, tags, metadata,
       created_at, updated_at
   `;
@@ -315,7 +323,8 @@ export async function getUserLocationSnapshots(userId: number): Promise<Location
       neighborhood_code, district_code, municipality_code,
       snapshot_date, version_number, is_active,
       demographics_data, health_data, safety_data, livability_data,
-      amenities_data, housing_data, wms_grading_data, pve_data, overall_score, category_scores,
+      amenities_data, housing_data, wms_grading_data, pve_data, scoring_algorithm_version,
+      overall_score, category_scores,
       data_sources, api_versions, notes, tags, metadata,
       created_at, updated_at
     FROM location_snapshots
