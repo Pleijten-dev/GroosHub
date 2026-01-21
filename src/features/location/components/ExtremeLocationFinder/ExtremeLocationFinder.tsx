@@ -246,6 +246,65 @@ interface ExtremeLocationFinderProps {
   locale: string;
 }
 
+// Calculate how strongly a wijk fits its classification based on relevant z-scores
+function calculateClassificationStrength(wijk: WijkWithZScores): number {
+  const { zScores, classification } = wijk;
+
+  // Get the relevant z-scores for each classification
+  const relevantScores: number[] = [];
+
+  switch (classification) {
+    case 'student-area':
+      relevantScores.push(Math.abs(zScores.age15to25), Math.abs(zScores.singlePersonHouseholds));
+      break;
+    case 'young-professional-area':
+      relevantScores.push(Math.abs(zScores.age25to45));
+      if (zScores.avgIncome !== null) relevantScores.push(Math.abs(zScores.avgIncome));
+      relevantScores.push(Math.abs(zScores.singlePersonHouseholds));
+      break;
+    case 'wealthy-family-area':
+      if (zScores.avgIncome !== null) relevantScores.push(Math.abs(zScores.avgIncome));
+      relevantScores.push(Math.abs(zScores.householdsWithChildren));
+      break;
+    case 'social-housing-families':
+      if (zScores.avgIncome !== null) relevantScores.push(Math.abs(zScores.avgIncome));
+      relevantScores.push(Math.abs(zScores.householdsWithChildren));
+      break;
+    case 'retirement-area':
+    case 'senior-area':
+      relevantScores.push(Math.abs(zScores.age65Plus));
+      break;
+    case 'young-dominant':
+      relevantScores.push(Math.abs(zScores.age15to25), Math.abs(zScores.age25to45));
+      break;
+    case 'family-area':
+      relevantScores.push(Math.abs(zScores.householdsWithChildren), Math.abs(zScores.age0to15));
+      break;
+    case 'wealthy-area':
+      if (zScores.avgIncome !== null) relevantScores.push(Math.abs(zScores.avgIncome));
+      break;
+    case 'low-income-area':
+      if (zScores.avgIncome !== null) relevantScores.push(Math.abs(zScores.avgIncome));
+      break;
+    case 'singles-area':
+      relevantScores.push(Math.abs(zScores.singlePersonHouseholds));
+      break;
+    default:
+      // mixed-demographic - use average of all z-scores
+      relevantScores.push(
+        Math.abs(zScores.age0to15),
+        Math.abs(zScores.age65Plus),
+        Math.abs(zScores.singlePersonHouseholds),
+        Math.abs(zScores.householdsWithChildren)
+      );
+      if (zScores.avgIncome !== null) relevantScores.push(Math.abs(zScores.avgIncome));
+  }
+
+  // Return average of relevant scores (higher = stronger fit)
+  if (relevantScores.length === 0) return 0;
+  return relevantScores.reduce((a, b) => a + b, 0) / relevantScores.length;
+}
+
 export function ExtremeLocationFinder({ locale }: ExtremeLocationFinderProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -258,7 +317,8 @@ export function ExtremeLocationFinder({ locale }: ExtremeLocationFinderProps) {
 
   const [selectedClassification, setSelectedClassification] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'name' | 'outliers' | 'income' | 'population'>('outliers');
+  const [sortBy, setSortBy] = useState<'name' | 'outliers' | 'income' | 'population' | 'strength'>('strength');
+  const [minPopulation, setMinPopulation] = useState<number>(500);
 
   useEffect(() => {
     async function fetchData() {
@@ -301,6 +361,11 @@ export function ExtremeLocationFinder({ locale }: ExtremeLocationFinderProps) {
       ? data.allWijken.filter(w => w.classification === selectedClassification)
       : data.allWijken;
 
+    // Filter by minimum population
+    if (minPopulation > 0) {
+      wijken = wijken.filter(w => w.totalPopulation >= minPopulation);
+    }
+
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       wijken = wijken.filter(w =>
@@ -326,10 +391,15 @@ export function ExtremeLocationFinder({ locale }: ExtremeLocationFinderProps) {
       case 'population':
         wijken = [...wijken].sort((a, b) => b.totalPopulation - a.totalPopulation);
         break;
+      case 'strength':
+        wijken = [...wijken].sort((a, b) =>
+          calculateClassificationStrength(b) - calculateClassificationStrength(a)
+        );
+        break;
     }
 
     return wijken;
-  }, [data, selectedClassification, searchTerm, sortBy]);
+  }, [data, selectedClassification, searchTerm, sortBy, minPopulation]);
 
   const translations = {
     title: locale === 'nl' ? 'Extreme Locatie Analyse' : 'Extreme Location Analysis',
@@ -351,6 +421,9 @@ export function ExtremeLocationFinder({ locale }: ExtremeLocationFinderProps) {
     highRank: locale === 'nl' ? 'Hoog' : 'High',
     mediumRank: locale === 'nl' ? 'Medium' : 'Medium',
     lowRank: locale === 'nl' ? 'Laag' : 'Low',
+    strength: locale === 'nl' ? 'Classificatie Sterkte' : 'Classification Strength',
+    minPopulation: locale === 'nl' ? 'Min. bevolking' : 'Min. population',
+    filtered: locale === 'nl' ? 'gefilterd' : 'filtered',
   };
 
   if (loading) {
@@ -382,12 +455,16 @@ export function ExtremeLocationFinder({ locale }: ExtremeLocationFinderProps) {
       <div className="bg-white rounded-lg shadow-md p-lg">
         <h1 className="text-2xl font-bold mb-sm">{translations.title}</h1>
         <p className="text-gray-600 mb-base">{translations.subtitle}</p>
-        <div className="flex gap-lg text-sm">
+        <div className="flex flex-wrap gap-base text-sm">
           <div className="bg-primary/10 px-base py-sm rounded-base">
             <span className="font-semibold">{translations.totalWijken}:</span>{' '}
             {data.totalWijken.toLocaleString()}
           </div>
           <div className="bg-secondary/10 px-base py-sm rounded-base">
+            <span className="font-semibold">{translations.filtered}:</span>{' '}
+            {filteredWijken.length.toLocaleString()}
+          </div>
+          <div className="bg-gray-100 px-base py-sm rounded-base">
             <span className="font-semibold">{translations.classifications}:</span>{' '}
             {Object.keys(data.classificationCounts).length}
           </div>
@@ -503,16 +580,34 @@ export function ExtremeLocationFinder({ locale }: ExtremeLocationFinderProps) {
             className="px-base py-sm border rounded-base flex-1 min-w-[200px]"
           />
           <div className="flex items-center gap-sm">
+            <label className="text-sm font-medium">{translations.minPopulation}:</label>
+            <select
+              value={minPopulation}
+              onChange={e => setMinPopulation(Number(e.target.value))}
+              className="px-sm py-sm border rounded-base"
+            >
+              <option value="0">0</option>
+              <option value="100">100</option>
+              <option value="250">250</option>
+              <option value="500">500</option>
+              <option value="1000">1,000</option>
+              <option value="2500">2,500</option>
+              <option value="5000">5,000</option>
+              <option value="10000">10,000</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-sm">
             <label className="text-sm font-medium">{translations.sortBy}:</label>
             <select
               value={sortBy}
               onChange={e => setSortBy(e.target.value as typeof sortBy)}
               className="px-sm py-sm border rounded-base"
             >
+              <option value="strength">{translations.strength}</option>
               <option value="outliers">{translations.outliers}</option>
-              <option value="name">{translations.name}</option>
-              <option value="income">{translations.income}</option>
               <option value="population">{translations.population}</option>
+              <option value="income">{translations.income}</option>
+              <option value="name">{translations.name}</option>
             </select>
           </div>
         </div>
@@ -530,6 +625,9 @@ export function ExtremeLocationFinder({ locale }: ExtremeLocationFinderProps) {
                 </th>
                 <th className="px-base py-sm text-left text-sm font-semibold">Gemeente</th>
                 <th className="px-base py-sm text-left text-sm font-semibold">Classificatie</th>
+                <th className="px-base py-sm text-right text-sm font-semibold">
+                  {translations.strength}
+                </th>
                 <th className="px-base py-sm text-right text-sm font-semibold">
                   {translations.population}
                 </th>
@@ -555,6 +653,9 @@ export function ExtremeLocationFinder({ locale }: ExtremeLocationFinderProps) {
                     )}>
                       {wijk.classification.replace(/-/g, ' ')}
                     </span>
+                  </td>
+                  <td className="px-base py-sm text-sm text-right">
+                    <StrengthIndicator strength={calculateClassificationStrength(wijk)} />
                   </td>
                   <td className="px-base py-sm text-sm text-right">
                     {wijk.totalPopulation.toLocaleString()}
@@ -639,6 +740,41 @@ function ZValue({ value }: { value: number | null }) {
   }
 
   return <span className={color}>{value.toFixed(1)}</span>;
+}
+
+function StrengthIndicator({ strength }: { strength: number }) {
+  // Strength ranges from 0 to ~3+ (average of z-scores)
+  // Categorize: <1.5 = weak, 1.5-2 = moderate, 2-2.5 = strong, >2.5 = very strong
+  let label: string;
+  let color: string;
+  let bgColor: string;
+
+  if (strength >= 2.5) {
+    label = '+++';
+    color = 'text-green-800';
+    bgColor = 'bg-green-200';
+  } else if (strength >= 2) {
+    label = '++';
+    color = 'text-green-700';
+    bgColor = 'bg-green-100';
+  } else if (strength >= 1.5) {
+    label = '+';
+    color = 'text-yellow-700';
+    bgColor = 'bg-yellow-100';
+  } else {
+    label = '~';
+    color = 'text-gray-600';
+    bgColor = 'bg-gray-100';
+  }
+
+  return (
+    <span
+      className={cn('px-1.5 py-0.5 rounded text-xs font-mono', color, bgColor)}
+      title={`Strength: ${strength.toFixed(2)}`}
+    >
+      {label} {strength.toFixed(1)}
+    </span>
+  );
 }
 
 function getClassificationColor(classification: string): string {
