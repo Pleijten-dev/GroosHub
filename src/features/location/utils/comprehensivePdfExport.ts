@@ -51,12 +51,31 @@ export interface ComprehensivePdfData {
     household_type: string;
     age_group: string;
     description: string;
+    current_situation?: string;
+    desired_situation?: string;
+    current_property_types?: string[];
+    desired_property_types?: string[];
     imageDataUrl?: string;
   }>;
   /** Pre-fetched persona images mapped by persona ID */
   personaImages?: Record<string, string>;
   wmsGradingData?: WMSGradingData | null;
   amenitiesData?: AmenityMultiCategoryResponse | null;
+  /** PVE configuration */
+  pveData?: {
+    presetId?: string;
+    totalM2?: number;
+    percentages?: {
+      apartments: number;
+      commercial: number;
+      hospitality: number;
+      social: number;
+      communal: number;
+      offices: number;
+    };
+  } | null;
+  /** LLM-generated introduction text */
+  introductionText?: string;
 }
 
 // Translations
@@ -124,6 +143,43 @@ const translations = {
     customScenarioDesc: 'Door gebruiker geselecteerde doelgroepen.',
     cubeVisualization: 'Kubus Visualisatie',
     cubeExplanation: 'De 3x3x3 kubus toont de doelgroepen gepositioneerd op basis van inkomen (X-as), leeftijd (Y-as) en huishoudtype (Z-as). Gekleurde kubussen vertegenwoordigen de geselecteerde doelgroepen voor dit scenario.',
+    // Introduction section
+    introduction: 'Introductie',
+    // PVE section
+    pveSection: 'Programma van Eisen',
+    pveAllocations: 'Ruimteverdeling',
+    totalArea: 'Totaal oppervlak',
+    apartments: 'Appartementen',
+    commercial: 'Commercieel',
+    hospitality: 'Horeca',
+    social: 'Sociaal',
+    communal: 'Gemeenschappelijk',
+    offices: 'Kantoren',
+    // Persona card fields
+    income: 'Inkomen',
+    age: 'Leeftijd',
+    household: 'Huishouden',
+    currentSituation: 'Huidige Situatie',
+    desiredSituation: 'Gewenste Situatie',
+    currentHousing: 'Huidig Woningtype',
+    desiredHousing: 'Gewenst Woningtype',
+    // Complete ranking table
+    completeRankingTitle: 'Totale Score Tabel',
+    completeRankingSubtitle: 'Ranking van doelgroepen op basis van R-rank en Z-rank',
+    rRankPosition: 'R-Rank Positie',
+    zRankPosition: 'Z-Rank Positie',
+    rRankScore: 'R-Rank Score',
+    zRankScore: 'Z-Rank Score',
+    weightedTotal: 'Gewogen Totaal',
+    // Detailed scoring table
+    detailedScoringTitle: 'Gedetailleerde Score Tabel',
+    detailedScoringSubtitle: 'Scores per categorie voor elke doelgroep',
+    subcategory: 'Subcategorie',
+    // Omgeving section
+    omgevingSection: 'Omgevingsdata',
+    // AI Building Program section
+    aiBuildingProgram: 'AI Bouwprogramma',
+    aiBuildingProgramPlaceholder: 'Dit gedeelte wordt ingevuld na generatie van het AI Bouwprogramma rapport.',
   },
   en: {
     title: 'Location Analysis Report',
@@ -188,6 +244,43 @@ const translations = {
     customScenarioDesc: 'User-selected target groups.',
     cubeVisualization: 'Cube Visualization',
     cubeExplanation: 'The 3x3x3 cube shows target groups positioned by income (X-axis), age (Y-axis), and household type (Z-axis). Colored cubes represent the selected target groups for this scenario.',
+    // Introduction section
+    introduction: 'Introduction',
+    // PVE section
+    pveSection: 'Program of Requirements',
+    pveAllocations: 'Space Allocation',
+    totalArea: 'Total area',
+    apartments: 'Apartments',
+    commercial: 'Commercial',
+    hospitality: 'Hospitality',
+    social: 'Social',
+    communal: 'Communal',
+    offices: 'Offices',
+    // Persona card fields
+    income: 'Income',
+    age: 'Age',
+    household: 'Household',
+    currentSituation: 'Current Situation',
+    desiredSituation: 'Desired Situation',
+    currentHousing: 'Current Housing',
+    desiredHousing: 'Desired Housing',
+    // Complete ranking table
+    completeRankingTitle: 'Total Scoring Table',
+    completeRankingSubtitle: 'Ranking of target groups based on R-rank and Z-rank',
+    rRankPosition: 'R-Rank Position',
+    zRankPosition: 'Z-Rank Position',
+    rRankScore: 'R-Rank Score',
+    zRankScore: 'Z-Rank Score',
+    weightedTotal: 'Weighted Total',
+    // Detailed scoring table
+    detailedScoringTitle: 'Detailed Scoring Table',
+    detailedScoringSubtitle: 'Scores per category for each target group',
+    subcategory: 'Subcategory',
+    // Omgeving section
+    omgevingSection: 'Environment Data',
+    // AI Building Program section
+    aiBuildingProgram: 'AI Building Program',
+    aiBuildingProgramPlaceholder: 'This section will be filled after generating the AI Building Program report.',
   }
 };
 
@@ -659,33 +752,63 @@ class PdfBuilder {
   }
 
   /**
-   * Add full target group rankings table
+   * Add complete target group rankings table with all 27 personas
+   * Shows: R-Rank Position, Z-Rank Position, Doelgroep, R-Rank Score, Z-Rank Score, Gewogen Totaal
    */
   addTargetGroupRankings(
     personaScores: PersonaScore[],
     personas: ComprehensivePdfData['personas']
   ): void {
-    this.addSubsectionTitle(this.t.targetGroupRankings);
+    // Title for complete ranking table
+    this.pdf.setFontSize(14);
+    this.pdf.setTextColor(71, 118, 56);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.text(this.t.completeRankingTitle, MARGIN, this.currentY);
+    this.currentY += 5;
 
-    // Sort by rank position
+    // Subtitle
+    this.pdf.setFont('helvetica', 'normal');
+    this.pdf.setFontSize(9);
+    this.pdf.setTextColor(100, 100, 100);
+    this.pdf.text(this.t.completeRankingSubtitle, MARGIN, this.currentY);
+    this.currentY += 8;
+
+    // Sort by R-Rank position (all 27 personas)
     const sorted = [...personaScores].sort((a, b) => a.rRankPosition - b.rRankPosition);
 
-    const headers = [this.t.rank, this.t.persona, this.t.matchScore, this.t.category];
-    const rows = sorted.slice(0, 15).map((ps) => {
+    // Table headers with correct columns
+    const headers = [
+      this.t.rRankPosition,
+      this.t.zRankPosition,
+      this.t.persona,
+      this.t.rRankScore,
+      this.t.zRankScore,
+      this.t.weightedTotal
+    ];
+
+    // All 27 rows
+    const rows = sorted.map((ps) => {
       const persona = personas.find(p => p.id === ps.personaId);
-      const matchPct = ps.maxPossibleScore > 0
-        ? (ps.rRank / ps.maxPossibleScore) * 100
-        : 0;
+      // R-Rank Score is a percentage (0-1 → 0-100%)
+      const rRankScoreFormatted = `${(ps.rRank * 100).toFixed(1)}%`;
+      // Z-Rank Score is normalized (-1 to 1)
+      const zRankScoreFormatted = ps.zRank.toFixed(3);
+      // Weighted Total
+      const weightedTotalFormatted = ps.weightedTotal.toFixed(2);
+
       return [
         `${ps.rRankPosition}`,
-        persona?.name || ps.personaId,
-        `${matchPct.toFixed(1)}%`,
-        persona?.income_level || '-'
+        `${ps.zRankPosition}`,
+        persona?.name || ps.personaName || ps.personaId,
+        rRankScoreFormatted,
+        zRankScoreFormatted,
+        weightedTotalFormatted
       ];
     });
 
+    // Use smaller column widths to fit all columns
     this.addTable(headers, rows, {
-      columnWidths: [15, CONTENT_WIDTH - 85, 35, 35]
+      columnWidths: [18, 18, CONTENT_WIDTH - 90, 22, 18, 22]
     });
   }
 
@@ -899,6 +1022,7 @@ class PdfBuilder {
 
   /**
    * Add a cube visualization page for a scenario with persona cards
+   * Layout: Cube at top, 4 persona cards below in 2x2 grid
    */
   addCubeVisualizationPage(
     cubeCapture: CubeCaptureResult,
@@ -911,70 +1035,181 @@ class PdfBuilder {
       household_type: string;
       age_group: string;
       description: string;
+      current_situation?: string;
+      desired_situation?: string;
       current_property_types?: string[];
       desired_property_types?: string[];
       imageDataUrl?: string;
     }>
   ): void {
-    // Start new page for cube
+    // Start new page for this scenario
     this.addNewPage();
 
     // Title
-    this.pdf.setFontSize(16);
+    this.pdf.setFontSize(14);
     this.pdf.setTextColor(71, 118, 56);
+    this.pdf.setFont('helvetica', 'bold');
     this.pdf.text(scenarioTitle, MARGIN, this.currentY);
-    this.currentY += 10;
+    this.currentY += 6;
 
-    // Description
-    this.pdf.setFontSize(10);
+    // Description (compact)
+    this.pdf.setFont('helvetica', 'normal');
+    this.pdf.setFontSize(8);
     this.pdf.setTextColor(80, 80, 80);
     const descLines = this.pdf.splitTextToSize(scenarioDescription, CONTENT_WIDTH);
-    this.pdf.text(descLines, MARGIN, this.currentY);
-    this.currentY += descLines.length * 5 + 5;
+    this.pdf.text(descLines.slice(0, 2), MARGIN, this.currentY);
+    this.currentY += 8;
 
-    // Layout: Large cube centered, explanation below
-    const cubeSize = 150; // Large cube (about 3x original size)
-    const cubeX = MARGIN + (CONTENT_WIDTH - cubeSize) / 2; // Center the cube
+    // Cube size - smaller to fit cards below
+    const cubeSize = 80;
+    const cubeX = MARGIN + (CONTENT_WIDTH - cubeSize) / 2;
 
     try {
-      // Add cube image directly on white background (no dark background)
       this.pdf.addImage(
-        cubeCapture.dataUrl,
-        'PNG',
-        cubeX,
-        this.currentY,
-        cubeSize,
-        cubeSize,
-        undefined,
-        'FAST'
+        cubeCapture.dataUrl, 'PNG',
+        cubeX, this.currentY, cubeSize, cubeSize,
+        undefined, 'FAST'
       );
-    } catch (error) {
-      // Placeholder if image fails
+    } catch {
       this.pdf.setFillColor(245, 245, 245);
       this.pdf.rect(cubeX, this.currentY, cubeSize, cubeSize, 'F');
-      this.pdf.setFontSize(10);
-      this.pdf.setTextColor(150, 150, 150);
-      this.pdf.text(this.t.noData, cubeX + cubeSize / 2, this.currentY + cubeSize / 2, { align: 'center' });
     }
 
-    this.currentY += cubeSize + 8;
+    this.currentY += cubeSize + 5;
 
-    // Explanation text below cube (full width)
-    this.pdf.setFontSize(9);
+    // Cube explanation (compact)
+    this.pdf.setFontSize(7);
     this.pdf.setTextColor(100, 100, 100);
-    const explainLines = this.pdf.splitTextToSize(this.t.cubeExplanation, CONTENT_WIDTH);
-    this.pdf.text(explainLines, MARGIN, this.currentY);
-    this.currentY += explainLines.length * 4 + 5;
+    const explainText = this.locale === 'nl'
+      ? 'Kubus: Inkomen (X), Leeftijd (Y), Huishoudtype (Z). Gekleurde blokken = geselecteerde doelgroepen.'
+      : 'Cube: Income (X), Age (Y), Household type (Z). Colored blocks = selected target groups.';
+    this.pdf.text(explainText, MARGIN, this.currentY);
+    this.currentY += 8;
 
-    // Add persona cards if available
+    // Add persona cards in 2x2 grid below cube
     if (scenarioPersonas && scenarioPersonas.length > 0) {
-      this.addPersonaCardsSection(scenarioPersonas);
+      this.addCompactPersonaCards(scenarioPersonas.slice(0, 4));
     }
   }
 
   /**
-   * Add persona cards section to a page
-   * Styled to match the DoelgroepenCard component
+   * Add compact persona cards (4 cards on same page as cube)
+   * More condensed format to fit with cube visualization
+   */
+  private addCompactPersonaCards(
+    personas: Array<{
+      id: string;
+      name: string;
+      income_level: string;
+      household_type: string;
+      age_group: string;
+      description: string;
+      current_situation?: string;
+      desired_situation?: string;
+      current_property_types?: string[];
+      desired_property_types?: string[];
+      imageDataUrl?: string;
+    }>
+  ): void {
+    const cardWidth = (CONTENT_WIDTH - 6) / 2;
+    const cardHeight = 75; // Compact height
+    const cardGap = 6;
+
+    personas.forEach((persona, index) => {
+      const col = index % 2;
+      const row = Math.floor(index / 2);
+      const cardX = MARGIN + col * (cardWidth + cardGap);
+      const cardY = this.currentY + row * (cardHeight + cardGap);
+
+      // Card background
+      this.pdf.setFillColor(255, 255, 255);
+      this.pdf.setDrawColor(229, 231, 235);
+      this.pdf.roundedRect(cardX, cardY, cardWidth, cardHeight, 2, 2, 'FD');
+
+      let y = cardY + 3;
+      const imageSize = 25;
+
+      // Small image
+      if (persona.imageDataUrl) {
+        try {
+          this.pdf.addImage(persona.imageDataUrl, 'PNG', cardX + 3, y, imageSize, imageSize, undefined, 'FAST');
+        } catch {
+          this.pdf.setFillColor(243, 244, 246);
+          this.pdf.rect(cardX + 3, y, imageSize, imageSize, 'F');
+        }
+      } else {
+        this.pdf.setFillColor(243, 244, 246);
+        this.pdf.rect(cardX + 3, y, imageSize, imageSize, 'F');
+      }
+
+      // Name next to image
+      this.pdf.setFontSize(8);
+      this.pdf.setTextColor(17, 24, 39);
+      this.pdf.setFont('helvetica', 'bold');
+      this.pdf.text(persona.name, cardX + imageSize + 8, y + 5);
+
+      // Stats on same line
+      this.pdf.setFontSize(6);
+      this.pdf.setTextColor(75, 85, 99);
+      this.pdf.setFont('helvetica', 'normal');
+      const statsText = `${persona.income_level} | ${persona.age_group} | ${persona.household_type}`;
+      this.pdf.text(statsText, cardX + imageSize + 8, y + 11);
+
+      y += imageSize + 5;
+
+      // Description (2 lines max)
+      this.pdf.setFontSize(6);
+      this.pdf.setTextColor(55, 65, 81);
+      const descLines = this.pdf.splitTextToSize(persona.description || '', cardWidth - 8);
+      this.pdf.text(descLines.slice(0, 2), cardX + 3, y);
+      y += 9;
+
+      // Current situation (condensed)
+      if (persona.current_situation) {
+        this.pdf.setFontSize(5);
+        this.pdf.setTextColor(71, 118, 56);
+        this.pdf.setFont('helvetica', 'bold');
+        this.pdf.text(this.locale === 'nl' ? 'Nu:' : 'Now:', cardX + 3, y);
+        this.pdf.setFont('helvetica', 'normal');
+        this.pdf.setTextColor(55, 65, 81);
+        const currentLine = this.pdf.splitTextToSize(persona.current_situation, cardWidth - 20)[0];
+        this.pdf.text(currentLine || '', cardX + 12, y);
+        y += 5;
+
+        if (persona.current_property_types?.[0]) {
+          this.pdf.setTextColor(100, 100, 100);
+          this.pdf.text(`→ ${persona.current_property_types[0]}`, cardX + 12, y);
+          y += 5;
+        }
+      }
+
+      // Desired situation (condensed)
+      if (persona.desired_situation) {
+        this.pdf.setFontSize(5);
+        this.pdf.setTextColor(71, 118, 56);
+        this.pdf.setFont('helvetica', 'bold');
+        this.pdf.text(this.locale === 'nl' ? 'Wens:' : 'Want:', cardX + 3, y);
+        this.pdf.setFont('helvetica', 'normal');
+        this.pdf.setTextColor(55, 65, 81);
+        const desiredLine = this.pdf.splitTextToSize(persona.desired_situation, cardWidth - 20)[0];
+        this.pdf.text(desiredLine || '', cardX + 15, y);
+        y += 5;
+
+        if (persona.desired_property_types?.[0]) {
+          this.pdf.setTextColor(100, 100, 100);
+          this.pdf.text(`→ ${persona.desired_property_types[0]}`, cardX + 15, y);
+        }
+      }
+    });
+
+    // Update Y position after all cards
+    const totalRows = Math.ceil(personas.length / 2);
+    this.currentY += totalRows * (cardHeight + cardGap);
+  }
+
+  /**
+   * Add persona cards section to a page - Full version with all data
+   * Shows 4 cards per page (2x2 grid) with complete information
    */
   private addPersonaCardsSection(
     personas: Array<{
@@ -984,134 +1219,408 @@ class PdfBuilder {
       household_type: string;
       age_group: string;
       description: string;
+      current_situation?: string;
+      desired_situation?: string;
       current_property_types?: string[];
       desired_property_types?: string[];
       imageDataUrl?: string;
     }>
   ): void {
-    const cardWidth = (CONTENT_WIDTH - 8) / 2; // 2 cards per row with small gap
-    const imageHeight = cardWidth * 0.5625; // 16:9 aspect ratio
-    const cardHeight = imageHeight + 50; // Image + content area
-    const cardGap = 8;
-
-    // Section title
-    this.pdf.setFontSize(11);
-    this.pdf.setTextColor(71, 118, 56);
-    this.pdf.text(this.t.topPersonas, MARGIN, this.currentY);
-    this.currentY += 8;
+    // Full-page cards: 2x2 grid layout
+    const cardWidth = (CONTENT_WIDTH - 6) / 2; // 2 cards per row with gap
+    const cardHeight = 115; // Fixed height to fit 2 rows per page
+    const cardGap = 6;
+    const imageHeight = 35; // Smaller image for compact layout
 
     // Draw cards in 2-column grid
     personas.forEach((persona, index) => {
-      // Check if we need a new page
-      if (this.currentY + cardHeight > PAGE_HEIGHT - MARGIN - FOOTER_HEIGHT) {
+      // Check if we need a new page (every 4 cards or if space insufficient)
+      const rowIndex = Math.floor(index / 2);
+      if (index > 0 && index % 4 === 0) {
         this.addNewPage();
       }
 
       const col = index % 2;
+      const row = rowIndex % 2;
       const cardX = MARGIN + col * (cardWidth + cardGap);
-
-      // Start new row every 2 cards
-      if (col === 0 && index > 0) {
-        this.currentY += cardHeight + 5;
-      }
+      const cardY = this.currentY + row * (cardHeight + cardGap);
 
       // Card background with border
       this.pdf.setFillColor(255, 255, 255);
-      this.pdf.setDrawColor(229, 231, 235); // gray-200
-      this.pdf.roundedRect(cardX, this.currentY, cardWidth, cardHeight, 2, 2, 'FD');
+      this.pdf.setDrawColor(229, 231, 235);
+      this.pdf.roundedRect(cardX, cardY, cardWidth, cardHeight, 2, 2, 'FD');
 
-      let cardY = this.currentY;
+      let y = cardY + 3;
 
-      // 16:9 Image area
+      // Top section: Image on left, name + stats on right
+      const imageWidth = 35;
+
+      // Image
       if (persona.imageDataUrl) {
         try {
           this.pdf.addImage(
-            persona.imageDataUrl,
-            'PNG',
-            cardX,
-            cardY,
-            cardWidth,
-            imageHeight,
-            undefined,
-            'FAST'
+            persona.imageDataUrl, 'PNG',
+            cardX + 3, y, imageWidth, imageHeight, undefined, 'FAST'
           );
-        } catch (imgError) {
-          // Gray placeholder if image fails
-          this.pdf.setFillColor(243, 244, 246); // gray-100
-          this.pdf.rect(cardX, cardY, cardWidth, imageHeight, 'F');
-          this.pdf.setFontSize(7);
-          this.pdf.setTextColor(156, 163, 175); // gray-400
-          this.pdf.text(this.locale === 'nl' ? 'Afbeelding' : 'Image', cardX + cardWidth / 2, cardY + imageHeight / 2, { align: 'center' });
+        } catch {
+          this.pdf.setFillColor(243, 244, 246);
+          this.pdf.rect(cardX + 3, y, imageWidth, imageHeight, 'F');
         }
       } else {
-        // Gray placeholder
-        this.pdf.setFillColor(243, 244, 246); // gray-100
-        this.pdf.rect(cardX, cardY, cardWidth, imageHeight, 'F');
-        this.pdf.setFontSize(7);
-        this.pdf.setTextColor(156, 163, 175); // gray-400
-        this.pdf.text(this.locale === 'nl' ? 'Afbeelding' : 'Image', cardX + cardWidth / 2, cardY + imageHeight / 2, { align: 'center' });
+        this.pdf.setFillColor(243, 244, 246);
+        this.pdf.rect(cardX + 3, y, imageWidth, imageHeight, 'F');
       }
 
-      cardY += imageHeight + 4;
-
-      // Persona name
+      // Name (to the right of image)
       this.pdf.setFontSize(9);
-      this.pdf.setTextColor(17, 24, 39); // gray-900
+      this.pdf.setTextColor(17, 24, 39);
       this.pdf.setFont('helvetica', 'bold');
-      this.pdf.text(persona.name, cardX + 4, cardY + 3);
-      cardY += 7;
+      this.pdf.text(persona.name, cardX + imageWidth + 8, y + 5);
 
-      // Three stat boxes in a row
-      const statBoxWidth = (cardWidth - 12) / 3;
-      const statBoxHeight = 10;
-      const labels = this.locale === 'nl'
-        ? ['Inkomen', 'Leeftijd', 'Huishouden']
-        : ['Income', 'Age', 'Household'];
+      // Three stat boxes next to image
+      const statStartX = cardX + imageWidth + 8;
+      const statBoxWidth = (cardWidth - imageWidth - 14) / 3;
+      const labels = [
+        this.locale === 'nl' ? 'Inkomen' : 'Income',
+        this.locale === 'nl' ? 'Leeftijd' : 'Age',
+        this.locale === 'nl' ? 'Huishouden' : 'Household'
+      ];
       const values = [persona.income_level, persona.age_group, persona.household_type];
 
       for (let i = 0; i < 3; i++) {
-        const boxX = cardX + 4 + i * (statBoxWidth + 2);
+        const boxX = statStartX + i * (statBoxWidth + 1);
+        const boxY = y + 9;
 
-        // Stat box background
-        this.pdf.setFillColor(249, 250, 251); // gray-50
-        this.pdf.roundedRect(boxX, cardY, statBoxWidth, statBoxHeight, 1, 1, 'F');
+        this.pdf.setFillColor(249, 250, 251);
+        this.pdf.roundedRect(boxX, boxY, statBoxWidth, 11, 1, 1, 'F');
 
-        // Label
         this.pdf.setFontSize(5);
-        this.pdf.setTextColor(75, 85, 99); // gray-600
+        this.pdf.setTextColor(75, 85, 99);
         this.pdf.setFont('helvetica', 'normal');
-        this.pdf.text(labels[i], boxX + 2, cardY + 3.5);
+        this.pdf.text(labels[i], boxX + 2, boxY + 4);
 
-        // Value (truncated)
         this.pdf.setFontSize(5);
-        this.pdf.setTextColor(17, 24, 39); // gray-900
+        this.pdf.setTextColor(17, 24, 39);
         this.pdf.setFont('helvetica', 'bold');
-        const valueLines = this.pdf.splitTextToSize(values[i], statBoxWidth - 4);
-        this.pdf.text(valueLines[0] || '-', boxX + 2, cardY + 7.5);
+        const valueText = this.pdf.splitTextToSize(values[i] || '-', statBoxWidth - 4)[0];
+        this.pdf.text(valueText, boxX + 2, boxY + 8);
       }
 
-      cardY += statBoxHeight + 3;
-
-      // Description (truncated)
+      // Description (below image)
+      y += imageHeight + 5;
       this.pdf.setFont('helvetica', 'normal');
       this.pdf.setFontSize(6);
-      this.pdf.setTextColor(55, 65, 81); // gray-700
-      const descLines = this.pdf.splitTextToSize(persona.description, cardWidth - 8);
-      const maxLines = 2;
-      const truncatedDesc = descLines.slice(0, maxLines);
-      if (descLines.length > maxLines) {
-        truncatedDesc[maxLines - 1] = truncatedDesc[maxLines - 1].slice(0, -3) + '...';
+      this.pdf.setTextColor(55, 65, 81);
+      const descLines = this.pdf.splitTextToSize(persona.description || '', cardWidth - 8);
+      this.pdf.text(descLines.slice(0, 2), cardX + 3, y);
+      y += 8;
+
+      // Current Situation section
+      if (persona.current_situation) {
+        this.pdf.setFontSize(6);
+        this.pdf.setTextColor(71, 118, 56);
+        this.pdf.setFont('helvetica', 'bold');
+        this.pdf.text(this.locale === 'nl' ? 'Huidige Situatie' : 'Current Situation', cardX + 3, y);
+        y += 4;
+
+        this.pdf.setFont('helvetica', 'normal');
+        this.pdf.setTextColor(55, 65, 81);
+        const currentLines = this.pdf.splitTextToSize(persona.current_situation, cardWidth - 8);
+        this.pdf.text(currentLines.slice(0, 2), cardX + 3, y);
+        y += 8;
+
+        // Current Housing Types
+        if (persona.current_property_types && persona.current_property_types.length > 0) {
+          this.pdf.setFontSize(5);
+          this.pdf.setTextColor(100, 100, 100);
+          const currentTypes = persona.current_property_types.slice(0, 2).join(', ');
+          this.pdf.text(`${this.locale === 'nl' ? 'Woningtype' : 'Housing'}: ${currentTypes}`, cardX + 3, y);
+          y += 5;
+        }
       }
-      this.pdf.text(truncatedDesc, cardX + 4, cardY + 3);
+
+      // Desired Situation section
+      if (persona.desired_situation) {
+        this.pdf.setFontSize(6);
+        this.pdf.setTextColor(71, 118, 56);
+        this.pdf.setFont('helvetica', 'bold');
+        this.pdf.text(this.locale === 'nl' ? 'Gewenste Situatie' : 'Desired Situation', cardX + 3, y);
+        y += 4;
+
+        this.pdf.setFont('helvetica', 'normal');
+        this.pdf.setTextColor(55, 65, 81);
+        const desiredLines = this.pdf.splitTextToSize(persona.desired_situation, cardWidth - 8);
+        this.pdf.text(desiredLines.slice(0, 2), cardX + 3, y);
+        y += 8;
+
+        // Desired Housing Types
+        if (persona.desired_property_types && persona.desired_property_types.length > 0) {
+          this.pdf.setFontSize(5);
+          this.pdf.setTextColor(100, 100, 100);
+          const desiredTypes = persona.desired_property_types.slice(0, 2).join(', ');
+          this.pdf.text(`${this.locale === 'nl' ? 'Woningtype' : 'Housing'}: ${desiredTypes}`, cardX + 3, y);
+        }
+      }
+
+      // Update Y position after completing a row of 2 cards
+      if (col === 1 || index === personas.length - 1) {
+        if (row === 1 || index === personas.length - 1) {
+          this.currentY = cardY + cardHeight + cardGap;
+        }
+      }
     });
 
-    // Move Y position after all cards
-    const totalRows = Math.ceil(personas.length / 2);
-    if (personas.length % 2 === 1) {
-      this.currentY += cardHeight + 5;
-    } else if (personas.length > 0) {
-      this.currentY += cardHeight + 5;
+    // Ensure currentY is updated after all cards
+    if (personas.length > 0) {
+      const lastRowIndex = Math.floor((personas.length - 1) / 2) % 2;
+      this.currentY += (lastRowIndex + 1) * (cardHeight + cardGap);
     }
+  }
+
+  /**
+   * Add introduction section (LLM-generated or placeholder)
+   */
+  addIntroductionSection(introText?: string): void {
+    this.addSubsectionTitle(this.t.introduction);
+
+    if (introText && introText.trim().length > 0) {
+      // Split into paragraphs and add them
+      const paragraphs = introText.split('\n\n');
+      paragraphs.forEach(paragraph => {
+        if (paragraph.trim()) {
+          this.addParagraph(paragraph.trim());
+        }
+      });
+    } else {
+      // Placeholder text
+      const placeholder = this.locale === 'nl'
+        ? 'Dit gedeelte wordt ingevuld met een door AI gegenereerde introductie van de locatieanalyse. De introductie zal een samenvatting bevatten van de belangrijkste bevindingen en aanbevelingen voor de doelgroepen.'
+        : 'This section will be filled with an AI-generated introduction to the location analysis. The introduction will contain a summary of the key findings and recommendations for the target groups.';
+
+      this.pdf.setFontSize(10);
+      this.pdf.setTextColor(150, 150, 150);
+      this.pdf.setFont('helvetica', 'italic');
+      const lines = this.pdf.splitTextToSize(placeholder, CONTENT_WIDTH);
+      this.pdf.text(lines, MARGIN, this.currentY);
+      this.pdf.setFont('helvetica', 'normal');
+      this.currentY += lines.length * 5 + 10;
+    }
+  }
+
+  /**
+   * Add PVE (Programma van Eisen) section
+   */
+  addPVESection(pveData: ComprehensivePdfData['pveData']): void {
+    this.addSubsectionTitle(this.t.pveSection);
+
+    if (!pveData || (!pveData.totalM2 && !pveData.percentages)) {
+      const noData = this.locale === 'nl'
+        ? 'Geen Programma van Eisen data beschikbaar.'
+        : 'No Program of Requirements data available.';
+      this.addParagraph(noData);
+      return;
+    }
+
+    // Total area
+    if (pveData.totalM2) {
+      this.pdf.setFontSize(11);
+      this.pdf.setTextColor(50, 50, 50);
+      this.pdf.setFont('helvetica', 'bold');
+      this.pdf.text(`${this.t.totalArea}: ${pveData.totalM2.toLocaleString()} m²`, MARGIN, this.currentY);
+      this.pdf.setFont('helvetica', 'normal');
+      this.currentY += 8;
+    }
+
+    // Preset name if available
+    if (pveData.presetId) {
+      const presetLabels: Record<string, { nl: string; en: string }> = {
+        'mixed-residential': { nl: 'Gemengd Wonen', en: 'Mixed Residential' },
+        'urban-retail': { nl: 'Stedelijk Retail', en: 'Urban Retail' },
+        'community': { nl: 'Gemeenschap', en: 'Community' },
+        'custom': { nl: 'Aangepast', en: 'Custom' }
+      };
+      const presetLabel = presetLabels[pveData.presetId]?.[this.locale] || pveData.presetId;
+
+      this.pdf.setFontSize(9);
+      this.pdf.setTextColor(100, 100, 100);
+      this.pdf.text(`Preset: ${presetLabel}`, MARGIN, this.currentY);
+      this.currentY += 6;
+    }
+
+    // Allocations table
+    if (pveData.percentages) {
+      this.currentY += 4;
+      this.pdf.setFontSize(10);
+      this.pdf.setTextColor(71, 118, 56);
+      this.pdf.text(this.t.pveAllocations, MARGIN, this.currentY);
+      this.currentY += 6;
+
+      const allocations = [
+        { label: this.t.apartments, value: pveData.percentages.apartments },
+        { label: this.t.commercial, value: pveData.percentages.commercial },
+        { label: this.t.hospitality, value: pveData.percentages.hospitality },
+        { label: this.t.social, value: pveData.percentages.social },
+        { label: this.t.communal, value: pveData.percentages.communal },
+        { label: this.t.offices, value: pveData.percentages.offices },
+      ].filter(a => a.value > 0);
+
+      // Draw simple bar chart for allocations
+      const barHeight = 10;
+      const maxBarWidth = CONTENT_WIDTH - 70;
+
+      allocations.forEach(alloc => {
+        this.checkPageBreak(barHeight + 4);
+
+        // Label
+        this.pdf.setFontSize(9);
+        this.pdf.setTextColor(50, 50, 50);
+        this.pdf.text(alloc.label, MARGIN, this.currentY);
+
+        // Bar background
+        this.pdf.setFillColor(240, 240, 240);
+        this.pdf.roundedRect(MARGIN + 55, this.currentY - 5, maxBarWidth, barHeight, 2, 2, 'F');
+
+        // Bar fill (percentage based)
+        const barWidth = (alloc.value / 100) * maxBarWidth;
+        this.pdf.setFillColor(71, 118, 56);
+        this.pdf.roundedRect(MARGIN + 55, this.currentY - 5, barWidth, barHeight, 2, 2, 'F');
+
+        // Percentage and m² value
+        this.pdf.setFontSize(8);
+        this.pdf.setTextColor(50, 50, 50);
+        const m2Value = pveData.totalM2 ? Math.round((alloc.value / 100) * pveData.totalM2) : 0;
+        const valueText = pveData.totalM2
+          ? `${alloc.value}% (${m2Value.toLocaleString()} m²)`
+          : `${alloc.value}%`;
+        this.pdf.text(valueText, MARGIN + 55 + maxBarWidth + 3, this.currentY);
+
+        this.currentY += barHeight + 4;
+      });
+    }
+
+    this.currentY += 8;
+  }
+
+  /**
+   * Add Omgeving (Environment) data section with category tables
+   */
+  addOmgevingDataSection(locationData: UnifiedLocationData, amenitiesScore: number): void {
+    this.addSubsectionTitle(this.t.omgevingSection);
+
+    // Get the Omgeving chart data (same as used in UI)
+    const omgevingData = getOmgevingChartData(locationData, amenitiesScore, this.locale);
+
+    // Show each category with its score
+    omgevingData.forEach(item => {
+      this.checkPageBreak(25);
+
+      // Category name and score
+      this.pdf.setFontSize(10);
+      this.pdf.setTextColor(71, 118, 56);
+      this.pdf.setFont('helvetica', 'bold');
+      this.pdf.text(`${item.name}: ${item.value}`, MARGIN, this.currentY);
+      this.pdf.setFont('helvetica', 'normal');
+      this.currentY += 5;
+
+      // Small score bar
+      const barWidth = 60;
+      const barHeight = 4;
+      this.pdf.setFillColor(240, 240, 240);
+      this.pdf.roundedRect(MARGIN, this.currentY, barWidth, barHeight, 1, 1, 'F');
+
+      const fillWidth = (item.value / 100) * barWidth;
+      this.pdf.setFillColor(71, 118, 56);
+      this.pdf.roundedRect(MARGIN, this.currentY, fillWidth, barHeight, 1, 1, 'F');
+
+      this.currentY += 10;
+    });
+
+    // Add note about data sources
+    this.currentY += 5;
+    this.pdf.setFontSize(8);
+    this.pdf.setTextColor(120, 120, 120);
+    const note = this.locale === 'nl'
+      ? 'Scores zijn berekend op basis van CBS, RIVM, Politie en Google Places data.'
+      : 'Scores are calculated based on CBS, RIVM, Police and Google Places data.';
+    this.pdf.text(note, MARGIN, this.currentY);
+    this.currentY += 8;
+  }
+
+  /**
+   * Add AI Building Program placeholder section
+   */
+  addAIBuildingProgramPlaceholder(): void {
+    this.addSubsectionTitle(this.t.aiBuildingProgram);
+
+    this.pdf.setFontSize(10);
+    this.pdf.setTextColor(150, 150, 150);
+    this.pdf.setFont('helvetica', 'italic');
+    const lines = this.pdf.splitTextToSize(this.t.aiBuildingProgramPlaceholder, CONTENT_WIDTH);
+    this.pdf.text(lines, MARGIN, this.currentY);
+    this.pdf.setFont('helvetica', 'normal');
+    this.currentY += lines.length * 5 + 10;
+  }
+
+  /**
+   * Add detailed scoring table per category
+   */
+  addDetailedScoringTable(
+    personaScores: PersonaScore[],
+    personas: ComprehensivePdfData['personas']
+  ): void {
+    // Title
+    this.pdf.setFontSize(14);
+    this.pdf.setTextColor(71, 118, 56);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.text(this.t.detailedScoringTitle, MARGIN, this.currentY);
+    this.currentY += 5;
+
+    // Subtitle
+    this.pdf.setFont('helvetica', 'normal');
+    this.pdf.setFontSize(9);
+    this.pdf.setTextColor(100, 100, 100);
+    this.pdf.text(this.t.detailedScoringSubtitle, MARGIN, this.currentY);
+    this.currentY += 10;
+
+    // Get top 10 personas for detailed breakdown
+    const topPersonas = [...personaScores]
+      .sort((a, b) => a.rRankPosition - b.rRankPosition)
+      .slice(0, 10);
+
+    // Category labels
+    const categoryLabels = {
+      voorzieningen: this.locale === 'nl' ? 'Voorzieningen' : 'Amenities',
+      leefbaarheid: this.locale === 'nl' ? 'Leefbaarheid' : 'Livability',
+      woningvooraad: this.locale === 'nl' ? 'Woningvoorraad' : 'Housing Stock',
+      demografie: this.locale === 'nl' ? 'Demografie' : 'Demographics'
+    };
+
+    // Table headers
+    const headers = [
+      this.t.persona,
+      categoryLabels.voorzieningen,
+      categoryLabels.leefbaarheid,
+      categoryLabels.woningvooraad,
+      categoryLabels.demografie,
+      this.t.weightedTotal
+    ];
+
+    // Table rows
+    const rows = topPersonas.map(ps => {
+      const persona = personas.find(p => p.id === ps.personaId);
+      return [
+        persona?.name || ps.personaName || ps.personaId,
+        ps.categoryScores.voorzieningen.toFixed(2),
+        ps.categoryScores.leefbaarheid.toFixed(2),
+        ps.categoryScores.woningvooraad.toFixed(2),
+        ps.categoryScores.demografie.toFixed(2),
+        ps.weightedTotal.toFixed(2)
+      ];
+    });
+
+    this.addTable(headers, rows, {
+      columnWidths: [CONTENT_WIDTH - 100, 20, 20, 20, 20, 20]
+    });
   }
 
   /**
@@ -1204,7 +1713,7 @@ export async function generateComprehensivePdf(
   const t = translations[locale];
   const builder = new PdfBuilder(locale);
 
-  // Calculate total steps for progress
+  // Calculate total steps for progress (new structure)
   const wmsLayers = Object.entries(WMS_CATEGORIES).flatMap(([catId, cat]) =>
     Object.entries(cat.layers).map(([layerId, config]) => ({ catId, layerId, config }))
   );
@@ -1212,9 +1721,12 @@ export async function generateComprehensivePdf(
   const hasCustomScenario = data.scenarios.customScenario && data.scenarios.customScenario.length > 0;
   const totalSteps =
     1 + // Title page
-    (includeScoreOverview ? 1 : 0) +
-    (includeTargetGroups ? 3 : 0) + // Rankings, scenarios, calculations
-    (includeTargetGroups && hasCubes ? (hasCustomScenario ? 4 : 3) : 0) + // Cube pages (3 scenarios + optional custom)
+    1 + // Introduction
+    (includeTargetGroups && hasCubes ? (hasCustomScenario ? 4 : 3) : 0) + // Cube pages (3-4 scenarios)
+    (includeTargetGroups ? 2 : 0) + // Rankings table + Detailed scoring table
+    1 + // PVE section
+    1 + // AI Building Program placeholder
+    (includeScoreOverview ? 1 : 0) + // Omgeving section
     (includeDataTables ? 6 : 0) + // Demographics, health, safety, livability, residential, amenities
     (includeWMSMaps ? wmsLayers.length : 0);
 
@@ -1224,181 +1736,166 @@ export async function generateComprehensivePdf(
     onProgress?.(currentStep, totalSteps, status);
   };
 
-  // Title page
+  // === NEW PAGE ORDER ===
+  // 1. Title page
   builder.addTitlePage(title, data.address, data.coordinates);
   reportProgress(t.title);
 
-  // Table of contents placeholder
+  // 2. Table of contents placeholder
   const tocPage = builder.addTableOfContents();
 
-  // Score Overview section
-  if (includeScoreOverview) {
-    // Calculate amenities score using the same formula as the UI
-    // This ensures consistency between PDF export and on-screen display
-    let amenitiesScore = 50; // Default fallback
-    if (data.amenitiesData?.results && Array.isArray(data.amenitiesData.results)) {
-      // Use the proper amenity scoring system
-      const amenityScores = calculateAllAmenityScores(data.amenitiesData.results);
+  // 3. Introduction section (LLM text or placeholder)
+  builder.startSection(t.introduction);
+  builder.addIntroductionSection(data.introductionText);
+  reportProgress(t.introduction);
 
-      // Sum up all countScore and proximityBonus values
-      const rawScore = amenityScores.reduce((sum: number, score: AmenityScore) => {
-        return sum + score.countScore + score.proximityBonus;
-      }, 0);
+  // Calculate amenities score (needed for multiple sections)
+  let amenitiesScore = 50; // Default fallback
+  if (data.amenitiesData?.results && Array.isArray(data.amenitiesData.results)) {
+    const amenityScores = calculateAllAmenityScores(data.amenitiesData.results);
+    const rawScore = amenityScores.reduce((sum: number, score: AmenityScore) => {
+      return sum + score.countScore + score.proximityBonus;
+    }, 0);
+    amenitiesScore = Math.round(((rawScore + 21) / 63) * 90 + 10);
+    amenitiesScore = Math.max(10, Math.min(100, amenitiesScore));
+  }
 
-      // Map from [-21, 42] range to [10, 100] range (same formula as UI)
-      // Formula: ((rawScore + 21) / 63) * 90 + 10
-      amenitiesScore = Math.round(((rawScore + 21) / 63) * 90 + 10);
+  // 4-7. Scenario pages with cube + 4 cards (ONE page per scenario)
+  if (includeTargetGroups && data.cubeColors && data.cubeColors.length > 0) {
+    builder.startSection(t.scenarioCubes);
 
-      // Clamp to valid range
-      amenitiesScore = Math.max(10, Math.min(100, amenitiesScore));
-    }
+    try {
+      console.log('Capturing cube visualizations for PDF...');
 
-    builder.addScoreOverview(data.locationData, amenitiesScore);
-    reportProgress(t.scoreOverview);
+      // Helper function to get personas for a scenario (from rRankPositions)
+      const getScenarioPersonas = (positions: number[]) => {
+        return positions
+          .map(pos => {
+            const personaScore = data.personaScores[pos - 1];
+            if (!personaScore) return null;
+            const persona = data.personas.find(p => p.id === personaScore.personaId);
+            return persona || null;
+          })
+          .filter((p): p is NonNullable<typeof p> => p !== null);
+      };
 
-    // WMS grading summary if available
-    if (data.wmsGradingData) {
-      builder.addWMSGradingSummary(data.wmsGradingData);
+      // Helper function to convert rRankPositions to cube indices (0-26)
+      const positionsToCubeIndices = (positions: number[]): number[] => {
+        return positions
+          .map(pos => {
+            const personaScore = data.personaScores[pos - 1];
+            if (!personaScore) return -1;
+            const persona = data.personas.find(p => p.id === personaScore.personaId);
+            if (!persona) return -1;
+            const { index } = getPersonaCubePosition({
+              income_level: persona.income_level,
+              age_group: persona.age_group,
+              household_type: persona.household_type,
+            });
+            return index;
+          })
+          .filter(idx => idx !== -1);
+      };
+
+      // Convert scenario positions to cube indices
+      const cubeIndicesScenario1 = positionsToCubeIndices(data.scenarios.scenario1);
+      const cubeIndicesScenario2 = positionsToCubeIndices(data.scenarios.scenario2);
+      const cubeIndicesScenario3 = positionsToCubeIndices(data.scenarios.scenario3);
+      const cubeIndicesCustom = data.scenarios.customScenario
+        ? positionsToCubeIndices(data.scenarios.customScenario)
+        : undefined;
+
+      // Capture all scenario cubes
+      const cubeCaptures = await captureAllScenarioCubes(
+        {
+          scenario1: cubeIndicesScenario1,
+          scenario2: cubeIndicesScenario2,
+          scenario3: cubeIndicesScenario3,
+          customScenario: cubeIndicesCustom,
+        },
+        data.cubeColors,
+        { width: 800, height: 800, backgroundColor: '#ffffff' }
+      );
+
+      // Scenario 1
+      builder.addCubeVisualizationPage(
+        cubeCaptures.scenario1,
+        t.scenario1Title,
+        t.scenario1Desc,
+        getScenarioPersonas(data.scenarios.scenario1)
+      );
+      reportProgress(t.scenario1Title);
+
+      // Scenario 2
+      builder.addCubeVisualizationPage(
+        cubeCaptures.scenario2,
+        t.scenario2Title,
+        t.scenario2Desc,
+        getScenarioPersonas(data.scenarios.scenario2)
+      );
+      reportProgress(t.scenario2Title);
+
+      // Scenario 3
+      builder.addCubeVisualizationPage(
+        cubeCaptures.scenario3,
+        t.scenario3Title,
+        t.scenario3Desc,
+        getScenarioPersonas(data.scenarios.scenario3)
+      );
+      reportProgress(t.scenario3Title);
+
+      // Scenario 4 (Custom) if available
+      if (cubeCaptures.customScenario && data.scenarios.customScenario) {
+        builder.addCubeVisualizationPage(
+          cubeCaptures.customScenario,
+          t.customScenarioTitle,
+          t.customScenarioDesc,
+          getScenarioPersonas(data.scenarios.customScenario)
+        );
+        reportProgress(t.customScenarioTitle);
+      }
+
+      console.log('Cube visualizations added to PDF');
+    } catch (error) {
+      console.warn('Failed to capture cube visualizations:', error);
+      builder.addParagraph(
+        locale === 'nl'
+          ? 'Kubus visualisaties konden niet worden gegenereerd.'
+          : 'Cube visualizations could not be generated.'
+      );
     }
   }
 
-  // Target Groups section
+  // 8. Complete doelgroep ranking table (all 27 personas)
   if (includeTargetGroups) {
     builder.startSection(t.targetGroupSection);
-
-    // Rankings table
     builder.addTargetGroupRankings(data.personaScores, data.personas);
     reportProgress(t.targetGroupRankings);
 
-    // Scenario comparisons
-    const scenarios = [
-      { name: '1', positions: data.scenarios.scenario1 },
-      { name: '2', positions: data.scenarios.scenario2 },
-      { name: '3', positions: data.scenarios.scenario3 }
-    ];
+    // 9. Detailed score table per category
+    builder.addDetailedScoringTable(data.personaScores, data.personas);
+    reportProgress(t.detailedScoringTitle);
+  }
 
-    scenarios.forEach(scenario => {
-      builder.addTargetGroupScenario(
-        scenario.name,
-        scenario.positions,
-        data.personaScores,
-        data.personas
-      );
-    });
-    reportProgress(t.scenarioComparison);
+  // 10. PVE data section
+  builder.startSection(t.pveSection);
+  builder.addPVESection(data.pveData);
+  reportProgress(t.pveSection);
 
-    // Detailed calculations for top personas
-    builder.addTargetGroupCalculations(data.personaScores, data.personas);
-    reportProgress(t.targetGroupCalculations);
+  // 11. AI Building Program placeholder
+  builder.addAIBuildingProgramPlaceholder();
+  reportProgress(t.aiBuildingProgram);
 
-    // Cube Visualizations section - capture and add all 4 scenario cubes
-    if (data.cubeColors && data.cubeColors.length > 0) {
-      builder.startSection(t.scenarioCubes);
+  // 12. Omgeving (Environment) data section
+  if (includeScoreOverview) {
+    builder.startSection(t.omgevingSection);
+    builder.addOmgevingDataSection(data.locationData, amenitiesScore);
 
-      try {
-        console.log('Capturing cube visualizations for PDF...');
-
-        // Helper function to get personas for a scenario (from rRankPositions)
-        const getScenarioPersonas = (positions: number[]) => {
-          return positions
-            .map(pos => {
-              const personaScore = data.personaScores[pos - 1];
-              if (!personaScore) return null;
-              const persona = data.personas.find(p => p.id === personaScore.personaId);
-              return persona || null;
-            })
-            .filter((p): p is NonNullable<typeof p> => p !== null);
-        };
-
-        // Helper function to convert rRankPositions to cube indices (0-26)
-        // Scenario positions are rRankPositions (1-based ranking), not cube indices
-        const positionsToCubeIndices = (positions: number[]): number[] => {
-          return positions
-            .map(pos => {
-              const personaScore = data.personaScores[pos - 1];
-              if (!personaScore) return -1;
-              const persona = data.personas.find(p => p.id === personaScore.personaId);
-              if (!persona) return -1;
-
-              // Get the cube index based on persona characteristics
-              const { index } = getPersonaCubePosition({
-                income_level: persona.income_level,
-                age_group: persona.age_group,
-                household_type: persona.household_type,
-              });
-              return index;
-            })
-            .filter(idx => idx !== -1);
-        };
-
-        // Convert scenario positions to cube indices for visualization
-        const cubeIndicesScenario1 = positionsToCubeIndices(data.scenarios.scenario1);
-        const cubeIndicesScenario2 = positionsToCubeIndices(data.scenarios.scenario2);
-        const cubeIndicesScenario3 = positionsToCubeIndices(data.scenarios.scenario3);
-        const cubeIndicesCustom = data.scenarios.customScenario
-          ? positionsToCubeIndices(data.scenarios.customScenario)
-          : undefined;
-
-        // Capture all scenario cubes (white background, higher resolution for larger display)
-        const cubeCaptures = await captureAllScenarioCubes(
-          {
-            scenario1: cubeIndicesScenario1,
-            scenario2: cubeIndicesScenario2,
-            scenario3: cubeIndicesScenario3,
-            customScenario: cubeIndicesCustom,
-          },
-          data.cubeColors,
-          { width: 800, height: 800, backgroundColor: '#ffffff' }
-        );
-
-        // Add scenario 1 cube page with persona cards
-        builder.addCubeVisualizationPage(
-          cubeCaptures.scenario1,
-          t.scenario1Title,
-          t.scenario1Desc,
-          getScenarioPersonas(data.scenarios.scenario1)
-        );
-        reportProgress(t.scenario1Title);
-
-        // Add scenario 2 cube page with persona cards
-        builder.addCubeVisualizationPage(
-          cubeCaptures.scenario2,
-          t.scenario2Title,
-          t.scenario2Desc,
-          getScenarioPersonas(data.scenarios.scenario2)
-        );
-        reportProgress(t.scenario2Title);
-
-        // Add scenario 3 cube page with persona cards
-        builder.addCubeVisualizationPage(
-          cubeCaptures.scenario3,
-          t.scenario3Title,
-          t.scenario3Desc,
-          getScenarioPersonas(data.scenarios.scenario3)
-        );
-        reportProgress(t.scenario3Title);
-
-        // Add custom scenario if available
-        if (cubeCaptures.customScenario && data.scenarios.customScenario) {
-          builder.addCubeVisualizationPage(
-            cubeCaptures.customScenario,
-            t.customScenarioTitle,
-            t.customScenarioDesc,
-            getScenarioPersonas(data.scenarios.customScenario)
-          );
-          reportProgress(t.customScenarioTitle);
-        }
-
-        console.log('Cube visualizations added to PDF');
-      } catch (error) {
-        console.warn('Failed to capture cube visualizations:', error);
-        builder.addParagraph(
-          locale === 'nl'
-            ? 'Kubus visualisaties konden niet worden gegenereerd.'
-            : 'Cube visualizations could not be generated.'
-        );
-      }
+    // Also add WMS grading summary if available
+    if (data.wmsGradingData) {
+      builder.addWMSGradingSummary(data.wmsGradingData);
     }
+    reportProgress(t.scoreOverview);
   }
 
   // Data Tables section
