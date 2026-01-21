@@ -181,6 +181,24 @@ export function AdminPanel({ translations, common }: AdminPanelProps) {
           </Button>
         </div>
 
+        {/* Admin Tools Navigation */}
+        <Card className="mb-6" padding="lg">
+          <h2 className="text-xl font-bold text-text-primary mb-4">
+            Admin Tools
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <a
+              href="location-demographics"
+              className="p-4 bg-primary/10 rounded-lg hover:bg-primary/20 transition-colors"
+            >
+              <h3 className="font-semibold text-text-primary">Location Demographics Test</h3>
+              <p className="text-sm text-text-muted mt-1">
+                Analyze CBS kerncijfers for all wijken with z-score calculations and persona ranking expectations.
+              </p>
+            </a>
+          </div>
+        </Card>
+
         {successMessage && (
           <div className="mb-4 p-4 bg-green-100 text-green-800 rounded-lg">
             {successMessage}
