@@ -76,33 +76,62 @@ const CBS_FIELDS = {
 
 type GeoLevel = 'WK' | 'BU' | 'both';
 
+const PAGE_SIZE = 5000; // CBS API limit is 10,000, use 5,000 to be safe
+
 async function fetchAllAreas(
   level: GeoLevel = 'both',
   period: string = DEFAULT_PERIOD
 ): Promise<WijkDemographics[]> {
-  // Build filter based on level
-  let filter: string;
+  // For 'both', we need to fetch WK and BU separately to avoid hitting the limit
   if (level === 'both') {
-    filter = `(startswith(WijkenEnBuurten,'WK') or startswith(WijkenEnBuurten,'BU'))`;
-  } else {
-    filter = `startswith(WijkenEnBuurten,'${level}')`;
+    const [wijken, buurten] = await Promise.all([
+      fetchAreasByLevel('WK', period),
+      fetchAreasByLevel('BU', period),
+    ]);
+    return [...wijken, ...buurten];
   }
 
-  const url = `${CBS_BASE_URL}?$filter=${filter} and Perioden eq '${period}'`;
+  return fetchAreasByLevel(level, period);
+}
 
-  console.log(`🔵 [CBS Areas] Fetching ${level === 'both' ? 'wijken + buurten' : level} for period ${period}`);
+async function fetchAreasByLevel(
+  level: 'WK' | 'BU',
+  period: string
+): Promise<WijkDemographics[]> {
+  const filter = `startswith(WijkenEnBuurten,'${level}') and Perioden eq '${period}'`;
+  const allRows: Record<string, unknown>[] = [];
+  let skip = 0;
+  let hasMore = true;
 
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`CBS API error: ${response.statusText}`);
+  console.log(`🔵 [CBS Areas] Fetching ${level} for period ${period} (paginated)`);
+
+  while (hasMore) {
+    const url = `${CBS_BASE_URL}?$filter=${filter}&$top=${PAGE_SIZE}&$skip=${skip}`;
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`CBS API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const rows = data.value as Record<string, unknown>[];
+
+    allRows.push(...rows);
+    console.log(`  📦 Fetched ${rows.length} rows (total: ${allRows.length}, skip: ${skip})`);
+
+    if (rows.length < PAGE_SIZE) {
+      hasMore = false;
+    } else {
+      skip += PAGE_SIZE;
+    }
   }
 
-  const data = await response.json();
-  const rows = data.value as Record<string, unknown>[];
+  console.log(`✅ [CBS Areas] Found ${allRows.length} ${level} areas`);
 
-  console.log(`✅ [CBS Areas] Found ${rows.length} areas`);
+  return transformRows(allRows);
+}
 
-  // Transform raw data to structured format
+function transformRows(rows: Record<string, unknown>[]): WijkDemographics[] {
   return rows
     .map((row): WijkDemographics | null => {
       const totalPop = parseNumber(row[CBS_FIELDS.totalPopulation]);
