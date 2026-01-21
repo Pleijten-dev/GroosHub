@@ -413,6 +413,7 @@ class PdfBuilder {
 
   /**
    * Add a WMS map with description, legend, and score
+   * Layout: 1cm margins, map+legend at top (80/20 ratio), title/description below with score markers
    */
   async addWMSMap(
     capture: MapCapture,
@@ -421,41 +422,31 @@ class PdfBuilder {
     gradingResult?: WMSLayerGrading,
     legend?: LegendCapture | null
   ): Promise<void> {
-    // Start a new page for each map
-    if (this.currentY > MARGIN + HEADER_HEIGHT + 50) {
-      this.addNewPage();
-    }
+    // Always start a new page for each WMS map
+    this.addNewPage();
 
-    // Map title
-    this.pdf.setFontSize(14);
-    this.pdf.setTextColor(50, 50, 50);
-    this.pdf.text(layerConfig.title, MARGIN, this.currentY);
-    this.currentY += 8;
+    // Layout constants for WMS maps (1cm = 10mm margin from page edge)
+    const WMS_MARGIN = 10;
+    const WMS_CONTENT_WIDTH = PAGE_WIDTH - 2 * WMS_MARGIN; // 190mm
+    const MAP_SIZE = 130; // Square map size (130mm x 130mm)
+    const LEGEND_WIDTH = Math.floor(MAP_SIZE * 0.25); // 20% of map+legend width = 25% of map width ≈ 32.5mm
+    const TEXT_INDENT = 40; // 4cm indent for title/description (leaves space for score markers)
 
-    // Description
-    this.pdf.setFontSize(9);
-    this.pdf.setTextColor(100, 100, 100);
-    const descLines = this.pdf.splitTextToSize(layerConfig.description, CONTENT_WIDTH);
-    this.pdf.text(descLines, MARGIN, this.currentY);
-    this.currentY += descLines.length * 4 + 5;
-
-    // Calculate layout: map on left, legend on right (if available)
     const hasLegend = legend && legend.dataUrl;
-    const mapSize = hasLegend ? 100 : 120; // Smaller map when legend is present
-    const legendWidth = 60; // Width reserved for legend
-    const mapX = hasLegend ? MARGIN : MARGIN + (CONTENT_WIDTH - mapSize) / 2;
-    const legendX = MARGIN + mapSize + 10;
+    const mapX = WMS_MARGIN;
+    const mapY = MARGIN + HEADER_HEIGHT;
+    const legendX = WMS_MARGIN + MAP_SIZE + 3; // Small gap between map and legend
 
     try {
-      // Add aerial photo background if available (at 50% opacity)
+      // Add aerial photo background if available
       if (aerialPhoto) {
         this.pdf.addImage(
           aerialPhoto.dataUrl,
           'PNG',
           mapX,
-          this.currentY,
-          mapSize,
-          mapSize,
+          mapY,
+          MAP_SIZE,
+          MAP_SIZE,
           undefined,
           'FAST'
         );
@@ -466,25 +457,30 @@ class PdfBuilder {
         capture.dataUrl,
         'PNG',
         mapX,
-        this.currentY,
-        mapSize,
-        mapSize,
+        mapY,
+        MAP_SIZE,
+        MAP_SIZE,
         undefined,
         'FAST'
       );
 
-      // Add legend if available
+      // Add legend if available (same height as map, 20% width)
       if (hasLegend) {
+        // Legend container background
+        this.pdf.setFillColor(252, 252, 252);
+        this.pdf.setDrawColor(230, 230, 230);
+        this.pdf.roundedRect(legendX, mapY, LEGEND_WIDTH, MAP_SIZE, 2, 2, 'FD');
+
         // Legend header
-        this.pdf.setFontSize(10);
+        this.pdf.setFontSize(9);
         this.pdf.setTextColor(71, 118, 56);
-        this.pdf.text(this.t.legend, legendX, this.currentY + 5);
+        this.pdf.text(this.t.legend, legendX + 3, mapY + 8);
 
-        // Legend image - scale to fit while maintaining aspect ratio
-        const maxLegendHeight = mapSize - 10;
-        const maxLegendWidth = legendWidth - 5;
+        // Legend image - scale to fit within legend container
+        const maxLegendHeight = MAP_SIZE - 15; // Leave space for header
+        const maxLegendWidth = LEGEND_WIDTH - 6;
 
-        // Calculate scaled dimensions
+        // Calculate scaled dimensions while maintaining aspect ratio
         const legendAspect = legend.width / legend.height;
         let scaledWidth = maxLegendWidth;
         let scaledHeight = scaledWidth / legendAspect;
@@ -498,8 +494,8 @@ class PdfBuilder {
           this.pdf.addImage(
             legend.dataUrl,
             'PNG',
-            legendX,
-            this.currentY + 10,
+            legendX + 3,
+            mapY + 12,
             scaledWidth,
             scaledHeight,
             undefined,
@@ -507,61 +503,99 @@ class PdfBuilder {
           );
         } catch (legendError) {
           console.warn('Failed to add legend image:', legendError);
-          // Draw placeholder for legend
-          this.pdf.setFontSize(8);
+          this.pdf.setFontSize(7);
           this.pdf.setTextColor(150, 150, 150);
-          this.pdf.text('(Legend unavailable)', legendX, this.currentY + 20);
+          this.pdf.text('(Legenda niet', legendX + 3, mapY + 25);
+          this.pdf.text('beschikbaar)', legendX + 3, mapY + 32);
         }
       }
     } catch (error) {
       // Draw placeholder box if image fails
       this.pdf.setFillColor(240, 240, 240);
-      this.pdf.rect(mapX, this.currentY, mapSize, mapSize, 'F');
+      this.pdf.rect(mapX, mapY, MAP_SIZE, MAP_SIZE, 'F');
       this.pdf.setFontSize(10);
       this.pdf.setTextColor(150, 150, 150);
-      this.pdf.text(this.t.noData, mapX + mapSize / 2, this.currentY + mapSize / 2, { align: 'center' });
+      this.pdf.text(this.t.noData, mapX + MAP_SIZE / 2, mapY + MAP_SIZE / 2, { align: 'center' });
     }
 
-    this.currentY += mapSize + 8;
+    // Position below the map+legend pair
+    this.currentY = mapY + MAP_SIZE + 10;
 
-    // Score box if grading data available
+    // Score markers in the left 4cm space (if grading data available)
     if (gradingResult) {
       const layerCfg = getLayerConfig(gradingResult.layer_id);
       const unit = layerCfg?.unit || '';
+      const scoreX = WMS_MARGIN;
+      let scoreY = this.currentY;
 
-      this.pdf.setFillColor(248, 248, 248);
-      this.pdf.roundedRect(MARGIN, this.currentY, CONTENT_WIDTH, 25, 2, 2, 'F');
+      // Draw score markers as simple indicators
+      const drawScoreMarker = (label: string, value: number | string, y: number) => {
+        // Circle marker
+        this.pdf.setFillColor(71, 118, 56);
+        this.pdf.circle(scoreX + 4, y - 1.5, 3, 'F');
 
-      this.pdf.setFontSize(9);
-      this.pdf.setTextColor(50, 50, 50);
+        // Value inside or next to marker
+        this.pdf.setFontSize(7);
+        this.pdf.setTextColor(255, 255, 255);
 
-      let scoreY = this.currentY + 6;
-      let scoreX = MARGIN + 5;
+        // Score value (larger, bold)
+        this.pdf.setFontSize(11);
+        this.pdf.setTextColor(50, 50, 50);
+        this.pdf.setFont('helvetica', 'bold');
+        const valueStr = typeof value === 'number' ? this.formatValue(value) : value;
+        this.pdf.text(valueStr, scoreX + 10, y);
 
-      if (gradingResult.point_sample?.value !== undefined) {
-        this.pdf.text(`${this.t.pointValue}: ${this.formatValue(gradingResult.point_sample.value)} ${unit}`, scoreX, scoreY);
-        scoreX += 55;
-      }
+        // Unit and label (smaller, below)
+        this.pdf.setFontSize(7);
+        this.pdf.setFont('helvetica', 'normal');
+        this.pdf.setTextColor(100, 100, 100);
+        this.pdf.text(`${unit}`, scoreX + 10, y + 4);
+        this.pdf.text(label, scoreX + 10, y + 8);
 
+        return y + 18; // Return next Y position
+      };
+
+      // Show available score types as markers
       if (gradingResult.average_area_sample?.value !== undefined) {
-        this.pdf.text(`${this.t.avgValue}: ${this.formatValue(gradingResult.average_area_sample.value)} ${unit}`, scoreX, scoreY);
-        scoreX += 55;
+        scoreY = drawScoreMarker(
+          this.locale === 'nl' ? 'Gem. gebied' : 'Avg. area',
+          gradingResult.average_area_sample.value,
+          scoreY
+        );
       }
 
       if (gradingResult.max_area_sample?.value !== undefined) {
-        this.pdf.text(`${this.t.maxValue}: ${this.formatValue(gradingResult.max_area_sample.value)} ${unit}`, scoreX, scoreY);
+        scoreY = drawScoreMarker(
+          this.locale === 'nl' ? 'Max. gebied' : 'Max. area',
+          gradingResult.max_area_sample.value,
+          scoreY
+        );
       }
 
-      this.currentY += 30;
+      if (gradingResult.point_sample?.value !== undefined) {
+        scoreY = drawScoreMarker(
+          this.locale === 'nl' ? 'Puntwaarde' : 'Point value',
+          gradingResult.point_sample.value,
+          scoreY
+        );
+      }
     }
 
-    // Notes section
-    this.pdf.setDrawColor(200, 200, 200);
-    this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, 20);
-    this.pdf.setFontSize(8);
-    this.pdf.setTextColor(150, 150, 150);
-    this.pdf.text(`${this.t.notes}...`, MARGIN + 3, this.currentY + 5);
-    this.currentY += 25;
+    // Title (indented 4cm to make room for score markers)
+    this.pdf.setFontSize(14);
+    this.pdf.setTextColor(50, 50, 50);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.text(layerConfig.title, WMS_MARGIN + TEXT_INDENT, this.currentY);
+    this.currentY += 8;
+
+    // Description (indented 4cm)
+    this.pdf.setFont('helvetica', 'normal');
+    this.pdf.setFontSize(9);
+    this.pdf.setTextColor(80, 80, 80);
+    const descWidth = WMS_CONTENT_WIDTH - TEXT_INDENT;
+    const descLines = this.pdf.splitTextToSize(layerConfig.description, descWidth);
+    this.pdf.text(descLines, WMS_MARGIN + TEXT_INDENT, this.currentY);
+    this.currentY += descLines.length * 4 + 10;
   }
 
   /**
