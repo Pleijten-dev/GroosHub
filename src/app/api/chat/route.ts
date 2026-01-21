@@ -12,6 +12,7 @@ import { streamText, stepCountIs, tool, convertToModelMessages, type UIMessage, 
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getModel, type ModelId, MODEL_CAPABILITIES } from '@/lib/ai/models';
+import { google } from '@ai-sdk/google';
 import { auth } from '@/lib/auth';
 import { neon } from '@neondatabase/serverless';
 import { getPresignedUrl } from '@/lib/storage/r2-client';
@@ -285,6 +286,11 @@ export async function POST(request: NextRequest) {
     const locale = (messageMetadata.locale || rootMetadata.locale || body.locale || 'nl') as 'nl' | 'en';
     const requestFileIds = messageMetadata.fileIds || rootMetadata.fileIds || fileIds;
     const projectId = messageMetadata.projectId || rootMetadata.projectId || undefined;
+    const enableThinking = messageMetadata.enableThinking || rootMetadata.enableThinking || false;
+    const enableWebSearch = messageMetadata.enableWebSearch || rootMetadata.enableWebSearch || false;
+
+    console.log('[Chat API] 🧠 Extended thinking:', enableThinking ? 'ENABLED' : 'disabled');
+    console.log('[Chat API] 🌐 Web search:', enableWebSearch ? 'ENABLED' : 'disabled');
 
     console.log('[Chat API] 📎 File handling debug:', {
       messageMetadataFileIds: messageMetadata.fileIds,
@@ -1448,11 +1454,23 @@ export async function POST(request: NextRequest) {
     // Create task management tools with userId and locale injected
     const taskTools = createTaskTools(userId, locale);
 
-    // Combine location and task tools for the AI agent
+    // Build tools object - include Google Search if enabled and model supports it
+    const webSearchTools = enableWebSearch && modelInfo?.supportsWebSearch ? {
+      google_search: google.tools.googleSearch({
+        // No additional config needed - uses default settings
+      }),
+    } : {};
+
+    // Combine location, task, and optional web search tools for the AI agent
     const allTools = {
       ...locationTools,
       ...taskTools,
+      ...webSearchTools,
     };
+
+    if (enableWebSearch && modelInfo?.supportsWebSearch) {
+      console.log('[Chat API] 🌐 Google Search tool added to agent');
+    }
 
     // Stream the response with location agent tools
     // Two-step conversion for proper Anthropic image handling:
@@ -1483,6 +1501,25 @@ export async function POST(request: NextRequest) {
     // Track visualization tool results to inject into database-saved message
     const visualizationResults: any[] = [];
 
+    // Build provider options for extended thinking (Anthropic models)
+    const providerOptions = enableThinking && modelInfo?.supportsThinking ? {
+      anthropic: {
+        thinking: {
+          type: 'enabled' as const,
+          budgetTokens: 10000, // Allow up to 10k thinking tokens
+        },
+      },
+    } : undefined;
+
+    // Build headers for extended thinking beta
+    const requestHeaders = enableThinking && modelInfo?.supportsThinking ? {
+      'anthropic-beta': 'interleaved-thinking-2025-05-14',
+    } : undefined;
+
+    if (enableThinking && modelInfo?.supportsThinking) {
+      console.log('[Chat API] 🧠 Anthropic extended thinking enabled with 10k token budget');
+    }
+
     const result = streamText({
       model,
       messages: convertedMessages,
@@ -1491,6 +1528,10 @@ export async function POST(request: NextRequest) {
       tools: allTools,
       // Allow multi-step tool calling (up to 10 steps)
       stopWhen: stepCountIs(10),
+      // Extended thinking configuration for Anthropic models
+      ...(providerOptions && { providerOptions }),
+      // Beta headers for extended thinking
+      ...(requestHeaders && { headers: requestHeaders }),
       // Log each step and capture visualization results
       onStepFinish({ text, toolCalls, toolResults, usage, finishReason }) {
         console.log(`[Chat API] 🔧 Step finished`);
@@ -1615,7 +1656,10 @@ export async function POST(request: NextRequest) {
     });
 
     // Return streaming response in UIMessage format
-    return result.toUIMessageStreamResponse();
+    // Include sendReasoning: true when thinking mode is enabled to stream reasoning parts
+    return result.toUIMessageStreamResponse({
+      sendReasoning: enableThinking && modelInfo?.supportsThinking,
+    });
 
   } catch (error) {
     console.error('[Chat API] Error:', error);

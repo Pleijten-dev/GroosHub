@@ -20,6 +20,8 @@ export interface ModelCapabilities {
   supportsVision: boolean;
   supportsTools: boolean;
   supportsImageGeneration: boolean;
+  supportsThinking: boolean; // Extended thinking/reasoning mode (Claude, o1, etc.)
+  supportsWebSearch: boolean; // Google Search grounding (Gemini only)
   maxTokens: number;
   contextWindow: number;
   streamingSupported: boolean;
@@ -102,6 +104,8 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: true,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsThinking: false, // OpenAI o1/o3 would have this, not GPT-4o
+    supportsWebSearch: false,
     maxTokens: 16384,
     contextWindow: 128000,
     streamingSupported: true,
@@ -112,6 +116,8 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: true,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsThinking: false,
+    supportsWebSearch: false,
     maxTokens: 16384,
     contextWindow: 128000,
     streamingSupported: true,
@@ -122,6 +128,8 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: true,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsThinking: false,
+    supportsWebSearch: false,
     maxTokens: 4096,
     contextWindow: 128000,
     streamingSupported: true,
@@ -132,6 +140,8 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: false,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsThinking: false,
+    supportsWebSearch: false,
     maxTokens: 4096,
     contextWindow: 16385,
     streamingSupported: true,
@@ -139,11 +149,13 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     costPer1kTokens: { input: 0.0005, output: 0.0015 },
   },
 
-  // Anthropic models
+  // Anthropic models - All Claude models support extended thinking
   'claude-sonnet-4.5': {
     supportsVision: true,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsThinking: true, // Claude supports extended thinking
+    supportsWebSearch: false,
     maxTokens: 8192,
     contextWindow: 200000,
     streamingSupported: true,
@@ -154,6 +166,8 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: true,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsThinking: true, // Claude supports extended thinking
+    supportsWebSearch: false,
     maxTokens: 8192,
     contextWindow: 200000,
     streamingSupported: true,
@@ -164,6 +178,8 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: true,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsThinking: true, // Claude supports extended thinking
+    supportsWebSearch: false,
     maxTokens: 8192,
     contextWindow: 200000,
     streamingSupported: true,
@@ -174,6 +190,8 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: true,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsThinking: true, // Claude supports extended thinking
+    supportsWebSearch: false,
     maxTokens: 4096,
     contextWindow: 200000,
     streamingSupported: true,
@@ -181,11 +199,13 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     costPer1kTokens: { input: 0.015, output: 0.075 },
   },
 
-  // Google models
+  // Google models - All Gemini models support Google Search grounding
   'gemini-2.0-flash': {
     supportsVision: true,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsThinking: false,
+    supportsWebSearch: true, // Gemini supports Google Search grounding
     maxTokens: 8192,
     contextWindow: 1000000,
     streamingSupported: true,
@@ -196,6 +216,8 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: true,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsThinking: false,
+    supportsWebSearch: true, // Gemini supports Google Search grounding
     maxTokens: 8192,
     contextWindow: 2000000,
     streamingSupported: true,
@@ -206,6 +228,8 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: true,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsThinking: false,
+    supportsWebSearch: true, // Gemini supports Google Search grounding
     maxTokens: 8192,
     contextWindow: 1000000,
     streamingSupported: true,
@@ -218,6 +242,8 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: false,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsThinking: false,
+    supportsWebSearch: false,
     maxTokens: 8192,
     contextWindow: 128000,
     streamingSupported: true,
@@ -228,6 +254,8 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: false,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsThinking: false,
+    supportsWebSearch: false,
     maxTokens: 8192,
     contextWindow: 128000,
     streamingSupported: true,
@@ -238,6 +266,8 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: false,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsThinking: false,
+    supportsWebSearch: false,
     maxTokens: 8192,
     contextWindow: 128000,
     streamingSupported: true,
@@ -250,6 +280,8 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: false,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsThinking: false,
+    supportsWebSearch: false,
     maxTokens: 8192,
     contextWindow: 128000,
     streamingSupported: true,
@@ -260,6 +292,8 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: true,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsThinking: false,
+    supportsWebSearch: false,
     maxTokens: 8192,
     contextWindow: 128000,
     streamingSupported: true,
@@ -270,6 +304,8 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     supportsVision: false,
     supportsTools: true,
     supportsImageGeneration: false,
+    supportsThinking: false,
+    supportsWebSearch: false,
     maxTokens: 8192,
     contextWindow: 128000,
     streamingSupported: true,
@@ -313,12 +349,12 @@ export function getModelCapabilities(modelId: ModelId): ModelCapabilities {
 /**
  * Check if a model supports a specific feature
  * @param modelId - The ID of the model
- * @param feature - The feature to check (vision, tools, imageGeneration)
+ * @param feature - The feature to check (vision, tools, imageGeneration, thinking, webSearch)
  * @returns True if the model supports the feature
  */
 export function modelSupportsFeature(
   modelId: ModelId,
-  feature: 'vision' | 'tools' | 'imageGeneration'
+  feature: 'vision' | 'tools' | 'imageGeneration' | 'thinking' | 'webSearch'
 ): boolean {
   const capabilities = getModelCapabilities(modelId);
 
@@ -329,6 +365,10 @@ export function modelSupportsFeature(
       return capabilities.supportsTools;
     case 'imageGeneration':
       return capabilities.supportsImageGeneration;
+    case 'thinking':
+      return capabilities.supportsThinking;
+    case 'webSearch':
+      return capabilities.supportsWebSearch;
     default:
       return false;
   }

@@ -19,6 +19,7 @@ import {
   getAllModelIds,
   DEFAULT_MODEL,
   MODEL_CAPABILITIES,
+  modelSupportsFeature,
   type ModelId
 } from '@/lib/ai/models';
 import { type FileType } from '@/lib/storage/file-validation';
@@ -79,6 +80,12 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
   const [userProjects, setUserProjects] = useState<Array<{ id: string; name: string }>>([]);
   const [isRagLoading, setIsRagLoading] = useState(false);
   const [ragStatus, setRagStatus] = useState<string>('');
+
+  // Extended thinking mode state (for Claude models)
+  const [isThinkingEnabled, setIsThinkingEnabled] = useState(false);
+
+  // Web search mode state (for Gemini models)
+  const [isWebSearchEnabled, setIsWebSearchEnabled] = useState(false);
 
   // Fetch user projects for RAG mode
   useEffect(() => {
@@ -348,6 +355,10 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
       locale: locale,
       fileIds: allFileIds,
       ...(projectId && { projectId }), // Include projectId if provided (for project-specific chats)
+      // Extended thinking mode (for Claude models)
+      ...(isThinkingEnabled && modelSupportsThinking && { enableThinking: true }),
+      // Web search mode (for Gemini models)
+      ...(isWebSearchEnabled && modelSupportsSearch && { enableWebSearch: true }),
     };
 
     console.log('[ChatUI] Sending message with fileIds:', baseMetadata.fileIds);
@@ -485,6 +496,13 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
       you: 'Jij',
       assistant: 'Assistent',
       shortcuts: 'Ctrl+Enter om te versturen, Esc om te stoppen',
+      thinkingLabel: 'Denken',
+      thinkingTooltip: 'Toon denkproces van het model',
+      searchLabel: 'Zoeken',
+      searchTooltip: 'Zoek op internet voor actuele informatie',
+      reasoning: 'Redenering',
+      showReasoning: 'Toon redenering',
+      hideReasoning: 'Verberg redenering',
     },
     en: {
       title: 'AI Assistant',
@@ -503,14 +521,23 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
       you: 'You',
       assistant: 'Assistant',
       shortcuts: 'Ctrl+Enter to send, Esc to stop',
+      thinkingLabel: 'Think',
+      thinkingTooltip: 'Show model reasoning process',
+      searchLabel: 'Search',
+      searchTooltip: 'Search the web for current information',
+      reasoning: 'Reasoning',
+      showReasoning: 'Show reasoning',
+      hideReasoning: 'Hide reasoning',
     },
   };
 
   const t = translations[locale];
 
-  // Check if selected model supports vision (for file uploads)
+  // Check if selected model supports various features
   const selectedModelCapabilities = MODEL_CAPABILITIES[selectedModel];
   const modelSupportsVision = selectedModelCapabilities?.supportsVision ?? false;
+  const modelSupportsThinking = selectedModelCapabilities?.supportsThinking ?? false;
+  const modelSupportsSearch = selectedModelCapabilities?.supportsWebSearch ?? false;
 
   // Helper function to detect and parse chart visualization data
   const tryParseChartData = (text: string): ChartVisualizationProps | null => {
@@ -565,9 +592,69 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
     return images;
   };
 
-  // Render message content from parts array (AI SDK v5) - text only
+  // Component for collapsible reasoning display
+  const ReasoningBlock = ({ reasoning, messageId, index }: { reasoning: string; messageId: string; index: number }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    // Get first line for collapsed preview
+    const firstLine = reasoning.split('\n')[0] || reasoning.substring(0, 100);
+    const hasMore = reasoning.length > firstLine.length;
+
+    return (
+      <div
+        key={`${messageId}-reasoning-${index}`}
+        className="my-2 border border-purple-200 rounded-lg bg-purple-50 overflow-hidden"
+      >
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full px-3 py-2 flex items-center gap-2 text-left hover:bg-purple-100 transition-colors"
+        >
+          {/* Thinking icon */}
+          <svg className="w-4 h-4 text-purple-600 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+          </svg>
+          <span className="text-xs font-semibold text-purple-700">{t.reasoning}</span>
+          <span className="text-xs text-purple-600 flex-1 truncate">
+            {!isExpanded && firstLine}
+          </span>
+          {hasMore && (
+            <svg
+              className={cn(
+                "w-4 h-4 text-purple-500 transition-transform",
+                isExpanded && "rotate-180"
+              )}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          )}
+        </button>
+        {isExpanded && (
+          <div className="px-3 pb-3 text-sm text-purple-800 whitespace-pre-wrap border-t border-purple-200 bg-purple-50/50">
+            {reasoning}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Render message content from parts array (AI SDK v5) - text and reasoning
   const renderMessageContent = (message: typeof messages[0]) => {
     return message.parts.map((part, index) => {
+      // Handle reasoning parts (from extended thinking mode)
+      if (part.type === 'reasoning' && 'reasoning' in part) {
+        return (
+          <ReasoningBlock
+            key={`${message.id}-reasoning-${index}`}
+            reasoning={(part as any).reasoning}
+            messageId={message.id}
+            index={index}
+          />
+        );
+      }
+
       if (part.type === 'text') {
         // Try to parse as chart visualization data
         const chartData = tryParseChartData(part.text);
@@ -984,6 +1071,54 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                   <span>RAG</span>
+                </button>
+              )}
+
+              {/* Extended Thinking Toggle Button - Only visible for models that support it */}
+              {modelSupportsThinking && (
+                <button
+                  type="button"
+                  onClick={() => setIsThinkingEnabled(!isThinkingEnabled)}
+                  disabled={isLoading}
+                  title={t.thinkingTooltip}
+                  className={cn(
+                    'px-3 py-sm rounded-lg text-xs font-bold transition-colors flex items-center gap-xs flex-shrink-0',
+                    'focus:outline-none focus:ring-2 focus:ring-purple-500',
+                    'disabled:opacity-50 disabled:cursor-not-allowed',
+                    isThinkingEnabled
+                      ? 'bg-purple-600 text-white hover:bg-purple-700'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  )}
+                >
+                  {/* Brain/lightbulb icon for thinking */}
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                  <span>{t.thinkingLabel}</span>
+                </button>
+              )}
+
+              {/* Web Search Toggle Button - Only visible for models that support it */}
+              {modelSupportsSearch && (
+                <button
+                  type="button"
+                  onClick={() => setIsWebSearchEnabled(!isWebSearchEnabled)}
+                  disabled={isLoading}
+                  title={t.searchTooltip}
+                  className={cn(
+                    'px-3 py-sm rounded-lg text-xs font-bold transition-colors flex items-center gap-xs flex-shrink-0',
+                    'focus:outline-none focus:ring-2 focus:ring-blue-500',
+                    'disabled:opacity-50 disabled:cursor-not-allowed',
+                    isWebSearchEnabled
+                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  )}
+                >
+                  {/* Globe/search icon for web search */}
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                  </svg>
+                  <span>{t.searchLabel}</span>
                 </button>
               )}
 
