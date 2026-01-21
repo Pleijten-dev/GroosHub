@@ -31,6 +31,7 @@ export interface FileUploadZoneProps {
   onFileRemove: (fileId: string) => void;
   uploadedFiles: UploadedFile[];
   chatId: string;
+  projectId?: string; // Optional: for project-specific uploads (files will show in project files)
   disabled: boolean; // Disable during message sending
   modelSupportsVision: boolean; // NEW: Hide upload button if false
   locale: 'nl' | 'en';
@@ -49,6 +50,7 @@ export function FileUploadZone({
   onFileRemove,
   uploadedFiles,
   chatId,
+  projectId,
   disabled,
   modelSupportsVision,
   locale,
@@ -133,6 +135,9 @@ export function FileUploadZone({
       const formData = new FormData();
       formData.append('file', file);
       formData.append('chatId', chatId);
+      if (projectId) {
+        formData.append('projectId', projectId);
+      }
 
       // Upload with progress tracking
       const xhr = new XMLHttpRequest();

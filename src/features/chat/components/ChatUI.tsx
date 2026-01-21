@@ -912,6 +912,7 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
               onFileRemove={handleFileRemove}
               uploadedFiles={uploadedFiles}
               chatId={currentChatId}
+              projectId={projectId}
               disabled={isLoading}
               modelSupportsVision={modelSupportsVision}
               locale={locale}

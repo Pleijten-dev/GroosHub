@@ -49,6 +49,8 @@ export interface MessageInputProps {
   showFileAttachment?: boolean;
   /** Chat ID for file uploads */
   chatId?: string;
+  /** Project ID for project-specific uploads (files will show in project files) */
+  projectId?: string;
   /** Accepted file types */
   acceptedFileTypes?: string;
   /** Maximum number of files */
@@ -189,6 +191,7 @@ export function MessageInput({
   onRagToggle,
   showFileAttachment = true,
   chatId,
+  projectId,
   acceptedFileTypes = 'image/png,image/jpeg,image/webp,image/gif,application/pdf',
   maxFiles = 5,
   locale = 'nl',
@@ -271,11 +274,14 @@ export function MessageInput({
     try {
       // If we have a chatId, upload to R2
       if (chatId) {
-        console.log('[MessageInput] Uploading file to R2:', file.name, 'chatId:', chatId);
+        console.log('[MessageInput] Uploading file to R2:', file.name, 'chatId:', chatId, 'projectId:', projectId);
 
         const formData = new FormData();
         formData.append('file', file);
         formData.append('chatId', chatId);
+        if (projectId) {
+          formData.append('projectId', projectId);
+        }
 
         const xhr = new XMLHttpRequest();
 
