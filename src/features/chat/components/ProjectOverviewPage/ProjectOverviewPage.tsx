@@ -165,6 +165,9 @@ export function ProjectOverviewPage({
   const [promptRefreshKey, setPromptRefreshKey] = useState(0);
   const [ragEnabled, setRagEnabled] = useState(true);
 
+  // Generate chatId upfront so files can be uploaded to R2 before chat is created
+  const [pendingChatId] = useState(() => crypto.randomUUID());
+
   // Notes state (project-specific storage key)
   const [notes, setNotes] = useState<Array<{ id: string; text: string; createdAt: Date }>>([]);
   const [noteInput, setNoteInput] = useState('');
@@ -336,11 +339,12 @@ export function ProjectOverviewPage({
       setIsCreatingChat(true);
 
       try {
-        // Create a new chat linked to this project
+        // Create a new chat linked to this project (using pre-generated chatId so files are already associated)
         const response = await fetch('/api/chats', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            chatId: pendingChatId, // Use pre-generated ID so files uploaded via MessageInput are associated
             title: message.substring(0, 50) + (message.length > 50 ? '...' : ''),
             initialMessage: message,
             projectId: projectId,
@@ -354,14 +358,15 @@ export function ProjectOverviewPage({
           throw new Error(data.error || 'Failed to create chat');
         }
 
-        // Navigate to the new chat in AI assistant with project context
-        router.push(`/${locale}/ai-assistant?chat=${data.chat.id}&project_id=${projectId}&message=${encodeURIComponent(message)}`);
+        // Navigate to the new chat in AI assistant with project context and file IDs
+        const fileIdsParam = files && files.length > 0 ? `&fileIds=${files.map(f => f.id).join(',')}` : '';
+        router.push(`/${locale}/ai-assistant?chat=${data.chat.id}&project_id=${projectId}&message=${encodeURIComponent(message)}${fileIdsParam}`);
       } catch (error) {
         console.error('[ProjectOverviewPage] Error creating chat:', error);
         setIsCreatingChat(false);
       }
     },
-    [isCreatingChat, locale, projectId, router]
+    [isCreatingChat, locale, pendingChatId, projectId, router]
   );
 
   // Handle prompt selection
@@ -482,6 +487,8 @@ export function ProjectOverviewPage({
             ragEnabled={ragEnabled}
             onRagToggle={setRagEnabled}
             showFileAttachment={true}
+            chatId={pendingChatId}
+            projectId={projectId}
             autoFocus
             className="shadow-lg"
           />

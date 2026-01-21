@@ -43,10 +43,11 @@ export interface ChatUIProps {
   chatId?: string; // Optional: for loading existing chats
   projectId?: string; // Optional: for project-specific chats
   initialMessage?: string; // Optional: message to send automatically on load
+  initialFileIds?: string[]; // Optional: file IDs to include with the initial message
   isEntering?: boolean; // Optional: signals that the component is entering (for animations)
 }
 
-export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering = false }: ChatUIProps) {
+export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileIds, isEntering = false }: ChatUIProps) {
   const [selectedModel, setSelectedModel] = useState<ModelId>(DEFAULT_MODEL);
   const [input, setInput] = useState('');
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
@@ -58,6 +59,16 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
 
   // File upload state
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+
+  // Pending attachments - images that are being sent with the current message
+  // These are tracked separately to ensure they display during streaming
+  const [pendingAttachments, setPendingAttachments] = useState<Array<{
+    url: string;
+    mediaType: string;
+  }>>([]);
+
+  // Pending message text - the user's message text while waiting for it to appear in messages array
+  const [pendingMessageText, setPendingMessageText] = useState<string | null>(null);
 
   // Lightbox state
   const [lightboxImage, setLightboxImage] = useState<{ url: string | URL; fileName?: string } | null>(null);
@@ -176,10 +187,16 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
           if (response.ok && data.messages) {
             console.log(`[ChatUI] ✅ Refetched ${data.messages.length} messages with visualization data`);
             setMessages(data.messages);
+            // Clear pending state - server has the real data now
+            setPendingAttachments([]);
+            setPendingMessageText(null);
           }
         } catch (error) {
           console.error('[ChatUI] ❌ Failed to refetch messages:', error);
           // Non-critical error, don't show to user
+          // Still clear pending state to avoid stale data
+          setPendingAttachments([]);
+          setPendingMessageText(null);
         }
       }
 
@@ -196,6 +213,7 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
   // Track if initial message has been sent
   const initialMessageSentRef = useRef(false);
   const pendingInitialMessageRef = useRef<string | null>(null);
+  const pendingInitialFileIdsRef = useRef<string[] | null>(initialFileIds || null);
 
   // Auto-send initial message when provided and chat is ready
   useEffect(() => {
@@ -236,6 +254,21 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Clear pending message when it appears in the messages array
+  useEffect(() => {
+    if (pendingMessageText && messages.length > 0) {
+      // Check if any user message contains the pending text (message has been added)
+      const hasMatchingUserMessage = messages.some(
+        m => m.role === 'user' && m.parts.some(
+          p => p.type === 'text' && p.text === pendingMessageText
+        )
+      );
+      if (hasMatchingUserMessage) {
+        setPendingMessageText(null);
+      }
+    }
+  }, [messages, pendingMessageText]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -266,6 +299,21 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
     const queryText = input;
     setInput(''); // Clear input immediately
     const currentFiles = [...uploadedFiles];
+
+    // Check for pending initial file IDs (from URL when navigating from OverviewPage)
+    const initialFileIdsToUse = pendingInitialFileIdsRef.current;
+    if (initialFileIdsToUse) {
+      pendingInitialFileIdsRef.current = null; // Clear after use
+      console.log('[ChatUI] 📎 Using initial file IDs from URL:', initialFileIdsToUse);
+    }
+
+    console.log('[ChatUI] 📎 Files at submit time:', {
+      uploadedFilesCount: uploadedFiles.length,
+      currentFilesCount: currentFiles.length,
+      files: currentFiles.map(f => ({ id: f.id, name: f.name, type: f.type })),
+      initialFileIds: initialFileIdsToUse
+    });
+
     setUploadedFiles([]); // Clear uploaded files
 
     if (!currentChatIdRef.current) {
@@ -273,23 +321,36 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
       return;
     }
 
-    // Show user message immediately (optimistic update)
-    const tempUserMessageId = `temp-${Date.now()}`;
-    const userMessage: typeof messages[0] = {
-      id: tempUserMessageId,
-      role: 'user',
-      parts: [{ type: 'text', text: queryText }]
-    };
-    setMessages([...messages, userMessage]);
+    // Store image attachments to display during streaming
+    // (server will process and store them, but we show preview URLs immediately)
+    const imageAttachments = currentFiles
+      .filter(file => file.type === 'image' && file.previewUrl)
+      .map(file => ({
+        url: file.previewUrl!,
+        mediaType: file.mimeType,
+      }));
+
+    // Store pending message text and images to display immediately (before messages array updates)
+    setPendingMessageText(queryText);
+    if (imageAttachments.length > 0) {
+      setPendingAttachments(imageAttachments);
+      console.log(`[ChatUI] Stored ${imageAttachments.length} pending image attachments`);
+    }
+
+    // Combine file IDs from uploaded files and initial file IDs (from URL)
+    const uploadedFileIds = currentFiles.filter(f => f.id).map(f => f.id);
+    const allFileIds = [...uploadedFileIds, ...(initialFileIdsToUse || [])];
 
     // Build base metadata
     const baseMetadata: any = {
       chatId: currentChatIdRef.current,
       modelId: selectedModel,
       locale: locale,
-      fileIds: currentFiles.map(f => f.id),
+      fileIds: allFileIds,
       ...(projectId && { projectId }), // Include projectId if provided (for project-specific chats)
     };
+
+    console.log('[ChatUI] Sending message with fileIds:', baseMetadata.fileIds);
 
     // If RAG is enabled and project is selected, check if query warrants document search
     if (isRagEnabled && selectedProjectId) {
@@ -386,10 +447,6 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
       }
     }
 
-    // Remove temporary user message before calling sendMessage
-    // (sendMessage will add the real message from backend)
-    setMessages(prev => prev.filter(m => m.id !== tempUserMessageId));
-
     // Always proceed with normal chat (with or without RAG context)
     // This preserves streaming, memory, tool calling, and all existing features
     sendMessage({
@@ -400,6 +457,7 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
 
   // File upload handlers
   const handleFilesUploaded = (newFiles: UploadedFile[]) => {
+    console.log('[ChatUI] 📎 Files uploaded:', newFiles.map(f => ({ id: f.id, name: f.name, type: f.type })));
     setUploadedFiles(prev => [...prev, ...newFiles]);
   };
 
@@ -587,15 +645,59 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
             <div className="flex items-center justify-center h-full text-gray-500">
               <p>{locale === 'nl' ? 'Gesprek laden...' : 'Loading chat...'}</p>
             </div>
-          ) : messages.length === 0 ? (
+          ) : messages.length === 0 && !pendingMessageText ? (
             <div className="flex items-center justify-center h-full text-gray-500 text-center">
               <p>{t.emptyState}</p>
             </div>
           ) : (
             <div className="space-y-base">
-              {messages.map((message) => {
+              {/* Show pending message immediately while waiting for messages array to update */}
+              {pendingMessageText && messages.length === 0 && (
+                <div className="flex flex-col gap-2 items-end">
+                  {/* Pending images */}
+                  {pendingAttachments.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {pendingAttachments.map((att, idx) => (
+                        <ImageAttachment
+                          key={`pending-${idx}`}
+                          imageUrl={att.url}
+                          onClick={() => setLightboxImage({
+                            url: att.url,
+                            fileName: `pending-${idx}.${att.mediaType.split('/')[1] || 'jpg'}`
+                          })}
+                          alt="Attached image"
+                        />
+                      ))}
+                    </div>
+                  )}
+                  {/* Pending text */}
+                  <div className="max-w-[85%] min-w-[240px]">
+                    <div className="bg-[#8a976b] text-white rounded-xl px-base py-sm">
+                      <p className="whitespace-pre-wrap break-words">{pendingMessageText}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {messages.map((message, messageIndex) => {
                 const images = extractImages(message);
                 const hasText = message.parts.some(p => p.type === 'text');
+
+                // Check if this is the last user message and we have pending attachments
+                const isLastUserMessage = message.role === 'user' &&
+                  messageIndex === messages.findLastIndex(m => m.role === 'user');
+                const shouldShowPendingAttachments = isLastUserMessage && pendingAttachments.length > 0;
+
+                // Combine extracted images with pending attachments for the last user message
+                const allImages = shouldShowPendingAttachments
+                  ? [
+                      ...pendingAttachments.map((att, idx) => ({
+                        url: att.url,
+                        fileName: `pending-${idx}.${att.mediaType.split('/')[1] || 'jpg'}`,
+                        index: idx + 1000 // Offset to avoid key conflicts
+                      })),
+                      ...images
+                    ]
+                  : images;
 
                 return (
                   <div
@@ -606,9 +708,9 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
                     )}
                   >
                     {/* Images - displayed above text, separate from bubble */}
-                    {images.length > 0 && (
+                    {allImages.length > 0 && (
                       <div className="flex flex-wrap gap-2">
-                        {images.map((img) => (
+                        {allImages.map((img) => (
                           <ImageAttachment
                             key={`${message.id}-image-${img.index}`}
                             imageUrl={img.url}
@@ -626,9 +728,9 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
                     {hasText && (
                       <div
                         className={cn(
-                          'max-w-[80%] rounded-lg px-base py-sm shadow-sm',
+                          'max-w-[80%] min-w-[240px] rounded-lg px-base py-sm shadow-sm',
                           message.role === 'user'
-                            ? 'bg-blue-600 text-white'
+                            ? 'bg-[#8a976b] text-white'
                             : 'bg-white text-gray-900 border border-gray-200'
                         )}
                       >
@@ -853,6 +955,7 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, isEntering =
               onFileRemove={handleFileRemove}
               uploadedFiles={uploadedFiles}
               chatId={currentChatId}
+              projectId={projectId}
               disabled={isLoading}
               modelSupportsVision={modelSupportsVision}
               locale={locale}

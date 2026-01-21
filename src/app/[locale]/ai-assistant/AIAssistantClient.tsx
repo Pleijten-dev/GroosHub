@@ -17,6 +17,8 @@ interface AIAssistantClientProps {
   activeView?: 'overview' | 'chats' | 'tasks' | 'files' | 'notes' | 'members' | 'trash';
   /** Initial message to send automatically when chat loads */
   initialMessage?: string;
+  /** Initial file IDs to include with the initial message */
+  initialFileIds?: string[];
 }
 
 type TransitionPhase = 'idle' | 'exiting' | 'entering';
@@ -31,7 +33,8 @@ export function AIAssistantClient({
   chatId,
   projectId,
   activeView = 'overview',
-  initialMessage
+  initialMessage,
+  initialFileIds
 }: AIAssistantClientProps) {
   const { isCollapsed, toggleSidebar, isLoaded } = useProjectsSidebar();
 
@@ -97,6 +100,7 @@ export function AIAssistantClient({
           chatId={chatId}
           projectId={projectId}
           initialMessage={initialMessage}
+          initialFileIds={initialFileIds}
           isEntering={transitionPhase === 'entering'}
         />
       );

@@ -49,6 +49,8 @@ export interface MessageInputProps {
   showFileAttachment?: boolean;
   /** Chat ID for file uploads */
   chatId?: string;
+  /** Project ID for project-specific uploads (files will show in project files) */
+  projectId?: string;
   /** Accepted file types */
   acceptedFileTypes?: string;
   /** Maximum number of files */
@@ -189,6 +191,7 @@ export function MessageInput({
   onRagToggle,
   showFileAttachment = true,
   chatId,
+  projectId,
   acceptedFileTypes = 'image/png,image/jpeg,image/webp,image/gif,application/pdf',
   maxFiles = 5,
   locale = 'nl',
@@ -264,60 +267,138 @@ export function MessageInput({
     [handleSubmit]
   );
 
-  // File upload handler
+  // File upload handler - uploads to R2 storage if chatId is provided
   const uploadFile = async (fileWithProgress: FileWithProgress) => {
-    // For now, we'll store files locally and upload when message is sent
-    // This can be enhanced to upload to server if chatId is available
     const { file, id } = fileWithProgress;
 
     try {
-      // Simulate upload progress for local files
-      for (let progress = 0; progress <= 100; progress += 20) {
-        await new Promise((resolve) => setTimeout(resolve, 50));
+      // If we have a chatId, upload to R2
+      if (chatId) {
+        console.log('[MessageInput] Uploading file to R2:', file.name, 'chatId:', chatId, 'projectId:', projectId);
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('chatId', chatId);
+        if (projectId) {
+          formData.append('projectId', projectId);
+        }
+
+        const xhr = new XMLHttpRequest();
+
+        // Track upload progress
+        xhr.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable) {
+            const progress = Math.round((event.loaded / event.total) * 100);
+            setUploadingFiles((prev) =>
+              prev.map((f) => (f.id === id ? { ...f, progress } : f))
+            );
+          }
+        });
+
+        // Handle completion
+        const uploadPromise = new Promise<UploadedFile>((resolve, reject) => {
+          xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              const response = JSON.parse(xhr.responseText);
+              if (response.success && response.files && response.files.length > 0) {
+                const uploadedFile = response.files[0];
+
+                // Create preview URL for images
+                let previewUrl: string | undefined;
+                if (uploadedFile.fileType === 'image') {
+                  previewUrl = URL.createObjectURL(file);
+                }
+
+                const result: UploadedFile = {
+                  id: uploadedFile.id, // Real server ID
+                  name: uploadedFile.fileName,
+                  type: uploadedFile.fileType,
+                  mimeType: uploadedFile.mimeType,
+                  size: uploadedFile.fileSize,
+                  previewUrl,
+                };
+
+                resolve(result);
+              } else {
+                reject(new Error(response.error || 'Upload failed'));
+              }
+            } else {
+              reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
+            }
+          });
+
+          xhr.addEventListener('error', () => reject(new Error('Network error')));
+          xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
+        });
+
+        xhr.open('POST', '/api/upload');
+        xhr.send(formData);
+
+        const uploadedFile = await uploadPromise;
+        console.log('[MessageInput] ✅ File uploaded to R2:', uploadedFile.id);
+
         setUploadingFiles((prev) =>
-          prev.map((f) => (f.id === id ? { ...f, progress } : f))
+          prev.map((f) => (f.id === id ? { ...f, progress: 100, uploaded: uploadedFile } : f))
         );
+
+        setUploadedFiles((prev) => [...prev, uploadedFile]);
+
+        // Remove from uploading after delay
+        setTimeout(() => {
+          setUploadingFiles((prev) => prev.filter((f) => f.id !== id));
+        }, 300);
+      } else {
+        // No chatId - store locally with temporary ID
+        console.warn('[MessageInput] No chatId provided - storing file locally (won\'t be sent to server)');
+
+        // Simulate upload progress for local files
+        for (let progress = 0; progress <= 100; progress += 20) {
+          await new Promise((resolve) => setTimeout(resolve, 50));
+          setUploadingFiles((prev) =>
+            prev.map((f) => (f.id === id ? { ...f, progress } : f))
+          );
+        }
+
+        // Create preview URL for images
+        let previewUrl: string | undefined;
+        if (file.type.startsWith('image/')) {
+          previewUrl = URL.createObjectURL(file);
+        }
+
+        // Determine file type
+        let fileType: 'image' | 'pdf' | 'document' = 'document';
+        if (file.type.startsWith('image/')) {
+          fileType = 'image';
+        } else if (file.type === 'application/pdf') {
+          fileType = 'pdf';
+        }
+
+        const uploaded: UploadedFile = {
+          id,  // Local ID - won't work for server requests
+          name: file.name,
+          type: fileType,
+          mimeType: file.type,
+          size: file.size,
+          previewUrl,
+        };
+
+        setUploadingFiles((prev) =>
+          prev.map((f) => (f.id === id ? { ...f, progress: 100, uploaded } : f))
+        );
+
+        setUploadedFiles((prev) => [...prev, uploaded]);
+
+        // Remove from uploading after delay
+        setTimeout(() => {
+          setUploadingFiles((prev) => prev.filter((f) => f.id !== id));
+        }, 300);
       }
-
-      // Create preview URL for images
-      let previewUrl: string | undefined;
-      if (file.type.startsWith('image/')) {
-        previewUrl = URL.createObjectURL(file);
-      }
-
-      // Determine file type
-      let fileType: 'image' | 'pdf' | 'document' = 'document';
-      if (file.type.startsWith('image/')) {
-        fileType = 'image';
-      } else if (file.type === 'application/pdf') {
-        fileType = 'pdf';
-      }
-
-      const uploaded: UploadedFile = {
-        id,
-        name: file.name,
-        type: fileType,
-        mimeType: file.type,
-        size: file.size,
-        previewUrl,
-      };
-
-      setUploadingFiles((prev) =>
-        prev.map((f) => (f.id === id ? { ...f, progress: 100, uploaded } : f))
-      );
-
-      setUploadedFiles((prev) => [...prev, uploaded]);
-
-      // Remove from uploading after delay
-      setTimeout(() => {
-        setUploadingFiles((prev) => prev.filter((f) => f.id !== id));
-      }, 300);
     } catch (error) {
-      console.error('[MessageInput] File processing error:', error);
+      console.error('[MessageInput] File upload error:', error);
       setUploadingFiles((prev) =>
         prev.map((f) =>
           f.id === id
-            ? { ...f, error: error instanceof Error ? error.message : 'Processing failed' }
+            ? { ...f, error: error instanceof Error ? error.message : 'Upload failed' }
             : f
         )
       );

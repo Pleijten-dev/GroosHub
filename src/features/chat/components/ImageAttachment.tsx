@@ -25,14 +25,29 @@ export function ImageAttachment({
 }: ImageAttachmentProps) {
   const imageUrlString = typeof imageUrl === 'string' ? imageUrl : imageUrl.toString();
 
-  // Data URLs load instantly, no need for loading state
+  // Detect URL type for proper handling
   const isDataUrl = imageUrlString.startsWith('data:');
-  const [isLoading, setIsLoading] = useState(!isDataUrl);
+  const isBlobUrl = imageUrlString.startsWith('blob:');
+  const isHttpUrl = imageUrlString.startsWith('http');
+
+  // Debug logging
+  useEffect(() => {
+    const urlType = isDataUrl ? 'data URL' : isBlobUrl ? 'blob URL' : isHttpUrl ? 'HTTP URL' : 'unknown';
+    const urlPreview = imageUrlString.length > 100
+      ? `${imageUrlString.substring(0, 100)}...`
+      : imageUrlString;
+    console.log(`[ImageAttachment] URL type: ${urlType}, preview: ${urlPreview}`);
+  }, [imageUrlString, isDataUrl, isBlobUrl, isHttpUrl]);
+
+  // Data URLs and blob URLs should be instantly available
+  const instantLoad = isDataUrl || isBlobUrl;
+  const [isLoading, setIsLoading] = useState(!instantLoad);
   const [hasError, setHasError] = useState(false);
+  const [naturalDimensions, setNaturalDimensions] = useState<{ width: number; height: number } | null>(null);
 
   // Fallback timeout: force show image after 2 seconds if onLoad doesn't fire
   useEffect(() => {
-    if (!isDataUrl && isLoading) {
+    if (!instantLoad && isLoading) {
       const timeout = setTimeout(() => {
         console.log('[ImageAttachment] Timeout: forcing image to show');
         setIsLoading(false);
@@ -40,7 +55,37 @@ export function ImageAttachment({
 
       return () => clearTimeout(timeout);
     }
-  }, [isDataUrl, isLoading]);
+  }, [instantLoad, isLoading]);
+
+  // Check for empty or invalid URL
+  const isValidUrl = imageUrlString && imageUrlString.length > 0 && (isDataUrl || isBlobUrl || isHttpUrl);
+
+  if (!isValidUrl) {
+    console.error('[ImageAttachment] Invalid URL provided:', imageUrlString?.substring(0, 50));
+    return (
+      <div
+        className="flex items-center justify-center bg-gray-100 rounded-lg border border-gray-200 p-4"
+        style={{ maxWidth: `${maxWidth}px`, minHeight: '60px' }}
+      >
+        <div className="text-center">
+          <svg
+            className="w-6 h-6 text-gray-400 mx-auto mb-1"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+          <p className="text-xs text-gray-500">No image</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -48,9 +93,9 @@ export function ImageAttachment({
         'relative rounded-lg overflow-hidden cursor-pointer',
         'hover:opacity-90 transition-opacity',
         'border border-gray-200 shadow-sm',
-        'bg-gray-100' // Ensure background is visible
+        'bg-white' // Use white background for better image visibility
       )}
-      style={{ maxWidth: `${maxWidth}px`, minHeight: isLoading ? '100px' : 'auto' }}
+      style={{ maxWidth: `${maxWidth}px`, minHeight: '60px' }}
       onClick={onClick}
     >
       {/* Loading State */}
@@ -96,31 +141,43 @@ export function ImageAttachment({
         </div>
       )}
 
-      {/* Image - removed lazy loading for data URLs */}
+      {/* Image - instant load for data/blob URLs */}
       <img
         src={imageUrlString}
         alt={alt}
         className={cn(
-          'w-full h-auto block object-contain',
-          isLoading && 'opacity-0',
+          'w-full h-auto block',
+          isLoading && 'opacity-0 absolute',
           hasError && 'hidden'
         )}
-        style={{ minHeight: isLoading ? '100px' : 'auto' }}
-        onLoad={() => {
-          console.log('[ImageAttachment] Image loaded successfully');
+        style={{
+          minHeight: '60px',
+          maxHeight: '200px',
+          objectFit: 'contain',
+        }}
+        onLoad={(e) => {
+          const img = e.target as HTMLImageElement;
+          const dims = { width: img.naturalWidth, height: img.naturalHeight };
+          console.log(`[ImageAttachment] Image loaded: ${dims.width}x${dims.height}`);
+          setNaturalDimensions(dims);
           setIsLoading(false);
+
+          // Warn if image has 0 dimensions (likely broken)
+          if (dims.width === 0 || dims.height === 0) {
+            console.warn('[ImageAttachment] Image has 0 dimensions - may be broken');
+          }
         }}
         onError={(e) => {
-          console.error('[ImageAttachment] Image failed to load:', e);
+          console.error('[ImageAttachment] Image failed to load:', imageUrlString.substring(0, 100));
           setIsLoading(false);
           setHasError(true);
         }}
       />
 
-      {/* Click Hint Overlay */}
+      {/* Click Hint Overlay - only visible on hover */}
       {!isLoading && !hasError && (
-        <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-all flex items-center justify-center">
-          <div className="opacity-0 hover:opacity-100 transition-opacity">
+        <div className="absolute inset-0 hover:bg-black/10 transition-colors flex items-center justify-center group">
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
             <svg
               className="w-8 h-8 text-white drop-shadow-lg"
               fill="none"
