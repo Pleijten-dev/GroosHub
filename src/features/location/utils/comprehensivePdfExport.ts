@@ -1171,7 +1171,10 @@ class PdfBuilder {
       this.pdf.setTextColor(60, 60, 60);
       const descLines = this.pdf.splitTextToSize(persona.description || '', cardWidth - padding * 2);
       const descY = cardY + padding + imageSize + 4;
-      this.pdf.text(descLines.slice(0, 2).join(' ').substring(0, 120), cardX + padding, descY);
+      const lineHeight = 2.5; // Line height for font size 6
+      descLines.slice(0, 2).forEach((line: string, lineIndex: number) => {
+        this.pdf.text(line, cardX + padding, descY + lineIndex * lineHeight);
+      });
 
       // Housing types on bottom line (if available)
       if (persona.current_property_types?.[0] || persona.desired_property_types?.[0]) {
