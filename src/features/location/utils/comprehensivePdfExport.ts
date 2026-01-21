@@ -1153,11 +1153,12 @@ class PdfBuilder {
         this.pdf.rect(cardX + padding, y, imageSize, imageSize, 'F');
       }
 
-      // Name (bold, to right of image)
+      // Name (bold, to right of image) - truncate if too long
       this.pdf.setFontSize(9);
       this.pdf.setTextColor(17, 24, 39);
       this.pdf.setFont('helvetica', 'bold');
-      this.pdf.text(persona.name, rightSectionX, y + 5);
+      const nameText = this.pdf.splitTextToSize(persona.name, rightSectionWidth)[0];
+      this.pdf.text(nameText, rightSectionX, y + 5);
 
       // Three stat boxes below name (like website design)
       const statBoxY = y + 8;
@@ -1166,7 +1167,7 @@ class PdfBuilder {
       const labels = [
         this.locale === 'nl' ? 'Inkomen' : 'Income',
         this.locale === 'nl' ? 'Leeftijd' : 'Age',
-        this.locale === 'nl' ? 'Huishouden' : 'Household'
+        this.locale === 'nl' ? 'Huish.' : 'Household'  // Shortened to fit box
       ];
       const values = [persona.income_level, persona.age_group, persona.household_type];
 
@@ -1177,11 +1178,12 @@ class PdfBuilder {
         this.pdf.setFillColor(249, 250, 251);
         this.pdf.roundedRect(boxX, statBoxY, statBoxWidth, statBoxHeight, 1, 1, 'F');
 
-        // Label
+        // Label (truncate if needed)
         this.pdf.setFontSize(5);
         this.pdf.setTextColor(107, 114, 128);
         this.pdf.setFont('helvetica', 'normal');
-        this.pdf.text(labels[i], boxX + 1.5, statBoxY + 3);
+        const labelText = this.pdf.splitTextToSize(labels[i], statBoxWidth - 3)[0];
+        this.pdf.text(labelText, boxX + 1.5, statBoxY + 3);
 
         // Value (truncate if needed)
         this.pdf.setFontSize(5);
