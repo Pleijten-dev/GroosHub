@@ -31,6 +31,8 @@ import { PVEQuestionnaire } from '../../../features/location/components/PVE';
 import { MapExportButton, ComprehensivePdfExportButton } from '../../../features/location/components/MapExport';
 import type { AccessibleLocation } from '../../../features/location/types/saved-locations';
 import { useWMSGrading } from '../../../features/location/hooks/useWMSGrading';
+import { pveConfigCache } from '../../../features/location/data/cache/pveConfigCache';
+import type { WMSGradingData } from '../../../features/location/types/wms-grading';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -84,7 +86,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
   // Snapshot data state (for loaded snapshots)
   const [loadedSnapshotId, setLoadedSnapshotId] = useState<string | null>(null);
-  const [loadedWMSGradingData, setLoadedWMSGradingData] = useState<Record<string, unknown> | null>(null);
+  const [loadedWMSGradingData, setLoadedWMSGradingData] = useState<WMSGradingData | null>(null);
 
   // Generate cube colors once and share across all components for consistency
   const cubeColors = React.useMemo(() => generateGradientColors(), []);
@@ -275,6 +277,24 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
       // Store the current address
       const address = location.address;
       localStorage.setItem('grooshub_current_address', address);
+
+      // Store snapshot ID for reference
+      setLoadedSnapshotId(location.id);
+
+      // Restore WMS grading data if available (prevents re-grading)
+      if (location.wmsGradingData) {
+        console.log('📊 Restoring saved WMS grading data');
+        setLoadedWMSGradingData(location.wmsGradingData as WMSGradingData);
+      } else {
+        // Clear any previous WMS grading data if not available
+        setLoadedWMSGradingData(null);
+      }
+
+      // Restore PVE data to cache if available
+      if (location.pveData) {
+        console.log('📋 Restoring saved PVE configuration');
+        pveConfigCache.setFinalPVE(location.pveData);
+      }
 
       // Load the saved data directly without making API calls
       // The location.locationData contains UnifiedLocationData

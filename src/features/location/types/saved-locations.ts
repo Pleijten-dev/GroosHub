@@ -5,6 +5,8 @@
 
 import type { UnifiedLocationData } from '../data/aggregator/multiLevelAggregator';
 import type { AmenityMultiCategoryResponse } from '../data/sources/google-places/types';
+import type { WMSGradingData } from './wms-grading';
+import type { PVEFinalState } from '../data/cache/pveConfigCache';
 
 /**
  * Coordinates structure
@@ -141,6 +143,12 @@ export interface AccessibleLocation extends SavedLocation {
   ownerEmail: string;
   isShared: boolean;
   canEdit: boolean;
+  /** WMS grading data from saved snapshot (for Kaarten tab) */
+  wmsGradingData?: WMSGradingData | null;
+  /** PVE configuration from saved snapshot */
+  pveData?: PVEFinalState | null;
+  /** Scoring algorithm version used when snapshot was created */
+  scoringAlgorithmVersion?: string;
 }
 
 /**

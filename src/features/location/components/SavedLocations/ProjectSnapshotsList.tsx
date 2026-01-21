@@ -201,6 +201,12 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
           amenities: amenitiesRows,
         } as any, // Type assertion to bypass strict type checking for now
         amenitiesData: amenitiesDataRaw,
+        // Include WMS grading data if available (for Kaarten tab)
+        wmsGradingData: snapshotData.wms_grading_data || null,
+        // Include PVE data if available (for Programma van Eisen)
+        pveData: snapshotData.pve_data || null,
+        // Include scoring algorithm version for compatibility checking
+        scoringAlgorithmVersion: snapshotData.scoring_algorithm_version || undefined,
         dataVersion: '1.0.0',
         completionStatus: 'location_only',
         createdAt: new Date(snapshotData.created_at),

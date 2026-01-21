@@ -18,7 +18,7 @@ export interface UseWMSGradingOptions {
   /** Address of location */
   address?: string;
   /** Existing WMS grading data (if loaded from snapshot) */
-  existingGradingData?: Record<string, unknown> | null;
+  existingGradingData?: WMSGradingData | null;
   /** Auto-start grading if no data exists */
   autoGrade?: boolean;
   /** Poll interval in milliseconds */
@@ -72,9 +72,8 @@ export function useWMSGrading(options: UseWMSGradingOptions): UseWMSGradingRetur
   const hasValidGradingData = useCallback(() => {
     if (!existingGradingData) return false;
 
-    // Check if it has the expected structure
-    const data = existingGradingData as Partial<WMSGradingData>;
-    return !!(data.layers && Object.keys(data.layers).length > 0);
+    // Check if it has the expected structure (already typed as WMSGradingData)
+    return !!(existingGradingData.layers && Object.keys(existingGradingData.layers).length > 0);
   }, [existingGradingData]);
 
   /**
@@ -210,19 +209,18 @@ export function useWMSGrading(options: UseWMSGradingOptions): UseWMSGradingRetur
   useEffect(() => {
     // If we have existing valid grading data, use it
     // BUT only if we don't already have grading data in state (to prevent infinite loop)
-    if (hasValidGradingData() && !gradingData) {
-      // Safe cast: hasValidGradingData() validates structure at runtime
-      const validatedData = existingGradingData as unknown as WMSGradingData;
-      setGradingData(validatedData);
+    if (hasValidGradingData() && !gradingData && existingGradingData) {
+      // existingGradingData is already typed as WMSGradingData, validated by hasValidGradingData()
+      setGradingData(existingGradingData);
       setIsCriticalComplete(true);
       setProgress(100);
 
       // Count successful layers
-      const successful = Object.values(validatedData.layers).filter(
+      const successful = Object.values(existingGradingData.layers).filter(
         layer => layer.point_sample || layer.average_area_sample || layer.max_area_sample
       ).length;
       setLayersCompleted(successful);
-      setLayersTotal(Object.keys(validatedData.layers).length);
+      setLayersTotal(Object.keys(existingGradingData.layers).length);
 
       return;
     }
