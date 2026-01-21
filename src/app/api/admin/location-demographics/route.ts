@@ -89,10 +89,13 @@ async function fetchAllWijken(period: string = DEFAULT_PERIOD): Promise<WijkDemo
   return rows
     .map((row): WijkDemographics | null => {
       const totalPop = parseNumber(row[CBS_FIELDS.totalPopulation]);
-      const totalHH = parseNumber(row[CBS_FIELDS.totalHouseholds]);
+      const totalHHRaw = parseNumber(row[CBS_FIELDS.totalHouseholds]);
 
       // Skip wijken with no population data
       if (totalPop === null || totalPop === 0) return null;
+
+      // Default totalHH to 0 if null
+      const totalHH = totalHHRaw ?? 0;
 
       // Calculate age percentages
       const age0to15 = parseNumber(row[CBS_FIELDS.age0to15]) ?? 0;
@@ -123,7 +126,7 @@ async function fetchAllWijken(period: string = DEFAULT_PERIOD): Promise<WijkDemo
         singlePersonHouseholdsPct: totalHH > 0 ? (singleHH / totalHH) * 100 : 0,
         householdsWithoutChildrenPct: totalHH > 0 ? (hhWithoutChildren / totalHH) * 100 : 0,
         householdsWithChildrenPct: totalHH > 0 ? (hhWithChildren / totalHH) * 100 : 0,
-        totalHouseholds: totalHH ?? 0,
+        totalHouseholds: totalHH,
       };
     })
     .filter((w): w is WijkDemographics => w !== null);
