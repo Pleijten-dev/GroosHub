@@ -305,16 +305,20 @@ function calculateClassificationStrength(wijk: WijkWithZScores): number {
   return relevantScores.reduce((a, b) => a + b, 0) / relevantScores.length;
 }
 
+type GeoLevel = 'WK' | 'BU' | 'both';
+
 export function ExtremeLocationFinder({ locale }: ExtremeLocationFinderProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<{
+    level: GeoLevel;
     totalWijken: number;
     classificationCounts: Record<string, number>;
     extremeExamples: Record<string, WijkWithZScores[]>;
     allWijken: WijkWithZScores[];
   } | null>(null);
 
+  const [geoLevel, setGeoLevel] = useState<GeoLevel>('WK');
   const [selectedClassification, setSelectedClassification] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'outliers' | 'income' | 'population' | 'strength'>('strength');
@@ -322,8 +326,10 @@ export function ExtremeLocationFinder({ locale }: ExtremeLocationFinderProps) {
 
   useEffect(() => {
     async function fetchData() {
+      setLoading(true);
+      setError(null);
       try {
-        const response = await fetch('/api/admin/location-demographics');
+        const response = await fetch(`/api/admin/location-demographics?level=${geoLevel}`);
         const result = await response.json();
 
         if (!result.success) {
@@ -331,6 +337,8 @@ export function ExtremeLocationFinder({ locale }: ExtremeLocationFinderProps) {
         }
 
         setData(result.data);
+        // Reset classification selection when level changes
+        setSelectedClassification(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
@@ -339,7 +347,7 @@ export function ExtremeLocationFinder({ locale }: ExtremeLocationFinderProps) {
     }
 
     fetchData();
-  }, []);
+  }, [geoLevel]);
 
   const classificationData = useMemo((): ClassificationData[] => {
     if (!data) return [];
@@ -424,6 +432,10 @@ export function ExtremeLocationFinder({ locale }: ExtremeLocationFinderProps) {
     strength: locale === 'nl' ? 'Classificatie Sterkte' : 'Classification Strength',
     minPopulation: locale === 'nl' ? 'Min. bevolking' : 'Min. population',
     filtered: locale === 'nl' ? 'gefilterd' : 'filtered',
+    geoLevel: locale === 'nl' ? 'Niveau' : 'Level',
+    wijken: locale === 'nl' ? 'Wijken (WK)' : 'Districts (WK)',
+    buurten: locale === 'nl' ? 'Buurten (BU)' : 'Neighborhoods (BU)',
+    both: locale === 'nl' ? 'Beide' : 'Both',
   };
 
   if (loading) {
@@ -453,8 +465,24 @@ export function ExtremeLocationFinder({ locale }: ExtremeLocationFinderProps) {
     <div className="space-y-lg">
       {/* Header */}
       <div className="bg-white rounded-lg shadow-md p-lg">
-        <h1 className="text-2xl font-bold mb-sm">{translations.title}</h1>
-        <p className="text-gray-600 mb-base">{translations.subtitle}</p>
+        <div className="flex flex-wrap justify-between items-start gap-base mb-base">
+          <div>
+            <h1 className="text-2xl font-bold mb-sm">{translations.title}</h1>
+            <p className="text-gray-600">{translations.subtitle}</p>
+          </div>
+          <div className="flex items-center gap-sm">
+            <label className="text-sm font-medium">{translations.geoLevel}:</label>
+            <select
+              value={geoLevel}
+              onChange={e => setGeoLevel(e.target.value as GeoLevel)}
+              className="px-base py-sm border rounded-base font-medium"
+            >
+              <option value="WK">{translations.wijken}</option>
+              <option value="BU">{translations.buurten}</option>
+              <option value="both">{translations.both}</option>
+            </select>
+          </div>
+        </div>
         <div className="flex flex-wrap gap-base text-sm">
           <div className="bg-primary/10 px-base py-sm rounded-base">
             <span className="font-semibold">{translations.totalWijken}:</span>{' '}

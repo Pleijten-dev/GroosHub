@@ -1,11 +1,15 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * API endpoint to fetch all wijken (districts) from CBS Kerncijfers API
+ * API endpoint to fetch all wijken (districts) and buurten (neighborhoods) from CBS Kerncijfers API
  * Dataset: 84583NED (Kerncijfers wijken en buurten)
  *
  * This endpoint is used for the ExtremeLocationFinder testing tool
  * to analyze demographic characteristics across all Dutch neighborhoods.
+ *
+ * Geographic levels:
+ * - WK = Wijk (district) - ~3,000 areas
+ * - BU = Buurt (neighborhood) - ~13,000 areas
  */
 
 export interface WijkDemographics {
@@ -70,10 +74,23 @@ const CBS_FIELDS = {
   householdsWithChildren: 'HuishoudensMetKinderen_31',
 };
 
-async function fetchAllWijken(period: string = DEFAULT_PERIOD): Promise<WijkDemographics[]> {
-  const url = `${CBS_BASE_URL}?$filter=startswith(WijkenEnBuurten,'WK') and Perioden eq '${period}'`;
+type GeoLevel = 'WK' | 'BU' | 'both';
 
-  console.log(`🔵 [CBS Wijken] Fetching all wijken for period ${period}`);
+async function fetchAllAreas(
+  level: GeoLevel = 'both',
+  period: string = DEFAULT_PERIOD
+): Promise<WijkDemographics[]> {
+  // Build filter based on level
+  let filter: string;
+  if (level === 'both') {
+    filter = `(startswith(WijkenEnBuurten,'WK') or startswith(WijkenEnBuurten,'BU'))`;
+  } else {
+    filter = `startswith(WijkenEnBuurten,'${level}')`;
+  }
+
+  const url = `${CBS_BASE_URL}?$filter=${filter} and Perioden eq '${period}'`;
+
+  console.log(`🔵 [CBS Areas] Fetching ${level === 'both' ? 'wijken + buurten' : level} for period ${period}`);
 
   const response = await fetch(url);
   if (!response.ok) {
@@ -83,7 +100,7 @@ async function fetchAllWijken(period: string = DEFAULT_PERIOD): Promise<WijkDemo
   const data = await response.json();
   const rows = data.value as Record<string, unknown>[];
 
-  console.log(`✅ [CBS Wijken] Found ${rows.length} wijken`);
+  console.log(`✅ [CBS Areas] Found ${rows.length} areas`);
 
   // Transform raw data to structured format
   return rows
@@ -91,7 +108,7 @@ async function fetchAllWijken(period: string = DEFAULT_PERIOD): Promise<WijkDemo
       const totalPop = parseNumber(row[CBS_FIELDS.totalPopulation]);
       const totalHHRaw = parseNumber(row[CBS_FIELDS.totalHouseholds]);
 
-      // Skip wijken with no population data
+      // Skip areas with no population data
       if (totalPop === null || totalPop === 0) return null;
 
       // Default totalHH to 0 if null
@@ -293,21 +310,31 @@ function classifyNeighborhood(
   return 'mixed-demographic';
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const wijken = await fetchAllWijken();
-    const wijkenWithZScores = calculateZScores(wijken);
+    // Get query parameters
+    const searchParams = request.nextUrl.searchParams;
+    const levelParam = searchParams.get('level') || 'both';
+
+    // Validate level parameter
+    const validLevels: GeoLevel[] = ['WK', 'BU', 'both'];
+    const level: GeoLevel = validLevels.includes(levelParam as GeoLevel)
+      ? (levelParam as GeoLevel)
+      : 'both';
+
+    const areas = await fetchAllAreas(level);
+    const areasWithZScores = calculateZScores(areas);
 
     // Calculate summary statistics
     const classificationCounts: Record<string, number> = {};
-    wijkenWithZScores.forEach(w => {
+    areasWithZScores.forEach(w => {
       classificationCounts[w.classification] = (classificationCounts[w.classification] || 0) + 1;
     });
 
     // Find extreme examples for each classification
     const extremeExamples: Record<string, WijkWithZScores[]> = {};
     Object.keys(classificationCounts).forEach(classification => {
-      extremeExamples[classification] = wijkenWithZScores
+      extremeExamples[classification] = areasWithZScores
         .filter(w => w.classification === classification)
         .sort((a, b) => b.outliers.length - a.outliers.length)
         .slice(0, 5);
@@ -316,16 +343,17 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       data: {
-        totalWijken: wijkenWithZScores.length,
+        level,
+        totalWijken: areasWithZScores.length,
         classificationCounts,
         extremeExamples,
-        allWijken: wijkenWithZScores,
+        allWijken: areasWithZScores,
       },
     });
   } catch (error) {
-    console.error('Error fetching wijk demographics:', error);
+    console.error('Error fetching area demographics:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch wijk demographics' },
+      { success: false, error: 'Failed to fetch area demographics' },
       { status: 500 }
     );
   }
