@@ -26,6 +26,8 @@ export interface PVEFinalState {
   totalM2: number;
   percentages: PVEAllocations;
   timestamp: number;
+  /** Custom scenario persona IDs (saved with snapshots) */
+  customScenarioIds?: string[];
 }
 
 const CACHE_KEY = 'grooshub_pve_custom_config';

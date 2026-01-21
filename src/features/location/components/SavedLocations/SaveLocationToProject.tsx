@@ -123,6 +123,26 @@ export const SaveLocationToProject: React.FC<SaveLocationToProjectProps> = ({
       // Get PVE data from localStorage cache
       const pveData = pveConfigCache.getFinalPVE();
 
+      // Get custom scenario selection from localStorage
+      let customScenarioIds: string[] | undefined;
+      try {
+        const stored = localStorage.getItem('grooshub_doelgroepen_scenario_selection');
+        if (stored) {
+          const { customIds } = JSON.parse(stored);
+          if (customIds && Array.isArray(customIds) && customIds.length > 0) {
+            customScenarioIds = customIds;
+          }
+        }
+      } catch (error) {
+        console.error('Failed to read custom scenario from localStorage:', error);
+      }
+
+      // Combine PVE data with custom scenario
+      const combinedPveData = {
+        ...pveData,
+        customScenarioIds, // Include custom scenario selection
+      };
+
       // Pre-compute amenity scores to ensure consistency on load
       // The raw amenities data is saved, but we also save the computed scores
       let enrichedAmenitiesData = amenitiesData || {};
@@ -175,7 +195,7 @@ export const SaveLocationToProject: React.FC<SaveLocationToProjectProps> = ({
           amenities_data: enrichedAmenitiesData,
           housing_data: housingData,
           wms_grading_data: wmsGradingData || null,
-          pve_data: pveData || null,
+          pve_data: combinedPveData || null,
           scoring_algorithm_version: CURRENT_SCORING_VERSION,
           notes: null,
           tags: [],

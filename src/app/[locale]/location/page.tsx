@@ -319,6 +319,18 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         pveConfigCache.setFinalPVE(location.pveData);
       }
 
+      // Restore custom scenario selection if available in PVE data
+      if (location.pveData?.customScenarioIds && Array.isArray(location.pveData.customScenarioIds)) {
+        console.log('🎯 Restoring custom scenario selection');
+        localStorage.setItem('grooshub_doelgroepen_scenario_selection', JSON.stringify({
+          scenario: 'custom',
+          customIds: location.pveData.customScenarioIds
+        }));
+      } else {
+        // Clear custom scenario if not in snapshot (prevents stale data from previous sessions)
+        localStorage.removeItem('grooshub_doelgroepen_scenario_selection');
+      }
+
       // Load the saved data directly without making API calls
       // The location.locationData contains UnifiedLocationData
       // Pass the address so it gets stored in cache to prevent unnecessary refetches
