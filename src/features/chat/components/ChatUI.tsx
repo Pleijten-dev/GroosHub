@@ -67,6 +67,9 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
     mediaType: string;
   }>>([]);
 
+  // Pending message text - the user's message text while waiting for it to appear in messages array
+  const [pendingMessageText, setPendingMessageText] = useState<string | null>(null);
+
   // Lightbox state
   const [lightboxImage, setLightboxImage] = useState<{ url: string | URL; fileName?: string } | null>(null);
 
@@ -184,14 +187,16 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
           if (response.ok && data.messages) {
             console.log(`[ChatUI] ✅ Refetched ${data.messages.length} messages with visualization data`);
             setMessages(data.messages);
-            // Clear pending attachments - server has the real data now
+            // Clear pending state - server has the real data now
             setPendingAttachments([]);
+            setPendingMessageText(null);
           }
         } catch (error) {
           console.error('[ChatUI] ❌ Failed to refetch messages:', error);
           // Non-critical error, don't show to user
-          // Still clear pending attachments to avoid stale state
+          // Still clear pending state to avoid stale data
           setPendingAttachments([]);
+          setPendingMessageText(null);
         }
       }
 
@@ -248,6 +253,21 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Clear pending message when it appears in the messages array
+  useEffect(() => {
+    if (pendingMessageText && messages.length > 0) {
+      // Check if any user message contains the pending text (message has been added)
+      const hasMatchingUserMessage = messages.some(
+        m => m.role === 'user' && m.parts.some(
+          p => p.type === 'text' && p.text === pendingMessageText
+        )
+      );
+      if (hasMatchingUserMessage) {
+        setPendingMessageText(null);
+      }
+    }
+  }, [messages, pendingMessageText]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -310,6 +330,8 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
         mediaType: file.mimeType,
       }));
 
+    // Store pending message text and images to display immediately (before messages array updates)
+    setPendingMessageText(queryText);
     if (imageAttachments.length > 0) {
       setPendingAttachments(imageAttachments);
       console.log(`[ChatUI] Stored ${imageAttachments.length} pending image attachments`);
@@ -623,12 +645,39 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
             <div className="flex items-center justify-center h-full text-gray-500">
               <p>{locale === 'nl' ? 'Gesprek laden...' : 'Loading chat...'}</p>
             </div>
-          ) : messages.length === 0 ? (
+          ) : messages.length === 0 && !pendingMessageText ? (
             <div className="flex items-center justify-center h-full text-gray-500 text-center">
               <p>{t.emptyState}</p>
             </div>
           ) : (
             <div className="space-y-base">
+              {/* Show pending message immediately while waiting for messages array to update */}
+              {pendingMessageText && messages.length === 0 && (
+                <div className="flex flex-col gap-2 items-end">
+                  {/* Pending images */}
+                  {pendingAttachments.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {pendingAttachments.map((att, idx) => (
+                        <ImageAttachment
+                          key={`pending-${idx}`}
+                          imageUrl={att.url}
+                          onClick={() => setLightboxImage({
+                            url: att.url,
+                            fileName: `pending-${idx}.${att.mediaType.split('/')[1] || 'jpg'}`
+                          })}
+                          alt="Attached image"
+                        />
+                      ))}
+                    </div>
+                  )}
+                  {/* Pending text */}
+                  <div className="max-w-[85%] min-w-[240px]">
+                    <div className="bg-[#8a976b] text-white rounded-xl px-base py-sm">
+                      <p className="whitespace-pre-wrap break-words">{pendingMessageText}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
               {messages.map((message, messageIndex) => {
                 const images = extractImages(message);
                 const hasText = message.parts.some(p => p.type === 'text');
