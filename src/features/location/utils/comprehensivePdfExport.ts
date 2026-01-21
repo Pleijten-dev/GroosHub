@@ -1094,7 +1094,7 @@ class PdfBuilder {
 
   /**
    * Add compact persona cards (4 cards on same page as cube)
-   * Simplified layout showing only essential info to fit with cube visualization
+   * Styled to match website design with image, stat boxes, description, and situations
    */
   private addCompactPersonaCards(
     personas: Array<{
@@ -1111,10 +1111,10 @@ class PdfBuilder {
       imageDataUrl?: string;
     }>
   ): void {
-    const cardWidth = (CONTENT_WIDTH - 8) / 2; // 2 cards per row with gap
-    const cardHeight = 42; // Compact height - just essentials
-    const cardGap = 4;
-    const padding = 3;
+    const cardWidth = (CONTENT_WIDTH - 6) / 2; // 2 cards per row with gap
+    const cardHeight = 82; // Taller cards to fit all info like website
+    const cardGap = 5;
+    const padding = 4;
 
     personas.forEach((persona, index) => {
       const col = index % 2;
@@ -1122,71 +1122,115 @@ class PdfBuilder {
       const cardX = MARGIN + col * (cardWidth + cardGap);
       const cardY = this.currentY + row * (cardHeight + cardGap);
 
-      // Card background with border
+      // Card background with subtle border (like website)
       this.pdf.setFillColor(255, 255, 255);
-      this.pdf.setDrawColor(200, 200, 200);
+      this.pdf.setDrawColor(229, 231, 235);
       this.pdf.setLineWidth(0.3);
       this.pdf.roundedRect(cardX, cardY, cardWidth, cardHeight, 2, 2, 'FD');
 
-      // Layout: Small image on left, text on right
-      const imageSize = 18;
-      const textX = cardX + padding + imageSize + 4;
-      const textWidth = cardWidth - imageSize - padding * 2 - 6;
+      let y = cardY + padding;
 
-      // Image placeholder or actual image
+      // === TOP SECTION: Image on left, Name + Stats on right ===
+      const imageSize = 28; // Square image
+      const rightSectionX = cardX + padding + imageSize + 4;
+      const rightSectionWidth = cardWidth - imageSize - padding * 2 - 4;
+
+      // Image (square, properly sized)
       if (persona.imageDataUrl) {
         try {
           this.pdf.addImage(
             persona.imageDataUrl, 'PNG',
-            cardX + padding, cardY + padding,
+            cardX + padding, y,
             imageSize, imageSize,
             undefined, 'FAST'
           );
         } catch {
-          this.pdf.setFillColor(230, 230, 230);
-          this.pdf.rect(cardX + padding, cardY + padding, imageSize, imageSize, 'F');
+          this.pdf.setFillColor(243, 244, 246);
+          this.pdf.rect(cardX + padding, y, imageSize, imageSize, 'F');
         }
       } else {
-        this.pdf.setFillColor(230, 230, 230);
-        this.pdf.rect(cardX + padding, cardY + padding, imageSize, imageSize, 'F');
+        this.pdf.setFillColor(243, 244, 246);
+        this.pdf.rect(cardX + padding, y, imageSize, imageSize, 'F');
       }
 
-      // Name (bold, on right side of image)
-      this.pdf.setFontSize(8);
-      this.pdf.setTextColor(30, 30, 30);
+      // Name (bold, to right of image)
+      this.pdf.setFontSize(9);
+      this.pdf.setTextColor(17, 24, 39);
       this.pdf.setFont('helvetica', 'bold');
-      const nameLines = this.pdf.splitTextToSize(persona.name, textWidth);
-      this.pdf.text(nameLines[0] || persona.name, textX, cardY + padding + 4);
+      this.pdf.text(persona.name, rightSectionX, y + 5);
 
-      // Stats line (smaller, below name)
-      this.pdf.setFontSize(6);
-      this.pdf.setTextColor(80, 80, 80);
-      this.pdf.setFont('helvetica', 'normal');
-      const statsText = `${persona.income_level} · ${persona.age_group} · ${persona.household_type}`;
-      const statsLines = this.pdf.splitTextToSize(statsText, textWidth);
-      this.pdf.text(statsLines[0] || '', textX, cardY + padding + 10);
+      // Three stat boxes below name (like website design)
+      const statBoxY = y + 8;
+      const statBoxWidth = (rightSectionWidth - 2) / 3;
+      const statBoxHeight = 9;
+      const labels = [
+        this.locale === 'nl' ? 'Inkomen' : 'Income',
+        this.locale === 'nl' ? 'Leeftijd' : 'Age',
+        this.locale === 'nl' ? 'Huishouden' : 'Household'
+      ];
+      const values = [persona.income_level, persona.age_group, persona.household_type];
 
-      // Description (2 lines max, below image)
-      this.pdf.setFontSize(6);
-      this.pdf.setTextColor(60, 60, 60);
-      const descLines = this.pdf.splitTextToSize(persona.description || '', cardWidth - padding * 2);
-      const descY = cardY + padding + imageSize + 4;
-      const lineHeight = 2.5; // Line height for font size 6
-      descLines.slice(0, 2).forEach((line: string, lineIndex: number) => {
-        this.pdf.text(line, cardX + padding, descY + lineIndex * lineHeight);
-      });
+      for (let i = 0; i < 3; i++) {
+        const boxX = rightSectionX + i * (statBoxWidth + 1);
 
-      // Housing types on bottom line (if available)
-      if (persona.current_property_types?.[0] || persona.desired_property_types?.[0]) {
+        // Stat box background
+        this.pdf.setFillColor(249, 250, 251);
+        this.pdf.roundedRect(boxX, statBoxY, statBoxWidth, statBoxHeight, 1, 1, 'F');
+
+        // Label
         this.pdf.setFontSize(5);
+        this.pdf.setTextColor(107, 114, 128);
+        this.pdf.setFont('helvetica', 'normal');
+        this.pdf.text(labels[i], boxX + 1.5, statBoxY + 3);
+
+        // Value (truncate if needed)
+        this.pdf.setFontSize(5);
+        this.pdf.setTextColor(17, 24, 39);
+        this.pdf.setFont('helvetica', 'bold');
+        const valueText = this.pdf.splitTextToSize(values[i] || '-', statBoxWidth - 3)[0];
+        this.pdf.text(valueText, boxX + 1.5, statBoxY + 7);
+      }
+
+      // === DESCRIPTION SECTION (below image, full width) ===
+      y += imageSize + 4;
+      this.pdf.setFont('helvetica', 'normal');
+      this.pdf.setFontSize(6);
+      this.pdf.setTextColor(55, 65, 81);
+      const descLines = this.pdf.splitTextToSize(persona.description || '', cardWidth - padding * 2);
+      descLines.slice(0, 2).forEach((line: string, lineIndex: number) => {
+        this.pdf.text(line, cardX + padding, y + lineIndex * 2.5);
+      });
+      y += 7;
+
+      // === CURRENT SITUATION ===
+      if (persona.current_situation || persona.current_property_types?.[0]) {
+        this.pdf.setFontSize(5.5);
         this.pdf.setTextColor(71, 118, 56);
-        const currentType = persona.current_property_types?.[0] || '';
-        const desiredType = persona.desired_property_types?.[0] || '';
-        const housingText = currentType && desiredType
-          ? `${currentType} → ${desiredType}`
-          : currentType || desiredType;
-        const housingLines = this.pdf.splitTextToSize(housingText, cardWidth - padding * 2);
-        this.pdf.text(housingLines[0] || '', cardX + padding, cardY + cardHeight - 3);
+        this.pdf.setFont('helvetica', 'bold');
+        this.pdf.text(this.locale === 'nl' ? 'Huidige Situatie:' : 'Current:', cardX + padding, y);
+
+        this.pdf.setFont('helvetica', 'normal');
+        this.pdf.setTextColor(75, 85, 99);
+        if (persona.current_property_types?.[0]) {
+          const currentText = this.pdf.splitTextToSize(persona.current_property_types[0], cardWidth - padding * 2 - 25)[0];
+          this.pdf.text(currentText, cardX + padding + 22, y);
+        }
+        y += 4;
+      }
+
+      // === DESIRED SITUATION ===
+      if (persona.desired_situation || persona.desired_property_types?.[0]) {
+        this.pdf.setFontSize(5.5);
+        this.pdf.setTextColor(71, 118, 56);
+        this.pdf.setFont('helvetica', 'bold');
+        this.pdf.text(this.locale === 'nl' ? 'Gewenste Situatie:' : 'Desired:', cardX + padding, y);
+
+        this.pdf.setFont('helvetica', 'normal');
+        this.pdf.setTextColor(75, 85, 99);
+        if (persona.desired_property_types?.[0]) {
+          const desiredText = this.pdf.splitTextToSize(persona.desired_property_types[0], cardWidth - padding * 2 - 25)[0];
+          this.pdf.text(desiredText, cardX + padding + 22, y);
+        }
       }
     });
 
