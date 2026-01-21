@@ -252,13 +252,36 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     const connections = calculateConnections(personas);
     const scenarios = calculateScenarios(personas, sortedPersonas, connections);
 
+    // Read custom scenario selection from localStorage
+    let customScenario: number[] | undefined;
+    try {
+      const stored = localStorage.getItem('grooshub_doelgroepen_scenario_selection');
+      if (stored) {
+        const { customIds } = JSON.parse(stored);
+        if (customIds && Array.isArray(customIds) && customIds.length > 0) {
+          // Convert persona IDs to R-rank positions
+          customScenario = customIds
+            .map((id: string) => {
+              const score = personaScores.find(ps => ps.personaId === id);
+              return score?.rRankPosition;
+            })
+            .filter((pos: number | undefined): pos is number => pos !== undefined);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load custom scenario from cache:', error);
+    }
+
     return {
       locationScores,
       personas,
       personaScores,
       sortedPersonas,
       connections,
-      scenarios
+      scenarios: {
+        ...scenarios,
+        customScenario
+      }
     };
   }, [data, locale]);
 
@@ -636,7 +659,32 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         const personaScores = calculatePersonaScores(personas, locationScores);
         const sortedPersonas = [...personaScores].sort((a, b) => a.rRankPosition - b.rRankPosition);
         const connections = calculateConnections(personas);
-        const scenarios = calculateScenarios(personas, sortedPersonas, connections);
+        const baseScenarios = calculateScenarios(personas, sortedPersonas, connections);
+
+        // Read custom scenario selection from localStorage
+        let customScenario: number[] | undefined;
+        try {
+          const stored = localStorage.getItem('grooshub_doelgroepen_scenario_selection');
+          if (stored) {
+            const { customIds } = JSON.parse(stored);
+            if (customIds && Array.isArray(customIds) && customIds.length > 0) {
+              // Convert persona IDs to R-rank positions
+              customScenario = customIds
+                .map((id: string) => {
+                  const score = personaScores.find(ps => ps.personaId === id);
+                  return score?.rRankPosition;
+                })
+                .filter((pos: number | undefined): pos is number => pos !== undefined);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to load custom scenario from cache:', error);
+        }
+
+        const scenarios = {
+          ...baseScenarios,
+          customScenario
+        };
 
         return (
           <div className="p-lg overflow-auto h-full">
