@@ -556,26 +556,29 @@ class PdfBuilder {
       };
 
       // Show available score types as markers
-      if (gradingResult.average_area_sample?.value !== undefined) {
+      const avgValue = gradingResult.average_area_sample?.value;
+      if (avgValue !== undefined && avgValue !== null) {
         scoreY = drawScoreMarker(
           this.locale === 'nl' ? 'Gem. gebied' : 'Avg. area',
-          gradingResult.average_area_sample.value,
+          avgValue,
           scoreY
         );
       }
 
-      if (gradingResult.max_area_sample?.value !== undefined) {
+      const maxValue = gradingResult.max_area_sample?.value;
+      if (maxValue !== undefined && maxValue !== null) {
         scoreY = drawScoreMarker(
           this.locale === 'nl' ? 'Max. gebied' : 'Max. area',
-          gradingResult.max_area_sample.value,
+          maxValue,
           scoreY
         );
       }
 
-      if (gradingResult.point_sample?.value !== undefined) {
+      const pointValue = gradingResult.point_sample?.value;
+      if (pointValue !== undefined && pointValue !== null) {
         scoreY = drawScoreMarker(
           this.locale === 'nl' ? 'Puntwaarde' : 'Point value',
-          gradingResult.point_sample.value,
+          pointValue,
           scoreY
         );
       }
