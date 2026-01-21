@@ -751,6 +751,17 @@ function ZScoreDisplay({ zScores }: { zScores: WijkWithZScores['zScores'] }) {
           Inc: <ZValue value={zScores.avgIncome} />
         </span>
       </div>
+      <div className="flex gap-2">
+        <span title="Single person households">
+          1p: <ZValue value={zScores.singlePersonHouseholds} />
+        </span>
+        <span title="Households without children">
+          NoKid: <ZValue value={zScores.householdsWithoutChildren} />
+        </span>
+        <span title="Households with children">
+          Kid: <ZValue value={zScores.householdsWithChildren} />
+        </span>
+      </div>
     </div>
   );
 }
