@@ -58,7 +58,7 @@ export class LegalRAGAgent {
           description: 'Zoekt artikelen, tabellen en paragrafen in het Bouwbesluit 2012. ' +
             'Gebruik dit om relevante informatie op te halen. ' +
             'Je kunt meerdere keren zoeken met verschillende zoekvragen.',
-          inputSchema: z.object({
+          parameters: z.object({
             query: z.string().describe('De zoekterm. Gebruik juridische terminologie zoals "verblijfsgebied", "verblijfsruimte", "woonfunctie".'),
             reasoning: z.string().describe('Waarom zoek je dit? Wat verwacht je te vinden?')
           }),
@@ -91,7 +91,7 @@ export class LegalRAGAgent {
           description: 'Geef het definitieve antwoord op de vraag. ' +
             'Gebruik dit alleen als je voldoende informatie hebt verzameld. ' +
             'Vermeld altijd de exacte artikel- en tabelnummers als bronnen.',
-          inputSchema: z.object({
+          parameters: z.object({
             answer: z.string().describe('Het complete antwoord met bronvermelding (artikel/tabel nummers)'),
             confidence: z.enum(['high', 'medium', 'low']).describe('Hoe zeker ben je van dit antwoord?'),
             reasoning: z.string().describe('Waarom is dit het juiste antwoord? Welke bronnen ondersteunen dit?')

@@ -80,7 +80,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
         Returns tasks with full details including project, priority, deadline, status, and assigned users.
         Can filter by status, priority, and time-based criteria.`,
 
-      inputSchema: z.object({
+      parameters: z.object({
         filter: z.enum(['all', 'overdue', 'today', 'this-week', 'no-deadline']).optional()
           .describe('Filter tasks by time: all, overdue, today, this-week, or no-deadline'),
         status: z.enum(['todo', 'doing', 'done']).optional()
@@ -200,7 +200,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
         Extract task details from natural language. If deadline is mentioned like "by Friday" or "next week", calculate the ISO date.
         Priority should be inferred from urgency words (ASAP, urgent, important = high/urgent).`,
 
-      inputSchema: z.object({
+      parameters: z.object({
         project_id: z.string().uuid()
           .describe('UUID of the project (required - ask user which project if unclear)'),
         title: z.string().min(1).max(200)
@@ -435,7 +435,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
         - "Set deadline to Friday"
         - "Assign task to John"`,
 
-      inputSchema: z.object({
+      parameters: z.object({
         task_id: z.string().uuid()
           .describe('UUID of the task to update'),
         status: z.enum(['todo', 'doing', 'done']).optional()
@@ -576,7 +576,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
 
         Returns task counts by status, overdue tasks, and team workload.`,
 
-      inputSchema: z.object({
+      parameters: z.object({
         project_id: z.string().uuid()
           .describe('UUID of the project'),
         include_details: z.boolean().default(false)
@@ -694,7 +694,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
         - "Who has capacity?"
         - "Suggest someone for task X"`,
 
-      inputSchema: z.object({
+      parameters: z.object({
         project_id: z.string().uuid()
           .describe('Project UUID'),
         task_title: z.string().optional()
@@ -770,7 +770,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
         - User asks "what projects do I have?"
         - Need to clarify which project to use`,
 
-      inputSchema: z.object({}),
+      parameters: z.object({}),
 
       async execute() {
         try {
@@ -825,7 +825,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
 
         Task groups help organize tasks into logical collections like features, sprints, or projects.`,
 
-      inputSchema: z.object({
+      parameters: z.object({
         project_id: z.string().uuid()
           .describe('UUID of the project'),
         name: z.string().min(1).max(100)
@@ -930,7 +930,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
 
         Shows task groups with task counts and completion stats.`,
 
-      inputSchema: z.object({
+      parameters: z.object({
         project_id: z.string().uuid()
           .describe('UUID of the project')
       }),
@@ -1003,7 +1003,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
         - "Show me dependencies for task Y"
         - "What needs to finish before I can work on Z?"`,
 
-      inputSchema: z.object({
+      parameters: z.object({
         task_id: z.string().uuid()
           .describe('UUID of the task to check for blockers'),
         include_full_chain: z.boolean().default(true)
@@ -1157,7 +1157,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
         - "Which tasks are blocked?"
         - "What's blocking the project?"`,
 
-      inputSchema: z.object({
+      parameters: z.object({
         project_id: z.string().uuid()
           .describe('UUID of the project to analyze')
       }),
@@ -1288,7 +1288,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
 
         This automatically creates a parent task and multiple child tasks.`,
 
-      inputSchema: z.object({
+      parameters: z.object({
         project_id: z.string().uuid()
           .describe('UUID of the project'),
         title: z.string().min(1).max(200)
@@ -1439,7 +1439,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
         - "What are the subtasks for Y?"
         - "How many subtasks are done?"`,
 
-      inputSchema: z.object({
+      parameters: z.object({
         task_id: z.string().uuid()
           .describe('UUID of the parent task')
       }),
@@ -1579,7 +1579,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
 
         Searches across task titles, descriptions, and optionally notes.`,
 
-      inputSchema: z.object({
+      parameters: z.object({
         query: z.string()
           .describe('Search keywords or phrase (e.g., "authentication", "login bug", "database")'),
         project_id: z.string().uuid().optional()
@@ -1715,7 +1715,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
 
         IMPORTANT: Always confirm with user before bulk updates.`,
 
-      inputSchema: z.object({
+      parameters: z.object({
         project_id: z.string().uuid()
           .describe('UUID of the project'),
         filter: z.object({
@@ -1872,7 +1872,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
 
         Efficiently creates multiple tasks in one operation.`,
 
-      inputSchema: z.object({
+      parameters: z.object({
         project_id: z.string().uuid()
           .describe('UUID of the project'),
         tasks: z.array(z.object({
@@ -1998,7 +1998,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
         - "Note that..."
         - "Leave a comment on the design task"`,
 
-      inputSchema: z.object({
+      parameters: z.object({
         task_id: z.string().uuid()
           .describe('UUID of the task'),
         content: z.string().min(1)
@@ -2075,7 +2075,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
         - "What comments are on the design task?"
         - "Summarize discussion on task Y"`,
 
-      inputSchema: z.object({
+      parameters: z.object({
         task_id: z.string().uuid()
           .describe('UUID of the task')
       }),
@@ -2154,7 +2154,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
 
         This ensures consistent, reliable date parsing.`,
 
-      inputSchema: z.object({
+      parameters: z.object({
         phrase: z.string()
           .describe('Natural language date phrase (e.g., "tomorrow", "next Friday", "in 2 weeks")')
       }),
@@ -2251,7 +2251,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
 
         Returns matching tasks for user to clarify which one they mean.`,
 
-      inputSchema: z.object({
+      parameters: z.object({
         title_query: z.string()
           .describe('Search term from task title'),
         project_id: z.string().uuid().optional()

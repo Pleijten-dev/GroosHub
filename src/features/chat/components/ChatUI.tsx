@@ -145,14 +145,21 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
     loadExistingChat();
   }, [chatId]);
 
-  // Use the Vercel AI SDK v5 useChat hook
+  // Use the Vercel AI SDK v5 useChat hook with proper configuration
   const {
     messages,
     sendMessage,
     status,
     stop,
     setMessages,
-  } = useChat();
+    error: chatError,
+  } = useChat({
+    api: '/api/chat',
+    onError: (error) => {
+      console.error('[ChatUI] Stream error:', error);
+      // Error will be available via chatError state
+    },
+  });
 
   // Set initial messages after loading from API
   useEffect(() => {
@@ -932,12 +939,11 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
       </div>
 
       {/* Error Display */}
-      {status === 'error' && (
+      {(status === 'error' || chatError) && (
         <div className="bg-red-50 border-t border-red-200 px-base py-sm">
           <div className="max-w-4xl mx-auto">
             <p className="text-sm text-red-800">
-              <strong>{t.errorPrefix}</strong> An error occurred. Please try again.
-            </p>
+              <strong>{t.errorPrefix}</strong> {chatError?.message || 'An error occurred. Please try again.'}</p>
           </div>
         </div>
       )}

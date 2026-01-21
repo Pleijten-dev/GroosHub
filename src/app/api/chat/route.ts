@@ -613,7 +613,7 @@ export async function POST(request: NextRequest) {
         - User asks to compare multiple locations
 
         The tool returns: project name, address, owner info, and timestamps`,
-        inputSchema: z.object({}),
+        parameters: z.object({}),
         async execute() {
           try {
             const sql = getDbConnection();
@@ -678,7 +678,7 @@ export async function POST(request: NextRequest) {
         - amenities: Nearby restaurants, shops, schools, services
         - wms_grading: WMS map layer analysis (soil types, noise, green space, etc.)
         - all: Returns summary of all categories`,
-        inputSchema: z.object({
+        parameters: z.object({
           locationId: z.string().uuid(),
           category: z.enum(['demographics', 'health', 'safety', 'livability', 'residential', 'amenities', 'wms_grading', 'all']),
         }),
@@ -757,7 +757,7 @@ export async function POST(request: NextRequest) {
         - Income level: "Laag inkomen" (Low), "Midden inkomen" (Middle), "Hoog inkomen" (High)
         - Household type: Single, couples, families
         - Age group: 20-35, 35-55, 55+`,
-        inputSchema: z.object({
+        parameters: z.object({
           mode: z.enum(['search', 'list']),
           personaIdOrName: z.string().optional(),
         }),
@@ -807,7 +807,7 @@ export async function POST(request: NextRequest) {
         - Understand differences between saved locations
 
         The tool returns comparative data for: demographics, safety, health, amenities, and residential data.`,
-        inputSchema: z.object({
+        parameters: z.object({
           locationIds: z.array(z.string().uuid()).min(2).max(4),
           categories: z.array(z.enum(['demographics', 'health', 'safety', 'livability', 'residential', 'amenities'])).optional(),
         }),
@@ -891,7 +891,7 @@ export async function POST(request: NextRequest) {
 
         Available categories: restaurants, cafes, supermarkets, schools, healthcare, sports, parks, shopping, services
         Distance filter: Specify maximum distance in meters (default: 500m)`,
-        inputSchema: z.object({
+        parameters: z.object({
           locationId: z.string().uuid(),
           category: z.enum(['restaurant', 'cafe', 'supermarket', 'school', 'healthcare', 'sports', 'park', 'shopping', 'service', 'all']).optional(),
           maxDistance: z.number().min(100).max(2000).optional(),
@@ -962,7 +962,7 @@ export async function POST(request: NextRequest) {
         - "How often is data updated?"
 
         Available sources: CBS, RIVM, Politie, GooglePlaces, AltumAI`,
-        inputSchema: z.object({
+        parameters: z.object({
           source: z.enum(['CBS', 'RIVM', 'Politie', 'GooglePlaces', 'AltumAI', 'all']),
         }),
         async execute({ source }) {
@@ -1047,7 +1047,7 @@ export async function POST(request: NextRequest) {
         - "Show me population statistics visually"
 
         Returns structured chart data for age distribution, marital status, migration background, and family composition.`,
-        inputSchema: z.object({
+        parameters: z.object({
           locationId: z.string().uuid(),
           sections: z.array(z.enum(['age', 'status', 'immigration', 'family'])).optional().describe('Specific sections to visualize. If not provided, shows all sections.'),
         }),
@@ -1168,7 +1168,7 @@ export async function POST(request: NextRequest) {
         - "Display safety data graphically"
 
         Returns structured chart data for different crime categories.`,
-        inputSchema: z.object({
+        parameters: z.object({
           locationId: z.string().uuid(),
         }),
         async execute({ locationId }) {
@@ -1238,7 +1238,7 @@ export async function POST(request: NextRequest) {
         - "Display health data as graphs"
 
         Returns structured chart data for health metrics.`,
-        inputSchema: z.object({
+        parameters: z.object({
           locationId: z.string().uuid(),
         }),
         async execute({ locationId }) {
@@ -1306,7 +1306,7 @@ export async function POST(request: NextRequest) {
         - "Display quality of life metrics"
 
         Returns structured chart data for livability indicators.`,
-        inputSchema: z.object({
+        parameters: z.object({
           locationId: z.string().uuid(),
         }),
         async execute({ locationId }) {
@@ -1377,7 +1377,7 @@ export async function POST(request: NextRequest) {
         - "Display housing market data"
 
         Returns structured chart data for housing metrics.`,
-        inputSchema: z.object({
+        parameters: z.object({
           locationId: z.string().uuid(),
         }),
         async execute({ locationId }) {
