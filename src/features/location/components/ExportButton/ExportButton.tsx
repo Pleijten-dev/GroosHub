@@ -51,7 +51,8 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
       // Generate filename with location and date
       const locationName = data.location.neighborhood?.statnaam ||
                           data.location.district?.statnaam ||
-                          data.location.municipality.statnaam;
+                          data.location.municipality?.statnaam ||
+                          'location';
       const date = new Date().toISOString().split('T')[0];
       const filename = `${locationName.replace(/\s+/g, '-')}-${date}.json`;
 

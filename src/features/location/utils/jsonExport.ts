@@ -200,8 +200,8 @@ export function exportLocationDataToJSON(
     metadata: {
       exportDate: new Date().toISOString(),
       location: {
-        municipality: data.location.municipality.statnaam,
-        municipalityCode: data.location.municipality.statcode,
+        municipality: data.location.municipality?.statnaam,
+        municipalityCode: data.location.municipality?.statcode,
         district: data.location.district?.statnaam,
         districtCode: data.location.district?.statcode,
         neighborhood: data.location.neighborhood?.statnaam,

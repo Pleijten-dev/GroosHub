@@ -245,7 +245,7 @@ export function exportCompactForLLM(
   const locationParts = [
     data.location.neighborhood?.statnaam,
     data.location.district?.statnaam,
-    data.location.municipality.statnaam,
+    data.location.municipality?.statnaam,
   ].filter(Boolean);
   const locationString = locationParts.join(', ');
 
@@ -729,7 +729,7 @@ export function exportCompactForLLM(
   return {
     metadata: {
       location: locationString,
-      municipality: data.location.municipality.statnaam,
+      municipality: data.location.municipality?.statnaam,
       district: data.location.district?.statnaam,
       neighborhood: data.location.neighborhood?.statnaam,
       exportDate: new Date().toISOString().split('T')[0],

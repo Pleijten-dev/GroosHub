@@ -117,7 +117,7 @@ export const SafetyPage: React.FC<SafetyPageProps> = ({ data, locale }) => {
       case 'national':
         return locale === 'nl' ? 'Nederland' : 'Netherlands';
       case 'municipality':
-        return data.location.municipality.statnaam;
+        return data.location.municipality?.statnaam || LEVEL_LABELS.municipality[locale];
       case 'district':
         return data.location.district?.statnaam || LEVEL_LABELS.district[locale];
       case 'neighborhood':
