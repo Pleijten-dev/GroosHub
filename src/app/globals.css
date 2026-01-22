@@ -213,6 +213,7 @@
   --navbar-height: 64px;
   --sidebar-width: 320px;
   --sidebar-collapsed-width: 60px;
+  --current-sidebar-width: var(--sidebar-width); /* Updated dynamically by useProjectsSidebar */
   --right-menu-width: 280px;
   
   /* Z-index scale */
@@ -643,6 +644,28 @@ body {
 
   .right-menu {
     z-index: var(--z-elevated);
+  }
+}
+
+/* Modal positioning that respects navbar and sidebar */
+@layer utilities {
+  .modal-content-area {
+    position: fixed;
+    top: var(--navbar-height);
+    right: 0;
+    bottom: 0;
+    left: var(--current-sidebar-width);
+    z-index: var(--z-modal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background-color: rgba(0, 0, 0, 0.5);
+    transition: left var(--duration-normal) ease-in-out;
+  }
+
+  .modal-content-area-no-sidebar {
+    left: 0;
   }
 }
 

@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 /**
  * Hook to manage Projects Sidebar state
  * Persists collapsed state in localStorage
+ * Also updates CSS custom property for modal positioning
  */
 export function useProjectsSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -19,10 +20,13 @@ export function useProjectsSidebar() {
     setIsLoaded(true);
   }, []);
 
-  // Save collapsed state to localStorage when it changes
+  // Save collapsed state to localStorage and update CSS custom property
   useEffect(() => {
     if (isLoaded) {
       localStorage.setItem('projectsSidebar:collapsed', String(isCollapsed));
+      // Update CSS custom property for modal positioning
+      const sidebarWidth = isCollapsed ? 'var(--sidebar-collapsed-width)' : 'var(--sidebar-width)';
+      document.documentElement.style.setProperty('--current-sidebar-width', sidebarWidth);
     }
   }, [isCollapsed, isLoaded]);
 
