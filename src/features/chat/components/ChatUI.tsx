@@ -600,10 +600,10 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
     <div className="flex flex-col h-full bg-transparent">
       {/* Header */}
       <div className={cn(
-        "border-b border-gray-200 px-base py-sm",
+        "px-base py-sm",
         isEntering && "animate-fade-slide-up fill-both"
       )}>
-        <div className="max-w-4xl mx-auto flex items-center justify-end">
+        <div className="max-w-4xl mx-auto flex items-center justify-end border-b border-gray-200 pb-sm">
           {/* Model Selector */}
           <div className="flex items-center gap-sm">
             <label htmlFor="model-select" className="text-sm font-medium text-gray-700">
@@ -939,10 +939,10 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
 
       {/* Input Area */}
       <div className={cn(
-        "border-t border-gray-200 px-base py-sm",
+        "px-base py-sm",
         isEntering && "animate-message-flow fill-both stagger-2"
       )}>
-        <div className="max-w-4xl mx-auto space-y-sm">
+        <div className="max-w-4xl mx-auto space-y-sm border-t border-gray-200 pt-sm">
           {/* File Upload Zone - Only shown if model supports vision */}
           {currentChatId && (
             <FileUploadZone
