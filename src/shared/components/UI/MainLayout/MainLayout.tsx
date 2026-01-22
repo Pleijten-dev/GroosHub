@@ -7,12 +7,6 @@ import { cn } from '../../../utils/cn';
 export interface MainLayoutProps {
   /** Whether the sidebar is collapsed */
   isCollapsed: boolean;
-  /** Width of the sidebar when expanded (default: 320px) */
-  sidebarExpandedWidth?: number;
-  /** Width of the sidebar when collapsed (default: 60px) */
-  sidebarCollapsedWidth?: number;
-  /** Gap between sidebar and main content (default: 8px) */
-  gap?: number;
   /** The sidebar component */
   sidebar: React.ReactNode;
   /** The main content */
@@ -26,24 +20,23 @@ export interface MainLayoutProps {
 /**
  * MainLayout - Unified layout component for pages with sidebar
  *
- * Provides consistent layout structure with:
- * - White outer frame (content-frame)
- * - Rounded main content area with gradient background (content-main)
- * - Proper margin handling for sidebar state
+ * Uses CSS variables for consistent dimensions (defined in globals.css):
+ * - --sidebar-width: expanded sidebar width
+ * - --sidebar-collapsed-width: collapsed sidebar width
+ * - --sidebar-gap: gap between sidebar and main content
+ * - --navbar-height: height of the navbar
  */
 export function MainLayout({
   isCollapsed,
-  sidebarExpandedWidth = 320,
-  sidebarCollapsedWidth = 60,
-  gap = 8,
   sidebar,
   children,
   mainClassName,
   className,
 }: MainLayoutProps) {
-  // Calculate margin based on sidebar state + gap
-  const sidebarWidth = isCollapsed ? sidebarCollapsedWidth : sidebarExpandedWidth;
-  const marginLeft = sidebarWidth + gap;
+  // Use CSS variables for margin calculation
+  const marginLeft = isCollapsed
+    ? 'calc(var(--sidebar-collapsed-width) + var(--sidebar-gap))'
+    : 'calc(var(--sidebar-width) + var(--sidebar-gap))';
 
   return (
     <div
@@ -63,7 +56,7 @@ export function MainLayout({
           // Additional page-specific classes
           mainClassName
         )}
-        style={{ marginLeft: `${marginLeft}px` }}
+        style={{ marginLeft }}
       >
         {children}
       </main>

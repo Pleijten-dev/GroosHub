@@ -211,8 +211,9 @@
   
   /* Project-specific layout */
   --navbar-height: 64px;
-  --sidebar-width: 320px;
+  --sidebar-width: 280px;
   --sidebar-collapsed-width: 60px;
+  --sidebar-gap: 8px;
   --right-menu-width: 280px;
   
   /* Z-index scale */

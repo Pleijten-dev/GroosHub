@@ -307,10 +307,6 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     onLoadSavedLocation: handleLoadSavedLocation,
   });
 
-  // Sidebar dimensions
-  const SIDEBAR_EXPANDED_WIDTH = 320;
-  const SIDEBAR_COLLAPSED_WIDTH = 60;
-
   /**
    * Render main content based on active tab and data state
    */
@@ -842,8 +838,6 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   return (
     <MainLayout
       isCollapsed={isCollapsed}
-      sidebarExpandedWidth={SIDEBAR_EXPANDED_WIDTH}
-      sidebarCollapsedWidth={SIDEBAR_COLLAPSED_WIDTH}
       sidebar={
         <Sidebar
           isCollapsed={isCollapsed}
@@ -852,8 +846,6 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
           title={locale === 'nl' ? 'Locatie Analyse' : 'Location Analysis'}
           subtitle={locale === 'nl' ? 'Adres & Data Analyse' : 'Address & Data Analysis'}
           position="left"
-          expandedWidth={`${SIDEBAR_EXPANDED_WIDTH}px`}
-          collapsedWidth={`${SIDEBAR_COLLAPSED_WIDTH}px`}
         />
       }
     >

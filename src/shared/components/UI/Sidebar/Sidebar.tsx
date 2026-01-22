@@ -13,8 +13,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   sections = [],
   className = '',
   position = 'left',
-  expandedWidth = '320px',
-  collapsedWidth = '60px',
   headerContent,
   showToggleButton = true,
   customToggleButton,
@@ -24,7 +22,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { classBuilders } = useDesignSystem();
 
-  const sidebarWidth = isCollapsed ? collapsedWidth : expandedWidth;
+  // Use CSS variables for width (defined in globals.css)
+  const sidebarWidth = isCollapsed
+    ? 'var(--sidebar-collapsed-width)'
+    : 'var(--sidebar-width)';
   const positionClass = position === 'left' ? 'left-0' : 'right-0';
 
   // Conditional positioning based on navbar presence
@@ -39,19 +40,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
         topClass,
         heightClass,
         positionClass,
-        
+
         // Glass background effect (no shadow for cleaner look)
         classBuilders.glass(true, 'border-r border-gray-200/50'),
-        
+
         // Flex layout
         'flex flex-col',
-        
+
         // Smooth transitions
         'transition-all duration-normal ease-in-out',
-        
+
         // Custom scrollbar for content
         'custom-scrollbar',
-        
+
         className
       )}
       style={{

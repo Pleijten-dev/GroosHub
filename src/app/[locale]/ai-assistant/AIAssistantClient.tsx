@@ -145,8 +145,6 @@ export function AIAssistantClient({
   return (
     <MainLayout
       isCollapsed={isCollapsed}
-      sidebarExpandedWidth={280}
-      sidebarCollapsedWidth={60}
       sidebar={
         <ProjectsSidebarEnhanced
           isCollapsed={isCollapsed}
