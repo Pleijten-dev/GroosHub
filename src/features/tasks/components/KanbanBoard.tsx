@@ -236,7 +236,7 @@ export function KanbanBoard({
               onDrop={(e) => handleDrop(e, column.id)}
               className={`flex flex-col transition-all duration-200 ${
                 isDragOver
-                  ? 'ring-2 ring-primary ring-opacity-50 bg-primary bg-opacity-5 rounded-lg'
+                  ? 'ring-2 ring-primary ring-opacity-50 bg-primary/25 rounded-lg'
                   : ''
               }`}
             >
