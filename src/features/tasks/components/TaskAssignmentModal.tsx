@@ -122,8 +122,10 @@ export function TaskAssignmentModal({
   }
 
   return (
-    <div className="modal-content-area">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-full overflow-y-auto">
+    <>
+      <div className="modal-backdrop" onClick={onClose} />
+      <div className="modal-content-area">
+        <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-full overflow-y-auto">
         {/* Header */}
         <div className="border-b border-gray-200 p-6">
           <div className="flex items-center justify-between">
@@ -211,8 +213,9 @@ export function TaskAssignmentModal({
             {isSaving ? '...' : t.save}
           </Button>
         </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

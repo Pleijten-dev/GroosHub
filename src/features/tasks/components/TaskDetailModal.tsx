@@ -177,8 +177,10 @@ export function TaskDetailModal({
   }
 
   return (
-    <div className="modal-content-area">
-      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-full overflow-y-auto">
+    <>
+      <div className="modal-backdrop" onClick={onClose} />
+      <div className="modal-content-area">
+        <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-full overflow-y-auto">
         {/* Header */}
         <div className="border-b border-gray-200 p-6">
           <div className="flex items-start justify-between">
@@ -416,7 +418,8 @@ export function TaskDetailModal({
           locale={locale}
         />
       )}
-    </div>
+      </div>
+    </>
   );
 }
 
