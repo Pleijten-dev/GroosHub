@@ -702,10 +702,9 @@ body {
   overflow: hidden;
   /* Height accounts for bottom margin only (no top margin) */
   height: calc(100% - var(--space-sm));
-  /* Margin creates the white frame effect */
+  /* Margin creates the white frame effect - left margin handled by MainLayout component */
   margin-bottom: var(--space-sm);
   margin-right: var(--space-sm);
-  margin-left: var(--space-sm);
   /* Subtle interior shadow on all sides */
   box-shadow: inset 0 0 12px 0 rgba(0, 0, 0, 0.04);
 }

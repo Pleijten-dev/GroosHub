@@ -5,7 +5,7 @@ import { ProjectsSidebarEnhanced } from '@/features/projects/components/Projects
 import { ChatUI } from '@/features/chat/components/ChatUI';
 import { OverviewPage } from '@/features/chat/components/OverviewPage';
 import { useProjectsSidebar } from '@/features/projects/hooks/useProjectsSidebar';
-import { cn } from '@/shared/utils/cn';
+import { MainLayout } from '@/shared/components/UI/MainLayout';
 
 interface AIAssistantClientProps {
   locale: string;
@@ -143,28 +143,23 @@ export function AIAssistantClient({
   }
 
   return (
-    <div className="content-frame flex overflow-hidden" style={{ height: `calc(100vh - ${NAVBAR_HEIGHT}px)` }}>
-      <ProjectsSidebarEnhanced
-        isCollapsed={isCollapsed}
-        onToggle={toggleSidebar}
-        locale={locale}
-        userEmail={userEmail}
-        userName={userName}
-      />
-
-      {/* Main content area - adjust margin based on sidebar state, with rounded gradient */}
-      <main
-        className={cn(
-          'content-main flex-1 overflow-hidden transition-[margin] duration-200',
-          getTransitionClasses()
-        )}
-        style={{
-          marginLeft: isCollapsed ? '68px' : '288px'
-        }}
-      >
-        {renderContent()}
-      </main>
-    </div>
+    <MainLayout
+      isCollapsed={isCollapsed}
+      sidebarExpandedWidth={280}
+      sidebarCollapsedWidth={60}
+      sidebar={
+        <ProjectsSidebarEnhanced
+          isCollapsed={isCollapsed}
+          onToggle={toggleSidebar}
+          locale={locale}
+          userEmail={userEmail}
+          userName={userName}
+        />
+      }
+      mainClassName={getTransitionClasses()}
+    >
+      {renderContent()}
+    </MainLayout>
   );
 }
 

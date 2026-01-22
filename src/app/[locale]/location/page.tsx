@@ -4,6 +4,7 @@
 import React, { JSX, useState } from 'react';
 import { Locale } from '../../../lib/i18n/config';
 import { Sidebar, useSidebar } from '../../../shared/components/UI/Sidebar';
+import { MainLayout } from '../../../shared/components/UI/MainLayout';
 import { useLocationSidebarSections } from '../../../features/location/components/LocationSidebar';
 import { useLocationData } from '../../../features/location/hooks/useLocationData';
 import { MultiLevelDataTable } from '../../../features/location/components/DataTables';
@@ -306,8 +307,9 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     onLoadSavedLocation: handleLoadSavedLocation,
   });
 
-  // Calculate main content margin based on sidebar state (includes 8px gap for rounded corners)
-  const mainContentMargin = isCollapsed ? 'ml-[68px]' : 'ml-[328px]';
+  // Sidebar dimensions
+  const SIDEBAR_EXPANDED_WIDTH = 320;
+  const SIDEBAR_COLLAPSED_WIDTH = 60;
 
   /**
    * Render main content based on active tab and data state
@@ -838,38 +840,26 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   };
 
   return (
-    <div
-      className="content-frame w-screen overflow-hidden flex flex-col"
-      style={{
-        height: '100vh',
-        marginTop: '-64px',
-        marginLeft: 'calc(var(--space-base) * -1)',
-        marginRight: 'calc(var(--space-base) * -1)',
-        paddingTop: '64px'
-      }}
+    <MainLayout
+      isCollapsed={isCollapsed}
+      sidebarExpandedWidth={SIDEBAR_EXPANDED_WIDTH}
+      sidebarCollapsedWidth={SIDEBAR_COLLAPSED_WIDTH}
+      sidebar={
+        <Sidebar
+          isCollapsed={isCollapsed}
+          onToggle={toggle}
+          sections={sidebarSections}
+          title={locale === 'nl' ? 'Locatie Analyse' : 'Location Analysis'}
+          subtitle={locale === 'nl' ? 'Adres & Data Analyse' : 'Address & Data Analysis'}
+          position="left"
+          expandedWidth={`${SIDEBAR_EXPANDED_WIDTH}px`}
+          collapsedWidth={`${SIDEBAR_COLLAPSED_WIDTH}px`}
+        />
+      }
+      mainClassName="flex flex-col overflow-auto"
     >
-
-      {/* SIDEBAR - Using reusable component (position: fixed, out of flow) */}
-      <Sidebar
-        isCollapsed={isCollapsed}
-        onToggle={toggle}
-        sections={sidebarSections}
-        title={locale === 'nl' ? 'Locatie Analyse' : 'Location Analysis'}
-        subtitle={locale === 'nl' ? 'Adres & Data Analyse' : 'Address & Data Analysis'}
-        position="left"
-        expandedWidth="320px"
-        collapsedWidth="60px"
-        className="!top-[64px] !bottom-0 !h-auto"
-      />
-
-      {/* MAIN CONTENT - Margin adjusted for fixed sidebar, with rounded gradient */}
-      <main className={`
-        content-main flex flex-col overflow-auto
-        ${mainContentMargin}
-      `}>
-        {renderMainContent()}
-      </main>
-    </div>
+      {renderMainContent()}
+    </MainLayout>
   );
 };
 
