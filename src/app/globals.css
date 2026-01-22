@@ -193,11 +193,11 @@
   --panel-inner-padding: var(--space-lg);
 
   /* ========== BACKGROUND GRADIENT BLOBS ========== */
-  /* Subtle gradient blob colors with increased visibility */
-  --blob-1-color: rgba(12, 33, 26, 0.06);    /* darkest green */
-  --blob-2-color: rgba(72, 128, 106, 0.08);  /* teal green */
-  --blob-3-color: rgba(71, 118, 56, 0.06);   /* olive green */
-  --blob-4-color: rgba(138, 151, 107, 0.08); /* sage green */
+  /* Subtle gradient blob colors (25% reduced opacity for lighter feel) */
+  --blob-1-color: rgba(12, 33, 26, 0.045);   /* darkest green */
+  --blob-2-color: rgba(72, 128, 106, 0.06);  /* teal green */
+  --blob-3-color: rgba(71, 118, 56, 0.045);  /* olive green */
+  --blob-4-color: rgba(138, 151, 107, 0.06); /* sage green */
   
   /* ========== LAYOUT SYSTEM ========== */
   
@@ -697,12 +697,12 @@ body {
 .content-main {
   position: relative;
   background-color: var(--color-white);
-  border-radius: var(--radius-xl);
+  /* Only round corners where white margin shows (right and bottom edges) */
+  border-radius: 0 var(--radius-xl) var(--radius-xl) var(--radius-xl);
   overflow: hidden;
-  /* Height accounts for top/bottom margin */
-  height: calc(100% - var(--space-sm) * 2);
+  /* Height accounts for bottom margin only (no top margin) */
+  height: calc(100% - var(--space-sm));
   /* Margin creates the white frame effect - left margin handled by sidebar offset */
-  margin-top: var(--space-sm);
   margin-bottom: var(--space-sm);
   margin-right: var(--space-sm);
 }

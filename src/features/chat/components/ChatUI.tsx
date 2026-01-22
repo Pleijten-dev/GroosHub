@@ -597,7 +597,7 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-full bg-transparent">
       {/* Header */}
       <div className={cn(
         "bg-white border-b border-gray-200 px-base py-sm shadow-sm",
