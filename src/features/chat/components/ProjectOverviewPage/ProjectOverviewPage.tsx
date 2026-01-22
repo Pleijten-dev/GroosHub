@@ -490,14 +490,13 @@ export function ProjectOverviewPage({
             chatId={pendingChatId}
             projectId={projectId}
             autoFocus
-            className="shadow-lg"
           />
         </div>
       </div>
 
       {/* Side Section */}
       <div className={cn(
-        "w-80 flex-shrink-0 border-l border-gray-200 bg-gray-50 overflow-y-auto",
+        "w-80 flex-shrink-0 border-l border-gray-200 overflow-y-auto",
         isEntering && "animate-slide-in-left fill-both stagger-2"
       )}>
         <div className="p-base space-y-base">

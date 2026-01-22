@@ -600,37 +600,32 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
     <div className="flex flex-col h-full bg-transparent">
       {/* Header */}
       <div className={cn(
-        "bg-white border-b border-gray-200 px-base py-sm shadow-sm",
+        "border-b border-gray-200 px-base py-sm",
         isEntering && "animate-fade-slide-up fill-both"
       )}>
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-gray-900">{t.title}</h1>
-
-          {/* Controls */}
-          <div className="flex items-center gap-base">
-            {/* Model Selector - Always visible */}
-            <div className="flex items-center gap-sm">
-              <label htmlFor="model-select" className="text-sm font-medium text-gray-700">
-                {t.modelLabel}:
-              </label>
-              <select
-                id="model-select"
-                value={selectedModel}
-                onChange={(e) => setSelectedModel(e.target.value as ModelId)}
-                disabled={isLoading}
-                className={cn(
-                  'px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm',
-                  'focus:outline-none focus:ring-2 focus:ring-blue-500',
-                  'disabled:bg-gray-100 disabled:cursor-not-allowed'
-                )}
-              >
-                {availableModels.map((modelId) => (
-                  <option key={modelId} value={modelId}>
-                    {modelId}
-                  </option>
-                ))}
-              </select>
-            </div>
+        <div className="max-w-4xl mx-auto flex items-center justify-end">
+          {/* Model Selector */}
+          <div className="flex items-center gap-sm">
+            <label htmlFor="model-select" className="text-sm font-medium text-gray-700">
+              {t.modelLabel}:
+            </label>
+            <select
+              id="model-select"
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value as ModelId)}
+              disabled={isLoading}
+              className={cn(
+                'px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm',
+                'focus:outline-none focus:ring-2 focus:ring-blue-500',
+                'disabled:bg-gray-100 disabled:cursor-not-allowed'
+              )}
+            >
+              {availableModels.map((modelId) => (
+                <option key={modelId} value={modelId}>
+                  {modelId}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </div>
@@ -944,7 +939,7 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
 
       {/* Input Area */}
       <div className={cn(
-        "bg-white border-t border-gray-200 px-base py-sm shadow-lg",
+        "border-t border-gray-200 px-base py-sm",
         isEntering && "animate-message-flow fill-both stagger-2"
       )}>
         <div className="max-w-4xl mx-auto space-y-sm">

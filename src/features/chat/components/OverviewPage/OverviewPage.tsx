@@ -395,14 +395,13 @@ export function OverviewPage({ locale, className, isEntering = false }: Overview
             showFileAttachment={true}
             chatId={pendingChatId}  // Pass chatId so files are uploaded to R2 immediately
             autoFocus
-            className="shadow-lg"
           />
         </div>
       </div>
 
       {/* Side Section */}
       <div className={cn(
-        "w-80 flex-shrink-0 border-l border-gray-200 bg-gray-50 overflow-y-auto",
+        "w-80 flex-shrink-0 border-l border-gray-200 overflow-y-auto",
         isEntering && "animate-slide-in-left fill-both stagger-2"
       )}>
         <div className="p-base space-y-base">
