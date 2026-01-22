@@ -856,7 +856,6 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
           collapsedWidth={`${SIDEBAR_COLLAPSED_WIDTH}px`}
         />
       }
-      mainClassName="flex flex-col overflow-auto"
     >
       {renderMainContent()}
     </MainLayout>

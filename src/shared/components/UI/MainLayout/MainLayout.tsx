@@ -56,7 +56,11 @@ export function MainLayout({
       {/* Main content area with proper margins */}
       <main
         className={cn(
-          'content-main flex-1 overflow-hidden transition-[margin] duration-200',
+          // Base layout classes - same for all pages
+          'content-main flex-1 flex flex-col overflow-auto',
+          // Transition for smooth sidebar toggle
+          'transition-[margin] duration-200',
+          // Additional page-specific classes
           mainClassName
         )}
         style={{ marginLeft: `${marginLeft}px` }}
