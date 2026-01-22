@@ -697,14 +697,17 @@ body {
 .content-main {
   position: relative;
   background-color: var(--color-white);
-  /* Only round corners where white margin shows (right and bottom edges) */
-  border-radius: 0 var(--radius-xl) var(--radius-xl) var(--radius-xl);
+  /* Round all corners since we have margins on all sides */
+  border-radius: var(--radius-xl);
   overflow: hidden;
   /* Height accounts for bottom margin only (no top margin) */
   height: calc(100% - var(--space-sm));
-  /* Margin creates the white frame effect - left margin handled by sidebar offset */
+  /* Margin creates the white frame effect */
   margin-bottom: var(--space-sm);
   margin-right: var(--space-sm);
+  margin-left: var(--space-sm);
+  /* Subtle interior shadow on all sides */
+  box-shadow: inset 0 0 12px 0 rgba(0, 0, 0, 0.04);
 }
 
 /* Gradient background inside the rounded content area */

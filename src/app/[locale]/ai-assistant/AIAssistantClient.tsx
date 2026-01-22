@@ -155,11 +155,11 @@ export function AIAssistantClient({
       {/* Main content area - adjust margin based on sidebar state, with rounded gradient */}
       <main
         className={cn(
-          'content-main overflow-hidden transition-[margin] duration-200',
+          'content-main flex-1 overflow-hidden transition-[margin] duration-200',
           getTransitionClasses()
         )}
         style={{
-          marginLeft: isCollapsed ? '60px' : '280px'
+          marginLeft: isCollapsed ? '68px' : '288px'
         }}
       >
         {renderContent()}

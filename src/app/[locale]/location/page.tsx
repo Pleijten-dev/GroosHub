@@ -306,8 +306,8 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     onLoadSavedLocation: handleLoadSavedLocation,
   });
 
-  // Calculate main content margin based on sidebar state
-  const mainContentMargin = isCollapsed ? 'ml-[60px]' : 'ml-[320px]';
+  // Calculate main content margin based on sidebar state (includes 8px gap for rounded corners)
+  const mainContentMargin = isCollapsed ? 'ml-[68px]' : 'ml-[328px]';
 
   /**
    * Render main content based on active tab and data state
