@@ -681,6 +681,53 @@ body {
     radial-gradient(circle at 75% 75%, var(--blob-2-color) 0%, transparent 35%),
     radial-gradient(circle at 50% 50%, var(--blob-3-color) 0%, transparent 30%);
 }
+
+/* ========== MAIN CONTENT LAYOUT SYSTEM ========== */
+/* White outer frame with rounded gradient content area */
+
+/* Outer wrapper - provides the white frame */
+.content-frame {
+  background-color: var(--color-white);
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Main content area with rounded corners and gradient */
+/* Uses margin to create white gap around the rounded edges */
+.content-main {
+  position: relative;
+  background-color: var(--color-white);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  /* Height accounts for top/bottom margin */
+  height: calc(100% - var(--space-sm) * 2);
+  /* Margin creates the white frame effect - left margin handled by sidebar offset */
+  margin-top: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  margin-right: var(--space-sm);
+}
+
+/* Gradient background inside the rounded content area */
+.content-main::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 30%, var(--blob-1-color) 0%, transparent 40%),
+    radial-gradient(circle at 80% 70%, var(--blob-2-color) 0%, transparent 40%),
+    radial-gradient(circle at 40% 80%, var(--blob-3-color) 0%, transparent 40%),
+    radial-gradient(circle at 70% 20%, var(--blob-4-color) 0%, transparent 40%);
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Ensure content inside is above the gradient */
+.content-main > * {
+  position: relative;
+  z-index: 1;
+}
+
 /* ========== TOAST ANIMATIONS ========== */
 @keyframes slide-in-right {
   from {

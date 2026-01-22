@@ -143,7 +143,7 @@ export function AIAssistantClient({
   }
 
   return (
-    <div className="flex overflow-hidden" style={{ height: `calc(100vh - ${NAVBAR_HEIGHT}px)` }}>
+    <div className="content-frame flex overflow-hidden" style={{ height: `calc(100vh - ${NAVBAR_HEIGHT}px)` }}>
       <ProjectsSidebarEnhanced
         isCollapsed={isCollapsed}
         onToggle={toggleSidebar}
@@ -152,10 +152,10 @@ export function AIAssistantClient({
         userName={userName}
       />
 
-      {/* Main content area - adjust margin based on sidebar state */}
+      {/* Main content area - adjust margin based on sidebar state, with rounded gradient */}
       <main
         className={cn(
-          'flex-1 overflow-hidden transition-[margin] duration-200',
+          'content-main overflow-hidden transition-[margin] duration-200',
           getTransitionClasses()
         )}
         style={{
