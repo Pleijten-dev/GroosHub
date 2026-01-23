@@ -843,9 +843,10 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
       feature="location"
       initialContext={{
         currentView: {
-          activeTab,
-          hasData: !!data,
-          address: currentAddress || undefined,
+          location: {
+            address: currentAddress || undefined,
+            hasCompletedAnalysis: !!data,
+          },
         },
       }}
     >
