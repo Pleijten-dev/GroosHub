@@ -160,12 +160,6 @@ export function KanbanBoard({
         return next;
       });
 
-      // Subtle success feedback
-      showToast(`Task moved to ${t[newStatus]}`, {
-        duration: 2000,
-        type: 'success'
-      });
-
     } catch (error) {
       // 6. Failed - rollback with animation
       setLocalTasks(prevTasks =>
