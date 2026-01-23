@@ -30,6 +30,7 @@ import { PVEQuestionnaire } from '../../../features/location/components/PVE';
 import { MapExportButton } from '../../../features/location/components/MapExport';
 import type { AccessibleLocation } from '../../../features/location/types/saved-locations';
 import { useWMSGrading } from '../../../features/location/hooks/useWMSGrading';
+import { AIAssistantProvider } from '../../../features/ai-assistant/hooks/useAIAssistant';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -838,38 +839,49 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   };
 
   return (
-    <div
-      className="page-background w-screen overflow-hidden flex flex-col"
-      style={{
-        height: '100vh',
-        marginTop: '-64px',
-        marginLeft: 'calc(var(--space-base) * -1)',
-        marginRight: 'calc(var(--space-base) * -1)',
-        paddingTop: '64px'
+    <AIAssistantProvider
+      feature="location"
+      initialContext={{
+        currentView: {
+          activeTab,
+          hasData: !!data,
+          address: currentAddress || undefined,
+        },
       }}
     >
+      <div
+        className="page-background w-screen overflow-hidden flex flex-col"
+        style={{
+          height: '100vh',
+          marginTop: '-64px',
+          marginLeft: 'calc(var(--space-base) * -1)',
+          marginRight: 'calc(var(--space-base) * -1)',
+          paddingTop: '64px'
+        }}
+      >
 
-      {/* SIDEBAR - Using reusable component (position: fixed, out of flow) */}
-      <Sidebar
-        isCollapsed={isCollapsed}
-        onToggle={toggle}
-        sections={sidebarSections}
-        title={locale === 'nl' ? 'Locatie Analyse' : 'Location Analysis'}
-        subtitle={locale === 'nl' ? 'Adres & Data Analyse' : 'Address & Data Analysis'}
-        position="left"
-        expandedWidth="320px"
-        collapsedWidth="60px"
-        className="!top-[64px] !bottom-0 !h-auto"
-      />
+        {/* SIDEBAR - Using reusable component (position: fixed, out of flow) */}
+        <Sidebar
+          isCollapsed={isCollapsed}
+          onToggle={toggle}
+          sections={sidebarSections}
+          title={locale === 'nl' ? 'Locatie Analyse' : 'Location Analysis'}
+          subtitle={locale === 'nl' ? 'Adres & Data Analyse' : 'Address & Data Analysis'}
+          position="left"
+          expandedWidth="320px"
+          collapsedWidth="60px"
+          className="!top-[64px] !bottom-0 !h-auto"
+        />
 
-      {/* MAIN CONTENT - Margin adjusted for fixed sidebar */}
-      <main className={`
-        flex flex-col overflow-auto h-full
-        ${mainContentMargin}
-      `}>
-        {renderMainContent()}
-      </main>
-    </div>
+        {/* MAIN CONTENT - Margin adjusted for fixed sidebar */}
+        <main className={`
+          flex flex-col overflow-auto h-full
+          ${mainContentMargin}
+        `}>
+          {renderMainContent()}
+        </main>
+      </div>
+    </AIAssistantProvider>
   );
 };
 
