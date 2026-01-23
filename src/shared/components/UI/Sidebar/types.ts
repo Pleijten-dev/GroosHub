@@ -24,13 +24,7 @@ export interface SidebarProps {
   
   /** Position of the sidebar */
   position?: 'left' | 'right';
-  
-  /** Width when expanded */
-  expandedWidth?: string;
-  
-  /** Width when collapsed */
-  collapsedWidth?: string;
-  
+
   /** Custom header content */
   headerContent?: ReactNode;
   
