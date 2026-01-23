@@ -19,17 +19,23 @@ import {
   type CompactExportData,
   type CubeCaptureResult,
   type MapCaptureResult,
+  type PersonaBasic,
 } from '../../utils/unifiedRapportGenerator';
 import { exportCompactForLLM, type CompactLocationExport } from '../../utils/jsonExportCompact';
+import { captureAllScenarioCubes } from '../../utils/cubeCapture';
 import type { UnifiedLocationData } from '../../data/aggregator/multiLevelAggregator';
 import type { AmenityMultiCategoryResponse } from '../../data/sources/google-places/types';
 import type { PersonaScore } from '../../utils/targetGroupScoring';
+import type { WMSGradingData } from '../../types/wms-grading';
+import { downloadWMSTile, type MapCapture } from '../../utils/mapExport';
+import { WMS_CATEGORIES, type WMSLayerConfig } from '../Maps/wmsLayers';
 
 interface GenerateRapportButtonProps {
   locale: 'nl' | 'en';
   data: UnifiedLocationData;
   amenitiesData: AmenityMultiCategoryResponse | null;
   personaScores: PersonaScore[];
+  coordinates?: [number, number];
   cubeRef?: React.RefObject<HTMLDivElement | null>;
   scenarios?: {
     scenario1: number[];
@@ -37,6 +43,7 @@ interface GenerateRapportButtonProps {
     scenario3: number[];
     customScenario?: number[];
   };
+  cubeColors?: string[];
   pveData?: {
     totalM2: number;
     percentages: {
@@ -48,6 +55,7 @@ interface GenerateRapportButtonProps {
       offices: number;
     };
   };
+  wmsGradingData?: WMSGradingData | null;
   usePlaceholder?: boolean; // Use placeholder JSON instead of LLM call
   className?: string;
 }
@@ -90,9 +98,12 @@ export function GenerateRapportButton({
   data,
   amenitiesData,
   personaScores,
+  coordinates,
   cubeRef,
   scenarios,
+  cubeColors,
   pveData,
+  wmsGradingData,
   usePlaceholder = true, // Default to placeholder to save LLM costs
   className,
 }: GenerateRapportButtonProps) {
@@ -102,14 +113,107 @@ export function GenerateRapportButton({
 
   const messages = STAGE_MESSAGES[locale];
 
-  // Capture cube visualization
-  const captureCube = useCallback(async (
-    scenarioName: string
-  ): Promise<CubeCaptureResult | null> => {
-    // TODO: Implement cube capture from cubeRef
-    // For now, return null and let the PDF handle missing cubes gracefully
-    return null;
-  }, [cubeRef]);
+  /**
+   * Convert persona ID to image filename
+   * e.g., "jonge-starters" → "Jonge_Starters.png"
+   */
+  const personaIdToFilename = (id: string): string => {
+    return id
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join('_') + '.png';
+  };
+
+  /**
+   * Fetch persona image and convert to data URL
+   */
+  const fetchPersonaImage = async (personaId: string): Promise<string | undefined> => {
+    try {
+      const filename = personaIdToFilename(personaId);
+      const response = await fetch(`/personas/${filename}`);
+      if (!response.ok) return undefined;
+
+      const blob = await response.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => resolve(undefined);
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return undefined;
+    }
+  };
+
+  /**
+   * Pre-fetch all persona images for use in PDF
+   */
+  const fetchAllPersonaImages = async (personaIds: string[]): Promise<Record<string, string>> => {
+    const images: Record<string, string> = {};
+
+    const fetchWithTimeout = async (id: string): Promise<{ id: string; dataUrl: string | undefined }> => {
+      try {
+        const timeoutPromise = new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), 2000));
+        const fetchPromise = fetchPersonaImage(id);
+        const dataUrl = await Promise.race([fetchPromise, timeoutPromise]);
+        return { id, dataUrl };
+      } catch {
+        return { id, dataUrl: undefined };
+      }
+    };
+
+    const results = await Promise.all(personaIds.map(fetchWithTimeout));
+
+    results.forEach(({ id, dataUrl }) => {
+      if (dataUrl) {
+        images[id] = dataUrl;
+      }
+    });
+
+    return images;
+  };
+
+  /**
+   * Load full housing personas data with property types
+   */
+  const loadHousingPersonas = async (): Promise<Record<string, {
+    current_property_types?: string[];
+    desired_property_types?: string[];
+    imageUrl?: string;
+  }>> => {
+    try {
+      const response = await fetch('/api/location/housing-personas');
+      if (!response.ok) {
+        // Try loading directly from public folder as fallback
+        const directResponse = await fetch('/housing-personas.json');
+        if (!directResponse.ok) return {};
+        const data = await directResponse.json();
+        const personas = data[locale]?.housing_personas || data['nl']?.housing_personas || [];
+        const result: Record<string, { current_property_types?: string[]; desired_property_types?: string[]; imageUrl?: string }> = {};
+        for (const p of personas) {
+          result[p.id] = {
+            current_property_types: p.current_property_types,
+            desired_property_types: p.desired_property_types,
+            imageUrl: p.imageUrl,
+          };
+        }
+        return result;
+      }
+      const data = await response.json();
+      const personas = data[locale]?.housing_personas || data['nl']?.housing_personas || [];
+      const result: Record<string, { current_property_types?: string[]; desired_property_types?: string[]; imageUrl?: string }> = {};
+      for (const p of personas) {
+        result[p.id] = {
+          current_property_types: p.current_property_types,
+          desired_property_types: p.desired_property_types,
+          imageUrl: p.imageUrl,
+        };
+      }
+      return result;
+    } catch {
+      return {};
+    }
+  };
 
   // Generate the report
   const handleGenerate = useCallback(async () => {
@@ -158,20 +262,100 @@ export function GenerateRapportButton({
 
       // Stage 3: Capture visualizations
       setStage('capturing-visuals');
-      setProgress(60);
+      setProgress(55);
 
       // Capture cube visualizations
-      const cubeCaptures: Record<string, CubeCaptureResult> = {};
+      let cubeCaptures: Record<string, CubeCaptureResult> = {};
+      if (scenarios && cubeColors && cubeColors.length > 0) {
+        try {
+          const cubeCaptureResult = await captureAllScenarioCubes(
+            scenarios,
+            cubeColors,
+            { width: 400, height: 400, backgroundColor: '#1a1a2e' }
+          );
+          cubeCaptures = {
+            scenario1: cubeCaptureResult.scenario1,
+            scenario2: cubeCaptureResult.scenario2,
+            scenario3: cubeCaptureResult.scenario3,
+            ...(cubeCaptureResult.customScenario && { scenario4: cubeCaptureResult.customScenario }),
+          };
+        } catch (err) {
+          console.warn('Failed to capture cube visualizations:', err);
+        }
+      }
 
-      // TODO: Implement actual cube captures
-      // For now, we'll generate the PDF without cube images
+      setProgress(65);
 
-      // Capture map screenshots if available
+      // Fetch persona images and full housing data
+      const allPersonas = compactData.allPersonas || [];
+      const personaIds = allPersonas.map(p => p.id);
+      const [personaImages, housingPersonasData] = await Promise.all([
+        fetchAllPersonaImages(personaIds),
+        loadHousingPersonas(),
+      ]);
+
+      // Add images and housing data to personas
+      const personasWithFullData: PersonaBasic[] = allPersonas.map(p => ({
+        ...p,
+        imageDataUrl: personaImages[p.id],
+        imageUrl: housingPersonasData[p.id]?.imageUrl,
+        current_property_types: housingPersonasData[p.id]?.current_property_types,
+        desired_property_types: housingPersonasData[p.id]?.desired_property_types,
+      }));
+
+      // Update compactData with enriched personas
+      compactData = {
+        ...compactData,
+        allPersonas: personasWithFullData,
+      };
+
+      // Capture WMS map screenshots if coordinates are available
       const mapCaptures: MapCaptureResult[] = [];
 
-      // TODO: Implement map captures from the Kaarten tab
+      // Helper function to find a WMS layer config by its ID
+      const findLayerConfig = (layerId: string): WMSLayerConfig | null => {
+        for (const category of Object.values(WMS_CATEGORIES)) {
+          if (category.layers[layerId]) {
+            return category.layers[layerId];
+          }
+        }
+        return null;
+      };
 
-      setProgress(70);
+      if (coordinates && wmsGradingData) {
+        const [lat, lon] = coordinates;
+        // Get available layer IDs from grading data
+        const gradedLayers = Object.values(wmsGradingData.layers || {});
+
+        // Capture each graded WMS layer (limit to 6 for performance)
+        for (const gradedLayer of gradedLayers.slice(0, 6)) {
+          const layerConfig = findLayerConfig(gradedLayer.layer_id);
+          if (!layerConfig) continue;
+          // Skip amenity layers (they use a special URL scheme)
+          if (layerConfig.url.startsWith('amenity://')) continue;
+
+          try {
+            const mapCapture: MapCapture = await downloadWMSTile({
+              url: layerConfig.url,
+              layers: layerConfig.layers,
+              layerTitle: layerConfig.title,
+              center: [lat, lon],
+              zoom: layerConfig.recommendedZoom || 14,
+              width: 600,
+              height: 400,
+            });
+
+            mapCaptures.push({
+              name: layerConfig.title,
+              dataUrl: mapCapture.dataUrl,
+            });
+          } catch (captureError) {
+            console.warn(`Failed to capture WMS layer ${gradedLayer.layer_id}:`, captureError);
+          }
+        }
+      }
+
+      setProgress(75);
 
       // Stage 4: Build PDF
       setStage('building-pdf');

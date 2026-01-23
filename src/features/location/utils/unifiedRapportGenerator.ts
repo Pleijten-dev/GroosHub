@@ -136,6 +136,10 @@ export interface PersonaBasic {
   householdType: string;
   ageGroup: string;
   description: string;
+  imageUrl?: string;
+  imageDataUrl?: string;
+  current_property_types?: string[];
+  desired_property_types?: string[];
 }
 
 export interface RankedPersona extends PersonaBasic {
@@ -310,6 +314,7 @@ const TRANSLATIONS = {
     appendix: 'Bijlagen',
     totalScoreTable: 'Totale Score Tabel',
     detailedScoreTable: 'Gedetailleerde Score Tabel',
+    fullDetailedDataTable: 'Volledige Data Overzicht',
     environmentalScores: 'Omgevingsdata Scores',
     demographicsTable: 'Data Tabel Demografie',
     housingTable: 'Data Tabel Woningmarkt',
@@ -366,6 +371,7 @@ const TRANSLATIONS = {
     appendix: 'Appendix',
     totalScoreTable: 'Total Score Table',
     detailedScoreTable: 'Detailed Score Table',
+    fullDetailedDataTable: 'Full Data Overview',
     environmentalScores: 'Environmental Data Scores',
     demographicsTable: 'Demographics Data Table',
     housingTable: 'Housing Market Data Table',
@@ -460,6 +466,131 @@ export class UnifiedRapportBuilder {
 
   private addTocEntry(title: string, level: number = 0): void {
     this.tocEntries.push({ title, page: this.currentPage, level });
+  }
+
+  /**
+   * Draw a pie/donut chart
+   * @param centerX - X position of chart center
+   * @param centerY - Y position of chart center
+   * @param radius - Outer radius of the chart
+   * @param segments - Array of { value, color, label } for each segment
+   * @param innerRadius - Inner radius for donut chart (0 for full pie)
+   */
+  private drawPieChart(
+    centerX: number,
+    centerY: number,
+    radius: number,
+    segments: { value: number; color: [number, number, number]; label?: string }[],
+    innerRadius: number = 0
+  ): void {
+    const total = segments.reduce((sum, s) => sum + s.value, 0);
+    if (total === 0) return;
+
+    let currentAngle = -Math.PI / 2; // Start at top (12 o'clock)
+
+    segments.forEach((segment) => {
+      if (segment.value === 0) return;
+
+      const segmentAngle = (segment.value / total) * 2 * Math.PI;
+      const endAngle = currentAngle + segmentAngle;
+
+      // Draw segment as a filled path
+      this.setColor(segment.color, 'fill');
+
+      // Create arc path
+      const points: string[] = [];
+      const steps = Math.max(20, Math.ceil(segmentAngle * 20));
+
+      // Outer arc
+      for (let i = 0; i <= steps; i++) {
+        const angle = currentAngle + (segmentAngle * i) / steps;
+        const x = centerX + Math.cos(angle) * radius;
+        const y = centerY + Math.sin(angle) * radius;
+        points.push(`${x.toFixed(2)} ${y.toFixed(2)}`);
+      }
+
+      // Inner arc (reverse direction for donut)
+      if (innerRadius > 0) {
+        for (let i = steps; i >= 0; i--) {
+          const angle = currentAngle + (segmentAngle * i) / steps;
+          const x = centerX + Math.cos(angle) * innerRadius;
+          const y = centerY + Math.sin(angle) * innerRadius;
+          points.push(`${x.toFixed(2)} ${y.toFixed(2)}`);
+        }
+      } else {
+        // For full pie, connect to center
+        points.push(`${centerX.toFixed(2)} ${centerY.toFixed(2)}`);
+      }
+
+      // Draw filled polygon approximation of arc
+      this.drawFilledArc(centerX, centerY, radius, innerRadius, currentAngle, endAngle, segment.color);
+
+      // Add label if provided
+      if (segment.label) {
+        const midAngle = currentAngle + segmentAngle / 2;
+        const labelRadius = innerRadius > 0 ? (radius + innerRadius) / 2 : radius * 0.6;
+        const labelX = centerX + Math.cos(midAngle) * labelRadius;
+        const labelY = centerY + Math.sin(midAngle) * labelRadius;
+
+        this.pdf.setFontSize(6);
+        this.setColor(TEXT_COLOR);
+        this.pdf.setFont('helvetica', 'bold');
+        this.pdf.text(segment.label, labelX, labelY, { align: 'center' });
+      }
+
+      currentAngle = endAngle;
+    });
+
+    // Draw border around chart
+    this.setColor(BORDER_COLOR, 'draw');
+    this.pdf.circle(centerX, centerY, radius, 'D');
+    if (innerRadius > 0) {
+      this.pdf.circle(centerX, centerY, innerRadius, 'D');
+    }
+  }
+
+  /**
+   * Draw a filled arc segment using small triangles
+   */
+  private drawFilledArc(
+    centerX: number,
+    centerY: number,
+    outerRadius: number,
+    innerRadius: number,
+    startAngle: number,
+    endAngle: number,
+    color: [number, number, number]
+  ): void {
+    this.setColor(color, 'fill');
+
+    const steps = Math.max(10, Math.ceil((endAngle - startAngle) * 15));
+    const angleStep = (endAngle - startAngle) / steps;
+
+    for (let i = 0; i < steps; i++) {
+      const a1 = startAngle + i * angleStep;
+      const a2 = startAngle + (i + 1) * angleStep;
+
+      // Outer points
+      const x1 = centerX + Math.cos(a1) * outerRadius;
+      const y1 = centerY + Math.sin(a1) * outerRadius;
+      const x2 = centerX + Math.cos(a2) * outerRadius;
+      const y2 = centerY + Math.sin(a2) * outerRadius;
+
+      if (innerRadius > 0) {
+        // Inner points for donut
+        const x3 = centerX + Math.cos(a2) * innerRadius;
+        const y3 = centerY + Math.sin(a2) * innerRadius;
+        const x4 = centerX + Math.cos(a1) * innerRadius;
+        const y4 = centerY + Math.sin(a1) * innerRadius;
+
+        // Draw quadrilateral as two triangles
+        this.pdf.triangle(x1, y1, x2, y2, x3, y3, 'F');
+        this.pdf.triangle(x1, y1, x3, y3, x4, y4, 'F');
+      } else {
+        // Triangle to center for full pie
+        this.pdf.triangle(centerX, centerY, x1, y1, x2, y2, 'F');
+      }
+    }
   }
 
   // ==========================================================================
@@ -991,7 +1122,8 @@ export class UnifiedRapportBuilder {
     scenarioIndex: number,
     scenario: LLMScenario,
     cubeCapture?: CubeCaptureResult,
-    personas?: PersonaBasic[]
+    personas?: PersonaBasic[],
+    pveData?: CompactExportData['pve']
   ): void {
     // Page 1: Cube + Overview
     this.addNewPage();
@@ -1039,11 +1171,11 @@ export class UnifiedRapportBuilder {
     this.pdf.text(this.t.targetGroups, rightColX, rightY);
     rightY += 6;
 
-    // List target personas
+    // List target personas (no bullets)
     this.pdf.setFontSize(9);
     this.pdf.setFont('helvetica', 'normal');
     scenario.target_personas.forEach((persona) => {
-      this.pdf.text(`• ${persona}`, rightColX, rightY);
+      this.pdf.text(persona, rightColX, rightY);
       rightY += 5;
     });
 
@@ -1086,10 +1218,10 @@ export class UnifiedRapportBuilder {
     this.addTargetGroupDetails(scenario.target_personas, personas);
 
     // Page 2: Residential Program
-    this.addResidentialProgramPage(scenarioIndex, scenario);
+    this.addResidentialProgramPage(scenarioIndex, scenario, pveData);
 
     // Page 3: Commercial, Hospitality, Social, Communal, Offices
-    this.addNonResidentialProgramPage(scenarioIndex, scenario);
+    this.addNonResidentialProgramPage(scenarioIndex, scenario, pveData);
   }
 
   private addTargetGroupDetails(
@@ -1112,40 +1244,103 @@ export class UnifiedRapportBuilder {
       .map(name => allPersonas.find(p => p.name === name))
       .filter((p): p is PersonaBasic => p !== undefined);
 
-    // Display each persona in a clean format
-    matchingPersonas.forEach((persona) => {
-      this.checkPageBreak(25);
+    // Housing type labels
+    const currentHousingLabel = this.locale === 'nl' ? 'Huidig woningtype' : 'Current housing';
+    const desiredHousingLabel = this.locale === 'nl' ? 'Gewenst woningtype' : 'Desired housing';
 
-      // Name
+    // Display each persona with image and housing info
+    const imageSize = 25; // mm
+    const textStartX = MARGIN + imageSize + 5;
+    const textWidth = CONTENT_WIDTH - imageSize - 5;
+
+    matchingPersonas.forEach((persona) => {
+      this.checkPageBreak(40);
+
+      const personaStartY = this.currentY;
+
+      // Persona image (left side)
+      if (persona.imageDataUrl) {
+        try {
+          this.pdf.addImage(
+            persona.imageDataUrl, 'PNG',
+            MARGIN, this.currentY,
+            imageSize, imageSize,
+            undefined, 'FAST'
+          );
+        } catch {
+          // Fallback: draw placeholder
+          this.setColor(LIGHT_BG, 'fill');
+          this.pdf.rect(MARGIN, this.currentY, imageSize, imageSize, 'F');
+        }
+      } else {
+        // Placeholder if no image
+        this.setColor(LIGHT_BG, 'fill');
+        this.pdf.rect(MARGIN, this.currentY, imageSize, imageSize, 'F');
+      }
+
+      // Name (right of image)
       this.pdf.setFontSize(10);
       this.setColor(TEXT_COLOR);
       this.pdf.setFont('helvetica', 'bold');
-      this.pdf.text(persona.name, MARGIN, this.currentY);
-      this.currentY += 5;
+      this.pdf.text(persona.name, textStartX, this.currentY + 4);
 
       // Stats line
-      this.pdf.setFontSize(8);
+      this.pdf.setFontSize(7);
       this.setColor(MUTED_COLOR);
       this.pdf.setFont('helvetica', 'normal');
       this.pdf.text(
         `${persona.incomeLevel} | ${persona.ageGroup} | ${persona.householdType}`,
-        MARGIN, this.currentY
+        textStartX, this.currentY + 8
       );
-      this.currentY += 4;
 
       // Description
-      this.pdf.setFontSize(8);
+      this.pdf.setFontSize(7);
       this.setColor(TEXT_COLOR);
-      const descLines = this.wrapText(persona.description, CONTENT_WIDTH);
+      const descLines = this.wrapText(persona.description, textWidth);
+      let descY = this.currentY + 12;
       descLines.slice(0, 2).forEach((line) => {
-        this.pdf.text(line, MARGIN, this.currentY);
-        this.currentY += 4;
+        this.pdf.text(line, textStartX, descY);
+        descY += 3.5;
       });
-      this.currentY += 4;
+
+      // Current housing
+      if (persona.current_property_types && persona.current_property_types.length > 0) {
+        descY += 1;
+        this.pdf.setFont('helvetica', 'bold');
+        this.setColor(MUTED_COLOR);
+        this.pdf.text(`${currentHousingLabel}: `, textStartX, descY);
+        this.pdf.setFont('helvetica', 'normal');
+        this.setColor(TEXT_COLOR);
+        const housingText = persona.current_property_types.join(', ');
+        const housingLines = this.wrapText(housingText, textWidth - 25);
+        const labelWidth = this.pdf.getTextWidth(`${currentHousingLabel}: `);
+        this.pdf.text(housingLines[0], textStartX + labelWidth, descY);
+      }
+
+      // Desired housing
+      if (persona.desired_property_types && persona.desired_property_types.length > 0) {
+        descY += 4;
+        this.pdf.setFont('helvetica', 'bold');
+        this.setColor(MUTED_COLOR);
+        this.pdf.text(`${desiredHousingLabel}: `, textStartX, descY);
+        this.pdf.setFont('helvetica', 'normal');
+        this.setColor(TEXT_COLOR);
+        const desiredText = persona.desired_property_types.join(', ');
+        const desiredLines = this.wrapText(desiredText, textWidth - 25);
+        const labelWidth = this.pdf.getTextWidth(`${desiredHousingLabel}: `);
+        this.pdf.text(desiredLines[0], textStartX + labelWidth, descY);
+      }
+
+      // Move Y past the persona card (max of image height or text content)
+      this.currentY = Math.max(personaStartY + imageSize + 3, descY + 5);
     });
   }
 
-  private addResidentialProgramPage(scenarioIndex: number, scenario: LLMScenario): void {
+  private addResidentialProgramPage(
+    scenarioIndex: number,
+    scenario: LLMScenario,
+    pveData?: CompactExportData['pve']
+  ): void {
     this.addNewPage();
     this.addTocEntry(`${this.t.scenario} ${scenarioIndex}: ${this.t.residentialProgram}`, 1);
 
@@ -1154,7 +1349,65 @@ export class UnifiedRapportBuilder {
     this.setColor(PRIMARY_COLOR);
     this.pdf.setFont('helvetica', 'bold');
     this.pdf.text(`${this.t.residentialProgram} - ${scenario.scenario_simple_name}`, MARGIN, this.currentY);
-    this.currentY += 8;
+    this.currentY += 10;
+
+    // Pie chart showing PVE distribution
+    if (pveData) {
+      const chartCenterX = PAGE_WIDTH / 2;
+      const chartRadius = 30;
+      const chartCenterY = this.currentY + chartRadius + 5;
+
+      // Green shades for residential unit types
+      const greenShades: [number, number, number][] = [
+        [71, 118, 56],   // PRIMARY_COLOR - darkest green
+        [100, 150, 80],  // medium-dark green
+        [130, 170, 100], // medium green
+        [160, 190, 130], // medium-light green
+        [190, 210, 160], // light green
+        [210, 230, 180], // lightest green
+      ];
+
+      // Build pie chart segments - residential units as different greens
+      const segments: { value: number; color: [number, number, number]; label?: string }[] = [];
+
+      // Add residential unit types (different greens)
+      scenario.residential.unit_mix.forEach((unit, idx) => {
+        segments.push({
+          value: unit.total_m2,
+          color: greenShades[idx % greenShades.length],
+          label: unit.typology_name.substring(0, 15),
+        });
+      });
+
+      // Add other PVE categories as light grey
+      const greyColor: [number, number, number] = [200, 200, 200];
+      if (pveData.percentages?.commercial?.m2 && pveData.percentages.commercial.m2 > 0) {
+        segments.push({ value: pveData.percentages.commercial.m2, color: greyColor });
+      }
+      if (pveData.percentages?.hospitality?.m2 && pveData.percentages.hospitality.m2 > 0) {
+        segments.push({ value: pveData.percentages.hospitality.m2, color: greyColor });
+      }
+      if (pveData.percentages?.social?.m2 && pveData.percentages.social.m2 > 0) {
+        segments.push({ value: pveData.percentages.social.m2, color: greyColor });
+      }
+      if (pveData.percentages?.communal?.m2 && pveData.percentages.communal.m2 > 0) {
+        segments.push({ value: pveData.percentages.communal.m2, color: greyColor });
+      }
+      if (pveData.percentages?.offices?.m2 && pveData.percentages.offices.m2 > 0) {
+        segments.push({ value: pveData.percentages.offices.m2, color: greyColor });
+      }
+
+      this.drawPieChart(chartCenterX, chartCenterY, chartRadius, segments, chartRadius * 0.4);
+
+      // Total m² in center of donut
+      this.pdf.setFontSize(8);
+      this.setColor(TEXT_COLOR);
+      this.pdf.setFont('helvetica', 'bold');
+      const totalText = `${(pveData.totalM2 || 0).toLocaleString()} m²`;
+      this.pdf.text(totalText, chartCenterX, chartCenterY + 2, { align: 'center' });
+
+      this.currentY = chartCenterY + chartRadius + 10;
+    }
 
     // Summary stats
     this.pdf.setFontSize(10);
@@ -1164,7 +1417,7 @@ export class UnifiedRapportBuilder {
       `${this.t.totalM2}: ${scenario.residential.total_m2.toLocaleString()} m² | ${this.t.quantity}: ${scenario.residential.total_units} units`,
       MARGIN, this.currentY
     );
-    this.currentY += 10;
+    this.currentY += 8;
 
     // Unit mix table
     this.pdf.setFontSize(11);
@@ -1241,9 +1494,92 @@ export class UnifiedRapportBuilder {
     });
   }
 
-  private addNonResidentialProgramPage(scenarioIndex: number, scenario: LLMScenario): void {
+  private addNonResidentialProgramPage(
+    scenarioIndex: number,
+    scenario: LLMScenario,
+    pveData?: CompactExportData['pve']
+  ): void {
     this.addNewPage();
     this.addTocEntry(`${this.t.scenario} ${scenarioIndex}: ${this.t.commercialProgram}`, 1);
+
+    // Pie chart showing non-residential PVE distribution
+    if (pveData) {
+      const chartCenterX = PAGE_WIDTH / 2;
+      const chartRadius = 25;
+      const chartCenterY = this.currentY + chartRadius + 5;
+
+      // Green/earth tones for non-residential
+      const categoryColors: { [key: string]: [number, number, number] } = {
+        commercial: [119, 138, 94],    // sage green
+        hospitality: [71, 105, 56],    // forest green
+        social: [99, 131, 81],         // olive
+        communal: [138, 151, 107],     // light sage
+        offices: [155, 168, 125],      // pale olive
+      };
+
+      // Grey for apartments (not featured on this page)
+      const greyColor: [number, number, number] = [200, 200, 200];
+
+      // Build segments
+      const segments: { value: number; color: [number, number, number]; label?: string }[] = [];
+
+      // Apartments as grey
+      if (pveData.percentages?.apartments?.m2 && pveData.percentages.apartments.m2 > 0) {
+        segments.push({ value: pveData.percentages.apartments.m2, color: greyColor });
+      }
+
+      // Non-residential categories in green
+      if (pveData.percentages?.commercial?.m2 && pveData.percentages.commercial.m2 > 0) {
+        segments.push({
+          value: pveData.percentages.commercial.m2,
+          color: categoryColors.commercial,
+          label: this.t.commercial.substring(0, 10),
+        });
+      }
+      if (pveData.percentages?.hospitality?.m2 && pveData.percentages.hospitality.m2 > 0) {
+        segments.push({
+          value: pveData.percentages.hospitality.m2,
+          color: categoryColors.hospitality,
+          label: this.t.hospitality.substring(0, 10),
+        });
+      }
+      if (pveData.percentages?.social?.m2 && pveData.percentages.social.m2 > 0) {
+        segments.push({
+          value: pveData.percentages.social.m2,
+          color: categoryColors.social,
+          label: this.t.social.substring(0, 10),
+        });
+      }
+      if (pveData.percentages?.communal?.m2 && pveData.percentages.communal.m2 > 0) {
+        segments.push({
+          value: pveData.percentages.communal.m2,
+          color: categoryColors.communal,
+          label: this.t.communal.substring(0, 10),
+        });
+      }
+      if (pveData.percentages?.offices?.m2 && pveData.percentages.offices.m2 > 0) {
+        segments.push({
+          value: pveData.percentages.offices.m2,
+          color: categoryColors.offices,
+          label: this.t.offices.substring(0, 10),
+        });
+      }
+
+      this.drawPieChart(chartCenterX, chartCenterY, chartRadius, segments, chartRadius * 0.4);
+
+      // Total m² in center
+      this.pdf.setFontSize(7);
+      this.setColor(TEXT_COLOR);
+      this.pdf.setFont('helvetica', 'bold');
+      const nonResTotal = (pveData.percentages?.commercial?.m2 || 0) +
+        (pveData.percentages?.hospitality?.m2 || 0) +
+        (pveData.percentages?.social?.m2 || 0) +
+        (pveData.percentages?.communal?.m2 || 0) +
+        (pveData.percentages?.offices?.m2 || 0);
+      this.pdf.text(`${nonResTotal.toLocaleString()} m²`, chartCenterX, chartCenterY + 2, { align: 'center' });
+
+      this.currentY = chartCenterY + chartRadius + 8;
+    }
 
     // Commercial Section
     this.pdf.setFontSize(14);
@@ -1364,51 +1700,56 @@ export class UnifiedRapportBuilder {
     compactData: CompactExportData,
     mapCaptures?: MapCaptureResult[]
   ): void {
-    // Appendix header
-    this.addNewPage();
-    this.addTocEntry(this.t.appendix, 0);
+    // A. Total Score Table (includes appendix header)
+    this.addTotalScoreTable(compactData.targetGroups.rankedPersonas, true);
 
-    this.pdf.setFontSize(20);
-    this.setColor(PRIMARY_COLOR);
-    this.pdf.setFont('helvetica', 'bold');
-    this.pdf.text(this.t.appendix, MARGIN, this.currentY);
-    this.currentY += 15;
-
-    // A. Total Score Table
-    this.addTotalScoreTable(compactData.targetGroups.rankedPersonas);
-
-    // B. Detailed Score Table
+    // B. Detailed Score Table (Summary)
     this.addDetailedScoreTable(compactData.targetGroups.rankedPersonas);
 
-    // C. Environmental Scores
+    // C. Full Detailed Data Table (Comprehensive)
+    this.addFullDetailedDataTable(compactData);
+
+    // E. Environmental Scores
     this.addEnvironmentalScores(compactData.amenities);
 
-    // D. Demographics Table
+    // F. Demographics Table
     this.addDataTable(this.t.demographicsTable, this.flattenDemographics(compactData.demographics));
 
-    // E. Housing Market Table
+    // G. Housing Market Table
     this.addHousingMarketTable(compactData.housingMarket);
 
-    // F. Safety Table
+    // H. Safety Table
     this.addDataTable(this.t.safetyTable, this.flattenSafety(compactData.safety));
 
-    // G. Health Table
+    // I. Health Table
     this.addDataTable(this.t.healthTable, this.flattenHealth(compactData.health));
 
-    // H. Livability Table
+    // J. Livability Table
     this.addDataTable(this.t.livabilityTable, this.flattenLivability(compactData.livability));
 
-    // I. Amenities Table
+    // K. Amenities Table
     this.addAmenitiesTable(compactData.amenities);
 
-    // J. Map Analysis
+    // L. Map Analysis
     if (mapCaptures && mapCaptures.length > 0) {
       this.addMapAnalysis(mapCaptures);
     }
   }
 
-  private addTotalScoreTable(rankedPersonas: RankedPersona[]): void {
+  private addTotalScoreTable(rankedPersonas: RankedPersona[], includeAppendixHeader = false): void {
     this.addNewPage();
+
+    // Add main appendix header and TOC entry if this is the first appendix section
+    if (includeAppendixHeader) {
+      this.addTocEntry(this.t.appendix, 0);
+
+      this.pdf.setFontSize(18);
+      this.setColor(PRIMARY_COLOR);
+      this.pdf.setFont('helvetica', 'bold');
+      this.pdf.text(this.t.appendix, MARGIN, this.currentY);
+      this.currentY += 12;
+    }
+
     this.addTocEntry(this.t.totalScoreTable, 1);
 
     this.pdf.setFontSize(14);
@@ -1538,6 +1879,333 @@ export class UnifiedRapportBuilder {
         cellX += colWidths[i + 1];
       });
 
+      this.currentY += rowHeight;
+    });
+  }
+
+  /**
+   * Add a comprehensive data table showing all location metrics
+   * organized by category with values from neighborhood, municipality, and national level
+   */
+  private addFullDetailedDataTable(compactData: CompactExportData): void {
+    this.addNewPage();
+    this.addTocEntry(this.t.fullDetailedDataTable, 1);
+
+    this.pdf.setFontSize(14);
+    this.setColor(PRIMARY_COLOR);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.text(this.t.fullDetailedDataTable, MARGIN, this.currentY);
+    this.currentY += 10;
+
+    const colWidths = [55, 35, 35, 35, 10];
+    const rowHeight = 6;
+
+    // Helper to draw table header
+    const drawTableHeader = (title: string, headers: string[]) => {
+      this.checkPageBreak(rowHeight * 3);
+
+      // Section title
+      this.pdf.setFontSize(10);
+      this.setColor(PRIMARY_COLOR);
+      this.pdf.setFont('helvetica', 'bold');
+      this.pdf.text(title, MARGIN, this.currentY);
+      this.currentY += 6;
+
+      // Header row
+      this.setColor(PRIMARY_COLOR, 'fill');
+      this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, rowHeight, 'F');
+
+      this.pdf.setFontSize(6);
+      this.pdf.setTextColor(255, 255, 255);
+      this.pdf.setFont('helvetica', 'bold');
+
+      let headerX = MARGIN + 2;
+      headers.forEach((header, i) => {
+        this.pdf.text(header, headerX, this.currentY + 4);
+        headerX += colWidths[i];
+      });
+      this.currentY += rowHeight;
+    };
+
+    // Helper to draw a data row
+    const drawDataRow = (
+      metric: string,
+      neighborhood: string,
+      municipality: string,
+      national: string,
+      isEven: boolean
+    ) => {
+      this.checkPageBreak(rowHeight + 2);
+
+      if (isEven) {
+        this.setColor(LIGHT_BG, 'fill');
+        this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, rowHeight, 'F');
+      }
+
+      this.pdf.setFontSize(5.5);
+      this.setColor(TEXT_COLOR);
+      this.pdf.setFont('helvetica', 'normal');
+
+      let cellX = MARGIN + 2;
+      const metricText = this.wrapText(metric, colWidths[0] - 4)[0];
+      this.pdf.text(metricText, cellX, this.currentY + 4);
+      cellX += colWidths[0];
+
+      this.pdf.text(neighborhood.substring(0, 20), cellX, this.currentY + 4);
+      cellX += colWidths[1];
+
+      this.pdf.text(municipality.substring(0, 20), cellX, this.currentY + 4);
+      cellX += colWidths[2];
+
+      this.pdf.text(national.substring(0, 20), cellX, this.currentY + 4);
+
+      this.currentY += rowHeight;
+    };
+
+    const headers = ['Metriek', this.t.neighborhood, this.t.municipality, this.t.national, ''];
+
+    // 1. Demographics Section
+    drawTableHeader('1. Demografie', headers);
+    let rowIndex = 0;
+
+    // Age groups
+    compactData.demographics.age.forEach(item => {
+      drawDataRow(item.name, item.neighborhood, item.municipality, item.national, rowIndex % 2 === 0);
+      rowIndex++;
+    });
+
+    // Status (marital status)
+    compactData.demographics.status.forEach(item => {
+      drawDataRow(item.name, item.neighborhood, item.municipality, item.national, rowIndex % 2 === 0);
+      rowIndex++;
+    });
+
+    // Immigration
+    compactData.demographics.immigration.forEach(item => {
+      drawDataRow(item.name, item.neighborhood, item.municipality, item.national, rowIndex % 2 === 0);
+      rowIndex++;
+    });
+
+    // Family type
+    compactData.demographics.familyType.forEach(item => {
+      drawDataRow(item.name, item.neighborhood, item.municipality, item.national, rowIndex % 2 === 0);
+      rowIndex++;
+    });
+
+    // Income
+    drawDataRow('Gemiddeld inkomen', compactData.demographics.income.neighborhood, compactData.demographics.income.municipality, compactData.demographics.income.national, rowIndex % 2 === 0);
+    rowIndex++;
+
+    // Family size
+    drawDataRow('Gezinsgrootte', compactData.demographics.familySize.neighborhood, compactData.demographics.familySize.municipality, compactData.demographics.familySize.national, rowIndex % 2 === 0);
+
+    this.currentY += 6;
+
+    // 2. Health Section
+    drawTableHeader('2. Gezondheid', headers);
+    rowIndex = 0;
+
+    drawDataRow('Ervaren gezondheid (goed)', compactData.health.experiencedHealth.neighborhood, compactData.health.experiencedHealth.municipality, compactData.health.experiencedHealth.national, rowIndex++ % 2 === 0);
+    drawDataRow('Sport wekelijks', compactData.health.sports.neighborhood, compactData.health.sports.municipality, compactData.health.sports.national, rowIndex++ % 2 === 0);
+    drawDataRow('Roker', compactData.health.smoker.neighborhood, compactData.health.smoker.municipality, compactData.health.smoker.national, rowIndex++ % 2 === 0);
+    drawDataRow('Beperkte gezondheid', compactData.health.limitedHealth.neighborhood, compactData.health.limitedHealth.municipality, compactData.health.limitedHealth.national, rowIndex++ % 2 === 0);
+    drawDataRow('Mist emotionele steun', compactData.health.emotionalSupport.neighborhood, compactData.health.emotionalSupport.municipality, compactData.health.emotionalSupport.national, rowIndex++ % 2 === 0);
+
+    compactData.health.weight.forEach(item => {
+      drawDataRow(item.name, item.neighborhood, item.municipality, item.national, rowIndex++ % 2 === 0);
+    });
+
+    compactData.health.loneliness.forEach(item => {
+      drawDataRow(item.name, item.neighborhood, item.municipality, item.national, rowIndex++ % 2 === 0);
+    });
+
+    compactData.health.psychologicalHealth.forEach(item => {
+      drawDataRow(item.name, item.neighborhood, item.municipality, item.national, rowIndex++ % 2 === 0);
+    });
+
+    this.currentY += 6;
+
+    // 3. Safety Section
+    drawTableHeader('3. Veiligheid', headers);
+    rowIndex = 0;
+
+    drawDataRow('Totaal misdrijven', compactData.safety.totalCrimes.neighborhood, compactData.safety.totalCrimes.municipality, compactData.safety.totalCrimes.national, rowIndex++ % 2 === 0);
+    drawDataRow('Woninginbraak', compactData.safety.burglary.neighborhood, compactData.safety.burglary.municipality, compactData.safety.burglary.national, rowIndex++ % 2 === 0);
+    drawDataRow('Zakkenrollerij', compactData.safety.pickpocketing.neighborhood, compactData.safety.pickpocketing.municipality, compactData.safety.pickpocketing.national, rowIndex++ % 2 === 0);
+    drawDataRow('Verkeersongevallen', compactData.safety.accidents.neighborhood, compactData.safety.accidents.municipality, compactData.safety.accidents.national, rowIndex++ % 2 === 0);
+    drawDataRow('Voelt zich onveilig', compactData.safety.feelsUnsafe.neighborhood, compactData.safety.feelsUnsafe.municipality, compactData.safety.feelsUnsafe.national, rowIndex++ % 2 === 0);
+    drawDataRow('Straatverlichting', compactData.safety.streetLighting.neighborhood, compactData.safety.streetLighting.municipality, compactData.safety.streetLighting.national, rowIndex++ % 2 === 0);
+
+    this.currentY += 6;
+
+    // 4. Livability Section
+    drawTableHeader('4. Leefbaarheid', headers);
+    rowIndex = 0;
+
+    compactData.livability.maintenance.forEach(item => {
+      drawDataRow(item.name, item.neighborhood, item.municipality, item.national, rowIndex++ % 2 === 0);
+    });
+
+    drawDataRow('Straatverlichting', compactData.livability.streetLighting.neighborhood, compactData.livability.streetLighting.municipality, compactData.livability.streetLighting.national, rowIndex++ % 2 === 0);
+
+    compactData.livability.youthFacilities.forEach(item => {
+      drawDataRow(item.name, item.neighborhood, item.municipality, item.national, rowIndex++ % 2 === 0);
+    });
+
+    compactData.livability.contact.forEach(item => {
+      drawDataRow(item.name, item.neighborhood, item.municipality, item.national, rowIndex++ % 2 === 0);
+    });
+
+    drawDataRow('Vrijwilligerswerk', compactData.livability.volunteers.neighborhood, compactData.livability.volunteers.municipality, compactData.livability.volunteers.national, rowIndex++ % 2 === 0);
+    drawDataRow('Sociale cohesie', compactData.livability.socialCohesion.neighborhood, compactData.livability.socialCohesion.municipality, compactData.livability.socialCohesion.national, rowIndex++ % 2 === 0);
+    drawDataRow('Leefbaarheid score', compactData.livability.livabilityScore.neighborhood, compactData.livability.livabilityScore.municipality, compactData.livability.livabilityScore.national, rowIndex++ % 2 === 0);
+
+    this.currentY += 6;
+
+    // 5. Amenities Section - Different format
+    this.checkPageBreak(50);
+    this.pdf.setFontSize(10);
+    this.setColor(PRIMARY_COLOR);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.text('5. Voorzieningen', MARGIN, this.currentY);
+    this.currentY += 6;
+
+    const amenityColWidths = [45, 15, 20, 20, 20, 25, 25];
+    const amenityHeaders = ['Voorziening', 'Aantal', 'Score', 'Nabij', 'Bonus', 'Dichtstbij', 'Gem. Afst.'];
+
+    // Header row
+    this.setColor(PRIMARY_COLOR, 'fill');
+    this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, rowHeight, 'F');
+
+    this.pdf.setFontSize(5.5);
+    this.pdf.setTextColor(255, 255, 255);
+    this.pdf.setFont('helvetica', 'bold');
+
+    let amenityHeaderX = MARGIN + 2;
+    amenityHeaders.forEach((header, i) => {
+      this.pdf.text(header, amenityHeaderX, this.currentY + 4);
+      amenityHeaderX += amenityColWidths[i];
+    });
+    this.currentY += rowHeight;
+
+    // Amenity rows
+    compactData.amenities.items.forEach((amenity, index) => {
+      this.checkPageBreak(rowHeight + 2);
+
+      if (index % 2 === 0) {
+        this.setColor(LIGHT_BG, 'fill');
+        this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, rowHeight, 'F');
+      }
+
+      this.pdf.setFontSize(5);
+      this.setColor(TEXT_COLOR);
+      this.pdf.setFont('helvetica', 'normal');
+
+      let cellX = MARGIN + 2;
+      const nameText = this.wrapText(amenity.name, amenityColWidths[0] - 4)[0];
+      this.pdf.text(nameText, cellX, this.currentY + 4);
+      cellX += amenityColWidths[0];
+
+      this.pdf.text(amenity.count.toString(), cellX, this.currentY + 4);
+      cellX += amenityColWidths[1];
+
+      this.pdf.text(amenity.countScore.toFixed(2), cellX, this.currentY + 4);
+      cellX += amenityColWidths[2];
+
+      this.pdf.text(amenity.proximityCount.toString(), cellX, this.currentY + 4);
+      cellX += amenityColWidths[3];
+
+      this.pdf.text(amenity.proximityBonus.toFixed(2), cellX, this.currentY + 4);
+      cellX += amenityColWidths[4];
+
+      this.pdf.text(`${amenity.closestDistance.toFixed(0)}m`, cellX, this.currentY + 4);
+      cellX += amenityColWidths[5];
+
+      this.pdf.text(`${amenity.averageDistance.toFixed(0)}m`, cellX, this.currentY + 4);
+
+      this.currentY += rowHeight;
+    });
+
+    this.currentY += 6;
+
+    // 6. Housing Market Section
+    this.checkPageBreak(50);
+    this.pdf.setFontSize(10);
+    this.setColor(PRIMARY_COLOR);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.text('6. Woningmarkt', MARGIN, this.currentY);
+    this.currentY += 6;
+
+    // Basic housing stats
+    const housingData = compactData.housingMarket;
+    const housingStats = [
+      ['Gemiddelde prijs', `€${housingData.avgPrice.toLocaleString('nl-NL')}`],
+      ['Gemiddelde grootte', `${housingData.avgSize} m²`],
+      ['Gemiddeld bouwjaar', housingData.avgBuildYear.toString()],
+    ];
+
+    housingStats.forEach((stat, index) => {
+      this.checkPageBreak(rowHeight + 2);
+
+      if (index % 2 === 0) {
+        this.setColor(LIGHT_BG, 'fill');
+        this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH / 2, rowHeight, 'F');
+      }
+
+      this.pdf.setFontSize(6);
+      this.setColor(TEXT_COLOR);
+      this.pdf.setFont('helvetica', 'normal');
+      this.pdf.text(stat[0], MARGIN + 2, this.currentY + 4);
+      this.pdf.setFont('helvetica', 'bold');
+      this.pdf.text(stat[1], MARGIN + 50, this.currentY + 4);
+      this.currentY += rowHeight;
+    });
+
+    // Type distribution
+    this.currentY += 4;
+    this.pdf.setFontSize(8);
+    this.setColor(PRIMARY_COLOR);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.text('Woningtype verdeling:', MARGIN, this.currentY);
+    this.currentY += 5;
+
+    housingData.typeDistribution.forEach((type, index) => {
+      this.checkPageBreak(rowHeight + 2);
+
+      if (index % 2 === 0) {
+        this.setColor(LIGHT_BG, 'fill');
+        this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH / 2, rowHeight, 'F');
+      }
+
+      this.pdf.setFontSize(6);
+      this.setColor(TEXT_COLOR);
+      this.pdf.setFont('helvetica', 'normal');
+      this.pdf.text(type.type, MARGIN + 2, this.currentY + 4);
+      this.pdf.text(`${type.percentage.toFixed(1)}%`, MARGIN + 50, this.currentY + 4);
+      this.currentY += rowHeight;
+    });
+
+    // Price distribution
+    this.currentY += 4;
+    this.pdf.setFontSize(8);
+    this.setColor(PRIMARY_COLOR);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.text('Prijsverdeling:', MARGIN, this.currentY);
+    this.currentY += 5;
+
+    housingData.priceDistribution.forEach((price, index) => {
+      this.checkPageBreak(rowHeight + 2);
+
+      if (index % 2 === 0) {
+        this.setColor(LIGHT_BG, 'fill');
+        this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH / 2, rowHeight, 'F');
+      }
+
+      this.pdf.setFontSize(6);
+      this.setColor(TEXT_COLOR);
+      this.pdf.setFont('helvetica', 'normal');
+      this.pdf.text(price.range, MARGIN + 2, this.currentY + 4);
+      this.pdf.text(`${price.percentage.toFixed(1)}%`, MARGIN + 50, this.currentY + 4);
       this.currentY += rowHeight;
     });
   }
@@ -1676,43 +2344,107 @@ export class UnifiedRapportBuilder {
     this.pdf.text(this.t.housingTable, MARGIN, this.currentY);
     this.currentY += 10;
 
-    // Summary stats
-    this.pdf.setFontSize(10);
-    this.setColor(TEXT_COLOR);
-    this.pdf.setFont('helvetica', 'normal');
-    this.pdf.text(`Gemiddelde prijs: €${housing.avgPrice.toLocaleString()}`, MARGIN, this.currentY);
-    this.currentY += 5;
-    this.pdf.text(`Gemiddelde grootte: ${housing.avgSize} m²`, MARGIN, this.currentY);
-    this.currentY += 5;
-    this.pdf.text(`Gemiddeld bouwjaar: ${housing.avgBuildYear}`, MARGIN, this.currentY);
-    this.currentY += 10;
+    // Summary stats table
+    const summaryColWidths = [70, 100];
+    const summaryRowHeight = 8;
 
-    // Type distribution
-    this.pdf.setFontSize(11);
+    // Table header
+    this.setColor(PRIMARY_COLOR, 'fill');
+    this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, summaryRowHeight, 'F');
+
+    this.pdf.setFontSize(8);
+    this.pdf.setTextColor(255, 255, 255);
     this.pdf.setFont('helvetica', 'bold');
-    this.pdf.text('Woningtypes', MARGIN, this.currentY);
-    this.currentY += 6;
+    this.pdf.text(this.locale === 'nl' ? 'Kenmerk' : 'Property', MARGIN + 2, this.currentY + 5.5);
+    this.pdf.text(this.locale === 'nl' ? 'Waarde' : 'Value', MARGIN + summaryColWidths[0] + 2, this.currentY + 5.5);
+    this.currentY += summaryRowHeight;
 
-    housing.typeDistribution.forEach((item) => {
-      this.pdf.setFontSize(9);
+    // Summary rows
+    const summaryData = [
+      [this.locale === 'nl' ? 'Gemiddelde prijs' : 'Average price', `€${housing.avgPrice.toLocaleString()}`],
+      [this.locale === 'nl' ? 'Gemiddelde grootte' : 'Average size', `${housing.avgSize} m²`],
+      [this.locale === 'nl' ? 'Gemiddeld bouwjaar' : 'Average build year', `${housing.avgBuildYear}`],
+    ];
+
+    summaryData.forEach((row, index) => {
+      if (index % 2 === 0) {
+        this.setColor(LIGHT_BG, 'fill');
+        this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, summaryRowHeight, 'F');
+      }
+      this.pdf.setFontSize(8);
+      this.setColor(TEXT_COLOR);
       this.pdf.setFont('helvetica', 'normal');
-      this.pdf.text(`${item.type}: ${item.percentage}%`, MARGIN, this.currentY);
-      this.currentY += 5;
+      this.pdf.text(row[0], MARGIN + 2, this.currentY + 5.5);
+      this.pdf.text(row[1], MARGIN + summaryColWidths[0] + 2, this.currentY + 5.5);
+      this.currentY += summaryRowHeight;
     });
 
-    this.currentY += 5;
+    this.currentY += 10;
 
-    // Price distribution
+    // Type distribution table
     this.pdf.setFontSize(11);
+    this.setColor(PRIMARY_COLOR);
     this.pdf.setFont('helvetica', 'bold');
-    this.pdf.text('Prijsverdeling', MARGIN, this.currentY);
+    this.pdf.text(this.locale === 'nl' ? 'Woningtypes' : 'Housing Types', MARGIN, this.currentY);
     this.currentY += 6;
 
-    housing.priceDistribution.forEach((item) => {
-      this.pdf.setFontSize(9);
+    const typeColWidths = [120, 50];
+
+    // Table header
+    this.setColor(PRIMARY_COLOR, 'fill');
+    this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, summaryRowHeight, 'F');
+
+    this.pdf.setFontSize(8);
+    this.pdf.setTextColor(255, 255, 255);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.text(this.locale === 'nl' ? 'Type' : 'Type', MARGIN + 2, this.currentY + 5.5);
+    this.pdf.text(this.locale === 'nl' ? 'Percentage' : 'Percentage', MARGIN + typeColWidths[0] + 2, this.currentY + 5.5);
+    this.currentY += summaryRowHeight;
+
+    housing.typeDistribution.forEach((item, index) => {
+      if (index % 2 === 0) {
+        this.setColor(LIGHT_BG, 'fill');
+        this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, summaryRowHeight, 'F');
+      }
+      this.pdf.setFontSize(8);
+      this.setColor(TEXT_COLOR);
       this.pdf.setFont('helvetica', 'normal');
-      this.pdf.text(`${item.range}: ${item.percentage}%`, MARGIN, this.currentY);
-      this.currentY += 5;
+      this.pdf.text(item.type, MARGIN + 2, this.currentY + 5.5);
+      this.pdf.text(`${item.percentage}%`, MARGIN + typeColWidths[0] + 2, this.currentY + 5.5);
+      this.currentY += summaryRowHeight;
+    });
+
+    this.currentY += 10;
+
+    // Price distribution table
+    this.pdf.setFontSize(11);
+    this.setColor(PRIMARY_COLOR);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.text(this.locale === 'nl' ? 'Prijsverdeling' : 'Price Distribution', MARGIN, this.currentY);
+    this.currentY += 6;
+
+    // Table header
+    this.setColor(PRIMARY_COLOR, 'fill');
+    this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, summaryRowHeight, 'F');
+
+    this.pdf.setFontSize(8);
+    this.pdf.setTextColor(255, 255, 255);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.text(this.locale === 'nl' ? 'Prijsklasse' : 'Price Range', MARGIN + 2, this.currentY + 5.5);
+    this.pdf.text(this.locale === 'nl' ? 'Percentage' : 'Percentage', MARGIN + typeColWidths[0] + 2, this.currentY + 5.5);
+    this.currentY += summaryRowHeight;
+
+    housing.priceDistribution.forEach((item, index) => {
+      if (index % 2 === 0) {
+        this.setColor(LIGHT_BG, 'fill');
+        this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, summaryRowHeight, 'F');
+      }
+      this.pdf.setFontSize(8);
+      this.setColor(TEXT_COLOR);
+      this.pdf.setFont('helvetica', 'normal');
+      this.pdf.text(item.range, MARGIN + 2, this.currentY + 5.5);
+      this.pdf.text(`${item.percentage}%`, MARGIN + typeColWidths[0] + 2, this.currentY + 5.5);
+      this.currentY += summaryRowHeight;
     });
   }
 
@@ -2073,7 +2805,8 @@ export async function generateUnifiedRapport(
       index + 1,
       scenario,
       cubeCapture,
-      compactData.allPersonas
+      compactData.allPersonas,
+      compactData.pve
     );
   });
 
