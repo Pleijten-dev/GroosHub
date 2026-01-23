@@ -139,7 +139,8 @@ export function svgToDataUrl(svgString: string): string {
 export async function svgToPngDataUrl(
   svgString: string,
   width: number,
-  height: number
+  height: number,
+  rotate90?: boolean
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -148,8 +149,6 @@ export async function svgToPngDataUrl(
 
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
       const ctx = canvas.getContext('2d');
 
       if (!ctx) {
@@ -158,9 +157,22 @@ export async function svgToPngDataUrl(
         return;
       }
 
-      ctx.drawImage(img, 0, 0, width, height);
-      URL.revokeObjectURL(url);
+      if (rotate90) {
+        // For 90° rotation: swap canvas dimensions
+        canvas.width = height;
+        canvas.height = width;
 
+        // Translate to center, rotate, then draw
+        ctx.translate(height / 2, width / 2);
+        ctx.rotate(Math.PI / 2); // 90 degrees clockwise
+        ctx.drawImage(img, -width / 2, -height / 2, width, height);
+      } else {
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+      }
+
+      URL.revokeObjectURL(url);
       resolve(canvas.toDataURL('image/png'));
     };
 
@@ -176,27 +188,40 @@ export async function svgToPngDataUrl(
 /**
  * Generate voronoi cover image for PDF
  * Returns a PNG data URL suitable for jsPDF addImage
+ *
+ * Strategy: Generate in landscape (wide) format like the original 1200x300,
+ * then rotate 90° to get a portrait image with the same nice color blending.
  */
 export async function generateVoronoiCoverImage(
   percentages: PVEAllocations,
   widthMm: number = 190,
   heightMm: number = 257
 ): Promise<string> {
-  // Convert mm to pixels (assuming 96 DPI, and accounting for print quality)
-  // Use higher resolution for better print quality
+  // Convert mm to pixels with higher DPI for print quality
   const dpi = 150;
   const mmToPixel = dpi / 25.4;
-  const widthPx = Math.round(widthMm * mmToPixel);
-  const heightPx = Math.round(heightMm * mmToPixel);
+
+  // Final dimensions needed (portrait)
+  const finalWidthPx = Math.round(widthMm * mmToPixel);
+  const finalHeightPx = Math.round(heightMm * mmToPixel);
+
+  // Generate in landscape orientation (swapped dimensions) to match original 4:1 ratio feel
+  // We'll use the height as width and width as height, then rotate
+  const svgWidth = finalHeightPx;  // Generate wide
+  const svgHeight = finalWidthPx;  // Generate short
+
+  // Use blur amount similar to original (70 for 1200px width)
+  const blurAmount = Math.round(70 * (svgWidth / 1200));
 
   const svgString = generateVoronoiSvgString({
-    width: widthPx,
-    height: heightPx,
+    width: svgWidth,
+    height: svgHeight,
     percentages,
-    blurAmount: Math.round(70 * (widthPx / 1200)) // Scale blur with size
+    blurAmount
   });
 
-  return svgToPngDataUrl(svgString, widthPx, heightPx);
+  // Convert to PNG with 90° rotation to get portrait orientation
+  return svgToPngDataUrl(svgString, svgWidth, svgHeight, true);
 }
 
 // Default percentages for when no PVE data is available

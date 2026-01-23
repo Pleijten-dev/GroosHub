@@ -538,7 +538,7 @@ export class UnifiedRapportBuilder {
     this.pdf.text(generationDate, PAGE_WIDTH - imageRight, belowGraphicY, { align: 'right' });
 
     // Footer: GROOSMAN centered at bottom
-    const footerY = PAGE_HEIGHT - 15; // 15mm from bottom
+    const footerY = PAGE_HEIGHT - 5; // 5mm from bottom (moved 1cm down)
     this.pdf.setFontSize(12);
     this.pdf.setFont('helvetica', 'bold');
     this.setColor(TEXT_COLOR);
