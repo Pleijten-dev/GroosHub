@@ -655,7 +655,7 @@ export class UnifiedRapportBuilder {
       this.currentY += 5;
     });
 
-    // SWOT Analysis - Simple 2x2 grid with SWOT in center
+    // SWOT Analysis - Simple 2x2 grid with SWOT letters in center
     if (swotAnalysis) {
       this.currentY += 10;
       this.addTocEntry(this.t.swotAnalysis, 1);
@@ -675,20 +675,19 @@ export class UnifiedRapportBuilder {
       const gridX = MARGIN;
       const gridY = this.currentY;
 
-      // Center circle for SWOT letters
+      // Center position for SWOT letters
       const centerX = gridX + gridWidth / 2;
       const centerY = gridY + gridHeight / 2;
-      const centerRadius = 14;
 
       // SWOT quadrants data
       const quadrants = [
-        { letter: 'S', title: this.t.strengths, items: swotAnalysis.strengths, col: 0, row: 0 },
-        { letter: 'W', title: this.t.weaknesses, items: swotAnalysis.weaknesses, col: 1, row: 0 },
-        { letter: 'O', title: this.t.opportunities, items: swotAnalysis.opportunities, col: 0, row: 1 },
-        { letter: 'T', title: this.t.threats, items: swotAnalysis.threats, col: 1, row: 1 },
+        { letter: 'S', items: swotAnalysis.strengths, col: 0, row: 0 },
+        { letter: 'W', items: swotAnalysis.weaknesses, col: 1, row: 0 },
+        { letter: 'O', items: swotAnalysis.opportunities, col: 0, row: 1 },
+        { letter: 'T', items: swotAnalysis.threats, col: 1, row: 1 },
       ];
 
-      // Draw quadrant boxes
+      // Draw quadrant boxes and content
       quadrants.forEach((q) => {
         const boxX = gridX + q.col * boxWidth;
         const boxY = gridY + q.row * boxHeight;
@@ -699,25 +698,19 @@ export class UnifiedRapportBuilder {
         this.pdf.setLineWidth(0.3);
         this.pdf.rect(boxX, boxY, boxWidth, boxHeight, 'FD');
 
-        // Title
-        this.pdf.setFontSize(9);
-        this.setColor(PRIMARY_COLOR);
-        this.pdf.setFont('helvetica', 'bold');
-        this.pdf.text(q.title, boxX + 4, boxY + 6);
-
-        // Items with text wrapping
+        // Items with text wrapping (no title, starts from top)
         this.pdf.setFontSize(7);
         this.setColor(TEXT_COLOR);
         this.pdf.setFont('helvetica', 'normal');
 
-        let itemY = boxY + 12;
+        let itemY = boxY + 5;
         const itemWidth = boxWidth - 8;
         const lineHeight = 3;
 
-        q.items.slice(0, 4).forEach((text) => {
+        q.items.slice(0, 5).forEach((text) => {
           const wrappedLines = this.wrapText(`• ${text}`, itemWidth);
           wrappedLines.slice(0, 2).forEach((line) => {
-            if (itemY < boxY + boxHeight - 4) {
+            if (itemY < boxY + boxHeight - 3) {
               this.pdf.text(line, boxX + 4, itemY);
               itemY += lineHeight;
             }
@@ -726,18 +719,15 @@ export class UnifiedRapportBuilder {
         });
       });
 
-      // Center circle with SWOT
-      this.setColor(PRIMARY_COLOR, 'fill');
-      this.pdf.circle(centerX, centerY, centerRadius, 'F');
-
-      // SWOT letters in white
-      this.pdf.setFontSize(8);
-      this.pdf.setTextColor(255, 255, 255);
+      // SWOT letters in green at the center intersection
+      this.pdf.setFontSize(14);
+      this.setColor(PRIMARY_COLOR);
       this.pdf.setFont('helvetica', 'bold');
-      this.pdf.text('S', centerX - 5, centerY - 3);
-      this.pdf.text('W', centerX + 3, centerY - 3);
-      this.pdf.text('O', centerX - 5, centerY + 5);
-      this.pdf.text('T', centerX + 3, centerY + 5);
+      // Position each letter in its respective quadrant corner near center
+      this.pdf.text('S', centerX - 8, centerY - 2);
+      this.pdf.text('W', centerX + 3, centerY - 2);
+      this.pdf.text('O', centerX - 8, centerY + 7);
+      this.pdf.text('T', centerX + 3, centerY + 7);
 
       this.currentY = gridY + gridHeight + 5;
     }
