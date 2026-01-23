@@ -85,8 +85,8 @@ export function AIButton({
         // Open state
         isOpen && 'scale-95 bg-gray-50',
 
-        // Animation container - use overflow-hidden to prevent layout issues
-        'relative overflow-hidden',
+        // Animation container
+        'relative overflow-visible',
 
         className
       )}
@@ -136,33 +136,45 @@ function AnimatedBorder({ animationState }: AnimatedBorderProps) {
 
   return (
     <>
-      {/* Glow animation - subtle border glow */}
+      {/* Glow animation - rotating circular gradient */}
       {animationState === 'glow' && (
         <div
-          className="absolute inset-0 rounded-full border-2 border-primary"
+          className="absolute inset-[-2px] rounded-full"
           style={{
-            animation: 'pulse 2s ease-in-out infinite',
-            boxShadow: '0 0 12px var(--color-primary)',
+            background: 'conic-gradient(from 0deg, transparent 0deg, var(--color-primary) 60deg, transparent 120deg)',
+            animation: 'spin 2s linear infinite',
           }}
-        />
+        >
+          {/* Inner mask to create ring effect */}
+          <div className="absolute inset-[2px] rounded-full bg-white" />
+        </div>
       )}
 
-      {/* Pulse animation - contained within bounds */}
+      {/* Pulse animation - rotating ring */}
       {animationState === 'pulse' && (
         <div
-          className="absolute inset-1 rounded-full border-2 border-primary/50"
+          className="absolute inset-[-1px] rounded-full"
           style={{
-            animation: 'pulse 1.5s ease-in-out infinite',
+            background: 'conic-gradient(from 0deg, transparent 0deg, var(--color-primary) 90deg, transparent 180deg)',
+            animation: 'spin 3s linear infinite',
+            opacity: 0.5,
           }}
-        />
+        >
+          <div className="absolute inset-[2px] rounded-full bg-white" />
+        </div>
       )}
 
-      {/* Processing animation - spinning border */}
+      {/* Processing animation - fast spinning segment */}
       {animationState === 'processing' && (
         <div
-          className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary"
-          style={{ animation: 'spin 1s linear infinite' }}
-        />
+          className="absolute inset-[-2px] rounded-full"
+          style={{
+            background: 'conic-gradient(from 0deg, transparent 0deg, var(--color-primary) 30deg, transparent 60deg)',
+            animation: 'spin 0.8s linear infinite',
+          }}
+        >
+          <div className="absolute inset-[2px] rounded-full bg-white" />
+        </div>
       )}
     </>
   );

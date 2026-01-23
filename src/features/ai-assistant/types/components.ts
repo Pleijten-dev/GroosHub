@@ -108,8 +108,10 @@ export interface QuickAction {
   icon: string;
   /** Description shown on hover */
   description?: string;
-  /** Handler when clicked */
-  handler: () => void | Promise<void>;
+  /** Prompt to send to AI when action is clicked */
+  prompt?: string;
+  /** Handler when clicked (optional - prompt is preferred) */
+  handler?: () => void | Promise<void>;
   /** Whether this action is currently available */
   available?: boolean;
   /** Whether this is a primary/featured action */
