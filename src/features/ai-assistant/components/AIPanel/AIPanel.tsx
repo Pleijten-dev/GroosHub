@@ -17,6 +17,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { cn } from '@/shared/utils/cn';
+import { MessageInput } from '@/shared/components/UI/MessageInput';
 import type {
   AIPanelProps,
   AIPanelState,
@@ -65,24 +66,6 @@ function BackIcon({ className }: { className?: string }) {
   );
 }
 
-function SendIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <line x1="22" y1="2" x2="11" y2="13" />
-      <polygon points="22 2 15 22 11 13 2 9 22 2" />
-    </svg>
-  );
-}
 
 // ============================================
 // Helper: Extract text from UIMessage
@@ -230,84 +213,6 @@ function PanelHeader({ title, subtitle, onClose, onBack, showBack }: PanelHeader
         <CloseIcon className="text-gray-500" />
       </button>
     </div>
-  );
-}
-
-// ============================================
-// Mini Chat Input
-// ============================================
-
-interface MiniChatInputProps {
-  placeholder?: string;
-  onSend: (message: string) => Promise<void>;
-  isProcessing?: boolean;
-}
-
-function MiniChatInput({ placeholder, onSend, isProcessing }: MiniChatInputProps) {
-  const [input, setInput] = useState('');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isProcessing) return;
-
-    const message = input.trim();
-    setInput('');
-    await onSend(message);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit(e);
-    }
-  };
-
-  // Auto-resize textarea
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
-    }
-  }, [input]);
-
-  return (
-    <form onSubmit={handleSubmit} className="px-4 py-3 border-t border-gray-200">
-      <div className="flex gap-2 items-end">
-        <textarea
-          ref={textareaRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder || 'Ask about this page...'}
-          disabled={isProcessing}
-          rows={1}
-          className={cn(
-            'flex-1 resize-none rounded-lg px-3 py-2',
-            'border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary',
-            'text-sm placeholder:text-gray-400',
-            'outline-none transition-all',
-            isProcessing && 'opacity-50'
-          )}
-        />
-        <button
-          type="submit"
-          disabled={!input.trim() || isProcessing}
-          className={cn(
-            'p-2 rounded-lg transition-all',
-            'bg-primary text-white',
-            'hover:bg-primary/90',
-            'disabled:opacity-50 disabled:cursor-not-allowed'
-          )}
-        >
-          {isProcessing ? (
-            <span className="animate-spin inline-block w-[18px] h-[18px] border-2 border-white/30 border-t-white rounded-full" />
-          ) : (
-            <SendIcon />
-          )}
-        </button>
-      </div>
-    </form>
   );
 }
 
@@ -501,28 +406,29 @@ export function AIPanel({
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        className={cn(
-          'fixed inset-0 bg-black/20 z-40 transition-opacity duration-300',
-          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        )}
-        aria-hidden="true"
-      />
 
-      {/* Panel */}
+      {/* Panel - Compact size, positioned bottom-right above the button */}
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label="AI Assistant Panel"
+        style={{
+          position: 'fixed',
+          bottom: '5rem', // Above the AI button
+          right: '1rem',
+          zIndex: 9998,
+          maxHeight: 'calc(100vh - 8rem)',
+        }}
         className={cn(
-          'fixed top-0 right-0 bottom-0 z-50',
-          'w-full max-w-md',
-          'bg-white shadow-2xl',
+          'w-80', // 320px - compact width
+          'bg-white shadow-2xl rounded-xl',
           'flex flex-col',
-          'transition-transform duration-300 ease-out',
-          isOpen ? 'translate-x-0' : 'translate-x-full'
+          'transition-all duration-300 ease-out',
+          'border border-gray-200',
+          isOpen
+            ? 'opacity-100 translate-y-0'
+            : 'opacity-0 translate-y-4 pointer-events-none'
         )}
       >
         {/* Header */}
@@ -628,11 +534,15 @@ export function AIPanel({
           )}
         </div>
 
-        {/* Chat input */}
-        <MiniChatInput
+        {/* Chat input - using shared MessageInput without file/RAG features */}
+        <MessageInput
+          onSubmit={(message) => handleSendMessage(message)}
           placeholder={`Ask about this ${feature}...`}
-          onSend={handleSendMessage}
-          isProcessing={isProcessing}
+          isLoading={isProcessing}
+          onStop={stop}
+          showFileAttachment={false}
+          showRagToggle={false}
+          className="border-t-0 rounded-b-xl"
         />
       </div>
     </>

@@ -31,6 +31,7 @@ import React, {
   useState,
   useCallback,
   useMemo,
+  useEffect,
   type ReactNode,
 } from 'react';
 import { AIButton } from '../components/AIButton';
@@ -48,6 +49,108 @@ import type { AIFeature } from '../types/memory';
 // ============================================
 
 const AIAssistantContext = createContext<AIContextProviderValue | null>(null);
+
+// ============================================
+// Default Quick Actions by Feature
+// ============================================
+
+function getDefaultQuickActions(
+  feature: AIFeature,
+  _context?: Partial<AIContextData>
+): QuickAction[] {
+  switch (feature) {
+    case 'location':
+      return [
+        {
+          id: 'create-tasks',
+          label: 'Create follow-up tasks',
+          icon: 'tasks',
+          description: 'Generate tasks based on location analysis',
+          handler: async () => {
+            // This will be handled by the chat - sends a preset prompt
+            console.log('[QuickAction] Create tasks triggered');
+          },
+          isPrimary: true,
+        },
+        {
+          id: 'match-target-groups',
+          label: 'Match target groups',
+          icon: 'users',
+          description: 'Find best target groups for this location',
+          handler: async () => {
+            console.log('[QuickAction] Match target groups triggered');
+          },
+        },
+        {
+          id: 'find-similar',
+          label: 'Find similar locations',
+          icon: 'search',
+          description: 'Discover comparable locations',
+          handler: async () => {
+            console.log('[QuickAction] Find similar triggered');
+          },
+        },
+        {
+          id: 'generate-summary',
+          label: 'Generate summary',
+          icon: 'document',
+          description: 'Create a brief location overview',
+          handler: async () => {
+            console.log('[QuickAction] Generate summary triggered');
+          },
+        },
+      ];
+
+    case 'project':
+      return [
+        {
+          id: 'project-status',
+          label: 'Summarize project status',
+          icon: 'chart',
+          description: 'Get an overview of project progress',
+          handler: async () => {
+            console.log('[QuickAction] Project status triggered');
+          },
+          isPrimary: true,
+        },
+        {
+          id: 'overdue-tasks',
+          label: 'Review overdue tasks',
+          icon: 'alert',
+          description: 'See tasks that need attention',
+          handler: async () => {
+            console.log('[QuickAction] Overdue tasks triggered');
+          },
+        },
+      ];
+
+    case 'lca':
+      return [
+        {
+          id: 'optimize-mpg',
+          label: 'Optimize MPG score',
+          icon: 'target',
+          description: 'Get suggestions to improve sustainability',
+          handler: async () => {
+            console.log('[QuickAction] Optimize MPG triggered');
+          },
+          isPrimary: true,
+        },
+        {
+          id: 'compare-materials',
+          label: 'Compare materials',
+          icon: 'chart',
+          description: 'Analyze material alternatives',
+          handler: async () => {
+            console.log('[QuickAction] Compare materials triggered');
+          },
+        },
+      ];
+
+    default:
+      return [];
+  }
+}
 
 // ============================================
 // Provider Props
@@ -94,6 +197,14 @@ export function AIAssistantProvider({
 
   // Quick actions registry
   const [quickActions, setQuickActions] = useState<QuickAction[]>([]);
+
+  // Register default quick actions based on feature
+  useEffect(() => {
+    const defaultActions = getDefaultQuickActions(feature, initialContext);
+    if (defaultActions.length > 0) {
+      setQuickActions(defaultActions);
+    }
+  }, [feature]); // Only run on mount
 
   // Panel controls
   const openPanel = useCallback(() => {

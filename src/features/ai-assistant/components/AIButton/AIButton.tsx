@@ -65,9 +65,15 @@ export function AIButton({
       onClick={onClick}
       aria-label="Open AI Assistant"
       aria-expanded={isOpen}
+      style={{
+        // Use inline styles for precise positioning to avoid any CSS conflicts
+        position: 'fixed',
+        bottom: '1rem',
+        right: '1rem',
+        zIndex: 9999,
+      }}
       className={cn(
-        // Base styles
-        'fixed bottom-6 right-6 z-50',
+        // Size and shape
         'w-14 h-14 rounded-full',
         'flex items-center justify-center',
         'transition-all duration-300 ease-out',
@@ -83,8 +89,8 @@ export function AIButton({
         // Open state
         isOpen && 'scale-95 bg-gray-50',
 
-        // Animation container
-        'relative overflow-visible',
+        // Animation container - use overflow-hidden to prevent layout issues
+        'relative overflow-hidden',
 
         className
       )}
@@ -134,43 +140,32 @@ function AnimatedBorder({ animationState }: AnimatedBorderProps) {
 
   return (
     <>
-      {/* Glow animation - rotating border */}
+      {/* Glow animation - subtle border glow */}
       {animationState === 'glow' && (
         <div
-          className="absolute inset-0 rounded-full"
+          className="absolute inset-0 rounded-full border-2 border-primary"
           style={{
-            background: 'conic-gradient(from 0deg, transparent, var(--color-primary), transparent)',
-            animation: 'spin 2s linear infinite',
-            padding: '2px',
-            maskImage: 'radial-gradient(circle, transparent 65%, black 66%)',
-            WebkitMaskImage: 'radial-gradient(circle, transparent 65%, black 66%)',
+            animation: 'pulse 2s ease-in-out infinite',
+            boxShadow: '0 0 12px var(--color-primary)',
           }}
         />
       )}
 
-      {/* Pulse animation */}
+      {/* Pulse animation - contained within bounds */}
       {animationState === 'pulse' && (
         <div
-          className="absolute inset-0 rounded-full border-2 border-primary/50 animate-ping"
-          style={{ animationDuration: '1.5s' }}
+          className="absolute inset-1 rounded-full border-2 border-primary/50"
+          style={{
+            animation: 'pulse 1.5s ease-in-out infinite',
+          }}
         />
       )}
 
-      {/* Processing animation - spinning dots */}
+      {/* Processing animation - spinning border */}
       {animationState === 'processing' && (
-        <div className="absolute inset-0 rounded-full">
-          <div
-            className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary"
-            style={{ animation: 'spin 1s linear infinite' }}
-          />
-        </div>
-      )}
-
-      {/* Outer glow effect for glow state */}
-      {animationState === 'glow' && (
         <div
-          className="absolute inset-[-4px] rounded-full bg-primary/10 blur-sm"
-          style={{ animation: 'pulse 2s ease-in-out infinite' }}
+          className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary"
+          style={{ animation: 'spin 1s linear infinite' }}
         />
       )}
     </>
