@@ -796,15 +796,11 @@ export class UnifiedRapportBuilder {
       scenario.personas.slice(0, 5).forEach((persona, pIdx) => {
         const cellY = cardY + headerHeight + pIdx * cellHeight;
 
-        // Cell background (alternating)
-        if (pIdx % 2 === 0) {
-          this.setColor(LIGHT_BG, 'fill');
-        } else {
-          this.setColor(WHITE, 'fill');
-        }
+        // Cell background (all white)
+        this.setColor(WHITE, 'fill');
         this.pdf.rect(cardX, cellY, cardWidth, cellHeight, 'F');
 
-        // Cell border
+        // Cell border (grey outline)
         this.setColor(BORDER_COLOR, 'draw');
         this.pdf.setLineWidth(0.2);
         this.pdf.rect(cardX, cellY, cardWidth, cellHeight, 'D');
@@ -834,7 +830,8 @@ export class UnifiedRapportBuilder {
     pveData: {
       totalM2: number;
       percentages: Record<string, { percentage: number; m2: number; description: string }>;
-    }
+    },
+    pveGraphImage?: string  // Optional screenshot of PVE graph
   ): void {
     this.addNewPage();
     this.addTocEntry(this.t.programVanEisen, 0);
@@ -846,74 +843,7 @@ export class UnifiedRapportBuilder {
     this.pdf.text(this.t.programVanEisen, MARGIN, this.currentY);
     this.currentY += 12;
 
-    // Total m²
-    this.pdf.setFontSize(12);
-    this.setColor(TEXT_COLOR);
-    this.pdf.setFont('helvetica', 'bold');
-    this.pdf.text(`${this.t.totalM2}: ${pveData.totalM2.toLocaleString()} m²`, MARGIN, this.currentY);
-    this.currentY += 15;
-
-    // Category breakdown table
     const categories = Object.entries(pveData.percentages);
-    const colWidths = [60, 30, 30, 50];
-    const rowHeight = 10;
-
-    // Table header
-    this.setColor(PRIMARY_COLOR, 'fill');
-    this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, rowHeight, 'F');
-
-    this.pdf.setFontSize(9);
-    this.pdf.setTextColor(255, 255, 255);
-    this.pdf.setFont('helvetica', 'bold');
-
-    let headerX = MARGIN + 3;
-    ['Categorie', '%', 'm²', 'Beschrijving'].forEach((header, i) => {
-      this.pdf.text(header, headerX, this.currentY + 7);
-      headerX += colWidths[i];
-    });
-    this.currentY += rowHeight;
-
-    // Table rows
-    this.pdf.setFont('helvetica', 'normal');
-    categories.forEach(([key, value], index) => {
-      const isEven = index % 2 === 0;
-      if (isEven) {
-        this.setColor(LIGHT_BG, 'fill');
-        this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, rowHeight, 'F');
-      }
-
-      this.pdf.setFontSize(9);
-      this.setColor(TEXT_COLOR);
-
-      let cellX = MARGIN + 3;
-      const categoryName = this.t[key as keyof typeof this.t] || key;
-      this.pdf.text(String(categoryName), cellX, this.currentY + 7);
-      cellX += colWidths[0];
-
-      this.pdf.text(`${value.percentage}%`, cellX, this.currentY + 7);
-      cellX += colWidths[1];
-
-      this.pdf.text(`${value.m2.toLocaleString()}`, cellX, this.currentY + 7);
-      cellX += colWidths[2];
-
-      const descText = this.wrapText(value.description, colWidths[3] - 6)[0];
-      this.pdf.text(descText, cellX, this.currentY + 7);
-
-      this.currentY += rowHeight;
-    });
-
-    // Simple bar chart
-    this.currentY += 15;
-    this.pdf.setFontSize(11);
-    this.setColor(TEXT_COLOR);
-    this.pdf.setFont('helvetica', 'bold');
-    this.pdf.text('Verdeling', MARGIN, this.currentY);
-    this.currentY += 8;
-
-    const chartHeight = 20;
-    const chartWidth = CONTENT_WIDTH;
-    let chartX = MARGIN;
-
     const colors: [number, number, number][] = [
       [71, 118, 56],   // apartments - primary green
       [134, 166, 125], // commercial - secondary green
@@ -923,43 +853,134 @@ export class UnifiedRapportBuilder {
       [100, 116, 139], // offices - slate
     ];
 
+    // If we have a screenshot of the PVE graph, use it
+    if (pveGraphImage) {
+      try {
+        const graphWidth = CONTENT_WIDTH;
+        const graphHeight = 40; // Adjust based on actual aspect ratio
+        this.pdf.addImage(pveGraphImage, 'PNG', MARGIN, this.currentY, graphWidth, graphHeight);
+        this.currentY += graphHeight + 5;
+      } catch (e) {
+        console.warn('Failed to add PVE graph image:', e);
+        // Fall back to drawing the chart
+        this.drawPVEChart(categories, colors);
+      }
+    } else {
+      // Draw stacked bar chart with labels on sections
+      this.drawPVEChart(categories, colors);
+    }
+
+    // Total m² below the graph
+    this.currentY += 5;
+    this.pdf.setFontSize(12);
+    this.setColor(TEXT_COLOR);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.text(`${this.t.totalM2}: ${pveData.totalM2.toLocaleString()} m²`, MARGIN, this.currentY);
+    this.currentY += 15;
+
+    // Category breakdown table (below graph and total)
+    const colWidths = [50, 25, 35, 60];
+    const baseRowHeight = 8;
+
+    // Table header
+    this.setColor(PRIMARY_COLOR, 'fill');
+    this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, baseRowHeight, 'F');
+
+    this.pdf.setFontSize(8);
+    this.pdf.setTextColor(255, 255, 255);
+    this.pdf.setFont('helvetica', 'bold');
+
+    let headerX = MARGIN + 3;
+    const headers = this.locale === 'nl'
+      ? ['Categorie', '%', 'm²', 'Beschrijving']
+      : ['Category', '%', 'm²', 'Description'];
+    headers.forEach((header, i) => {
+      this.pdf.text(header, headerX, this.currentY + 5.5);
+      headerX += colWidths[i];
+    });
+    this.currentY += baseRowHeight;
+
+    // Table rows with text wrapping
+    this.pdf.setFont('helvetica', 'normal');
+    categories.forEach(([key, value], index) => {
+      // Calculate row height based on description text
+      const descLines = this.wrapText(value.description, colWidths[3] - 6);
+      const rowHeight = Math.max(baseRowHeight, descLines.length * 4 + 4);
+
+      // Row background (white with border)
+      this.setColor(WHITE, 'fill');
+      this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, rowHeight, 'F');
+      this.setColor(BORDER_COLOR, 'draw');
+      this.pdf.setLineWidth(0.2);
+      this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, rowHeight, 'D');
+
+      this.pdf.setFontSize(8);
+      this.setColor(TEXT_COLOR);
+
+      let cellX = MARGIN + 3;
+      const categoryName = this.t[key as keyof typeof this.t] || key;
+      this.pdf.text(String(categoryName), cellX, this.currentY + 5);
+      cellX += colWidths[0];
+
+      this.pdf.text(`${value.percentage}%`, cellX, this.currentY + 5);
+      cellX += colWidths[1];
+
+      this.pdf.text(`${value.m2.toLocaleString()}`, cellX, this.currentY + 5);
+      cellX += colWidths[2];
+
+      // Description with text wrapping
+      let descY = this.currentY + 5;
+      descLines.forEach((line) => {
+        this.pdf.text(line, cellX, descY);
+        descY += 4;
+      });
+
+      this.currentY += rowHeight;
+    });
+  }
+
+  // Helper method to draw PVE stacked bar chart
+  private drawPVEChart(
+    categories: [string, { percentage: number; m2: number; description: string }][],
+    colors: [number, number, number][]
+  ): void {
+    const chartHeight = 30;
+    const chartWidth = CONTENT_WIDTH;
+    let chartX = MARGIN;
+
+    // Draw stacked bar
     categories.forEach(([key, value], index) => {
       const barWidth = (value.percentage / 100) * chartWidth;
       this.setColor(colors[index % colors.length], 'fill');
       this.pdf.rect(chartX, this.currentY, barWidth, chartHeight, 'F');
+      chartX += barWidth;
+    });
 
-      // Label inside bar if wide enough
-      if (barWidth > 20) {
-        this.pdf.setFontSize(7);
-        this.pdf.setTextColor(255, 255, 255);
-        this.pdf.setFont('helvetica', 'bold');
-        this.pdf.text(`${value.percentage}%`, chartX + 2, this.currentY + chartHeight / 2 + 2);
+    // Add labels on top of each section
+    chartX = MARGIN;
+    categories.forEach(([key, value], index) => {
+      const barWidth = (value.percentage / 100) * chartWidth;
+      const categoryName = this.t[key as keyof typeof this.t] || key;
+
+      // Label above the bar section
+      this.pdf.setFontSize(7);
+      this.setColor(TEXT_COLOR);
+      this.pdf.setFont('helvetica', 'bold');
+
+      if (barWidth > 15) {
+        // Centered label with percentage
+        const labelText = `${categoryName} (${value.percentage}%)`;
+        const labelWidth = this.pdf.getTextWidth(labelText);
+        const labelX = chartX + (barWidth - labelWidth) / 2;
+
+        // Draw label above bar
+        this.pdf.text(labelText, Math.max(labelX, chartX + 2), this.currentY - 2);
       }
 
       chartX += barWidth;
     });
 
-    this.currentY += chartHeight + 5;
-
-    // Legend
-    chartX = MARGIN;
-    categories.forEach(([key, value], index) => {
-      if (chartX + 40 > PAGE_WIDTH - MARGIN) {
-        chartX = MARGIN;
-        this.currentY += 6;
-      }
-
-      this.setColor(colors[index % colors.length], 'fill');
-      this.pdf.rect(chartX, this.currentY - 3, 4, 4, 'F');
-
-      this.pdf.setFontSize(7);
-      this.setColor(TEXT_COLOR);
-      this.pdf.setFont('helvetica', 'normal');
-      const categoryName = this.t[key as keyof typeof this.t] || key;
-      this.pdf.text(String(categoryName), chartX + 6, this.currentY);
-
-      chartX += 35;
-    });
+    this.currentY += chartHeight;
   }
 
   // ==========================================================================
