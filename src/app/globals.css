@@ -213,6 +213,7 @@
   --navbar-height: 64px;
   --sidebar-width: 280px;
   --sidebar-collapsed-width: 60px;
+  --current-sidebar-width: var(--sidebar-width); /* Updated dynamically by useProjectsSidebar */
   --sidebar-gap: 8px;
   --right-menu-width: 280px;
   
@@ -644,6 +645,41 @@ body {
 
   .right-menu {
     z-index: var(--z-elevated);
+  }
+}
+
+/* Modal positioning that respects navbar and sidebar */
+@layer utilities {
+  /* Full-page backdrop */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-modal);
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+
+  /* Content area that respects navbar and sidebar */
+  .modal-content-area {
+    position: fixed;
+    top: var(--navbar-height);
+    right: 0;
+    bottom: 0;
+    left: var(--current-sidebar-width);
+    z-index: calc(var(--z-modal) + 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    pointer-events: none;
+    transition: left var(--duration-normal) ease-in-out;
+  }
+
+  .modal-content-area > * {
+    pointer-events: auto;
+  }
+
+  .modal-content-area-no-sidebar {
+    left: 0;
   }
 }
 

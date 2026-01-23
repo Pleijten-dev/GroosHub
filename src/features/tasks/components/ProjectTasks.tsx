@@ -142,10 +142,16 @@ export function ProjectTasks({ projectId, locale }: ProjectTasksProps) {
       });
 
       if (res.ok) {
-        await fetchTasks();
+        // Skip refetch for status-only updates (drag-drop) since KanbanBoard handles optimistic updates
+        const isStatusOnlyUpdate = Object.keys(updates).length === 1 && 'status' in updates;
+        if (!isStatusOnlyUpdate) {
+          await fetchTasks();
+        }
       }
     } catch (err) {
       console.error('Error updating task:', err);
+      // Rethrow so KanbanBoard can rollback optimistic updates
+      throw err;
     }
   }
 
