@@ -39,7 +39,7 @@
       "Regulering rond sociale woningbouw percentages"
     ]
   },
-  "scenarios_overview": "Dit rapport presenteert drie scenario's die elk inspelen op verschillende doelgroepen binnen de lokale context. Scenario 1 (Young Urban Hub) richt zich op jonge starters en professionals - de grootste en best scorende doelgroep met een score van 0.42. Scenario 2 (Professional Living) bedient het premium segment met focus op kwaliteit en professionele ontwikkeling, eveneens met score 0.42. Scenario 3 (Family Community) focust op gezinnen met een score van 0.41, een kleinere maar gedifferentieerde niche. Alle scenario's zijn gebaseerd op 10.000m² BVO met 70% woningen, 15% commercieel, 5% horeca, 5% sociaal, 3% gemeenschappelijk en 2% kantoren.",
+  "scenarios_overview": "Dit rapport presenteert vier scenario's die elk inspelen op verschillende doelgroepen binnen de lokale context. Scenario 1 (Young Urban Hub) richt zich op jonge starters en professionals - de grootste en best scorende doelgroep met een score van 0.42. Scenario 2 (Professional Living) bedient het premium segment met focus op kwaliteit en professionele ontwikkeling, eveneens met score 0.42. Scenario 3 (Family Community) focust op gezinnen met een score van 0.41, een kleinere maar gedifferentieerde niche. Scenario 4 (Custom Mix) is een op maat samengestelde combinatie van doelgroepen, geoptimaliseerd voor de specifieke projectdoelstellingen. Alle scenario's zijn gebaseerd op 10.000m² BVO met 70% woningen, 15% commercieel, 5% horeca, 5% sociaal, 3% gemeenschappelijk en 2% kantoren.",
   "scenarios": [
     {
       "scenario_name": "Scenario 1",
@@ -681,7 +681,219 @@
         "Lagere sociale cohesie (5,6 vs 6,4) kan verbeterd worden door gezinsgerichte activiteiten",
         "Goede bereikbaarheid (OV 124m) ondersteunt werkende ouders"
       ]
+    },
+    {
+      "scenario_name": "Scenario 4",
+      "scenario_simple_name": "Custom Mix",
+      "target_personas": [
+        "Jonge Starters",
+        "De Groeiers",
+        "Actieve Jonge Gezinnen",
+        "Ambitieuze Singles",
+        "De Groeigezinnen"
+      ],
+      "summary": "Een op maat samengesteld scenario gebaseerd op een specifieke selectie van doelgroepen. Deze custom mix combineert kenmerken van meerdere standaard scenario's om optimaal in te spelen op de lokale marktvraag en projectdoelstellingen. De geselecteerde doelgroepen vertegenwoordigen een evenwichtige mix van singles, koppels en gezinnen met diverse inkomens- en leeftijdsprofielen.",
+      "residential": {
+        "total_m2": 7000,
+        "total_units": 95,
+        "unit_mix": [
+          {
+            "typology_id": "studio_35",
+            "typology_name": "Studio 35m²",
+            "quantity": 15,
+            "total_m2": 525,
+            "rationale": "Voor Jonge Starters met beperkt budget"
+          },
+          {
+            "typology_id": "social_housing_50",
+            "typology_name": "Sociale huur 50m²",
+            "quantity": 12,
+            "total_m2": 600,
+            "rationale": "Sociale huurcomponent voor lagere inkomens"
+          },
+          {
+            "typology_id": "one_bed_55",
+            "typology_name": "1-kamer 55m²",
+            "quantity": 18,
+            "total_m2": 990,
+            "rationale": "Voor Ambitieuze Singles en jonge professionals"
+          },
+          {
+            "typology_id": "two_bed_75",
+            "typology_name": "2-kamer 75m²",
+            "quantity": 20,
+            "total_m2": 1500,
+            "rationale": "Voor De Groeiers en startende gezinnen"
+          },
+          {
+            "typology_id": "two_bed_85",
+            "typology_name": "2-kamer 85m²",
+            "quantity": 15,
+            "total_m2": 1275,
+            "rationale": "Voor Actieve Jonge Gezinnen"
+          },
+          {
+            "typology_id": "three_bed_95",
+            "typology_name": "3-kamer 95m²",
+            "quantity": 12,
+            "total_m2": 1140,
+            "rationale": "Voor gezinnen met kinderen"
+          },
+          {
+            "typology_id": "three_bed_110",
+            "typology_name": "3-kamer 110m²",
+            "quantity": 3,
+            "total_m2": 330,
+            "rationale": "Premium gezinswoningen voor De Groeigezinnen"
+          }
+        ],
+        "demographics_considerations": "Deze custom mix balanceert de lokale demografische samenstelling (44,46% 25-45 jaar, 53,99% alleenstaanden) met gezinsvriendelijke opties. Het aandeel sociale huur (20%) past bij de gemengde inkomensstructuur, terwijl de variatie in unitgroottes verschillende levensfasen bedient."
+      },
+      "commercial": {
+        "total_m2": 1500,
+        "spaces": [
+          {
+            "type": "Buurtwinkel/gemak",
+            "size_m2": 200,
+            "rationale": "Dagelijkse boodschappen voor diverse doelgroepen"
+          },
+          {
+            "type": "Coworking space",
+            "size_m2": 300,
+            "rationale": "Flexibele werkplekken voor professionals en thuiswerkers"
+          },
+          {
+            "type": "Kinderopvang",
+            "size_m2": 250,
+            "rationale": "Essentieel voor werkende ouders in alle doelgroepen"
+          },
+          {
+            "type": "Koffiebar/lunchroom",
+            "size_m2": 150,
+            "rationale": "Ontmoetingsplek voor bewoners en professionals"
+          },
+          {
+            "type": "Fitness/yoga studio",
+            "size_m2": 200,
+            "rationale": "Aansluitend op hoge sportparticipatie (66,4%)"
+          },
+          {
+            "type": "Zorgverlening/apotheek",
+            "size_m2": 150,
+            "rationale": "Complementair aan nabije zorgvoorzieningen"
+          },
+          {
+            "type": "Fietsenwinkel/reparatie",
+            "size_m2": 100,
+            "rationale": "Praktische dienst voor stedelijke mobiliteit"
+          },
+          {
+            "type": "Verswinkel/deli",
+            "size_m2": 150,
+            "rationale": "Kwaliteitsproducten voor diverse huishoudens"
+          }
+        ],
+        "local_amenities_analysis": "De commerciële mix combineert praktische voorzieningen voor gezinnen (kinderopvang, buurtwinkel) met lifestyle amenities voor professionals (coworking, fitness). Dit sluit aan bij de diverse samenstelling van de custom doelgroepenmix."
+      },
+      "hospitality": {
+        "total_m2": 500,
+        "concept": "Een veelzijdig restaurant/café concept dat overdag functioneert als werkplek en lunchlocatie, en 's avonds als informeel familierestaurant. Combineert een kindvriendelijke hoek met een rustige werkzone voor professionals."
+      },
+      "social": {
+        "total_m2": 500,
+        "facilities": [
+          {
+            "type": "Multifunctionele buurtruimte",
+            "size_m2": 200,
+            "rationale": "Flexibele ruimte voor community events, workshops en bijeenkomsten"
+          },
+          {
+            "type": "Speelzaal/kinderactiviteiten",
+            "size_m2": 100,
+            "rationale": "Indoor activiteiten voor kinderen uit diverse gezinnen"
+          },
+          {
+            "type": "Studie/werkruimte",
+            "size_m2": 100,
+            "rationale": "Rustige werkplek voor studenten en thuiswerkers"
+          },
+          {
+            "type": "Ouder-kind centrum",
+            "size_m2": 100,
+            "rationale": "Ondersteuning en ontmoeting voor jonge ouders"
+          }
+        ]
+      },
+      "communal": {
+        "total_m2": 300,
+        "amenities": [
+          {
+            "amenity_id": "fitness_room",
+            "amenity_name": "Fitnessruimte",
+            "size_m2": 60,
+            "rationale": "Aanvullend op hoge sportparticipatie onder bewoners"
+          },
+          {
+            "amenity_id": "community_lounge",
+            "amenity_name": "Bewonerslounge",
+            "size_m2": 50,
+            "rationale": "Ontmoetingsruimte voor community building"
+          },
+          {
+            "amenity_id": "kids_playroom",
+            "amenity_name": "Kinderspeelruimte",
+            "size_m2": 40,
+            "rationale": "Indoor spelen voor jonge kinderen"
+          },
+          {
+            "amenity_id": "rooftop_terrace",
+            "amenity_name": "Dakterras",
+            "size_m2": 60,
+            "rationale": "Gedeelde buitenruimte met uitzicht"
+          },
+          {
+            "amenity_id": "bike_storage",
+            "amenity_name": "Fietsenstalling XL",
+            "size_m2": 50,
+            "rationale": "Ruime stalling incl. bakfietsen en e-bikes"
+          },
+          {
+            "amenity_id": "package_room",
+            "amenity_name": "Pakketruimte",
+            "size_m2": 20,
+            "rationale": "Centrale aflevering voor online bestellingen"
+          },
+          {
+            "amenity_id": "guest_parking",
+            "amenity_name": "Bezoekersparkeren",
+            "size_m2": 20,
+            "rationale": "Parkeerplekken voor gasten"
+          }
+        ],
+        "persona_needs_analysis": "De gemeenschappelijke voorzieningen bedienen zowel actieve singles (fitness, lounge) als gezinnen (speelruimte, fietsenstalling). De mix bevordert community building terwijl praktische behoeften van verschillende huishoudtypes worden afgedekt."
+      },
+      "communal_spaces": {
+        "total_m2": 300,
+        "spaces": [],
+        "category_breakdown": {}
+      },
+      "public_spaces": {
+        "total_m2": 0,
+        "spaces": [],
+        "category_breakdown": {}
+      },
+      "offices": {
+        "total_m2": 200,
+        "concept": "Flexibele kantoorruimtes en hotdesks voor thuiswerkers en kleine ondernemers. Combineert individuele werkplekken met kleine vergaderruimtes, geschikt voor zowel jonge professionals als werkende ouders."
+      },
+      "key_insights": [
+        "Custom mix balanceert singles (53,99% lokaal) met gezinsvriendelijke opties",
+        "20% sociale huur sluit aan bij diverse inkomensniveaus van geselecteerde doelgroepen",
+        "Combinatie van lifestyle en praktische voorzieningen bedient brede doelgroepenmix",
+        "Community facilities belangrijk voor sociale cohesie (5,6 vs 6,4 landelijk)",
+        "Flexibele ruimtes ondersteunen diverse woon-werk patronen van doelgroepen"
+      ]
     }
   ],
-  "comparative_analysis": "**Scenario Vergelijking & Aanbevelingen:**\n\n**Scenario 1 (Young Urban Hub)** richt zich op de grootste doelgroep met de hoogste scores (0.42), met nadruk op betaalbaarheid en starter faciliteiten. De mix van 23% sociale huur past bij de lokale inkomensstructuur.\n\n**Scenario 2 (Professional Living)** bedient de premium markt met focus op kwaliteit en professionele ontwikkeling. Hoewel dezelfde score (0.42), richt het zich op een kleinere maar financieel sterkere doelgroep die past bij het hoge lokale inkomen (€35.400).\n\n**Scenario 3 (Family Community)** heeft de laagste score (0.41) maar bedient een belangrijke niche. Het lage aandeel gezinnen lokaal (18,97% vs 32,87% landelijk) maakt dit scenario risicovoller maar wel differentiërend.\n\n**Lokale Context Overwegingen:**\n- Hoge sportparticipatie (66,4%) ondersteunt fitness voorzieningen in alle scenarios\n- Lage sociale cohesie (5,6 vs 6,4) vraagt om community building, vooral in Scenario 3\n- Uitstekende voorzieningen basis betekent focus op kwaliteitsverbetering ipv kwantiteit\n- Beperkte budget dining (4 restaurants) creëert kansen voor food concepten\n\n**Aanbeveling:** Start met Scenario 1 vanwege beste marktfit, gevolgd door Scenario 2 voor premium segment. Scenario 3 als niche-strategie voor differentiatie in gezinsmarkt."
+  "comparative_analysis": "**Scenario Vergelijking & Aanbevelingen:**\n\n**Scenario 1 (Young Urban Hub)** richt zich op de grootste doelgroep met de hoogste scores (0.42), met nadruk op betaalbaarheid en starter faciliteiten. De mix van 23% sociale huur past bij de lokale inkomensstructuur.\n\n**Scenario 2 (Professional Living)** bedient de premium markt met focus op kwaliteit en professionele ontwikkeling. Hoewel dezelfde score (0.42), richt het zich op een kleinere maar financieel sterkere doelgroep die past bij het hoge lokale inkomen (€35.400).\n\n**Scenario 3 (Family Community)** heeft de laagste score (0.41) maar bedient een belangrijke niche. Het lage aandeel gezinnen lokaal (18,97% vs 32,87% landelijk) maakt dit scenario risicovoller maar wel differentiërend.\n\n**Scenario 4 (Custom Mix)** combineert elementen van de drie standaard scenario's in een op maat gemaakte mix. Dit scenario biedt maximale flexibiliteit om in te spelen op specifieke projectvereisten en stakeholder-wensen, met een gebalanceerde benadering van singles, koppels en gezinnen.\n\n**Lokale Context Overwegingen:**\n- Hoge sportparticipatie (66,4%) ondersteunt fitness voorzieningen in alle scenarios\n- Lage sociale cohesie (5,6 vs 6,4) vraagt om community building, vooral in Scenario 3 en 4\n- Uitstekende voorzieningen basis betekent focus op kwaliteitsverbetering ipv kwantiteit\n- Beperkte budget dining (4 restaurants) creëert kansen voor food concepten\n\n**Aanbeveling:** Start met Scenario 1 vanwege beste marktfit, gevolgd door Scenario 2 voor premium segment. Scenario 3 als niche-strategie voor differentiatie in gezinsmarkt. Scenario 4 biedt maatwerk-mogelijkheden wanneer specifieke stakeholder-eisen afwijken van standaard scenario's."
 }
