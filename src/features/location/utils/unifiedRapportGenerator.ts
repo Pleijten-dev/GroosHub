@@ -565,12 +565,7 @@ export class UnifiedRapportBuilder {
     this.pdf.line(MARGIN, this.currentY, MARGIN + 40, this.currentY);
     this.currentY += 10;
 
-    // Note: TOC entries will be filled in after all pages are generated
-    // This is a placeholder that will be updated
-    this.pdf.setFontSize(10);
-    this.setColor(MUTED_COLOR);
-    this.pdf.setFont('helvetica', 'italic');
-    this.pdf.text('(Table of contents will be generated)', MARGIN, this.currentY);
+    // TOC entries will be filled in by updateTableOfContents() after all pages are generated
   }
 
   // Method to update TOC after all pages are added
