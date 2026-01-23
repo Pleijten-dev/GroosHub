@@ -698,14 +698,15 @@ export class UnifiedRapportBuilder {
         this.pdf.setLineWidth(0.3);
         this.pdf.rect(boxX, boxY, boxWidth, boxHeight, 'FD');
 
-        // Items with text wrapping (no title, starts from top)
-        this.pdf.setFontSize(7);
+        // Items with text wrapping
+        this.pdf.setFontSize(8);
         this.setColor(TEXT_COLOR);
         this.pdf.setFont('helvetica', 'normal');
 
-        let itemY = boxY + 5;
+        // Bottom row (O, T) starts lower to avoid SWOT letters
+        let itemY = q.row === 0 ? boxY + 5 : boxY + 12;
         const itemWidth = boxWidth - 8;
-        const lineHeight = 3;
+        const lineHeight = 3.5;
 
         q.items.slice(0, 5).forEach((text) => {
           const wrappedLines = this.wrapText(`• ${text}`, itemWidth);
