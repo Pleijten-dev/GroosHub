@@ -115,21 +115,33 @@ function QuickActionButton({ action, onClick }: QuickActionButtonProps) {
     }
   };
 
-  // Map icon names to simple representations
+  // Map icon names to emoji representations
   const iconMap: Record<string, string> = {
-    'tasks': '\u{1F4CB}',      // Clipboard
-    'users': '\u{1F465}',      // People
-    'location': '\u{1F4CD}',   // Pin
-    'document': '\u{1F4C4}',   // Document
-    'chart': '\u{1F4CA}',      // Chart
-    'check': '\u{2705}',       // Check mark
-    'alert': '\u{26A0}',       // Warning
-    'target': '\u{1F3AF}',     // Target
-    'search': '\u{1F50D}',     // Search
-    'help': '\u{2753}',        // Question mark
+    'tasks': '📋',
+    'users': '👥',
+    'location': '📍',
+    'document': '📄',
+    'chart': '📊',
+    'check': '✅',
+    'alert': '⚠️',
+    'target': '🎯',
+    'search': '🔍',
+    'help': '❓',
+    'cube': '🎲',
+    'compare': '⚖️',
+    'export': '📤',
+    'summary': '📝',
+    'risk': '🚨',
+    'building': '🏢',
+    'map': '🗺️',
+    'home': '🏠',
+    'money': '💰',
+    'heart': '❤️',
+    'shield': '🛡️',
+    'leaf': '🌿',
   };
 
-  const icon = iconMap[action.icon] || '\u{2728}'; // Default sparkle
+  const icon = iconMap[action.icon] || '✨';
 
   return (
     <button
@@ -152,7 +164,7 @@ function QuickActionButton({ action, onClick }: QuickActionButtonProps) {
       )}
     >
       <span className="text-xl" role="img" aria-hidden="true">
-        {isLoading ? '\u{23F3}' : icon}
+        {isLoading ? '⏳' : icon}
       </span>
       <div className="flex-1 min-w-0">
         <div className="font-medium text-gray-900 text-sm">
@@ -196,7 +208,7 @@ function PanelHeader({ title, subtitle, onClose, onBack, showBack }: PanelHeader
         )}
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-lg" role="img" aria-hidden="true">\u{2728}</span>
+            <span className="text-lg" role="img" aria-hidden="true">✨</span>
             <h2 className="font-semibold text-gray-900">{title}</h2>
           </div>
           {subtitle && (

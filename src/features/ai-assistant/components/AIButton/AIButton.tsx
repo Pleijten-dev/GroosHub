@@ -29,19 +29,15 @@ function SparkleIcon({ className, size = 24 }: SparkleIconProps) {
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      fill="currentColor"
       className={className}
     >
-      {/* Main 4-point star */}
-      <path d="M12 3v18M3 12h18" />
-      <path d="M12 3c0 4.97 4.03 9 9 9-4.97 0-9 4.03-9 9 0-4.97-4.03-9-9-9 4.97 0 9-4.03 9-9z" />
-      {/* Small accent sparkles */}
-      <circle cx="19" cy="5" r="1" fill="currentColor" stroke="none" />
-      <circle cx="5" cy="19" r="0.5" fill="currentColor" stroke="none" />
+      {/* Main 4-point star sparkle */}
+      <path d="M12 1C12 1 12 8.5 12 8.5C12 8.5 15.5 12 22 12C15.5 12 12 15.5 12 22C12 15.5 8.5 12 2 12C8.5 12 12 8.5 12 1Z" />
+      {/* Small accent sparkle top-right */}
+      <circle cx="18" cy="4" r="1.5" />
+      {/* Tiny sparkle bottom-left */}
+      <circle cx="6" cy="18" r="1" />
     </svg>
   );
 }

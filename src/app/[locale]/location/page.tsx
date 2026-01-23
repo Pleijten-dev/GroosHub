@@ -30,7 +30,7 @@ import { PVEQuestionnaire } from '../../../features/location/components/PVE';
 import { MapExportButton } from '../../../features/location/components/MapExport';
 import type { AccessibleLocation } from '../../../features/location/types/saved-locations';
 import { useWMSGrading } from '../../../features/location/hooks/useWMSGrading';
-import { AIAssistantProvider } from '../../../features/ai-assistant/hooks/useAIAssistant';
+import { AIAssistantProvider, useAIAssistantOptional } from '../../../features/ai-assistant/hooks/useAIAssistant';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -838,6 +838,25 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     );
   };
 
+  // Component to sync activeTab to AI context
+  const AIContextSync = () => {
+    const ai = useAIAssistantOptional();
+    React.useEffect(() => {
+      if (ai) {
+        ai.setContext({
+          currentView: {
+            location: {
+              address: currentAddress || undefined,
+              hasCompletedAnalysis: !!data,
+              activeTab,
+            },
+          },
+        });
+      }
+    }, [ai, activeTab, currentAddress, data]);
+    return null;
+  };
+
   return (
     <AIAssistantProvider
       feature="location"
@@ -846,10 +865,14 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
           location: {
             address: currentAddress || undefined,
             hasCompletedAnalysis: !!data,
+            activeTab,
           },
         },
       }}
     >
+      {/* Sync active tab to AI context */}
+      <AIContextSync />
+
       <div
         className="page-background w-screen overflow-hidden flex flex-col"
         style={{

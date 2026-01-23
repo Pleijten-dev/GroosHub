@@ -54,6 +54,8 @@ export interface AIContextData {
       coordinates?: [number, number];
       visibleCategories?: string[];
       hasCompletedAnalysis?: boolean;
+      /** Current active tab on location page */
+      activeTab?: string;
     };
 
     // Project page context
