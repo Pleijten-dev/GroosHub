@@ -655,61 +655,112 @@ export class UnifiedRapportBuilder {
       this.currentY += 5;
     });
 
-    // SWOT Analysis
+    // SWOT Analysis - Modern design with overlapping circles and large letters
     if (swotAnalysis) {
-      this.currentY += 10;
-      this.checkPageBreak(80);
+      // Start SWOT on a new page for better presentation
+      this.addNewPage();
       this.addTocEntry(this.t.swotAnalysis, 1);
 
-      this.pdf.setFontSize(14);
+      // Page title
+      this.pdf.setFontSize(18);
       this.setColor(PRIMARY_COLOR);
       this.pdf.setFont('helvetica', 'bold');
       this.pdf.text(this.t.swotAnalysis, MARGIN, this.currentY);
-      this.currentY += 10;
+      this.currentY += 15;
 
-      // SWOT grid (2x2)
-      const boxWidth = (CONTENT_WIDTH - 6) / 2;
-      const boxHeight = 50;
-      const boxGap = 6;
+      // SWOT layout dimensions
+      const centerX = PAGE_WIDTH / 2;
+      const centerY = this.currentY + 55; // Center of the circles
+      const circleRadius = 35;
+      const circleOffset = 28; // How much circles overlap
 
-      const swotItems = [
-        { title: this.t.strengths, items: swotAnalysis.strengths, color: [34, 197, 94] as [number, number, number] },
-        { title: this.t.weaknesses, items: swotAnalysis.weaknesses, color: [239, 68, 68] as [number, number, number] },
-        { title: this.t.opportunities, items: swotAnalysis.opportunities, color: [59, 130, 246] as [number, number, number] },
-        { title: this.t.threats, items: swotAnalysis.threats, color: [245, 158, 11] as [number, number, number] },
+      // Green gradient colors (from light to dark)
+      const swotColors = {
+        S: [134, 166, 125] as [number, number, number],  // Light sage green
+        W: [99, 131, 81] as [number, number, number],    // Medium green
+        O: [71, 118, 56] as [number, number, number],    // Primary green
+        T: [71, 105, 56] as [number, number, number],    // Darker green
+      };
+
+      // Circle positions (S=top-left, W=top-right, O=bottom-left, T=bottom-right)
+      const circlePositions = [
+        { letter: 'S', x: centerX - circleOffset, y: centerY - circleOffset, color: swotColors.S },
+        { letter: 'W', x: centerX + circleOffset, y: centerY - circleOffset, color: swotColors.W },
+        { letter: 'O', x: centerX - circleOffset, y: centerY + circleOffset, color: swotColors.O },
+        { letter: 'T', x: centerX + circleOffset, y: centerY + circleOffset, color: swotColors.T },
       ];
 
-      swotItems.forEach((item, index) => {
-        const col = index % 2;
-        const row = Math.floor(index / 2);
-        const boxX = MARGIN + col * (boxWidth + boxGap);
-        const boxY = this.currentY + row * (boxHeight + boxGap);
+      // Draw overlapping circles with glass effect (back to front for proper overlap)
+      // Use GState for transparency effect
+      circlePositions.forEach((pos) => {
+        // Outer glow/shadow effect
+        this.pdf.setFillColor(pos.color[0], pos.color[1], pos.color[2]);
+        this.pdf.setDrawColor(255, 255, 255);
+        this.pdf.setLineWidth(2);
 
-        // Box background
-        this.setColor(LIGHT_BG, 'fill');
-        this.setColor(item.color, 'draw');
-        this.pdf.setLineWidth(0.5);
-        this.pdf.roundedRect(boxX, boxY, boxWidth, boxHeight, 2, 2, 'FD');
+        // Main circle with slight transparency simulation (lighter fill)
+        const lightColor: [number, number, number] = [
+          Math.min(255, pos.color[0] + 40),
+          Math.min(255, pos.color[1] + 40),
+          Math.min(255, pos.color[2] + 40),
+        ];
+        this.pdf.setFillColor(...lightColor);
+        this.pdf.circle(pos.x, pos.y, circleRadius, 'FD');
 
-        // Title
-        this.pdf.setFontSize(10);
-        this.pdf.setTextColor(...item.color);
+        // Inner highlight for glass effect
+        this.pdf.setFillColor(255, 255, 255);
+        this.pdf.circle(pos.x - 8, pos.y - 10, circleRadius * 0.3, 'F');
+
+        // Large letter in white
+        this.pdf.setFontSize(36);
+        this.pdf.setTextColor(255, 255, 255);
         this.pdf.setFont('helvetica', 'bold');
-        this.pdf.text(item.title, boxX + 4, boxY + 6);
+        this.pdf.text(pos.letter, pos.x, pos.y + 4, { align: 'center' });
+      });
 
-        // Items
+      // Content boxes positioned around the circles
+      const contentWidth = 60;
+      const contentGap = 8;
+
+      // SWOT content data
+      const swotContent = [
+        { title: this.t.strengths, items: swotAnalysis.strengths, x: MARGIN, y: this.currentY - 5 },
+        { title: this.t.weaknesses, items: swotAnalysis.weaknesses, x: PAGE_WIDTH - MARGIN - contentWidth, y: this.currentY - 5 },
+        { title: this.t.opportunities, items: swotAnalysis.opportunities, x: MARGIN, y: centerY + circleRadius + 15 },
+        { title: this.t.threats, items: swotAnalysis.threats, x: PAGE_WIDTH - MARGIN - contentWidth, y: centerY + circleRadius + 15 },
+      ];
+
+      // Draw content for each quadrant
+      swotContent.forEach((content, idx) => {
+        // Title
+        this.pdf.setFontSize(11);
+        this.setColor(PRIMARY_COLOR);
+        this.pdf.setFont('helvetica', 'bold');
+        this.pdf.text(content.title, content.x, content.y);
+
+        // Items with proper text wrapping
         this.pdf.setFontSize(8);
         this.setColor(TEXT_COLOR);
         this.pdf.setFont('helvetica', 'normal');
-        let itemY = boxY + 12;
-        item.items.slice(0, 4).forEach((text) => {
-          const wrappedText = this.wrapText(`• ${text}`, boxWidth - 8)[0];
-          this.pdf.text(wrappedText, boxX + 4, itemY);
-          itemY += 4;
+
+        let itemY = content.y + 6;
+        const maxItems = 5;
+        const lineHeight = 3.5;
+
+        content.items.slice(0, maxItems).forEach((text) => {
+          // Wrap text properly
+          const wrappedLines = this.wrapText(`• ${text}`, contentWidth - 2);
+          wrappedLines.forEach((line, lineIdx) => {
+            if (lineIdx < 2) { // Max 2 lines per item
+              this.pdf.text(line, content.x, itemY);
+              itemY += lineHeight;
+            }
+          });
+          itemY += 1; // Small gap between items
         });
       });
 
-      this.currentY += 2 * (boxHeight + boxGap);
+      this.currentY = centerY + circleRadius + 85;
     }
   }
 
