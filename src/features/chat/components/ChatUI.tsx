@@ -668,7 +668,7 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
                   )}
                   {/* Pending text */}
                   <div className="max-w-[85%] min-w-[240px]">
-                    <div className="bg-[#8a976b] text-white rounded-xl px-base py-sm">
+                    <div className="bg-[#8a976b]/10 text-gray-900 rounded-lg rounded-tr-none px-base py-sm shadow-sm">
                       <p className="whitespace-pre-wrap break-words">{pendingMessageText}</p>
                     </div>
                   </div>
@@ -724,10 +724,10 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
                     {hasText && (
                       <div
                         className={cn(
-                          'max-w-[80%] min-w-[240px] rounded-lg px-base py-sm shadow-sm',
+                          'max-w-[80%] min-w-[240px] px-base py-sm shadow-sm',
                           message.role === 'user'
-                            ? 'bg-[#8a976b] text-white'
-                            : 'bg-white text-gray-900 border border-gray-200'
+                            ? 'bg-[#8a976b]/10 text-gray-900 rounded-lg rounded-tr-none'
+                            : 'bg-white text-gray-900 border border-gray-200 rounded-lg rounded-tl-none'
                         )}
                       >
                         <div className="text-xs font-medium mb-1 opacity-70">
