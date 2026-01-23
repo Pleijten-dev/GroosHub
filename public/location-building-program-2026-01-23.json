@@ -8,6 +8,38 @@
     "communal_categories": {},
     "public_categories": {}
   },
+  "project_title": "Woonontwikkeling Kralingen-West",
+  "swot_analysis": {
+    "strengths": [
+      "Uitstekende bereikbaarheid met OV binnen 124m",
+      "Hoog gemiddeld inkomen (€35.400 vs €25.200 gemeentelijk)",
+      "Jonge, dynamische bevolkingssamenstelling (44,46% 25-45 jaar)",
+      "Goede gezondheidsindicatoren (75,4% ervaart goede gezondheid)",
+      "Nabijheid van scholen (211m), zorg (180m) en dagelijkse voorzieningen"
+    ],
+    "weaknesses": [
+      "Lagere sociale cohesie dan landelijk gemiddelde (5,6 vs 6,4)",
+      "Hoge stressniveaus onder bewoners (25,7% vs 20,7% landelijk)",
+      "Beperkte speelvoorzieningen waardering (53,5% vs 59,5%)",
+      "Hoge woningprijzen kunnen betaalbaarheid beperken (73% >€500k)",
+      "Oudere woningvoorraad (gemiddeld bouwjaar 1942)"
+    ],
+    "opportunities": [
+      "Groeiende vraag naar flexibele werkruimtes voor young professionals",
+      "Behoefte aan community-building faciliteiten gezien lage cohesie",
+      "Potentieel voor gezinswoningen (lokaal aandeel 18,97% vs 32,87% landelijk)",
+      "Kans voor premium woonconcepten passend bij hoge inkomens",
+      "Vraag naar wellness en stressreductie voorzieningen"
+    ],
+    "threats": [
+      "Concurrentie van bestaande hoogwaardige woningvoorraad",
+      "Economische onzekerheid kan premium segment beïnvloeden",
+      "Vergrijzing van de bevolking op langere termijn",
+      "Stijgende bouwkosten kunnen marges onder druk zetten",
+      "Regulering rond sociale woningbouw percentages"
+    ]
+  },
+  "scenarios_overview": "Dit rapport presenteert drie scenario's die elk inspelen op verschillende doelgroepen binnen de lokale context. Scenario 1 (Young Urban Hub) richt zich op jonge starters en professionals - de grootste en best scorende doelgroep met een score van 0.42. Scenario 2 (Professional Living) bedient het premium segment met focus op kwaliteit en professionele ontwikkeling, eveneens met score 0.42. Scenario 3 (Family Community) focust op gezinnen met een score van 0.41, een kleinere maar gedifferentieerde niche. Alle scenario's zijn gebaseerd op 10.000m² BVO met 70% woningen, 15% commercieel, 5% horeca, 5% sociaal, 3% gemeenschappelijk en 2% kantoren.",
   "scenarios": [
     {
       "scenario_name": "Scenario 1",
