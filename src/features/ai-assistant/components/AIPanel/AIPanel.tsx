@@ -7,11 +7,15 @@
  * Features:
  * - Context-aware header showing current page
  * - Quick action buttons
- * - Mini chat interface
+ * - Mini chat interface using the SAME chat infrastructure as the main AI assistant
  * - Smooth slide animation
+ *
+ * IMPORTANT: This panel uses the same useChat hook and /api/chat endpoint
+ * as the main AI assistant, ensuring identical tooling, memory, and behavior.
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useChat } from '@ai-sdk/react';
 import { cn } from '@/shared/utils/cn';
 import type {
   AIPanelProps,
@@ -78,6 +82,31 @@ function SendIcon({ className }: { className?: string }) {
       <polygon points="22 2 15 22 11 13 2 9 22 2" />
     </svg>
   );
+}
+
+// ============================================
+// Helper: Extract text from UIMessage
+// ============================================
+
+/**
+ * Extract text content from a Vercel AI SDK UIMessage
+ * The message can have parts array or legacy content string
+ */
+function getMessageText(message: { parts?: Array<{ type: string; text?: string }>; content?: string }): string {
+  // Check for parts array (Vercel AI SDK v5 format)
+  if (message.parts && Array.isArray(message.parts)) {
+    return message.parts
+      .filter(part => part.type === 'text' && part.text)
+      .map(part => part.text)
+      .join('');
+  }
+
+  // Fallback to legacy content string
+  if (typeof message.content === 'string') {
+    return message.content;
+  }
+
+  return '';
 }
 
 // ============================================
@@ -322,13 +351,55 @@ export function AIPanel({
   projectId,
 }: AIPanelProps) {
   const [panelState, setPanelState] = useState<AIPanelState>(state);
-  const [messages, setMessages] = useState<Array<{
-    role: 'user' | 'assistant';
-    content: string;
-    timestamp: Date;
-  }>>([]);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [panelChatId, setPanelChatId] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  // Use the SAME useChat hook as the main AI assistant
+  // This ensures identical tooling, memory, and behavior
+  const {
+    messages,
+    sendMessage,
+    status,
+    stop,
+    setMessages,
+  } = useChat();
+
+  const isProcessing = status === 'streaming' || status === 'submitted';
+
+  // Create a chat session for this panel when opened
+  useEffect(() => {
+    const createPanelChat = async () => {
+      if (isOpen && !panelChatId) {
+        try {
+          const response = await fetch('/api/chat/conversations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              projectId,
+              title: `AI Panel - ${feature}`,
+            }),
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setPanelChatId(data.chatId);
+          }
+        } catch (error) {
+          console.error('[AIPanel] Failed to create chat session:', error);
+        }
+      }
+    };
+
+    createPanelChat();
+  }, [isOpen, panelChatId, projectId, feature]);
+
+  // Clear messages when panel closes
+  useEffect(() => {
+    if (!isOpen) {
+      setMessages([]);
+      // Optionally reset chat ID for a fresh session next time
+      // setPanelChatId(null);
+    }
+  }, [isOpen, setMessages]);
 
   // Sync external state
   useEffect(() => {
@@ -359,40 +430,53 @@ export function AIPanel({
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
-        onClose();
+        if (isProcessing) {
+          stop();
+        } else {
+          onClose();
+        }
       }
     };
 
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, isProcessing, stop]);
 
-  const handleSendMessage = async (message: string) => {
-    setIsProcessing(true);
+  // Build context metadata for the AI
+  const buildContextMetadata = useCallback(() => {
+    const metadata: Record<string, unknown> = {
+      chatId: panelChatId,
+      projectId,
+      source: 'ai_panel',
+      feature,
+    };
 
-    // Add user message
-    setMessages(prev => [...prev, {
-      role: 'user',
-      content: message,
-      timestamp: new Date(),
-    }]);
-
-    try {
-      // TODO: Integrate with actual AI chat API
-      // For now, simulate a response
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: 'I understand you want to know about this. Let me help you with that.',
-        timestamp: new Date(),
-      }]);
-    } catch (error) {
-      console.error('Error sending message:', error);
-    } finally {
-      setIsProcessing(false);
+    // Add feature-specific context
+    if (context.currentView.location?.address) {
+      metadata.locationContext = {
+        address: context.currentView.location.address,
+        coordinates: context.currentView.location.coordinates,
+      };
     }
-  };
+
+    if (context.currentView.project) {
+      metadata.projectContext = context.currentView.project;
+    }
+
+    return metadata;
+  }, [panelChatId, projectId, feature, context]);
+
+  // Send message using the REAL chat infrastructure
+  const handleSendMessage = useCallback(async (message: string) => {
+    if (!message.trim() || isProcessing) return;
+
+    // Send via the same useChat hook that powers the main AI assistant
+    // This means all tools, memory, and capabilities are available
+    sendMessage({
+      text: message,
+      metadata: buildContextMetadata(),
+    });
+  }, [isProcessing, sendMessage, buildContextMetadata]);
 
   const handleStateChange = (newState: AIPanelState) => {
     setPanelState(newState);
@@ -482,19 +566,23 @@ export function AIPanel({
                     Recent
                   </h3>
                   <div className="space-y-3">
-                    {messages.slice(-4).map((msg, i) => (
-                      <div
-                        key={i}
-                        className={cn(
-                          'text-sm rounded-lg p-3',
-                          msg.role === 'user'
-                            ? 'bg-primary/10 ml-8'
-                            : 'bg-gray-100 mr-8'
-                        )}
-                      >
-                        {msg.content}
-                      </div>
-                    ))}
+                    {messages.slice(-4).map((msg) => {
+                      const text = getMessageText(msg);
+                      if (!text) return null;
+                      return (
+                        <div
+                          key={msg.id}
+                          className={cn(
+                            'text-sm rounded-lg p-3',
+                            msg.role === 'user'
+                              ? 'bg-primary/10 ml-8'
+                              : 'bg-gray-100 mr-8'
+                          )}
+                        >
+                          {text}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -504,19 +592,37 @@ export function AIPanel({
           {panelState === 'chat' && (
             <div className="p-4">
               <div className="space-y-3">
-                {messages.map((msg, i) => (
-                  <div
-                    key={i}
-                    className={cn(
-                      'text-sm rounded-lg p-3',
-                      msg.role === 'user'
-                        ? 'bg-primary/10 ml-8'
-                        : 'bg-gray-100 mr-8'
-                    )}
-                  >
-                    {msg.content}
-                  </div>
-                ))}
+                {messages.map((msg) => {
+                  const text = getMessageText(msg);
+                  if (!text) return null;
+                  return (
+                    <div
+                      key={msg.id}
+                      className={cn(
+                        'text-sm rounded-lg p-3',
+                        msg.role === 'user'
+                          ? 'bg-primary/10 ml-8'
+                          : 'bg-gray-100 mr-8'
+                      )}
+                    >
+                      {text}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Streaming indicator */}
+          {isProcessing && (
+            <div className="px-4 pb-4">
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <span className="flex gap-1">
+                  <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </span>
+                <span>AI is thinking...</span>
               </div>
             </div>
           )}
