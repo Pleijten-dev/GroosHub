@@ -321,8 +321,6 @@ export function ProjectsSidebar({
           content: chatsContent
         }
       ]}
-      expandedWidth="280px"
-      collapsedWidth="60px"
       position="left"
       withNavbar={true}
     />

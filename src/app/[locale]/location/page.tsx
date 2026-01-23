@@ -4,6 +4,7 @@
 import React, { JSX, useState } from 'react';
 import { Locale } from '../../../lib/i18n/config';
 import { Sidebar, useSidebar } from '../../../shared/components/UI/Sidebar';
+import { MainLayout } from '../../../shared/components/UI/MainLayout';
 import { useLocationSidebarSections } from '../../../features/location/components/LocationSidebar';
 import { useLocationData } from '../../../features/location/hooks/useLocationData';
 import { MultiLevelDataTable } from '../../../features/location/components/DataTables';
@@ -305,9 +306,6 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     amenitiesData: amenities,
     onLoadSavedLocation: handleLoadSavedLocation,
   });
-
-  // Calculate main content margin based on sidebar state
-  const mainContentMargin = isCollapsed ? 'ml-[60px]' : 'ml-[320px]';
 
   /**
    * Render main content based on active tab and data state
@@ -838,38 +836,21 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   };
 
   return (
-    <div
-      className="page-background w-screen overflow-hidden flex flex-col"
-      style={{
-        height: '100vh',
-        marginTop: '-64px',
-        marginLeft: 'calc(var(--space-base) * -1)',
-        marginRight: 'calc(var(--space-base) * -1)',
-        paddingTop: '64px'
-      }}
+    <MainLayout
+      isCollapsed={isCollapsed}
+      sidebar={
+        <Sidebar
+          isCollapsed={isCollapsed}
+          onToggle={toggle}
+          sections={sidebarSections}
+          title={locale === 'nl' ? 'Locatie Analyse' : 'Location Analysis'}
+          subtitle={locale === 'nl' ? 'Adres & Data Analyse' : 'Address & Data Analysis'}
+          position="left"
+        />
+      }
     >
-
-      {/* SIDEBAR - Using reusable component (position: fixed, out of flow) */}
-      <Sidebar
-        isCollapsed={isCollapsed}
-        onToggle={toggle}
-        sections={sidebarSections}
-        title={locale === 'nl' ? 'Locatie Analyse' : 'Location Analysis'}
-        subtitle={locale === 'nl' ? 'Adres & Data Analyse' : 'Address & Data Analysis'}
-        position="left"
-        expandedWidth="320px"
-        collapsedWidth="60px"
-        className="!top-[64px] !bottom-0 !h-auto"
-      />
-
-      {/* MAIN CONTENT - Margin adjusted for fixed sidebar */}
-      <main className={`
-        flex flex-col overflow-auto h-full
-        ${mainContentMargin}
-      `}>
-        {renderMainContent()}
-      </main>
-    </div>
+      {renderMainContent()}
+    </MainLayout>
   );
 };
 

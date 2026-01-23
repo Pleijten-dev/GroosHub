@@ -193,11 +193,11 @@
   --panel-inner-padding: var(--space-lg);
 
   /* ========== BACKGROUND GRADIENT BLOBS ========== */
-  /* Subtle gradient blob colors with increased visibility */
-  --blob-1-color: rgba(12, 33, 26, 0.06);    /* darkest green */
-  --blob-2-color: rgba(72, 128, 106, 0.08);  /* teal green */
-  --blob-3-color: rgba(71, 118, 56, 0.06);   /* olive green */
-  --blob-4-color: rgba(138, 151, 107, 0.08); /* sage green */
+  /* Subtle gradient blob colors (25% reduced opacity for lighter feel) */
+  --blob-1-color: rgba(12, 33, 26, 0.045);   /* darkest green */
+  --blob-2-color: rgba(72, 128, 106, 0.06);  /* teal green */
+  --blob-3-color: rgba(71, 118, 56, 0.045);  /* olive green */
+  --blob-4-color: rgba(138, 151, 107, 0.06); /* sage green */
   
   /* ========== LAYOUT SYSTEM ========== */
   
@@ -211,9 +211,10 @@
   
   /* Project-specific layout */
   --navbar-height: 64px;
-  --sidebar-width: 320px;
+  --sidebar-width: 280px;
   --sidebar-collapsed-width: 60px;
   --current-sidebar-width: var(--sidebar-width); /* Updated dynamically by useProjectsSidebar */
+  --sidebar-gap: 8px;
   --right-menu-width: 280px;
   
   /* Z-index scale */
@@ -717,6 +718,55 @@ body {
     radial-gradient(circle at 75% 75%, var(--blob-2-color) 0%, transparent 35%),
     radial-gradient(circle at 50% 50%, var(--blob-3-color) 0%, transparent 30%);
 }
+
+/* ========== MAIN CONTENT LAYOUT SYSTEM ========== */
+/* White outer frame with rounded gradient content area */
+
+/* Outer wrapper - provides the white frame */
+.content-frame {
+  background-color: var(--color-white);
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Main content area with rounded corners and gradient */
+/* Uses margin to create white gap around the rounded edges */
+.content-main {
+  position: relative;
+  background-color: var(--color-white);
+  /* Round all corners since we have margins on all sides */
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  /* Height accounts for bottom margin only (no top margin) */
+  height: calc(100% - var(--space-sm));
+  /* Margin creates the white frame effect - left margin handled by MainLayout component */
+  margin-bottom: var(--space-sm);
+  margin-right: var(--space-sm);
+  /* Subtle interior shadow on all sides */
+  box-shadow: inset 0 0 12px 0 rgba(0, 0, 0, 0.04);
+}
+
+/* Gradient background inside the rounded content area */
+.content-main::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 30%, var(--blob-1-color) 0%, transparent 40%),
+    radial-gradient(circle at 80% 70%, var(--blob-2-color) 0%, transparent 40%),
+    radial-gradient(circle at 40% 80%, var(--blob-3-color) 0%, transparent 40%),
+    radial-gradient(circle at 70% 20%, var(--blob-4-color) 0%, transparent 40%);
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Ensure content inside is above the gradient */
+.content-main > * {
+  position: relative;
+  z-index: 1;
+}
+
 /* ========== TOAST ANIMATIONS ========== */
 @keyframes slide-in-right {
   from {
