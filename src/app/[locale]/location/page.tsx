@@ -757,6 +757,9 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                   amenitiesData={amenities}
                   personaScores={sortedPersonas}
                   scenarios={scenarios}
+                  cubeColors={cubeColors}
+                  coordinates={coordinates || undefined}
+                  wmsGradingData={wmsGrading.gradingData}
                   pveData={(() => {
                     const cached = pveConfigCache.get();
                     if (!cached) return undefined;
