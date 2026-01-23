@@ -805,29 +805,26 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
                                 </span>
                               </div>
 
-                              {/* Quote Section - Gradient with glass overlay */}
+                              {/* Quote Section - Subtle gradient */}
                               <div
                                 className="relative rounded-lg mb-sm overflow-hidden"
                                 style={{
-                                  background: 'linear-gradient(135deg, #1a4a4a 0%, #2d6a5a 25%, #4a8a7a 50%, #8ab4a0 75%, #c4d4c8 100%)'
+                                  background: 'linear-gradient(135deg, rgba(138, 151, 107, 0.12) 0%, rgba(138, 151, 107, 0.06) 50%, rgba(200, 210, 190, 0.08) 100%)'
                                 }}
                               >
-                                {/* Glass overlay */}
-                                <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px]" />
-
                                 {/* Content */}
-                                <div className="relative p-sm">
+                                <div className="p-sm border-l-4 border-[#8a976b]/30">
                                   <div className="flex items-start gap-xs mb-xs">
-                                    <svg className="w-4 h-4 text-gray-700 flex-shrink-0 mt-0.5 opacity-60" viewBox="0 0 24 24" fill="currentColor">
+                                    <svg className="w-4 h-4 text-[#8a976b] flex-shrink-0 mt-0.5 opacity-50" viewBox="0 0 24 24" fill="currentColor">
                                       <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/>
                                     </svg>
-                                    <p className="text-sm text-gray-800 italic leading-relaxed flex-1">
+                                    <p className="text-sm text-gray-700 italic leading-relaxed flex-1">
                                       {source.chunkText}
                                     </p>
                                   </div>
 
                                   {/* Source Info */}
-                                  <div className="text-xs text-gray-600 flex items-center gap-sm flex-wrap mt-xs">
+                                  <div className="text-xs text-gray-500 flex items-center gap-sm flex-wrap mt-xs">
                                     <span className="font-medium">📄 {source.sourceFile}</span>
                                     {source.pageNumber && (
                                       <span>
