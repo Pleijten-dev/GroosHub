@@ -32,6 +32,15 @@ interface CompactAmenity {
   scoringNote: string;
 }
 
+interface CompactDetailedScore {
+  category: string;
+  subcategory: string;
+  characteristicType: string;
+  multiplier: number;
+  baseScore: number;
+  weightedScore: number;
+}
+
 interface CompactPersonaInfo {
   id: string;
   name: string;
@@ -47,6 +56,7 @@ interface CompactPersonaInfo {
     woningvooraad: number;
     demografie: number;
   };
+  detailedScores?: CompactDetailedScore[];
 }
 
 export interface CompactScenario {
@@ -596,6 +606,14 @@ export function exportCompactForLLM(
       rank: score.rRankPosition,
       score: Math.round(score.rRank * 100) / 100,
       categoryScores: score.categoryScores,
+      detailedScores: score.detailedScores?.map(d => ({
+        category: d.category,
+        subcategory: d.subcategory,
+        characteristicType: d.characteristicType,
+        multiplier: d.multiplier,
+        baseScore: Math.round(d.baseScore * 100) / 100,
+        weightedScore: Math.round(d.weightedScore * 100) / 100,
+      })),
     };
   });
 

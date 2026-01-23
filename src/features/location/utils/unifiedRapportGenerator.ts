@@ -142,6 +142,15 @@ export interface PersonaBasic {
   desired_property_types?: string[];
 }
 
+export interface DetailedScore {
+  category: string;
+  subcategory: string;
+  characteristicType: string;
+  multiplier: number;
+  baseScore: number;
+  weightedScore: number;
+}
+
 export interface RankedPersona extends PersonaBasic {
   rank: number;
   score: number;
@@ -151,6 +160,7 @@ export interface RankedPersona extends PersonaBasic {
     woningvooraad: number;
     demografie: number;
   };
+  detailedScores?: DetailedScore[];
 }
 
 export interface DemographicsData {
@@ -1783,7 +1793,10 @@ export class UnifiedRapportBuilder {
     // B. Detailed Score Table (Summary)
     this.addDetailedScoreTable(compactData.targetGroups.rankedPersonas);
 
-    // C. Environmental Scores
+    // C. Detailed Score Matrix (Per-persona metric breakdown)
+    this.addPersonaDetailedScoreMatrix(compactData.targetGroups.rankedPersonas);
+
+    // D. Environmental Scores
     this.addEnvironmentalScores(compactData.amenities);
 
     // F. Demographics Table
@@ -1954,6 +1967,142 @@ export class UnifiedRapportBuilder {
       });
 
       this.currentY += rowHeight;
+    });
+  }
+
+  /**
+   * Add a detailed matrix showing each persona's scores on individual metrics
+   * Groups metrics by category and shows weighted scores
+   */
+  private addPersonaDetailedScoreMatrix(rankedPersonas: RankedPersona[]): void {
+    // Only render if we have detailed scores
+    const hasDetailedScores = rankedPersonas.some(p => p.detailedScores && p.detailedScores.length > 0);
+    if (!hasDetailedScores) {
+      return;
+    }
+
+    this.addNewPage();
+    const title = this.locale === 'nl' ? 'Gedetailleerde Score Matrix' : 'Detailed Score Matrix';
+    this.addTocEntry(title, 1);
+
+    this.pdf.setFontSize(14);
+    this.setColor(PRIMARY_COLOR);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.text(title, MARGIN, this.currentY);
+    this.currentY += 8;
+
+    // Add description
+    this.pdf.setFontSize(8);
+    this.setColor(TEXT_COLOR);
+    this.pdf.setFont('helvetica', 'normal');
+    const description = this.locale === 'nl'
+      ? 'Deze matrix toont per persona de gewogen scores voor elke metriek. De multiplier (1-3) is gebaseerd op hoe relevant de metriek is voor het persona-profiel.'
+      : 'This matrix shows per persona the weighted scores for each metric. The multiplier (1-3) is based on how relevant the metric is for the persona profile.';
+    this.pdf.text(description, MARGIN, this.currentY);
+    this.currentY += 8;
+
+    // Collect all unique subcategories (metrics)
+    const allMetrics = new Set<string>();
+    const metricsByCategory = new Map<string, Set<string>>();
+
+    rankedPersonas.forEach(persona => {
+      if (persona.detailedScores) {
+        persona.detailedScores.forEach(score => {
+          allMetrics.add(score.subcategory);
+          if (!metricsByCategory.has(score.category)) {
+            metricsByCategory.set(score.category, new Set());
+          }
+          metricsByCategory.get(score.category)!.add(score.subcategory);
+        });
+      }
+    });
+
+    // Process each category
+    const categories = Array.from(metricsByCategory.keys()).sort();
+
+    categories.forEach(category => {
+      const metrics = Array.from(metricsByCategory.get(category) || []).sort();
+      if (metrics.length === 0) return;
+
+      this.checkPageBreak(60);
+
+      // Category header
+      this.pdf.setFontSize(10);
+      this.setColor(PRIMARY_COLOR);
+      this.pdf.setFont('helvetica', 'bold');
+      this.pdf.text(category, MARGIN, this.currentY);
+      this.currentY += 6;
+
+      // For each metric in this category, show a mini-table with top 10 personas
+      const top10Personas = rankedPersonas.slice(0, 10);
+      const rowHeight = 5;
+      const colWidths = [45, ...Array(top10Personas.length).fill((CONTENT_WIDTH - 45) / top10Personas.length)];
+
+      // Header row with persona names (abbreviated)
+      this.setColor(PRIMARY_COLOR, 'fill');
+      this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, rowHeight, 'F');
+
+      this.pdf.setFontSize(4.5);
+      this.pdf.setTextColor(255, 255, 255);
+      this.pdf.setFont('helvetica', 'bold');
+
+      let headerX = MARGIN + 2;
+      this.pdf.text('Metriek', headerX, this.currentY + 3.5);
+      headerX += colWidths[0];
+
+      top10Personas.forEach((persona, i) => {
+        // Abbreviate persona name to fit
+        const abbrev = persona.name.substring(0, 8);
+        this.pdf.text(abbrev, headerX, this.currentY + 3.5);
+        headerX += colWidths[i + 1];
+      });
+      this.currentY += rowHeight;
+
+      // Data rows - one per metric
+      metrics.forEach((metric, metricIndex) => {
+        this.checkPageBreak(rowHeight + 2);
+
+        if (metricIndex % 2 === 0) {
+          this.setColor(LIGHT_BG, 'fill');
+          this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, rowHeight, 'F');
+        }
+
+        this.pdf.setFontSize(4);
+        this.setColor(TEXT_COLOR);
+        this.pdf.setFont('helvetica', 'normal');
+
+        let cellX = MARGIN + 2;
+
+        // Metric name (truncated)
+        const metricName = metric.length > 25 ? metric.substring(0, 22) + '...' : metric;
+        this.pdf.text(metricName, cellX, this.currentY + 3.5);
+        cellX += colWidths[0];
+
+        // Scores for each persona
+        top10Personas.forEach((persona, i) => {
+          const detailedScore = persona.detailedScores?.find(
+            d => d.subcategory === metric && d.category === category
+          );
+          if (detailedScore) {
+            // Color code based on weighted score
+            const scoreColor = detailedScore.weightedScore > 0
+              ? [34, 120, 54]  // Green for positive
+              : detailedScore.weightedScore < 0
+                ? [180, 60, 60]  // Red for negative
+                : [100, 100, 100];  // Gray for zero
+            this.pdf.setTextColor(...scoreColor as [number, number, number]);
+            this.pdf.text(detailedScore.weightedScore.toFixed(1), cellX, this.currentY + 3.5);
+          } else {
+            this.setColor(TEXT_COLOR);
+            this.pdf.text('-', cellX, this.currentY + 3.5);
+          }
+          cellX += colWidths[i + 1];
+        });
+
+        this.currentY += rowHeight;
+      });
+
+      this.currentY += 4;
     });
   }
 
