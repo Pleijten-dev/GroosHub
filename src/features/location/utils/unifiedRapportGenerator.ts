@@ -763,46 +763,67 @@ export class UnifiedRapportBuilder {
     });
     this.currentY += 10;
 
-    // Scenario cards (2x2 grid)
+    // Scenario cards (2x2 grid) with table layout
     const cardWidth = (CONTENT_WIDTH - 6) / 2;
-    const cardHeight = 55;
+    const headerHeight = 10;
+    const cellHeight = 8;
     const cardGap = 6;
 
     scenarios.slice(0, 4).forEach((scenario, index) => {
       const col = index % 2;
       const row = Math.floor(index / 2);
       const cardX = MARGIN + col * (cardWidth + cardGap);
-      const cardY = this.currentY + row * (cardHeight + cardGap);
+      const numPersonas = Math.min(scenario.personas.length, 5);
+      const tableHeight = headerHeight + numPersonas * cellHeight;
+      const cardY = this.currentY + row * (tableHeight + cardGap + 10);
 
-      // Card background
-      this.setColor(WHITE, 'fill');
-      this.setColor(BORDER_COLOR, 'draw');
-      this.pdf.setLineWidth(0.3);
-      this.pdf.roundedRect(cardX, cardY, cardWidth, cardHeight, 2, 2, 'FD');
-
-      // Scenario name header
+      // Header background
       this.setColor(PRIMARY_COLOR, 'fill');
-      this.pdf.roundedRect(cardX, cardY, cardWidth, 10, 2, 2, 'F');
-      this.pdf.rect(cardX, cardY + 8, cardWidth, 2, 'F'); // Square off bottom corners
+      this.pdf.roundedRect(cardX, cardY, cardWidth, headerHeight, 2, 2, 'F');
+      this.pdf.rect(cardX, cardY + headerHeight - 2, cardWidth, 2, 'F'); // Square off bottom corners
 
+      // Header text
       this.pdf.setFontSize(9);
       this.pdf.setTextColor(255, 255, 255);
       this.pdf.setFont('helvetica', 'bold');
       this.pdf.text(`${scenario.name}: ${scenario.simpleName}`, cardX + 4, cardY + 7);
 
-      // Personas list
-      this.pdf.setFontSize(8);
+      // Table cells for personas
+      this.pdf.setFontSize(9);
       this.setColor(TEXT_COLOR);
       this.pdf.setFont('helvetica', 'normal');
-      let personaY = cardY + 16;
-      scenario.personas.slice(0, 4).forEach((persona) => {
-        const wrappedPersona = this.wrapText(`• ${persona}`, cardWidth - 8)[0];
-        this.pdf.text(wrappedPersona, cardX + 4, personaY);
-        personaY += 5;
+
+      scenario.personas.slice(0, 5).forEach((persona, pIdx) => {
+        const cellY = cardY + headerHeight + pIdx * cellHeight;
+
+        // Cell background (alternating)
+        if (pIdx % 2 === 0) {
+          this.setColor(LIGHT_BG, 'fill');
+        } else {
+          this.setColor(WHITE, 'fill');
+        }
+        this.pdf.rect(cardX, cellY, cardWidth, cellHeight, 'F');
+
+        // Cell border
+        this.setColor(BORDER_COLOR, 'draw');
+        this.pdf.setLineWidth(0.2);
+        this.pdf.rect(cardX, cellY, cardWidth, cellHeight, 'D');
+
+        // Persona name (no bullet)
+        this.setColor(TEXT_COLOR);
+        this.pdf.text(persona, cardX + 4, cellY + 5.5);
       });
+
+      // Outer border for the table
+      this.setColor(BORDER_COLOR, 'draw');
+      this.pdf.setLineWidth(0.3);
+      this.pdf.roundedRect(cardX, cardY, cardWidth, headerHeight + numPersonas * cellHeight, 2, 2, 'D');
     });
 
-    this.currentY += 2 * (cardHeight + cardGap);
+    // Calculate max card height for positioning
+    const maxPersonas = Math.max(...scenarios.slice(0, 4).map(s => Math.min(s.personas.length, 5)));
+    const maxCardHeight = headerHeight + maxPersonas * cellHeight + cardGap + 10;
+    this.currentY += 2 * maxCardHeight;
   }
 
   // ==========================================================================
