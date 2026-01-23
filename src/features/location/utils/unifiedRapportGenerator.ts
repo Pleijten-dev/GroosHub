@@ -655,112 +655,91 @@ export class UnifiedRapportBuilder {
       this.currentY += 5;
     });
 
-    // SWOT Analysis - Modern design with overlapping circles and large letters
+    // SWOT Analysis - Simple 2x2 grid with SWOT in center
     if (swotAnalysis) {
-      // Start SWOT on a new page for better presentation
-      this.addNewPage();
+      this.currentY += 10;
       this.addTocEntry(this.t.swotAnalysis, 1);
 
-      // Page title
-      this.pdf.setFontSize(18);
-      this.setColor(PRIMARY_COLOR);
+      // SWOT subtitle
+      this.pdf.setFontSize(14);
+      this.setColor(TEXT_COLOR);
       this.pdf.setFont('helvetica', 'bold');
       this.pdf.text(this.t.swotAnalysis, MARGIN, this.currentY);
-      this.currentY += 15;
+      this.currentY += 10;
 
-      // SWOT layout dimensions
-      const centerX = PAGE_WIDTH / 2;
-      const centerY = this.currentY + 55; // Center of the circles
-      const circleRadius = 35;
-      const circleOffset = 28; // How much circles overlap
+      // Grid dimensions
+      const gridWidth = CONTENT_WIDTH;
+      const gridHeight = 100;
+      const boxWidth = gridWidth / 2;
+      const boxHeight = gridHeight / 2;
+      const gridX = MARGIN;
+      const gridY = this.currentY;
 
-      // Green gradient colors (from light to dark)
-      const swotColors = {
-        S: [134, 166, 125] as [number, number, number],  // Light sage green
-        W: [99, 131, 81] as [number, number, number],    // Medium green
-        O: [71, 118, 56] as [number, number, number],    // Primary green
-        T: [71, 105, 56] as [number, number, number],    // Darker green
-      };
+      // Center circle for SWOT letters
+      const centerX = gridX + gridWidth / 2;
+      const centerY = gridY + gridHeight / 2;
+      const centerRadius = 14;
 
-      // Circle positions (S=top-left, W=top-right, O=bottom-left, T=bottom-right)
-      const circlePositions = [
-        { letter: 'S', x: centerX - circleOffset, y: centerY - circleOffset, color: swotColors.S },
-        { letter: 'W', x: centerX + circleOffset, y: centerY - circleOffset, color: swotColors.W },
-        { letter: 'O', x: centerX - circleOffset, y: centerY + circleOffset, color: swotColors.O },
-        { letter: 'T', x: centerX + circleOffset, y: centerY + circleOffset, color: swotColors.T },
+      // SWOT quadrants data
+      const quadrants = [
+        { letter: 'S', title: this.t.strengths, items: swotAnalysis.strengths, col: 0, row: 0 },
+        { letter: 'W', title: this.t.weaknesses, items: swotAnalysis.weaknesses, col: 1, row: 0 },
+        { letter: 'O', title: this.t.opportunities, items: swotAnalysis.opportunities, col: 0, row: 1 },
+        { letter: 'T', title: this.t.threats, items: swotAnalysis.threats, col: 1, row: 1 },
       ];
 
-      // Draw overlapping circles with glass effect (back to front for proper overlap)
-      // Use GState for transparency effect
-      circlePositions.forEach((pos) => {
-        // Outer glow/shadow effect
-        this.pdf.setFillColor(pos.color[0], pos.color[1], pos.color[2]);
-        this.pdf.setDrawColor(255, 255, 255);
-        this.pdf.setLineWidth(2);
+      // Draw quadrant boxes
+      quadrants.forEach((q) => {
+        const boxX = gridX + q.col * boxWidth;
+        const boxY = gridY + q.row * boxHeight;
 
-        // Main circle with slight transparency simulation (lighter fill)
-        const lightColor: [number, number, number] = [
-          Math.min(255, pos.color[0] + 40),
-          Math.min(255, pos.color[1] + 40),
-          Math.min(255, pos.color[2] + 40),
-        ];
-        this.pdf.setFillColor(...lightColor);
-        this.pdf.circle(pos.x, pos.y, circleRadius, 'FD');
+        // Light background
+        this.setColor(LIGHT_BG, 'fill');
+        this.setColor(BORDER_COLOR, 'draw');
+        this.pdf.setLineWidth(0.3);
+        this.pdf.rect(boxX, boxY, boxWidth, boxHeight, 'FD');
 
-        // Inner highlight for glass effect
-        this.pdf.setFillColor(255, 255, 255);
-        this.pdf.circle(pos.x - 8, pos.y - 10, circleRadius * 0.3, 'F');
-
-        // Large letter in white
-        this.pdf.setFontSize(36);
-        this.pdf.setTextColor(255, 255, 255);
-        this.pdf.setFont('helvetica', 'bold');
-        this.pdf.text(pos.letter, pos.x, pos.y + 4, { align: 'center' });
-      });
-
-      // Content boxes positioned around the circles
-      const contentWidth = 60;
-      const contentGap = 8;
-
-      // SWOT content data
-      const swotContent = [
-        { title: this.t.strengths, items: swotAnalysis.strengths, x: MARGIN, y: this.currentY - 5 },
-        { title: this.t.weaknesses, items: swotAnalysis.weaknesses, x: PAGE_WIDTH - MARGIN - contentWidth, y: this.currentY - 5 },
-        { title: this.t.opportunities, items: swotAnalysis.opportunities, x: MARGIN, y: centerY + circleRadius + 15 },
-        { title: this.t.threats, items: swotAnalysis.threats, x: PAGE_WIDTH - MARGIN - contentWidth, y: centerY + circleRadius + 15 },
-      ];
-
-      // Draw content for each quadrant
-      swotContent.forEach((content, idx) => {
         // Title
-        this.pdf.setFontSize(11);
+        this.pdf.setFontSize(9);
         this.setColor(PRIMARY_COLOR);
         this.pdf.setFont('helvetica', 'bold');
-        this.pdf.text(content.title, content.x, content.y);
+        this.pdf.text(q.title, boxX + 4, boxY + 6);
 
-        // Items with proper text wrapping
-        this.pdf.setFontSize(8);
+        // Items with text wrapping
+        this.pdf.setFontSize(7);
         this.setColor(TEXT_COLOR);
         this.pdf.setFont('helvetica', 'normal');
 
-        let itemY = content.y + 6;
-        const maxItems = 5;
-        const lineHeight = 3.5;
+        let itemY = boxY + 12;
+        const itemWidth = boxWidth - 8;
+        const lineHeight = 3;
 
-        content.items.slice(0, maxItems).forEach((text) => {
-          // Wrap text properly
-          const wrappedLines = this.wrapText(`• ${text}`, contentWidth - 2);
-          wrappedLines.forEach((line, lineIdx) => {
-            if (lineIdx < 2) { // Max 2 lines per item
-              this.pdf.text(line, content.x, itemY);
+        q.items.slice(0, 4).forEach((text) => {
+          const wrappedLines = this.wrapText(`• ${text}`, itemWidth);
+          wrappedLines.slice(0, 2).forEach((line) => {
+            if (itemY < boxY + boxHeight - 4) {
+              this.pdf.text(line, boxX + 4, itemY);
               itemY += lineHeight;
             }
           });
-          itemY += 1; // Small gap between items
+          itemY += 0.5;
         });
       });
 
-      this.currentY = centerY + circleRadius + 85;
+      // Center circle with SWOT
+      this.setColor(PRIMARY_COLOR, 'fill');
+      this.pdf.circle(centerX, centerY, centerRadius, 'F');
+
+      // SWOT letters in white
+      this.pdf.setFontSize(8);
+      this.pdf.setTextColor(255, 255, 255);
+      this.pdf.setFont('helvetica', 'bold');
+      this.pdf.text('S', centerX - 5, centerY - 3);
+      this.pdf.text('W', centerX + 3, centerY - 3);
+      this.pdf.text('O', centerX - 5, centerY + 5);
+      this.pdf.text('T', centerX + 3, centerY + 5);
+
+      this.currentY = gridY + gridHeight + 5;
     }
   }
 
