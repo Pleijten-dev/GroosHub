@@ -20,10 +20,10 @@ import {
   type CubeCaptureResult,
   type MapCaptureResult,
 } from '../../utils/unifiedRapportGenerator';
-import { generateCompactExportData } from '../../utils/jsonExportCompact';
+import { exportCompactForLLM, type CompactLocationExport } from '../../utils/jsonExportCompact';
 import type { UnifiedLocationData } from '../../data/aggregator/multiLevelAggregator';
 import type { AmenityMultiCategoryResponse } from '../../data/sources/google-places/types';
-import type { PersonaScore } from '../../data/scoring/calculatePersonaScores';
+import type { PersonaScore } from '../../utils/targetGroupScoring';
 
 interface GenerateRapportButtonProps {
   locale: 'nl' | 'en';
@@ -134,7 +134,15 @@ export function GenerateRapportButton({
       } else {
         // Generate real data
         // TODO: Implement real LLM call
-        const exportData = generateCompactExportData(data, amenitiesData, personaScores, pveData);
+        const exportData = exportCompactForLLM(
+          data,
+          personaScores,
+          scenarios || { scenario1: [], scenario2: [], scenario3: [] },
+          locale,
+          [],
+          amenitiesData,
+          null
+        );
         compactData = exportData as unknown as CompactExportData;
 
         // Stage 2: Call LLM for building program

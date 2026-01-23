@@ -14,7 +14,7 @@ import { DemographicsPage } from '../../../features/location/components/Demograp
 import { SafetyPage } from '../../../features/location/components/Safety';
 import { HealthPage } from '../../../features/location/components/Health';
 import { LivabilityPage } from '../../../features/location/components/Livability';
-import { ExportButton, CompactExportButton, GenerateProgramButton } from '../../../features/location/components/ExportButton';
+import { ExportButton, CompactExportButton, GenerateProgramButton, GenerateRapportButton } from '../../../features/location/components/ExportButton';
 import { RadialChart, BarChart, DensityChart } from '../../../shared/components/common';
 import { extractLocationScores } from '../../../features/location/utils/extractLocationScores';
 import { LocationAnimation } from '../../../features/location/components/LocationAnimation';
@@ -750,139 +750,59 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                   </li>
                 </ul>
 
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">
-                      {locale === 'nl' ? 'Kies export formaat:' : 'Choose export format:'}
-                    </h4>
-                    <div className="flex flex-col gap-3">
-                      <div className="flex items-start gap-3">
-                        <CompactExportButton
-                          data={data}
-                          personaScores={sortedPersonas}
-                          scenarios={scenarios}
-                          locale={locale}
-                          amenitiesData={amenities}
-                        />
-                        <div className="flex-1 text-sm text-gray-600">
-                          <strong className="block mb-1">
-                            {locale === 'nl' ? '✓ Aanbevolen voor LLM' : '✓ Recommended for LLM'}
-                          </strong>
-                          {locale === 'nl'
-                            ? 'Geoptimaliseerd formaat (~500 regels) met samenvattingen en highlights. Perfect voor rapportgeneratie met AI.'
-                            : 'Optimized format (~500 lines) with summaries and highlights. Perfect for AI report generation.'}
-                        </div>
+                {/* Generate Unified Rapport Button */}
+                <GenerateRapportButton
+                  locale={locale}
+                  data={data}
+                  amenitiesData={amenities}
+                  personaScores={sortedPersonas}
+                  scenarios={scenarios}
+                  pveData={(() => {
+                    const cached = pveConfigCache.get();
+                    if (!cached) return undefined;
+                    return {
+                      totalM2: cached.totalM2,
+                      percentages: cached.percentages,
+                    };
+                  })()}
+                  className="mt-base"
+                />
+
+                <div className="mt-base pt-base border-t border-gray-200">
+                  <h4 className="text-sm font-medium text-gray-500 mb-2">
+                    {locale === 'nl' ? 'Alternatieve exports:' : 'Alternative exports:'}
+                  </h4>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <CompactExportButton
+                        data={data}
+                        personaScores={sortedPersonas}
+                        scenarios={scenarios}
+                        locale={locale}
+                        amenitiesData={amenities}
+                      />
+                      <div className="flex-1 text-xs text-gray-500">
+                        {locale === 'nl'
+                          ? 'JSON voor LLM analyse'
+                          : 'JSON for LLM analysis'}
                       </div>
-                      <div className="flex items-start gap-3">
-                        <ExportButton
-                          data={data}
-                          personaScores={sortedPersonas}
-                          scenarios={scenarios}
-                          customScenarioPersonaIds={[]}
-                          locale={locale}
-                        />
-                        <div className="flex-1 text-sm text-gray-600">
-                          <strong className="block mb-1">
-                            {locale === 'nl' ? 'Volledig export' : 'Complete export'}
-                          </strong>
-                          {locale === 'nl'
-                            ? 'Complete dataset met alle individuele datapunten en metadata. Voor verdere verwerking of analyse.'
-                            : 'Complete dataset with all individual data points and metadata. For further processing or analysis.'}
-                        </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <ExportButton
+                        data={data}
+                        personaScores={sortedPersonas}
+                        scenarios={scenarios}
+                        customScenarioPersonaIds={[]}
+                        locale={locale}
+                      />
+                      <div className="flex-1 text-xs text-gray-500">
+                        {locale === 'nl'
+                          ? 'Volledige JSON dataset'
+                          : 'Complete JSON dataset'}
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {/* AI Building Program Generation Section */}
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-sm p-base border border-blue-200">
-                <h3 className="text-lg font-semibold text-text-primary mb-base flex items-center gap-2">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-                    <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                  </svg>
-                  {locale === 'nl' ? 'AI Bouwprogramma Generatie' : 'AI Building Program Generation'}
-                </h3>
-                <p className="text-sm text-text-secondary mb-base">
-                  {locale === 'nl'
-                    ? 'Gebruik Claude AI om een gedetailleerd bouwprogramma te genereren op basis van alle verzamelde data, het PVE, en de doelgroep scenarios. De AI analyseert lokale demografische data, voorzieningen, en persona-geschiktheid om een optimaal unit mix en voorzieningen programma voor te stellen.'
-                    : 'Use Claude AI to generate a detailed building program based on all collected data, the PVE, and target group scenarios. The AI analyzes local demographics, amenities, and persona suitability to propose an optimal unit mix and amenities program.'}
-                </p>
-                <div className="bg-white/60 rounded p-3 mb-base text-sm">
-                  <p className="font-medium text-gray-900 mb-2">
-                    {locale === 'nl' ? 'Het gegenereerde programma bevat:' : 'The generated program includes:'}
-                  </p>
-                  <ul className="space-y-1 text-gray-700 ml-5">
-                    <li className="list-disc">
-                      {locale === 'nl'
-                        ? 'Gedetailleerde unit mix per scenario met aantallen en m²'
-                        : 'Detailed unit mix per scenario with quantities and m²'}
-                    </li>
-                    <li className="list-disc">
-                      {locale === 'nl'
-                        ? 'Commerciële ruimtes die lokale voorzieningen aanvullen'
-                        : 'Commercial spaces that complement local amenities'}
-                    </li>
-                    <li className="list-disc">
-                      {locale === 'nl'
-                        ? 'Gemeenschappelijke voorzieningen afgestemd op doelgroepen'
-                        : 'Communal facilities tailored to target groups'}
-                    </li>
-                    <li className="list-disc">
-                      {locale === 'nl'
-                        ? 'Data-gedreven rationale voor elke keuze'
-                        : 'Data-driven rationale for each choice'}
-                    </li>
-                    <li className="list-disc">
-                      {locale === 'nl'
-                        ? 'Vergelijkende analyse van alle scenarios'
-                        : 'Comparative analysis of all scenarios'}
-                    </li>
-                  </ul>
-                </div>
-                <GenerateProgramButton
-                  data={data}
-                  personaScores={sortedPersonas}
-                  scenarios={scenarios}
-                  locale={locale}
-                  amenitiesData={amenities}
-                  wmsGradingData={wmsGrading.gradingData}
-                />
-              </div>
-
-              {/* Comprehensive PDF Report Section */}
-              <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-lg shadow-sm p-base border border-emerald-200">
-                <h3 className="text-lg font-semibold text-text-primary mb-base flex items-center gap-2">
-                  <svg className="w-6 h-6 text-emerald-600" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-                    <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  {locale === 'nl' ? 'Volledig PDF Rapport' : 'Complete PDF Report'}
-                </h3>
-                <p className="text-sm text-text-secondary mb-base">
-                  {locale === 'nl'
-                    ? 'Genereer een uitgebreid PDF rapport met alle locatiegegevens inclusief kaartlagen met legenda\'s, doelgroepen analyse, en alle data tabellen.'
-                    : 'Generate a comprehensive PDF report with all location data including map layers with legends, target groups analysis, and all data tables.'}
-                </p>
-
-                <ComprehensivePdfExportButton
-                  locale={locale}
-                  coordinates={
-                    data.location?.coordinates?.wgs84
-                      ? [
-                          data.location.coordinates.wgs84.latitude,
-                          data.location.coordinates.wgs84.longitude,
-                        ]
-                      : [0, 0]
-                  }
-                  address={currentAddress || ''}
-                  locationData={data}
-                  personaScores={sortedPersonas}
-                  scenarios={scenarios}
-                  personas={personas}
-                  cubeColors={cubeColors}
-                  wmsGradingData={wmsGrading.gradingData}
-                  amenitiesData={amenities}
-                />
               </div>
 
               {/* Map Export Section */}
