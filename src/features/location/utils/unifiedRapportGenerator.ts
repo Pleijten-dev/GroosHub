@@ -4,7 +4,7 @@
  * Consolidates all export functionality into a single comprehensive PDF report.
  *
  * Structure:
- * 1. Title Page - Project title, address, date
+ * 1. Title Page - Project title, address, date with voronoi cover
  * 2. Index - Table of contents
  * 3. Introduction - Location summary, SWOT analysis
  * 4. Doelgroep Scenario Overview - All 4 scenarios at a glance
@@ -14,6 +14,8 @@
  */
 
 import jsPDF from 'jspdf';
+import { generateVoronoiCoverImage, DEFAULT_PVE_PERCENTAGES } from './voronoiSvgGenerator';
+import type { PVEAllocations } from '../data/cache/pveConfigCache';
 
 // ============================================================================
 // TYPES
@@ -467,46 +469,80 @@ export class UnifiedRapportBuilder {
   addTitlePage(
     projectTitle: string,
     address: string,
-    generationDate: string
+    generationDate: string,
+    voronoiImage?: string  // PNG data URL
   ): void {
-    // Background gradient effect (subtle)
-    this.setColor(LIGHT_BG, 'fill');
-    this.pdf.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT / 3, 'F');
+    // Layout dimensions (in mm)
+    const imageLeft = 10;      // 1cm from left
+    const imageTop = 10;       // 1cm from top
+    const imageRight = 10;     // 1cm from right
+    const imageBottom = 30;    // 3cm from bottom
+    const imageWidth = PAGE_WIDTH - imageLeft - imageRight;  // 190mm
+    const imageHeight = PAGE_HEIGHT - imageTop - imageBottom; // 257mm
 
-    // Project title
-    this.pdf.setFontSize(28);
-    this.setColor(PRIMARY_COLOR);
+    // Add voronoi cover image if provided
+    if (voronoiImage) {
+      try {
+        this.pdf.addImage(
+          voronoiImage,
+          'PNG',
+          imageLeft,
+          imageTop,
+          imageWidth,
+          imageHeight
+        );
+      } catch (e) {
+        console.warn('Failed to add voronoi cover image:', e);
+        // Fallback: draw a gradient rectangle
+        this.setColor(SECONDARY_COLOR, 'fill');
+        this.pdf.rect(imageLeft, imageTop, imageWidth, imageHeight, 'F');
+      }
+    } else {
+      // Fallback: draw a solid color rectangle
+      this.setColor(SECONDARY_COLOR, 'fill');
+      this.pdf.rect(imageLeft, imageTop, imageWidth, imageHeight, 'F');
+    }
+
+    // Project title - positioned at bottom of graphic, 10mm from the bottom edge of the image
+    // Title is in white, within the graphic
+    const titleBottomOffset = 10; // 1cm from bottom of graphic
+    const titleY = imageTop + imageHeight - titleBottomOffset;
+
+    this.pdf.setFontSize(32);
+    this.pdf.setTextColor(255, 255, 255); // White text
     this.pdf.setFont('helvetica', 'bold');
-    const titleLines = this.wrapText(projectTitle, CONTENT_WIDTH);
-    const titleY = PAGE_HEIGHT / 3;
+
+    // Wrap title to fit within image width with padding
+    const titleMaxWidth = imageWidth - 20; // 10mm padding on each side
+    const titleLines = this.wrapText(projectTitle, titleMaxWidth);
+
+    // Position title from bottom up (so multi-line titles grow upward)
+    const lineHeight = 14;
+    const totalTitleHeight = titleLines.length * lineHeight;
+    const titleStartY = titleY - totalTitleHeight + lineHeight;
+
     titleLines.forEach((line, i) => {
-      this.pdf.text(line, PAGE_WIDTH / 2, titleY + i * 12, { align: 'center' });
+      this.pdf.text(line, PAGE_WIDTH / 2, titleStartY + i * lineHeight, { align: 'center' });
     });
 
-    // Decorative line
-    this.currentY = titleY + titleLines.length * 12 + 10;
-    this.setColor(PRIMARY_COLOR, 'draw');
-    this.pdf.setLineWidth(1);
-    this.pdf.line(PAGE_WIDTH / 2 - 30, this.currentY, PAGE_WIDTH / 2 + 30, this.currentY);
+    // Below the graphic: subtitle (left) and date (right)
+    const belowGraphicY = imageTop + imageHeight + 8; // 8mm below graphic
 
-    // Address
-    this.currentY += 20;
-    this.pdf.setFontSize(14);
+    // Subtitle (address) - left aligned
+    this.pdf.setFontSize(11);
     this.setColor(TEXT_COLOR);
     this.pdf.setFont('helvetica', 'normal');
-    this.pdf.text(address, PAGE_WIDTH / 2, this.currentY, { align: 'center' });
+    this.pdf.text(address, imageLeft, belowGraphicY);
 
-    // Generation date
-    this.currentY += 30;
-    this.pdf.setFontSize(11);
-    this.setColor(MUTED_COLOR);
-    this.pdf.text(`${this.t.generatedOn}: ${generationDate}`, PAGE_WIDTH / 2, this.currentY, { align: 'center' });
+    // Date - right aligned (without "Gegenereerd op:")
+    this.pdf.text(generationDate, PAGE_WIDTH - imageRight, belowGraphicY, { align: 'right' });
 
-    // Logo placeholder at bottom
-    this.currentY = PAGE_HEIGHT - 50;
-    this.pdf.setFontSize(10);
-    this.setColor(SECONDARY_COLOR);
-    this.pdf.text('GroosHub', PAGE_WIDTH / 2, this.currentY, { align: 'center' });
+    // Footer: GROOSMAN centered at bottom
+    const footerY = PAGE_HEIGHT - 15; // 15mm from bottom
+    this.pdf.setFontSize(12);
+    this.pdf.setFont('helvetica', 'bold');
+    this.setColor(TEXT_COLOR);
+    this.pdf.text('GROOSMAN', PAGE_WIDTH / 2, footerY, { align: 'center' });
   }
 
   // ==========================================================================
@@ -1903,12 +1939,30 @@ export async function generateUnifiedRapport(
   const builder = new UnifiedRapportBuilder(config.locale);
   const t = TRANSLATIONS[config.locale];
 
+  // Extract PVE percentages for voronoi cover
+  const pvePercentages: PVEAllocations = {
+    apartments: compactData.pve?.percentages?.apartments?.percentage ?? DEFAULT_PVE_PERCENTAGES.apartments,
+    commercial: compactData.pve?.percentages?.commercial?.percentage ?? DEFAULT_PVE_PERCENTAGES.commercial,
+    hospitality: compactData.pve?.percentages?.hospitality?.percentage ?? DEFAULT_PVE_PERCENTAGES.hospitality,
+    social: compactData.pve?.percentages?.social?.percentage ?? DEFAULT_PVE_PERCENTAGES.social,
+    communal: compactData.pve?.percentages?.communal?.percentage ?? DEFAULT_PVE_PERCENTAGES.communal,
+    offices: compactData.pve?.percentages?.offices?.percentage ?? DEFAULT_PVE_PERCENTAGES.offices,
+  };
+
+  // Generate voronoi cover image
+  let voronoiCoverImage: string | undefined;
+  try {
+    voronoiCoverImage = await generateVoronoiCoverImage(pvePercentages);
+  } catch (e) {
+    console.warn('Failed to generate voronoi cover image:', e);
+  }
+
   // 1. Title Page
   const projectTitle = buildingProgram.project_title ||
     `${config.locale === 'nl' ? 'Locatie Analyse' : 'Location Analysis'}: ${compactData.metadata.location || 'Rotterdam'}`;
   const address = compactData.metadata.location ||
     `${compactData.metadata.coordinates.lat.toFixed(4)}, ${compactData.metadata.coordinates.lon.toFixed(4)}`;
-  builder.addTitlePage(projectTitle, address, compactData.metadata.exportDate);
+  builder.addTitlePage(projectTitle, address, compactData.metadata.exportDate, voronoiCoverImage);
 
   // 2. Table of Contents (placeholder, will be updated at end)
   builder.addTableOfContents();
