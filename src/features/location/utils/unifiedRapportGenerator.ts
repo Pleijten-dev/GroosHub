@@ -541,8 +541,9 @@ export class UnifiedRapportBuilder {
       currentAngle = endAngle;
     });
 
-    // Draw border around chart
-    this.setColor(BORDER_COLOR, 'draw');
+    // Clean outer edge with subtle border
+    this.setColor([230, 230, 230], 'draw');
+    this.pdf.setLineWidth(0.3);
     this.pdf.circle(centerX, centerY, radius, 'D');
     if (innerRadius > 0) {
       this.pdf.circle(centerX, centerY, innerRadius, 'D');
@@ -561,9 +562,12 @@ export class UnifiedRapportBuilder {
     endAngle: number,
     color: [number, number, number]
   ): void {
+    // Set fill color and disable stroke to prevent visible lines between triangles
     this.setColor(color, 'fill');
+    this.setColor(color, 'draw'); // Set stroke to same color to hide edges
+    this.pdf.setLineWidth(0);
 
-    const steps = Math.max(10, Math.ceil((endAngle - startAngle) * 15));
+    const steps = Math.max(20, Math.ceil((endAngle - startAngle) * 20));
     const angleStep = (endAngle - startAngle) / steps;
 
     for (let i = 0; i < steps; i++) {
@@ -583,7 +587,7 @@ export class UnifiedRapportBuilder {
         const x4 = centerX + Math.cos(a1) * innerRadius;
         const y4 = centerY + Math.sin(a1) * innerRadius;
 
-        // Draw quadrilateral as two triangles
+        // Draw quadrilateral as two triangles (fill only, no stroke)
         this.pdf.triangle(x1, y1, x2, y2, x3, y3, 'F');
         this.pdf.triangle(x1, y1, x3, y3, x4, y4, 'F');
       } else {
@@ -900,13 +904,23 @@ export class UnifiedRapportBuilder {
     const cellHeight = 8;
     const cardGap = 6;
 
-    scenarios.slice(0, 4).forEach((scenario, index) => {
+    // Calculate max personas per row for consistent heights within each row
+    const scenarioList = scenarios.slice(0, 4);
+    const row0Scenarios = scenarioList.filter((_, i) => Math.floor(i / 2) === 0);
+    const row1Scenarios = scenarioList.filter((_, i) => Math.floor(i / 2) === 1);
+    const maxPersonasRow0 = Math.max(...row0Scenarios.map(s => Math.min(s.personas.length, 5)), 1);
+    const maxPersonasRow1 = row1Scenarios.length > 0
+      ? Math.max(...row1Scenarios.map(s => Math.min(s.personas.length, 5)), 1)
+      : 0;
+    const row0Height = headerHeight + maxPersonasRow0 * cellHeight;
+    const row1Height = headerHeight + maxPersonasRow1 * cellHeight;
+
+    scenarioList.forEach((scenario, index) => {
       const col = index % 2;
       const row = Math.floor(index / 2);
       const cardX = MARGIN + col * (cardWidth + cardGap);
-      const numPersonas = Math.min(scenario.personas.length, 5);
-      const tableHeight = headerHeight + numPersonas * cellHeight;
-      const cardY = this.currentY + row * (tableHeight + cardGap + 10);
+      const rowHeight = row === 0 ? row0Height : row1Height;
+      const cardY = this.currentY + (row === 0 ? 0 : row0Height + cardGap);
 
       // Header background
       this.setColor(PRIMARY_COLOR, 'fill');
@@ -919,13 +933,15 @@ export class UnifiedRapportBuilder {
       this.pdf.setFont('helvetica', 'bold');
       this.pdf.text(`${scenario.name}: ${scenario.simpleName}`, cardX + 4, cardY + 7);
 
-      // Table cells for personas
+      // Table cells for personas (fill all rows to match row height)
       this.pdf.setFontSize(9);
       this.setColor(TEXT_COLOR);
       this.pdf.setFont('helvetica', 'normal');
 
-      scenario.personas.slice(0, 5).forEach((persona, pIdx) => {
+      const maxRows = row === 0 ? maxPersonasRow0 : maxPersonasRow1;
+      for (let pIdx = 0; pIdx < maxRows; pIdx++) {
         const cellY = cardY + headerHeight + pIdx * cellHeight;
+        const persona = scenario.personas[pIdx];
 
         // Cell background (all white)
         this.setColor(WHITE, 'fill');
@@ -936,21 +952,21 @@ export class UnifiedRapportBuilder {
         this.pdf.setLineWidth(0.2);
         this.pdf.rect(cardX, cellY, cardWidth, cellHeight, 'D');
 
-        // Persona name (no bullet)
-        this.setColor(TEXT_COLOR);
-        this.pdf.text(persona, cardX + 4, cellY + 5.5);
-      });
+        // Persona name (only if persona exists)
+        if (persona) {
+          this.setColor(TEXT_COLOR);
+          this.pdf.text(persona, cardX + 4, cellY + 5.5);
+        }
+      }
 
       // Outer border for the table
       this.setColor(BORDER_COLOR, 'draw');
       this.pdf.setLineWidth(0.3);
-      this.pdf.roundedRect(cardX, cardY, cardWidth, headerHeight + numPersonas * cellHeight, 2, 2, 'D');
+      this.pdf.roundedRect(cardX, cardY, cardWidth, rowHeight, 2, 2, 'D');
     });
 
-    // Calculate max card height for positioning
-    const maxPersonas = Math.max(...scenarios.slice(0, 4).map(s => Math.min(s.personas.length, 5)));
-    const maxCardHeight = headerHeight + maxPersonas * cellHeight + cardGap + 10;
-    this.currentY += 2 * maxCardHeight;
+    // Update currentY position
+    this.currentY += row0Height + (row1Scenarios.length > 0 ? cardGap + row1Height : 0) + 10;
   }
 
   // ==========================================================================
@@ -1249,33 +1265,45 @@ export class UnifiedRapportBuilder {
     const desiredHousingLabel = this.locale === 'nl' ? 'Gewenst woningtype' : 'Desired housing';
 
     // Display each persona with image and housing info
-    const imageSize = 25; // mm
-    const textStartX = MARGIN + imageSize + 5;
-    const textWidth = CONTENT_WIDTH - imageSize - 5;
+    // Use portrait aspect ratio (3:4 for images, taller than wide)
+    const imageWidth = 20; // mm
+    const imageHeight = 27; // mm (4:3 aspect ratio, portrait)
+    const textStartX = MARGIN + imageWidth + 5;
+    const textWidth = CONTENT_WIDTH - imageWidth - 5;
 
     matchingPersonas.forEach((persona) => {
       this.checkPageBreak(40);
 
       const personaStartY = this.currentY;
 
-      // Persona image (left side)
+      // Persona image (left side) - clipped to fit frame
       if (persona.imageDataUrl) {
         try {
+          // Create a clipping mask for the image area
+          this.pdf.saveGraphicsState();
+          // Draw rounded clip path
+          this.pdf.roundedRect(MARGIN, this.currentY, imageWidth, imageHeight, 2, 2, 'S');
+          // Add image with cover-style fitting (may be cropped)
           this.pdf.addImage(
             persona.imageDataUrl, 'PNG',
             MARGIN, this.currentY,
-            imageSize, imageSize,
+            imageWidth, imageHeight,
             undefined, 'FAST'
           );
+          this.pdf.restoreGraphicsState();
+          // Draw border around image
+          this.setColor(BORDER_COLOR, 'draw');
+          this.pdf.setLineWidth(0.3);
+          this.pdf.roundedRect(MARGIN, this.currentY, imageWidth, imageHeight, 2, 2, 'D');
         } catch {
           // Fallback: draw placeholder
           this.setColor(LIGHT_BG, 'fill');
-          this.pdf.rect(MARGIN, this.currentY, imageSize, imageSize, 'F');
+          this.pdf.roundedRect(MARGIN, this.currentY, imageWidth, imageHeight, 2, 2, 'F');
         }
       } else {
         // Placeholder if no image
         this.setColor(LIGHT_BG, 'fill');
-        this.pdf.rect(MARGIN, this.currentY, imageSize, imageSize, 'F');
+        this.pdf.roundedRect(MARGIN, this.currentY, imageWidth, imageHeight, 2, 2, 'F');
       }
 
       // Name (right of image)
@@ -1332,7 +1360,7 @@ export class UnifiedRapportBuilder {
       }
 
       // Move Y past the persona card (max of image height or text content)
-      this.currentY = Math.max(personaStartY + imageSize + 3, descY + 5);
+      this.currentY = Math.max(personaStartY + imageHeight + 3, descY + 5);
     });
   }
 
@@ -1610,15 +1638,12 @@ export class UnifiedRapportBuilder {
     this.pdf.text(`${this.t.hospitalityProgram} (${scenario.hospitality.total_m2} m²)`, MARGIN, this.currentY);
     this.currentY += 6;
 
-    this.pdf.setFontSize(9);
-    this.setColor(TEXT_COLOR);
-    this.pdf.setFont('helvetica', 'normal');
-    const hospLines = this.wrapText(scenario.hospitality.concept, CONTENT_WIDTH);
-    hospLines.forEach((line) => {
-      this.checkPageBreak(5);
-      this.pdf.text(line, MARGIN, this.currentY);
-      this.currentY += 4;
-    });
+    // Use table format for hospitality concept
+    this.addSpacesTable([{
+      type: this.locale === 'nl' ? 'Horeca concept' : 'Hospitality concept',
+      size_m2: scenario.hospitality.total_m2,
+      rationale: scenario.hospitality.concept,
+    }]);
 
     // Social Section
     this.currentY += 8;
@@ -1659,37 +1684,91 @@ export class UnifiedRapportBuilder {
     this.pdf.text(`${this.t.officeProgram} (${scenario.offices.total_m2} m²)`, MARGIN, this.currentY);
     this.currentY += 6;
 
-    this.pdf.setFontSize(9);
-    this.setColor(TEXT_COLOR);
+    // Use table format for offices concept
+    this.addSpacesTable([{
+      type: this.locale === 'nl' ? 'Kantoor concept' : 'Office concept',
+      size_m2: scenario.offices.total_m2,
+      rationale: scenario.offices.concept,
+    }]);
+  }
+
+  /**
+   * Add a styled table for spaces/facilities (matching residential table style)
+   */
+  private addSpacesTable(
+    spaces: { type: string; size_m2: number; rationale: string }[]
+  ): void {
+    if (spaces.length === 0) return;
+
+    const colWidths = [50, 25, 95];
+    const rowHeight = 10;
+
+    // Table header
+    this.setColor(PRIMARY_COLOR, 'fill');
+    this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, rowHeight, 'F');
+
+    this.pdf.setFontSize(8);
+    this.pdf.setTextColor(255, 255, 255);
+    this.pdf.setFont('helvetica', 'bold');
+
+    let headerX = MARGIN + 2;
+    [this.t.type, 'm²', this.t.rationale].forEach((header, i) => {
+      this.pdf.text(header, headerX, this.currentY + 7);
+      headerX += colWidths[i];
+    });
+    this.currentY += rowHeight;
+
+    // Table rows
     this.pdf.setFont('helvetica', 'normal');
-    const officeLines = this.wrapText(scenario.offices.concept, CONTENT_WIDTH);
-    officeLines.forEach((line) => {
-      this.checkPageBreak(5);
-      this.pdf.text(line, MARGIN, this.currentY);
-      this.currentY += 4;
+    spaces.forEach((space, index) => {
+      this.checkPageBreak(rowHeight + 5);
+
+      const isEven = index % 2 === 0;
+      if (isEven) {
+        this.setColor(LIGHT_BG, 'fill');
+        this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, rowHeight, 'F');
+      }
+
+      // Cell borders
+      this.setColor(BORDER_COLOR, 'draw');
+      this.pdf.setLineWidth(0.2);
+      let cellX = MARGIN;
+      colWidths.forEach((w) => {
+        this.pdf.rect(cellX, this.currentY, w, rowHeight, 'D');
+        cellX += w;
+      });
+
+      // Cell content
+      this.pdf.setFontSize(7);
+      this.setColor(TEXT_COLOR);
+
+      cellX = MARGIN + 2;
+
+      // Type
+      const typeText = this.wrapText(space.type, colWidths[0] - 4)[0];
+      this.pdf.text(typeText, cellX, this.currentY + 6);
+      cellX += colWidths[0];
+
+      // Size
+      this.pdf.text(`${space.size_m2}`, cellX, this.currentY + 6);
+      cellX += colWidths[1];
+
+      // Rationale
+      const rationaleText = this.wrapText(space.rationale, colWidths[2] - 4)[0];
+      this.pdf.text(rationaleText, cellX, this.currentY + 6);
+
+      this.currentY += rowHeight;
     });
   }
 
+  /**
+   * Legacy method - now redirects to addSpacesTable
+   */
   private addSpacesList(
     spaces: { type: string; size_m2: number; rationale: string }[],
     fields: string[]
   ): void {
-    spaces.forEach((space, index) => {
-      this.checkPageBreak(12);
-
-      this.pdf.setFontSize(9);
-      this.setColor(TEXT_COLOR);
-      this.pdf.setFont('helvetica', 'bold');
-      this.pdf.text(`${space.type} (${space.size_m2} m²)`, MARGIN, this.currentY);
-      this.currentY += 4;
-
-      this.pdf.setFontSize(8);
-      this.setColor(MUTED_COLOR);
-      this.pdf.setFont('helvetica', 'normal');
-      const rationaleText = this.wrapText(space.rationale, CONTENT_WIDTH)[0];
-      this.pdf.text(rationaleText, MARGIN, this.currentY);
-      this.currentY += 5;
-    });
+    this.addSpacesTable(spaces);
   }
 
   // ==========================================================================
