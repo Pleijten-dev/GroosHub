@@ -116,17 +116,37 @@ export function GenerateRapportButton({
   const messages = STAGE_MESSAGES[locale];
 
   /**
-   * Convert persona ID to possible image filenames
-   * e.g., "jonge-starters" → ["Jonge_Starters.png", "Jonge_starters.png", "jonge_starters.png"]
-   * Handles inconsistent casing in actual files
+   * Direct mapping from persona ID to actual image filename
+   * Based on actual files in /public/personas/
    */
-  const personaIdToFilenames = (id: string): string[] => {
-    const words = id.split('-');
-    // Try multiple casing variations
-    const titleCase = words.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('_') + '.png';
-    const firstCapOnly = words.map((w, i) => i === 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w).join('_') + '.png';
-    const lowercase = words.join('_') + '.png';
-    return [titleCase, firstCapOnly, lowercase];
+  const PERSONA_IMAGE_MAP: Record<string, string> = {
+    'actieve-jonge-gezinnen': 'Actieve_Jonge_Gezinnen.png',
+    'ambitieuze-singles': 'Ambitieuze_singles.png',
+    'bescheiden-stellen': 'Bescheiden_Stellen.png',
+    'carriere-stampers': 'Carriere_Stampers.png',
+    'carrierestarter': 'Carrierestarter.png',
+    'de-balanszoekers': 'De_Balanszoekers.png',
+    'de-doorzetter': 'De_Doorzetter.png',
+    'de-groeiers': 'De_Groeiers.png',
+    'de-groeigezinnen': 'De_Groeigezinnen.png',
+    'de-levensgenieters': 'De_Levensgenieters.png',
+    'de-rentenier': 'De_Rentenier.png',
+    'de-zwitserlevers': 'De_Zwitserlevers.png',
+    'gezellige-nesthouders': 'Gezellige_Nesthouders.png',
+    'grenzeloos-duo': 'Grenzeloos_Duo.png',
+    'hard-van-start': 'Hard_van_Start.png',
+    'jonge-starters': 'Jonge_Starters.png',
+    'knusse-gezinnen': 'Knusse_Gezinnen.png',
+    'laat-bloeiers': 'Laat_Bloeiers.png',
+    'samen-starters': 'Samen_Starters.png',
+    'senior-op-budget': 'Senior_op_Budget.png',
+    'senioren-met-thuiswonende-kinderen': 'Senioren_met_Thuiswonende_Kinderen.png',
+    'stabiele-gezinnen': 'Stabiele_Gezinnen.png',
+    'succesvolle-singles': 'Succesvolle_singles.png',
+    'vermogende-gezinnen': 'Vermogende_Gezinnen.png',
+    'welvarende-bourgondiers': 'Welvarende_Bourgondiers.png',
+    'zelfbewuste-solisten': 'Zelfbewuste_Solisten.png',
+    'zelfstandige-senior': 'Zelfstandige_Senior.png',
   };
 
   /**
@@ -192,30 +212,20 @@ export function GenerateRapportButton({
 
   /**
    * Fetch persona image, crop to portrait aspect ratio, and convert to data URL
-   * Tries multiple filename variations to handle inconsistent casing
    */
   const fetchPersonaImage = async (personaId: string): Promise<string | undefined> => {
     try {
-      const filenames = personaIdToFilenames(personaId);
-      let response: Response | null = null;
-      let successfulFilename = '';
-
-      // Try each filename variation
-      for (const filename of filenames) {
-        const r = await fetch(`/personas/${filename}`);
-        if (r.ok) {
-          response = r;
-          successfulFilename = filename;
-          break;
-        }
-      }
-
-      if (!response) {
-        console.warn(`Persona image not found for ${personaId}, tried: ${filenames.join(', ')}`);
+      const filename = PERSONA_IMAGE_MAP[personaId];
+      if (!filename) {
+        console.warn(`No image mapping for persona: ${personaId}`);
         return undefined;
       }
 
-      console.log(`Found persona image: /personas/${successfulFilename}`);
+      const response = await fetch(`/personas/${filename}`);
+      if (!response.ok) {
+        console.warn(`Persona image not found: /personas/${filename}`);
+        return undefined;
+      }
 
       const blob = await response.blob();
       const rawDataUrl = await new Promise<string>((resolve, reject) => {
