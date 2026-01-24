@@ -116,33 +116,120 @@ export function GenerateRapportButton({
   const messages = STAGE_MESSAGES[locale];
 
   /**
-   * Convert persona ID to image filename
-   * e.g., "jonge-starters" → "Jonge_Starters.png"
+   * Convert persona ID to possible image filenames
+   * e.g., "jonge-starters" → ["Jonge_Starters.png", "Jonge_starters.png", "jonge_starters.png"]
+   * Handles inconsistent casing in actual files
    */
-  const personaIdToFilename = (id: string): string => {
-    return id
-      .split('-')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join('_') + '.png';
+  const personaIdToFilenames = (id: string): string[] => {
+    const words = id.split('-');
+    // Try multiple casing variations
+    const titleCase = words.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('_') + '.png';
+    const firstCapOnly = words.map((w, i) => i === 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w).join('_') + '.png';
+    const lowercase = words.join('_') + '.png';
+    return [titleCase, firstCapOnly, lowercase];
   };
 
   /**
-   * Fetch persona image and convert to data URL
+   * Crop image to target aspect ratio (center crop) and return as data URL
+   */
+  const cropImageToAspectRatio = (
+    imageDataUrl: string,
+    targetAspectRatio: number = 3 / 4 // width/height for portrait (0.75)
+  ): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Failed to get canvas context'));
+          return;
+        }
+
+        const srcWidth = img.width;
+        const srcHeight = img.height;
+        const srcAspect = srcWidth / srcHeight;
+
+        let cropWidth: number;
+        let cropHeight: number;
+        let cropX: number;
+        let cropY: number;
+
+        if (srcAspect > targetAspectRatio) {
+          // Image is wider than target - crop sides
+          cropHeight = srcHeight;
+          cropWidth = srcHeight * targetAspectRatio;
+          cropX = (srcWidth - cropWidth) / 2;
+          cropY = 0;
+        } else {
+          // Image is taller than target - crop top/bottom
+          cropWidth = srcWidth;
+          cropHeight = srcWidth / targetAspectRatio;
+          cropX = 0;
+          cropY = (srcHeight - cropHeight) / 2;
+        }
+
+        // Output at reasonable resolution for PDF (150 DPI at 20mm width ≈ 118px)
+        const outputWidth = 200;
+        const outputHeight = Math.round(outputWidth / targetAspectRatio);
+
+        canvas.width = outputWidth;
+        canvas.height = outputHeight;
+
+        // Draw cropped and scaled image
+        ctx.drawImage(
+          img,
+          cropX, cropY, cropWidth, cropHeight,  // source rectangle
+          0, 0, outputWidth, outputHeight        // destination rectangle
+        );
+
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = imageDataUrl;
+    });
+  };
+
+  /**
+   * Fetch persona image, crop to portrait aspect ratio, and convert to data URL
+   * Tries multiple filename variations to handle inconsistent casing
    */
   const fetchPersonaImage = async (personaId: string): Promise<string | undefined> => {
     try {
-      const filename = personaIdToFilename(personaId);
-      const response = await fetch(`/personas/${filename}`);
-      if (!response.ok) return undefined;
+      const filenames = personaIdToFilenames(personaId);
+      let response: Response | null = null;
+      let successfulFilename = '';
+
+      // Try each filename variation
+      for (const filename of filenames) {
+        const r = await fetch(`/personas/${filename}`);
+        if (r.ok) {
+          response = r;
+          successfulFilename = filename;
+          break;
+        }
+      }
+
+      if (!response) {
+        console.warn(`Persona image not found for ${personaId}, tried: ${filenames.join(', ')}`);
+        return undefined;
+      }
+
+      console.log(`Found persona image: /personas/${successfulFilename}`);
 
       const blob = await response.blob();
-      return new Promise((resolve) => {
+      const rawDataUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = () => resolve(undefined);
+        reader.onerror = () => reject(new Error('Failed to read blob'));
         reader.readAsDataURL(blob);
       });
-    } catch {
+
+      // Crop to portrait aspect ratio (3:4)
+      const croppedDataUrl = await cropImageToAspectRatio(rawDataUrl, 3 / 4);
+      return croppedDataUrl;
+    } catch (err) {
+      console.warn(`Failed to fetch/crop persona image for ${personaId}:`, err);
       return undefined;
     }
   };
