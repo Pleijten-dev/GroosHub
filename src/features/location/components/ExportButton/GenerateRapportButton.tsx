@@ -31,6 +31,7 @@ import type { WMSGradingData } from '../../types/wms-grading';
 import { downloadWMSTile, downloadWMSLegend, type MapCapture, type LegendCapture } from '../../utils/mapExport';
 import { WMS_CATEGORIES, type WMSLayerConfig } from '../Maps/wmsLayers';
 import { getPersonaCubePosition } from '../../utils/cubePositionMapping';
+import housingPersonasJson from '../../data/sources/housing-personas.json';
 
 interface GenerateRapportButtonProps {
   locale: 'nl' | 'en';
@@ -283,46 +284,44 @@ export function GenerateRapportButton({
 
   /**
    * Load full housing personas data with property types and characteristics
+   * Uses direct import as reliable fallback
    */
-  const loadHousingPersonas = async (): Promise<Record<string, HousingPersonaData>> => {
-    try {
-      const response = await fetch('/api/location/housing-personas');
-      if (!response.ok) {
-        // Try loading directly from public folder as fallback
-        const directResponse = await fetch('/housing-personas.json');
-        if (!directResponse.ok) return {};
-        const data = await directResponse.json();
-        const personas = data[locale]?.housing_personas || data['nl']?.housing_personas || [];
-        const result: Record<string, HousingPersonaData> = {};
-        for (const p of personas) {
-          result[p.id] = {
-            current_property_types: p.current_property_types,
-            desired_property_types: p.desired_property_types,
-            imageUrl: p.imageUrl,
-            income_level: p.income_level,
-            household_type: p.household_type,
-            age_group: p.age_group,
-          };
-        }
-        return result;
-      }
-      const data = await response.json();
-      const personas = data[locale]?.housing_personas || data['nl']?.housing_personas || [];
-      const result: Record<string, HousingPersonaData> = {};
-      for (const p of personas) {
-        result[p.id] = {
-          current_property_types: p.current_property_types,
-          desired_property_types: p.desired_property_types,
-          imageUrl: p.imageUrl,
-          income_level: p.income_level,
-          household_type: p.household_type,
-          age_group: p.age_group,
-        };
-      }
-      return result;
-    } catch {
-      return {};
+  const loadHousingPersonas = (): Record<string, HousingPersonaData> => {
+    // Use directly imported JSON - most reliable approach
+    const data = housingPersonasJson as { nl?: { housing_personas: Array<{
+      id: string;
+      current_property_types?: string[];
+      desired_property_types?: string[];
+      imageUrl?: string;
+      income_level?: string;
+      household_type?: string;
+      age_group?: string;
+    }> }; en?: { housing_personas: Array<{
+      id: string;
+      current_property_types?: string[];
+      desired_property_types?: string[];
+      imageUrl?: string;
+      income_level?: string;
+      household_type?: string;
+      age_group?: string;
+    }> } };
+
+    const personas = data[locale]?.housing_personas || data['nl']?.housing_personas || [];
+    const result: Record<string, HousingPersonaData> = {};
+
+    for (const p of personas) {
+      result[p.id] = {
+        current_property_types: p.current_property_types,
+        desired_property_types: p.desired_property_types,
+        imageUrl: p.imageUrl,
+        income_level: p.income_level,
+        household_type: p.household_type,
+        age_group: p.age_group,
+      };
     }
+
+    console.log(`Loaded ${Object.keys(result).length} housing personas for locale ${locale}`);
+    return result;
   };
 
   // Generate the report
@@ -377,10 +376,12 @@ export function GenerateRapportButton({
       // Fetch persona images and full housing data first (needed for cube capture)
       const allPersonas = compactData.allPersonas || [];
       const personaIds = allPersonas.map(p => p.id);
-      const [personaImages, housingPersonasData] = await Promise.all([
-        fetchAllPersonaImages(personaIds),
-        loadHousingPersonas(),
-      ]);
+
+      // Load housing personas data synchronously (direct import)
+      const housingPersonasData = loadHousingPersonas();
+
+      // Fetch persona images asynchronously
+      const personaImages = await fetchAllPersonaImages(personaIds);
 
       setProgress(60);
 
