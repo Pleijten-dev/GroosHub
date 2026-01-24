@@ -386,25 +386,47 @@ export function GenerateRapportButton({
 
       // Capture cube visualizations
       let cubeCaptures: Record<string, CubeCaptureResult> = {};
+
+      // Debug logging for cube capture
+      console.log('=== CUBE CAPTURE DEBUG ===');
+      console.log('scenarios:', scenarios);
+      console.log('cubeColors length:', cubeColors?.length);
+      console.log('personaScores length:', personaScores.length);
+      console.log('housingPersonasData keys:', Object.keys(housingPersonasData));
+
       if (scenarios && cubeColors && cubeColors.length > 0 && personaScores.length > 0) {
         try {
           // Sort personas by rRank position to match scenario positions
           const sortedPersonas = [...personaScores].sort((a, b) => a.rRankPosition - b.rRankPosition);
+          console.log('sortedPersonas (first 5):', sortedPersonas.slice(0, 5).map(p => ({
+            id: p.personaId,
+            rRankPosition: p.rRankPosition
+          })));
 
           // Helper function to convert rRankPositions to cube indices (0-26)
           const positionsToCubeIndices = (positions: number[]): number[] => {
+            console.log('Converting positions:', positions);
             return positions.map(pos => {
               const persona = sortedPersonas[pos - 1]; // positions are 1-indexed
+              console.log(`Position ${pos} -> persona:`, persona?.personaId);
               if (persona) {
                 // Get characteristics from housing personas data
                 const personaData = housingPersonasData[persona.personaId];
+                console.log(`Persona ${persona.personaId} data:`, personaData);
                 if (personaData?.income_level && personaData?.household_type && personaData?.age_group) {
                   const { index } = getPersonaCubePosition({
                     income_level: personaData.income_level,
                     household_type: personaData.household_type,
                     age_group: personaData.age_group,
                   });
+                  console.log(`Cube index for ${persona.personaId}: ${index}`);
                   return index;
+                } else {
+                  console.warn(`Missing characteristics for ${persona.personaId}:`, {
+                    income_level: personaData?.income_level,
+                    household_type: personaData?.household_type,
+                    age_group: personaData?.age_group,
+                  });
                 }
               }
               return -1;
@@ -419,6 +441,11 @@ export function GenerateRapportButton({
             ? positionsToCubeIndices(scenarios.customScenario)
             : undefined;
 
+          console.log('Cube indices - scenario1:', cubeIndicesScenario1);
+          console.log('Cube indices - scenario2:', cubeIndicesScenario2);
+          console.log('Cube indices - scenario3:', cubeIndicesScenario3);
+          console.log('Cube indices - custom:', cubeIndicesCustom);
+
           const cubeCaptureResult = await captureAllScenarioCubes(
             {
               scenario1: cubeIndicesScenario1,
@@ -429,16 +456,27 @@ export function GenerateRapportButton({
             cubeColors,
             { width: 400, height: 400, backgroundColor: '#1a1a2e' }
           );
+          console.log('Cube capture result keys:', Object.keys(cubeCaptureResult));
+          console.log('scenario1 dataUrl length:', cubeCaptureResult.scenario1?.dataUrl?.length);
+
           cubeCaptures = {
             scenario1: cubeCaptureResult.scenario1,
             scenario2: cubeCaptureResult.scenario2,
             scenario3: cubeCaptureResult.scenario3,
             ...(cubeCaptureResult.customScenario && { customScenario: cubeCaptureResult.customScenario }),
           };
+          console.log('Final cubeCaptures keys:', Object.keys(cubeCaptures));
         } catch (err) {
-          console.warn('Failed to capture cube visualizations:', err);
+          console.error('Failed to capture cube visualizations:', err);
         }
+      } else {
+        console.warn('Skipping cube capture - missing data:', {
+          hasScenarios: !!scenarios,
+          cubeColorsLength: cubeColors?.length,
+          personaScoresLength: personaScores.length,
+        });
       }
+      console.log('=== END CUBE CAPTURE DEBUG ===');
 
       setProgress(70);
 
