@@ -29,6 +29,7 @@ import type { PersonaScore } from '../../utils/targetGroupScoring';
 import type { WMSGradingData } from '../../types/wms-grading';
 import { downloadWMSTile, type MapCapture } from '../../utils/mapExport';
 import { WMS_CATEGORIES, type WMSLayerConfig } from '../Maps/wmsLayers';
+import { getPersonaCubePosition } from '../../utils/cubePositionMapping';
 
 interface GenerateRapportButtonProps {
   locale: 'nl' | 'en';
@@ -173,14 +174,19 @@ export function GenerateRapportButton({
     return images;
   };
 
-  /**
-   * Load full housing personas data with property types
-   */
-  const loadHousingPersonas = async (): Promise<Record<string, {
+  interface HousingPersonaData {
     current_property_types?: string[];
     desired_property_types?: string[];
     imageUrl?: string;
-  }>> => {
+    income_level?: string;
+    household_type?: string;
+    age_group?: string;
+  }
+
+  /**
+   * Load full housing personas data with property types and characteristics
+   */
+  const loadHousingPersonas = async (): Promise<Record<string, HousingPersonaData>> => {
     try {
       const response = await fetch('/api/location/housing-personas');
       if (!response.ok) {
@@ -189,24 +195,30 @@ export function GenerateRapportButton({
         if (!directResponse.ok) return {};
         const data = await directResponse.json();
         const personas = data[locale]?.housing_personas || data['nl']?.housing_personas || [];
-        const result: Record<string, { current_property_types?: string[]; desired_property_types?: string[]; imageUrl?: string }> = {};
+        const result: Record<string, HousingPersonaData> = {};
         for (const p of personas) {
           result[p.id] = {
             current_property_types: p.current_property_types,
             desired_property_types: p.desired_property_types,
             imageUrl: p.imageUrl,
+            income_level: p.income_level,
+            household_type: p.household_type,
+            age_group: p.age_group,
           };
         }
         return result;
       }
       const data = await response.json();
       const personas = data[locale]?.housing_personas || data['nl']?.housing_personas || [];
-      const result: Record<string, { current_property_types?: string[]; desired_property_types?: string[]; imageUrl?: string }> = {};
+      const result: Record<string, HousingPersonaData> = {};
       for (const p of personas) {
         result[p.id] = {
           current_property_types: p.current_property_types,
           desired_property_types: p.desired_property_types,
           imageUrl: p.imageUrl,
+          income_level: p.income_level,
+          household_type: p.household_type,
+          age_group: p.age_group,
         };
       }
       return result;
@@ -264,12 +276,58 @@ export function GenerateRapportButton({
       setStage('capturing-visuals');
       setProgress(55);
 
+      // Fetch persona images and full housing data first (needed for cube capture)
+      const allPersonas = compactData.allPersonas || [];
+      const personaIds = allPersonas.map(p => p.id);
+      const [personaImages, housingPersonasData] = await Promise.all([
+        fetchAllPersonaImages(personaIds),
+        loadHousingPersonas(),
+      ]);
+
+      setProgress(60);
+
       // Capture cube visualizations
       let cubeCaptures: Record<string, CubeCaptureResult> = {};
-      if (scenarios && cubeColors && cubeColors.length > 0) {
+      if (scenarios && cubeColors && cubeColors.length > 0 && personaScores.length > 0) {
         try {
+          // Sort personas by rRank position to match scenario positions
+          const sortedPersonas = [...personaScores].sort((a, b) => a.rRankPosition - b.rRankPosition);
+
+          // Helper function to convert rRankPositions to cube indices (0-26)
+          const positionsToCubeIndices = (positions: number[]): number[] => {
+            return positions.map(pos => {
+              const persona = sortedPersonas[pos - 1]; // positions are 1-indexed
+              if (persona) {
+                // Get characteristics from housing personas data
+                const personaData = housingPersonasData[persona.personaId];
+                if (personaData?.income_level && personaData?.household_type && personaData?.age_group) {
+                  const { index } = getPersonaCubePosition({
+                    income_level: personaData.income_level,
+                    household_type: personaData.household_type,
+                    age_group: personaData.age_group,
+                  });
+                  return index;
+                }
+              }
+              return -1;
+            }).filter(i => i >= 0);
+          };
+
+          // Convert scenario positions to cube indices
+          const cubeIndicesScenario1 = positionsToCubeIndices(scenarios.scenario1);
+          const cubeIndicesScenario2 = positionsToCubeIndices(scenarios.scenario2);
+          const cubeIndicesScenario3 = positionsToCubeIndices(scenarios.scenario3);
+          const cubeIndicesCustom = scenarios.customScenario
+            ? positionsToCubeIndices(scenarios.customScenario)
+            : undefined;
+
           const cubeCaptureResult = await captureAllScenarioCubes(
-            scenarios,
+            {
+              scenario1: cubeIndicesScenario1,
+              scenario2: cubeIndicesScenario2,
+              scenario3: cubeIndicesScenario3,
+              customScenario: cubeIndicesCustom,
+            },
             cubeColors,
             { width: 400, height: 400, backgroundColor: '#1a1a2e' }
           );
@@ -277,22 +335,14 @@ export function GenerateRapportButton({
             scenario1: cubeCaptureResult.scenario1,
             scenario2: cubeCaptureResult.scenario2,
             scenario3: cubeCaptureResult.scenario3,
-            ...(cubeCaptureResult.customScenario && { scenario4: cubeCaptureResult.customScenario }),
+            ...(cubeCaptureResult.customScenario && { customScenario: cubeCaptureResult.customScenario }),
           };
         } catch (err) {
           console.warn('Failed to capture cube visualizations:', err);
         }
       }
 
-      setProgress(65);
-
-      // Fetch persona images and full housing data
-      const allPersonas = compactData.allPersonas || [];
-      const personaIds = allPersonas.map(p => p.id);
-      const [personaImages, housingPersonasData] = await Promise.all([
-        fetchAllPersonaImages(personaIds),
-        loadHousingPersonas(),
-      ]);
+      setProgress(70);
 
       // Add images and housing data to personas
       const personasWithFullData: PersonaBasic[] = allPersonas.map(p => ({
