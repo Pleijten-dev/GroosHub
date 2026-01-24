@@ -581,13 +581,7 @@ export class UnifiedRapportBuilder {
       currentAngle = endAngle;
     });
 
-    // Clean outer edge with subtle border
-    this.setColor([230, 230, 230], 'draw');
-    this.pdf.setLineWidth(0.3);
-    this.pdf.circle(centerX, centerY, radius, 'D');
-    if (innerRadius > 0) {
-      this.pdf.circle(centerX, centerY, innerRadius, 'D');
-    }
+    // No border circles - clean look without grey lines
   }
 
   /**
@@ -602,12 +596,13 @@ export class UnifiedRapportBuilder {
     endAngle: number,
     color: [number, number, number]
   ): void {
-    // Set fill color and disable stroke to prevent visible lines between triangles
+    // Set fill color only - no stroke to prevent visible lines between triangles
     this.setColor(color, 'fill');
-    this.setColor(color, 'draw'); // Set stroke to same color to hide edges
-    this.pdf.setLineWidth(0);
+    // Explicitly set draw state to null/transparent by using same color and zero width
+    this.pdf.setDrawColor(color[0], color[1], color[2]);
+    this.pdf.setLineWidth(0.001); // Effectively invisible
 
-    const steps = Math.max(20, Math.ceil((endAngle - startAngle) * 20));
+    const steps = Math.max(40, Math.ceil((endAngle - startAngle) * 30)); // More steps for smoother edges
     const angleStep = (endAngle - startAngle) / steps;
 
     for (let i = 0; i < steps; i++) {
