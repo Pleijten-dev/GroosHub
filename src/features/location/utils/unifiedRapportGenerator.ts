@@ -263,6 +263,38 @@ export interface CubeCaptureResult {
   height: number;
 }
 
+export interface LegendCaptureResult {
+  dataUrl: string;
+  width: number;
+  height: number;
+}
+
+export interface WMSLayerConfigForPdf {
+  title: string;
+  description: string;
+  layers: string;
+  url: string;
+  recommendedZoom?: number;
+}
+
+export interface WMSLayerGradingForPdf {
+  layer_id: string;
+  average_area_sample?: { value: number | null };
+  max_area_sample?: { value: number | null };
+  point_sample?: { value: number | null };
+}
+
+export interface FullMapCaptureResult {
+  name: string;
+  dataUrl: string;
+  aerialPhotoDataUrl?: string;
+  legendDataUrl?: string;
+  legendWidth?: number;
+  legendHeight?: number;
+  layerConfig: WMSLayerConfigForPdf;
+  gradingResult?: WMSLayerGradingForPdf;
+}
+
 export interface MapCaptureResult {
   name: string;
   dataUrl: string;
@@ -1785,7 +1817,8 @@ export class UnifiedRapportBuilder {
 
   addAppendix(
     compactData: CompactExportData,
-    mapCaptures?: MapCaptureResult[]
+    mapCaptures?: MapCaptureResult[],
+    fullMapCaptures?: FullMapCaptureResult[]
   ): void {
     // A. Total Score Table (includes appendix header)
     this.addTotalScoreTable(compactData.targetGroups.rankedPersonas, true);
@@ -1817,8 +1850,10 @@ export class UnifiedRapportBuilder {
     // K. Amenities Table
     this.addAmenitiesTable(compactData.amenities);
 
-    // L. Map Analysis
-    if (mapCaptures && mapCaptures.length > 0) {
+    // L. Map Analysis - use full WMS pages if available, otherwise simple grid
+    if (fullMapCaptures && fullMapCaptures.length > 0) {
+      this.addFullWMSMapPages(fullMapCaptures);
+    } else if (mapCaptures && mapCaptures.length > 0) {
       this.addMapAnalysis(mapCaptures);
     }
   }
@@ -2461,6 +2496,210 @@ export class UnifiedRapportBuilder {
     });
   }
 
+  /**
+   * Add full WMS map pages with aerial photo background, legend, score markers
+   * Matches the layout from comprehensivePdfExport.ts
+   */
+  private addFullWMSMapPages(fullMapCaptures: FullMapCaptureResult[]): void {
+    // Add section header on first page
+    this.addNewPage();
+    this.addTocEntry(this.t.mapAnalysis, 1);
+
+    this.pdf.setFontSize(16);
+    this.setColor(PRIMARY_COLOR);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.text(this.t.mapAnalysis, MARGIN, this.currentY);
+    this.currentY += 10;
+
+    // Add intro text
+    this.pdf.setFontSize(9);
+    this.setColor(TEXT_COLOR);
+    this.pdf.setFont('helvetica', 'normal');
+    const introText = this.locale === 'nl'
+      ? 'Hieronder volgen de WMS kaartlagen met luchtfoto achtergrond, legenda en gebiedswaarden.'
+      : 'Below are the WMS map layers with aerial photo background, legend and area values.';
+    this.pdf.text(introText, MARGIN, this.currentY);
+    this.currentY += 15;
+
+    // Process each map on its own page
+    fullMapCaptures.forEach((mapCapture, index) => {
+      if (index > 0) {
+        this.addNewPage();
+      }
+
+      this.addWMSMapPage(mapCapture);
+    });
+  }
+
+  /**
+   * Add a single WMS map page with all components
+   * Layout matches comprehensivePdfExport.ts:
+   * - Map (80% width) with aerial photo background + WMS layer overlay
+   * - Legend (20% width) next to map
+   * - Score markers on left
+   * - Title and description indented
+   */
+  private addWMSMapPage(mapCapture: FullMapCaptureResult): void {
+    // Layout constants (1cm = 10mm margin)
+    const WMS_MARGIN = 10;
+    const WMS_CONTENT_WIDTH = PAGE_WIDTH - 2 * WMS_MARGIN; // 190mm
+    const MAP_SIZE = Math.floor(WMS_CONTENT_WIDTH * 0.8); // 152mm square
+    const LEGEND_WIDTH = WMS_CONTENT_WIDTH - MAP_SIZE; // 38mm
+    const TEXT_INDENT = 40; // 4cm indent for title/description
+
+    const mapX = WMS_MARGIN;
+    const mapY = MARGIN + 10; // Leave space for header
+    const legendX = WMS_MARGIN + MAP_SIZE;
+
+    try {
+      // Add aerial photo background if available (50% opacity)
+      if (mapCapture.aerialPhotoDataUrl) {
+        const gState = this.pdf.GState({ opacity: 0.5 });
+        this.pdf.setGState(gState);
+
+        this.pdf.addImage(
+          mapCapture.aerialPhotoDataUrl,
+          'PNG',
+          mapX,
+          mapY,
+          MAP_SIZE,
+          MAP_SIZE,
+          undefined,
+          'FAST'
+        );
+
+        // Reset opacity
+        const fullOpacity = this.pdf.GState({ opacity: 1.0 });
+        this.pdf.setGState(fullOpacity);
+      }
+
+      // Add WMS layer on top (90% opacity)
+      const wmsOpacity = this.pdf.GState({ opacity: 0.9 });
+      this.pdf.setGState(wmsOpacity);
+
+      this.pdf.addImage(
+        mapCapture.dataUrl,
+        'PNG',
+        mapX,
+        mapY,
+        MAP_SIZE,
+        MAP_SIZE,
+        undefined,
+        'FAST'
+      );
+
+      // Reset to full opacity
+      const fullOpacityReset = this.pdf.GState({ opacity: 1.0 });
+      this.pdf.setGState(fullOpacityReset);
+
+      // Add legend if available
+      if (mapCapture.legendDataUrl && mapCapture.legendWidth && mapCapture.legendHeight) {
+        // White background for legend
+        this.pdf.setFillColor(255, 255, 255);
+        this.pdf.rect(legendX, mapY, LEGEND_WIDTH, MAP_SIZE, 'F');
+
+        // Legend header
+        this.pdf.setFontSize(9);
+        this.pdf.setTextColor(71, 118, 56);
+        this.pdf.text(this.locale === 'nl' ? 'Legenda' : 'Legend', legendX + 3, mapY + 8);
+
+        // Scale legend to fit
+        const maxLegendHeight = MAP_SIZE - 15;
+        const maxLegendWidth = LEGEND_WIDTH - 6;
+        const legendAspect = mapCapture.legendWidth / mapCapture.legendHeight;
+        let scaledWidth = maxLegendWidth;
+        let scaledHeight = scaledWidth / legendAspect;
+
+        if (scaledHeight > maxLegendHeight) {
+          scaledHeight = maxLegendHeight;
+          scaledWidth = scaledHeight * legendAspect;
+        }
+
+        try {
+          this.pdf.addImage(
+            mapCapture.legendDataUrl,
+            'PNG',
+            legendX + 3,
+            mapY + 12,
+            scaledWidth,
+            scaledHeight,
+            undefined,
+            'FAST'
+          );
+        } catch {
+          this.pdf.setFontSize(7);
+          this.pdf.setTextColor(150, 150, 150);
+          this.pdf.text('(Legenda niet', legendX + 3, mapY + 25);
+          this.pdf.text('beschikbaar)', legendX + 3, mapY + 32);
+        }
+      }
+    } catch {
+      // Placeholder if image fails
+      this.pdf.setFillColor(240, 240, 240);
+      this.pdf.rect(mapX, mapY, MAP_SIZE, MAP_SIZE, 'F');
+      this.pdf.setFontSize(10);
+      this.pdf.setTextColor(150, 150, 150);
+      this.pdf.text('Kaart niet beschikbaar', mapX + MAP_SIZE / 2, mapY + MAP_SIZE / 2, { align: 'center' });
+    }
+
+    // Position below map
+    this.currentY = mapY + MAP_SIZE + 10;
+
+    // Score markers on left side (if grading data available)
+    if (mapCapture.gradingResult) {
+      const scoreX = WMS_MARGIN;
+      let scoreY = this.currentY;
+
+      const drawScoreMarker = (label: string, value: number | string) => {
+        // Circle marker
+        this.pdf.setFillColor(71, 118, 56);
+        this.pdf.circle(scoreX + 4, scoreY - 1.5, 3, 'F');
+
+        // Score value (larger, bold)
+        this.pdf.setFontSize(11);
+        this.pdf.setTextColor(50, 50, 50);
+        this.pdf.setFont('helvetica', 'bold');
+        const valueStr = typeof value === 'number' ? value.toFixed(1) : value;
+        this.pdf.text(valueStr, scoreX + 10, scoreY);
+
+        // Label (smaller, below)
+        this.pdf.setFontSize(7);
+        this.pdf.setFont('helvetica', 'normal');
+        this.pdf.setTextColor(100, 100, 100);
+        this.pdf.text(label, scoreX + 10, scoreY + 4);
+
+        scoreY += 14;
+      };
+
+      const grading = mapCapture.gradingResult;
+      if (grading.average_area_sample?.value !== null && grading.average_area_sample?.value !== undefined) {
+        drawScoreMarker(this.locale === 'nl' ? 'Gem. gebied' : 'Avg. area', grading.average_area_sample.value);
+      }
+      if (grading.max_area_sample?.value !== null && grading.max_area_sample?.value !== undefined) {
+        drawScoreMarker(this.locale === 'nl' ? 'Max. gebied' : 'Max. area', grading.max_area_sample.value);
+      }
+      if (grading.point_sample?.value !== null && grading.point_sample?.value !== undefined) {
+        drawScoreMarker(this.locale === 'nl' ? 'Puntwaarde' : 'Point value', grading.point_sample.value);
+      }
+    }
+
+    // Title (indented 4cm)
+    this.pdf.setFontSize(14);
+    this.pdf.setTextColor(50, 50, 50);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.text(mapCapture.layerConfig.title, WMS_MARGIN + TEXT_INDENT, this.currentY);
+    this.currentY += 8;
+
+    // Description (indented 4cm)
+    this.pdf.setFont('helvetica', 'normal');
+    this.pdf.setFontSize(9);
+    this.pdf.setTextColor(80, 80, 80);
+    const descWidth = WMS_CONTENT_WIDTH - TEXT_INDENT;
+    const descLines = this.pdf.splitTextToSize(mapCapture.layerConfig.description, descWidth);
+    this.pdf.text(descLines, WMS_MARGIN + TEXT_INDENT, this.currentY);
+    this.currentY += descLines.length * 4 + 10;
+  }
+
   // ==========================================================================
   // HELPER METHODS FOR DATA FLATTENING
   // ==========================================================================
@@ -2620,7 +2859,8 @@ export async function generateUnifiedRapport(
   buildingProgram: LLMBuildingProgram,
   cubeCaptures: Record<string, CubeCaptureResult>,
   mapCaptures: MapCaptureResult[],
-  config: UnifiedRapportConfig
+  config: UnifiedRapportConfig,
+  fullMapCaptures?: FullMapCaptureResult[]
 ): Promise<Blob> {
   const builder = new UnifiedRapportBuilder(config.locale);
   const t = TRANSLATIONS[config.locale];
@@ -2707,7 +2947,11 @@ export async function generateUnifiedRapport(
   });
 
   // 10. Appendix
-  builder.addAppendix(compactData, config.includeMapAnalysis ? mapCaptures : undefined);
+  builder.addAppendix(
+    compactData,
+    config.includeMapAnalysis ? mapCaptures : undefined,
+    config.includeMapAnalysis ? fullMapCaptures : undefined
+  );
 
   return builder.finalize();
 }

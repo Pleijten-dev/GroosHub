@@ -19,6 +19,7 @@ import {
   type CompactExportData,
   type CubeCaptureResult,
   type MapCaptureResult,
+  type FullMapCaptureResult,
   type PersonaBasic,
 } from '../../utils/unifiedRapportGenerator';
 import { exportCompactForLLM, type CompactLocationExport } from '../../utils/jsonExportCompact';
@@ -27,7 +28,7 @@ import type { UnifiedLocationData } from '../../data/aggregator/multiLevelAggreg
 import type { AmenityMultiCategoryResponse } from '../../data/sources/google-places/types';
 import type { PersonaScore } from '../../utils/targetGroupScoring';
 import type { WMSGradingData } from '../../types/wms-grading';
-import { downloadWMSTile, type MapCapture } from '../../utils/mapExport';
+import { downloadWMSTile, downloadWMSLegend, type MapCapture, type LegendCapture } from '../../utils/mapExport';
 import { WMS_CATEGORIES, type WMSLayerConfig } from '../Maps/wmsLayers';
 import { getPersonaCubePosition } from '../../utils/cubePositionMapping';
 
@@ -359,8 +360,9 @@ export function GenerateRapportButton({
         allPersonas: personasWithFullData,
       };
 
-      // Capture WMS map screenshots if coordinates are available
+      // Capture WMS map screenshots with aerial photos and legends
       const mapCaptures: MapCaptureResult[] = [];
+      const fullMapCaptures: FullMapCaptureResult[] = [];
 
       // Helper function to find a WMS layer config by its ID
       const findLayerConfig = (layerId: string): WMSLayerConfig | null => {
@@ -377,35 +379,113 @@ export function GenerateRapportButton({
         // Get available layer IDs from grading data
         const gradedLayers = Object.values(wmsGradingData.layers || {});
 
-        // Capture each graded WMS layer (limit to 6 for performance)
-        for (const gradedLayer of gradedLayers.slice(0, 6)) {
-          const layerConfig = findLayerConfig(gradedLayer.layer_id);
+        // Filter to valid WMS layers (not amenity layers)
+        const validLayers = gradedLayers
+          .map(gl => ({ gradedLayer: gl, config: findLayerConfig(gl.layer_id) }))
+          .filter(l => l.config && !l.config.url.startsWith('amenity://'))
+          .slice(0, 8); // Limit to 8 for performance
+
+        // Download aerial photos for each unique zoom level
+        const aerialPhotoWMS = {
+          url: 'https://service.pdok.nl/hwh/luchtfotorgb/wms/v1_0',
+          layers: 'Actueel_orthoHR'
+        };
+        const uniqueZooms = [...new Set(validLayers.map(l => l.config!.recommendedZoom || 15))];
+        const aerialPhotoCache: Record<number, MapCapture> = {};
+
+        console.log(`Downloading aerial photos for zoom levels: ${uniqueZooms.join(', ')}`);
+        for (const zoom of uniqueZooms) {
+          try {
+            const aerialPhoto = await downloadWMSTile({
+              url: aerialPhotoWMS.url,
+              layers: aerialPhotoWMS.layers,
+              layerTitle: `Aerial - Zoom ${zoom}`,
+              center: [lat, lon],
+              zoom,
+              width: 800,
+              height: 800
+            });
+            aerialPhotoCache[zoom] = aerialPhoto;
+          } catch (err) {
+            console.warn(`Failed to download aerial photo for zoom ${zoom}:`, err);
+          }
+        }
+
+        setProgress(72);
+
+        // Download each WMS layer with its legend
+        for (const { gradedLayer, config: layerConfig } of validLayers) {
           if (!layerConfig) continue;
-          // Skip amenity layers (they use a special URL scheme)
-          if (layerConfig.url.startsWith('amenity://')) continue;
 
           try {
-            const mapCapture: MapCapture = await downloadWMSTile({
-              url: layerConfig.url,
-              layers: layerConfig.layers,
-              layerTitle: layerConfig.title,
-              center: [lat, lon],
-              zoom: layerConfig.recommendedZoom || 14,
-              width: 600,
-              height: 400,
-            });
+            console.log(`Downloading WMS layer: ${layerConfig.title}`);
 
+            // Download map tile and legend in parallel
+            const [mapCapture, legend] = await Promise.all([
+              downloadWMSTile({
+                url: layerConfig.url,
+                layers: layerConfig.layers,
+                layerTitle: layerConfig.title,
+                center: [lat, lon],
+                zoom: layerConfig.recommendedZoom || 15,
+                width: 800,
+                height: 800,
+              }),
+              downloadWMSLegend(
+                layerConfig.url,
+                layerConfig.layers,
+                layerConfig.title
+              ).catch(err => {
+                console.warn(`Failed to download legend for ${layerConfig.title}:`, err);
+                return null;
+              })
+            ]);
+
+            const aerialPhoto = aerialPhotoCache[layerConfig.recommendedZoom || 15];
+
+            // Simple map capture for backwards compatibility
             mapCaptures.push({
               name: layerConfig.title,
               dataUrl: mapCapture.dataUrl,
+            });
+
+            // Full map capture with all data for new WMS pages
+            fullMapCaptures.push({
+              name: layerConfig.title,
+              dataUrl: mapCapture.dataUrl,
+              aerialPhotoDataUrl: aerialPhoto?.dataUrl,
+              legendDataUrl: legend?.dataUrl,
+              legendWidth: legend?.width,
+              legendHeight: legend?.height,
+              layerConfig: {
+                title: layerConfig.title,
+                description: layerConfig.description || '',
+                layers: layerConfig.layers,
+                url: layerConfig.url,
+                recommendedZoom: layerConfig.recommendedZoom,
+              },
+              gradingResult: {
+                layer_id: gradedLayer.layer_id,
+                average_area_sample: gradedLayer.average_area_sample
+                  ? { value: gradedLayer.average_area_sample.value }
+                  : undefined,
+                max_area_sample: gradedLayer.max_area_sample
+                  ? { value: gradedLayer.max_area_sample.value }
+                  : undefined,
+                point_sample: gradedLayer.point_sample
+                  ? { value: typeof gradedLayer.point_sample.value === 'number' ? gradedLayer.point_sample.value : null }
+                  : undefined,
+              },
             });
           } catch (captureError) {
             console.warn(`Failed to capture WMS layer ${gradedLayer.layer_id}:`, captureError);
           }
         }
+
+        console.log(`WMS capture complete: ${fullMapCaptures.length} layers captured`);
       }
 
-      setProgress(75);
+      setProgress(78);
 
       // Stage 4: Build PDF
       setStage('building-pdf');
@@ -418,9 +498,10 @@ export function GenerateRapportButton({
         mapCaptures,
         {
           locale,
-          includeMapAnalysis: mapCaptures.length > 0,
+          includeMapAnalysis: mapCaptures.length > 0 || fullMapCaptures.length > 0,
           includeCubeVisualizations: Object.keys(cubeCaptures).length > 0,
-        }
+        },
+        fullMapCaptures
       );
 
       setProgress(95);
@@ -453,7 +534,7 @@ export function GenerateRapportButton({
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
       setStage('error');
     }
-  }, [stage, usePlaceholder, data, amenitiesData, personaScores, pveData, locale]);
+  }, [stage, usePlaceholder, data, amenitiesData, personaScores, pveData, locale, coordinates, wmsGradingData, scenarios, cubeColors]);
 
   const isGenerating = stage !== 'idle' && stage !== 'error' && stage !== 'complete';
 
