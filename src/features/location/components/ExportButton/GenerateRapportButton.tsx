@@ -361,36 +361,28 @@ export function GenerateRapportButton({
       };
 
       // Capture WMS map screenshots with aerial photos and legends
+      // Use ALL WMS layers from WMS_CATEGORIES (matching comprehensivePdfExport.ts)
       const mapCaptures: MapCaptureResult[] = [];
       const fullMapCaptures: FullMapCaptureResult[] = [];
 
-      // Helper function to find a WMS layer config by its ID
-      const findLayerConfig = (layerId: string): WMSLayerConfig | null => {
-        for (const category of Object.values(WMS_CATEGORIES)) {
-          if (category.layers[layerId]) {
-            return category.layers[layerId];
-          }
-        }
-        return null;
-      };
-
-      if (coordinates && wmsGradingData) {
+      if (coordinates) {
         const [lat, lon] = coordinates;
-        // Get available layer IDs from grading data
-        const gradedLayers = Object.values(wmsGradingData.layers || {});
 
-        // Filter to valid WMS layers (not amenity layers)
-        const validLayers = gradedLayers
-          .map(gl => ({ gradedLayer: gl, config: findLayerConfig(gl.layer_id) }))
-          .filter(l => l.config && !l.config.url.startsWith('amenity://'))
-          .slice(0, 8); // Limit to 8 for performance
+        // Get ALL WMS layers from WMS_CATEGORIES (not just graded ones)
+        const wmsLayers = Object.entries(WMS_CATEGORIES).flatMap(([catId, cat]) =>
+          Object.entries(cat.layers).map(([layerId, config]) => ({ catId, layerId, config }))
+        );
 
-        // Download aerial photos for each unique zoom level
+        // Filter out amenity layers (they use markers, not WMS)
+        const validLayers = wmsLayers.filter(l => !l.config.url.startsWith('amenity://'));
+        console.log(`Processing ${validLayers.length} WMS layers for PDF export`);
+
+        // Download aerial photos for each unique zoom level FIRST
         const aerialPhotoWMS = {
           url: 'https://service.pdok.nl/hwh/luchtfotorgb/wms/v1_0',
           layers: 'Actueel_orthoHR'
         };
-        const uniqueZooms = [...new Set(validLayers.map(l => l.config!.recommendedZoom || 15))];
+        const uniqueZooms = [...new Set(validLayers.map(l => l.config.recommendedZoom || 15))];
         const aerialPhotoCache: Record<number, MapCapture> = {};
 
         console.log(`Downloading aerial photos for zoom levels: ${uniqueZooms.join(', ')}`);
@@ -411,14 +403,22 @@ export function GenerateRapportButton({
           }
         }
 
-        setProgress(72);
+        setProgress(55);
 
         // Download each WMS layer with its legend
-        for (const { gradedLayer, config: layerConfig } of validLayers) {
-          if (!layerConfig) continue;
+        let successCount = 0;
+        let failCount = 0;
+        const totalLayers = validLayers.length;
+
+        for (let i = 0; i < validLayers.length; i++) {
+          const { layerId, config: layerConfig } = validLayers[i];
+
+          // Update progress as we go (55-78% range for WMS downloads)
+          const layerProgress = 55 + Math.floor((i / totalLayers) * 23);
+          setProgress(layerProgress);
 
           try {
-            console.log(`Downloading WMS layer: ${layerConfig.title}`);
+            console.log(`Downloading WMS layer ${i + 1}/${totalLayers}: ${layerConfig.title}`);
 
             // Download map tile and legend in parallel
             const [mapCapture, legend] = await Promise.all([
@@ -443,6 +443,9 @@ export function GenerateRapportButton({
 
             const aerialPhoto = aerialPhotoCache[layerConfig.recommendedZoom || 15];
 
+            // Look up grading data if available
+            const gradingResult = wmsGradingData?.layers?.[layerId];
+
             // Simple map capture for backwards compatibility
             mapCaptures.push({
               name: layerConfig.title,
@@ -464,25 +467,33 @@ export function GenerateRapportButton({
                 url: layerConfig.url,
                 recommendedZoom: layerConfig.recommendedZoom,
               },
-              gradingResult: {
-                layer_id: gradedLayer.layer_id,
-                average_area_sample: gradedLayer.average_area_sample
-                  ? { value: gradedLayer.average_area_sample.value }
+              gradingResult: gradingResult ? {
+                layer_id: layerId,
+                average_area_sample: gradingResult.average_area_sample
+                  ? { value: gradingResult.average_area_sample.value }
                   : undefined,
-                max_area_sample: gradedLayer.max_area_sample
-                  ? { value: gradedLayer.max_area_sample.value }
+                max_area_sample: gradingResult.max_area_sample
+                  ? { value: gradingResult.max_area_sample.value }
                   : undefined,
-                point_sample: gradedLayer.point_sample
-                  ? { value: typeof gradedLayer.point_sample.value === 'number' ? gradedLayer.point_sample.value : null }
+                point_sample: gradingResult.point_sample
+                  ? { value: typeof gradingResult.point_sample.value === 'number' ? gradingResult.point_sample.value : null }
                   : undefined,
-              },
+              } : undefined,
             });
+
+            successCount++;
+
+            // Yield to browser every 5 layers to prevent freezing
+            if (i > 0 && i % 5 === 0) {
+              await new Promise(resolve => setTimeout(resolve, 0));
+            }
           } catch (captureError) {
-            console.warn(`Failed to capture WMS layer ${gradedLayer.layer_id}:`, captureError);
+            console.warn(`Failed to capture WMS layer ${layerId}:`, captureError);
+            failCount++;
           }
         }
 
-        console.log(`WMS capture complete: ${fullMapCaptures.length} layers captured`);
+        console.log(`WMS capture complete: ${successCount} successful, ${failCount} failed`);
       }
 
       setProgress(78);
