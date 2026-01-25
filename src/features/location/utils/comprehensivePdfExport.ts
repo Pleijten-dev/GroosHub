@@ -1022,7 +1022,7 @@ class PdfBuilder {
 
   /**
    * Add a cube visualization page for a scenario with persona cards
-   * Layout: Cube at top, 4 persona cards below in 2x2 grid
+   * Layout: Title, Introduction text, then Cube (left) + Doelgroepen list (right)
    */
   addCubeVisualizationPage(
     cubeCapture: CubeCaptureResult,
@@ -1046,24 +1046,35 @@ class PdfBuilder {
     this.addNewPage();
 
     // Title
-    this.pdf.setFontSize(14);
+    this.pdf.setFontSize(16);
     this.pdf.setTextColor(71, 118, 56);
     this.pdf.setFont('helvetica', 'bold');
     this.pdf.text(scenarioTitle, MARGIN, this.currentY);
-    this.currentY += 6;
+    this.currentY += 10;
 
-    // Description (compact)
+    // Introduction text (ABOVE doelgroepen) - full description in a box
+    this.pdf.setFillColor(248, 250, 247); // Light green-gray background
+    this.pdf.setDrawColor(71, 118, 56);
+    this.pdf.setLineWidth(0.3);
+
     this.pdf.setFont('helvetica', 'normal');
-    this.pdf.setFontSize(8);
-    this.pdf.setTextColor(80, 80, 80);
-    const descLines = this.pdf.splitTextToSize(scenarioDescription, CONTENT_WIDTH);
-    this.pdf.text(descLines.slice(0, 2), MARGIN, this.currentY);
-    this.currentY += 8;
+    this.pdf.setFontSize(9);
+    this.pdf.setTextColor(55, 65, 81);
+    const descLines = this.pdf.splitTextToSize(scenarioDescription, CONTENT_WIDTH - 10);
+    const descBoxHeight = Math.max(descLines.length * 4.5 + 8, 20);
 
-    // Cube size - smaller to fit cards below
-    const cubeSize = 80;
-    const cubeX = MARGIN + (CONTENT_WIDTH - cubeSize) / 2;
+    this.pdf.roundedRect(MARGIN, this.currentY - 2, CONTENT_WIDTH, descBoxHeight, 2, 2, 'FD');
+    this.pdf.text(descLines, MARGIN + 5, this.currentY + 4);
+    this.currentY += descBoxHeight + 8;
 
+    // Side-by-side layout: Cube (left ~45%) + Doelgroepen (right ~55%)
+    const cubeSize = 70; // Slightly smaller to fit side-by-side
+    const cubeX = MARGIN;
+    const doelgroepenX = MARGIN + cubeSize + 10;
+    const doelgroepenWidth = CONTENT_WIDTH - cubeSize - 10;
+    const sectionStartY = this.currentY;
+
+    // Add cube image (left side, white background)
     try {
       this.pdf.addImage(
         cubeCapture.dataUrl, 'PNG',
@@ -1071,22 +1082,47 @@ class PdfBuilder {
         undefined, 'FAST'
       );
     } catch {
-      this.pdf.setFillColor(245, 245, 245);
+      this.pdf.setFillColor(250, 250, 250);
       this.pdf.rect(cubeX, this.currentY, cubeSize, cubeSize, 'F');
     }
 
-    this.currentY += cubeSize + 5;
+    // Doelgroepen section (right side)
+    let doelgroepenY = sectionStartY;
 
-    // Cube explanation (compact)
+    // Doelgroepen header
+    this.pdf.setFontSize(11);
+    this.pdf.setTextColor(71, 118, 56);
+    this.pdf.setFont('helvetica', 'bold');
+    this.pdf.text('Doelgroepen', doelgroepenX, doelgroepenY + 5);
+    doelgroepenY += 10;
+
+    // List persona names
+    if (scenarioPersonas && scenarioPersonas.length > 0) {
+      this.pdf.setFont('helvetica', 'normal');
+      this.pdf.setFontSize(9);
+      this.pdf.setTextColor(55, 65, 81);
+
+      scenarioPersonas.slice(0, 4).forEach((persona) => {
+        this.pdf.text(`• ${persona.name}`, doelgroepenX + 2, doelgroepenY + 3);
+        doelgroepenY += 6;
+      });
+    }
+
+    // Update Y position to after the cube/doelgroepen section
+    this.currentY = sectionStartY + cubeSize + 8;
+
+    // Cube explanation (compact, below cube)
     this.pdf.setFontSize(7);
     this.pdf.setTextColor(100, 100, 100);
+    this.pdf.setFont('helvetica', 'italic');
     const explainText = this.locale === 'nl'
       ? 'Kubus: Inkomen (X), Leeftijd (Y), Huishoudtype (Z). Gekleurde blokken = geselecteerde doelgroepen.'
       : 'Cube: Income (X), Age (Y), Household type (Z). Colored blocks = selected target groups.';
     this.pdf.text(explainText, MARGIN, this.currentY);
-    this.currentY += 8;
+    this.pdf.setFont('helvetica', 'normal');
+    this.currentY += 10;
 
-    // Add persona cards in 2x2 grid below cube
+    // Add persona cards in 2x2 grid below
     if (scenarioPersonas && scenarioPersonas.length > 0) {
       this.addCompactPersonaCards(scenarioPersonas.slice(0, 4));
     }

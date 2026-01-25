@@ -57,8 +57,9 @@ export async function captureCubeVisualization(
     scene.background = new THREE.Color(backgroundColor);
   }
 
-  // Create orthographic camera - increased zoom to fill more of the canvas
-  const zoom = 200; // Increased from 80 to make cube larger in frame
+  // Create orthographic camera - zoom value controls apparent size (higher = larger)
+  // 160 gives ~20% zoom out compared to 200, showing more context
+  const zoom = 160;
   const aspect = width / height;
   const camera = new THREE.OrthographicCamera(
     -width / zoom * aspect,
@@ -159,9 +160,9 @@ function addSmallCube(
   const mesh = new THREE.Mesh(geometry, material);
   group.add(mesh);
 
-  // Edge lines
+  // Edge lines (dark color for visibility on white background)
   const edgesGeometry = new THREE.EdgesGeometry(geometry);
-  const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+  const lineMaterial = new THREE.LineBasicMaterial({ color: 0x333333 });
   const edges = new THREE.LineSegments(edgesGeometry, lineMaterial);
   group.add(edges);
 
@@ -226,7 +227,8 @@ function addBoundingCube(scene: THREE.Scene, size: number): void {
     new THREE.BufferAttribute(new Float32Array(points), 3)
   );
 
-  const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+  // Grid lines (dark color for visibility on white background)
+  const lineMaterial = new THREE.LineBasicMaterial({ color: 0x666666 });
   const lines = new THREE.LineSegments(lineGeometry, lineMaterial);
   scene.add(lines);
 
@@ -234,8 +236,8 @@ function addBoundingCube(scene: THREE.Scene, size: number): void {
   const boxGeometry = new THREE.BoxGeometry(size, size, size);
   const boxMaterial = new THREE.MeshStandardMaterial({
     transparent: true,
-    opacity: 0.1,
-    color: 0xffffff,
+    opacity: 0.05,
+    color: 0x888888,
     side: THREE.BackSide,
   });
   const box = new THREE.Mesh(boxGeometry, boxMaterial);
@@ -267,7 +269,7 @@ export async function captureAllScenarioCubes(
   const captureOptions = {
     width: options?.width || 400,
     height: options?.height || 400,
-    backgroundColor: options?.backgroundColor || '#1a1a2e',
+    backgroundColor: options?.backgroundColor || '#ffffff',
   };
 
   const [scenario1, scenario2, scenario3] = await Promise.all([
