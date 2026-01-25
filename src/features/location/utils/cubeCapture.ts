@@ -42,20 +42,22 @@ export async function captureCubeVisualization(
     backgroundColor = null,
   } = options;
 
-  // Create renderer
+  // Create renderer - disable alpha for solid background
   const renderer = new THREE.WebGLRenderer({
     antialias: true,
-    alpha: true,
+    alpha: false, // Solid background, no transparency
     preserveDrawingBuffer: true,
   });
   renderer.setSize(width, height);
   renderer.setPixelRatio(2); // Higher quality
 
-  // Create scene
+  // Set clear color to white explicitly
+  const bgColor = backgroundColor || '#ffffff';
+  renderer.setClearColor(new THREE.Color(bgColor), 1.0);
+
+  // Create scene with white background
   const scene = new THREE.Scene();
-  if (backgroundColor) {
-    scene.background = new THREE.Color(backgroundColor);
-  }
+  scene.background = new THREE.Color(bgColor);
 
   // Create orthographic camera - zoom value controls apparent size (higher = larger)
   // 160 gives ~20% zoom out compared to 200, showing more context
