@@ -1067,11 +1067,12 @@ class PdfBuilder {
     this.pdf.text(descLines, MARGIN + 5, this.currentY + 4);
     this.currentY += descBoxHeight + 8;
 
-    // Side-by-side layout: Cube (left ~45%) + Doelgroepen (right ~55%)
-    const cubeSize = 70; // Slightly smaller to fit side-by-side
+    // Side-by-side layout: Cube (left ~25%) + Doelgroepen (right ~75%)
+    // Cube reduced by 40% from 70mm to 42mm
+    const cubeSize = 42;
     const cubeX = MARGIN;
-    const doelgroepenX = MARGIN + cubeSize + 10;
-    const doelgroepenWidth = CONTENT_WIDTH - cubeSize - 10;
+    const doelgroepenX = MARGIN + cubeSize + 8;
+    const doelgroepenWidth = CONTENT_WIDTH - cubeSize - 8;
     const sectionStartY = this.currentY;
 
     // Add cube image (left side, white background)
@@ -1885,7 +1886,7 @@ export async function generateComprehensivePdf(
         ? positionsToCubeIndices(data.scenarios.customScenario)
         : undefined;
 
-      // Capture all scenario cubes
+      // Capture all scenario cubes (reduced size to match 40% smaller display)
       const cubeCaptures = await captureAllScenarioCubes(
         {
           scenario1: cubeIndicesScenario1,
@@ -1894,7 +1895,7 @@ export async function generateComprehensivePdf(
           customScenario: cubeIndicesCustom,
         },
         data.cubeColors,
-        { width: 800, height: 800, backgroundColor: '#ffffff' }
+        { width: 500, height: 500, backgroundColor: '#ffffff' }
       );
 
       // Scenario 1
