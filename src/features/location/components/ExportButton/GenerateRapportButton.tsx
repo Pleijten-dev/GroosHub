@@ -24,6 +24,7 @@ import {
 } from '../../utils/unifiedRapportGenerator';
 import { exportCompactForLLM, type CompactLocationExport } from '../../utils/jsonExportCompact';
 import { captureAllScenarioCubes } from '../../utils/cubeCapture';
+import { captureRegisteredPVEBar } from '../../utils/pveCapture';
 import type { UnifiedLocationData } from '../../data/aggregator/multiLevelAggregator';
 import type { AmenityMultiCategoryResponse } from '../../data/sources/google-places/types';
 import type { PersonaScore } from '../../utils/targetGroupScoring';
@@ -491,6 +492,21 @@ export function GenerateRapportButton({
       }
       console.log('=== END CUBE CAPTURE DEBUG ===');
 
+      // Capture PVE stacked bar visualization
+      let pveBarImage: string | undefined;
+      try {
+        console.log('Capturing PVE stacked bar...');
+        const capturedPveBar = await captureRegisteredPVEBar({ scale: 2 });
+        if (capturedPveBar) {
+          pveBarImage = capturedPveBar;
+          console.log('PVE bar captured successfully, length:', capturedPveBar.length);
+        } else {
+          console.warn('PVE bar element not registered for capture');
+        }
+      } catch (err) {
+        console.warn('Failed to capture PVE bar:', err);
+      }
+
       setProgress(70);
 
       // Add images and housing data to personas
@@ -659,6 +675,7 @@ export function GenerateRapportButton({
           locale,
           includeMapAnalysis: mapCaptures.length > 0 || fullMapCaptures.length > 0,
           includeCubeVisualizations: Object.keys(cubeCaptures).length > 0,
+          pveBarImage,
         },
         fullMapCaptures
       );

@@ -304,6 +304,8 @@ export interface UnifiedRapportConfig {
   locale: 'nl' | 'en';
   includeMapAnalysis: boolean;
   includeCubeVisualizations: boolean;
+  /** Captured screenshot of the PVE stacked bar (base64 data URL) */
+  pveBarImage?: string;
 }
 
 // ============================================================================
@@ -3049,7 +3051,7 @@ export async function generateUnifiedRapport(
   builder.addScenarioOverview(scenarioOverviewText, scenariosSummary);
 
   // 5. PVE Section
-  builder.addPVESection(compactData.pve);
+  builder.addPVESection(compactData.pve, config.pveBarImage);
 
   // 6-9. Scenario Sections
   const cubeKeys = ['scenario1', 'scenario2', 'scenario3', 'customScenario'];

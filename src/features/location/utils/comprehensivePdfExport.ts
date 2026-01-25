@@ -73,6 +73,8 @@ export interface ComprehensivePdfData {
       communal: number;
       offices: number;
     };
+    /** Captured image of the PVE stacked bar (base64 data URL) */
+    capturedBarImage?: string;
   } | null;
   /** LLM-generated introduction text */
   introductionText?: string;
@@ -1484,7 +1486,7 @@ class PdfBuilder {
   addPVESection(pveData: ComprehensivePdfData['pveData']): void {
     this.addSubsectionTitle(this.t.pveSection);
 
-    if (!pveData || (!pveData.totalM2 && !pveData.percentages)) {
+    if (!pveData || (!pveData.totalM2 && !pveData.percentages && !pveData.capturedBarImage)) {
       const noData = this.locale === 'nl'
         ? 'Geen Programma van Eisen data beschikbaar.'
         : 'No Program of Requirements data available.';
@@ -1518,58 +1520,141 @@ class PdfBuilder {
       this.currentY += 6;
     }
 
-    // Allocations table
-    if (pveData.percentages) {
+    // If we have a captured bar image, use it instead of drawing programmatically
+    if (pveData.capturedBarImage) {
       this.currentY += 4;
       this.pdf.setFontSize(10);
       this.pdf.setTextColor(71, 118, 56);
       this.pdf.text(this.t.pveAllocations, MARGIN, this.currentY);
-      this.currentY += 6;
+      this.currentY += 8;
 
-      const allocations = [
-        { label: this.t.apartments, value: pveData.percentages.apartments },
-        { label: this.t.commercial, value: pveData.percentages.commercial },
-        { label: this.t.hospitality, value: pveData.percentages.hospitality },
-        { label: this.t.social, value: pveData.percentages.social },
-        { label: this.t.communal, value: pveData.percentages.communal },
-        { label: this.t.offices, value: pveData.percentages.offices },
-      ].filter(a => a.value > 0);
+      // Add the captured stacked bar image
+      // The image is wide (aspect ratio ~10:1), so use full content width
+      const imageWidth = CONTENT_WIDTH;
+      const imageHeight = imageWidth / 10; // Approximate aspect ratio of the bar
+      this.checkPageBreak(imageHeight + 10);
 
-      // Draw simple bar chart for allocations
-      const barHeight = 10;
-      const maxBarWidth = CONTENT_WIDTH - 70;
+      try {
+        this.pdf.addImage(
+          pveData.capturedBarImage,
+          'PNG',
+          MARGIN,
+          this.currentY,
+          imageWidth,
+          imageHeight
+        );
+        this.currentY += imageHeight + 8;
+      } catch (error) {
+        console.error('Failed to add captured PVE bar image:', error);
+        // Fall back to text-based display
+        this.addPVEAllocationsFallback(pveData);
+      }
 
-      allocations.forEach(alloc => {
-        this.checkPageBreak(barHeight + 4);
-
-        // Label
-        this.pdf.setFontSize(9);
-        this.pdf.setTextColor(50, 50, 50);
-        this.pdf.text(alloc.label, MARGIN, this.currentY);
-
-        // Bar background
-        this.pdf.setFillColor(240, 240, 240);
-        this.pdf.roundedRect(MARGIN + 55, this.currentY - 5, maxBarWidth, barHeight, 2, 2, 'F');
-
-        // Bar fill (percentage based)
-        const barWidth = (alloc.value / 100) * maxBarWidth;
-        this.pdf.setFillColor(71, 118, 56);
-        this.pdf.roundedRect(MARGIN + 55, this.currentY - 5, barWidth, barHeight, 2, 2, 'F');
-
-        // Percentage and m² value
-        this.pdf.setFontSize(8);
-        this.pdf.setTextColor(50, 50, 50);
-        const m2Value = pveData.totalM2 ? Math.round((alloc.value / 100) * pveData.totalM2) : 0;
-        const valueText = pveData.totalM2
-          ? `${alloc.value}% (${m2Value.toLocaleString()} m²)`
-          : `${alloc.value}%`;
-        this.pdf.text(valueText, MARGIN + 55 + maxBarWidth + 3, this.currentY);
-
-        this.currentY += barHeight + 4;
-      });
+      // Add allocation breakdown as text below the image
+      if (pveData.percentages) {
+        this.addPVEAllocationsText(pveData);
+      }
+    } else if (pveData.percentages) {
+      // Fall back to programmatic rendering
+      this.addPVEAllocationsFallback(pveData);
     }
 
     this.currentY += 8;
+  }
+
+  /**
+   * Add PVE allocations as text breakdown (used below captured image)
+   */
+  private addPVEAllocationsText(pveData: NonNullable<ComprehensivePdfData['pveData']>): void {
+    if (!pveData.percentages) return;
+
+    const allocations = [
+      { label: this.t.apartments, value: pveData.percentages.apartments },
+      { label: this.t.commercial, value: pveData.percentages.commercial },
+      { label: this.t.hospitality, value: pveData.percentages.hospitality },
+      { label: this.t.social, value: pveData.percentages.social },
+      { label: this.t.communal, value: pveData.percentages.communal },
+      { label: this.t.offices, value: pveData.percentages.offices },
+    ].filter(a => a.value > 0);
+
+    // Compact two-column layout for allocation text
+    this.pdf.setFontSize(8);
+    this.pdf.setTextColor(80, 80, 80);
+
+    const colWidth = CONTENT_WIDTH / 2;
+    allocations.forEach((alloc, idx) => {
+      const col = idx % 2;
+      const row = Math.floor(idx / 2);
+
+      if (col === 0 && row > 0) {
+        this.currentY += 5;
+      }
+
+      const x = MARGIN + col * colWidth;
+      const m2Value = pveData.totalM2 ? Math.round((alloc.value / 100) * pveData.totalM2) : 0;
+      const valueText = pveData.totalM2
+        ? `${alloc.label}: ${alloc.value.toFixed(1)}% (${m2Value.toLocaleString()} m²)`
+        : `${alloc.label}: ${alloc.value.toFixed(1)}%`;
+
+      this.pdf.text(valueText, x, this.currentY);
+    });
+
+    this.currentY += 5;
+  }
+
+  /**
+   * Fallback PVE allocations rendering (bar chart style)
+   */
+  private addPVEAllocationsFallback(pveData: NonNullable<ComprehensivePdfData['pveData']>): void {
+    if (!pveData.percentages) return;
+
+    this.currentY += 4;
+    this.pdf.setFontSize(10);
+    this.pdf.setTextColor(71, 118, 56);
+    this.pdf.text(this.t.pveAllocations, MARGIN, this.currentY);
+    this.currentY += 6;
+
+    const allocations = [
+      { label: this.t.apartments, value: pveData.percentages.apartments },
+      { label: this.t.commercial, value: pveData.percentages.commercial },
+      { label: this.t.hospitality, value: pveData.percentages.hospitality },
+      { label: this.t.social, value: pveData.percentages.social },
+      { label: this.t.communal, value: pveData.percentages.communal },
+      { label: this.t.offices, value: pveData.percentages.offices },
+    ].filter(a => a.value > 0);
+
+    // Draw simple bar chart for allocations
+    const barHeight = 10;
+    const maxBarWidth = CONTENT_WIDTH - 70;
+
+    allocations.forEach(alloc => {
+      this.checkPageBreak(barHeight + 4);
+
+      // Label
+      this.pdf.setFontSize(9);
+      this.pdf.setTextColor(50, 50, 50);
+      this.pdf.text(alloc.label, MARGIN, this.currentY);
+
+      // Bar background
+      this.pdf.setFillColor(240, 240, 240);
+      this.pdf.roundedRect(MARGIN + 55, this.currentY - 5, maxBarWidth, barHeight, 2, 2, 'F');
+
+      // Bar fill (percentage based)
+      const barWidth = (alloc.value / 100) * maxBarWidth;
+      this.pdf.setFillColor(71, 118, 56);
+      this.pdf.roundedRect(MARGIN + 55, this.currentY - 5, barWidth, barHeight, 2, 2, 'F');
+
+      // Percentage and m² value
+      this.pdf.setFontSize(8);
+      this.pdf.setTextColor(50, 50, 50);
+      const m2Value = pveData.totalM2 ? Math.round((alloc.value / 100) * pveData.totalM2) : 0;
+      const valueText = pveData.totalM2
+        ? `${alloc.value.toFixed(1)}% (${m2Value.toLocaleString()} m²)`
+        : `${alloc.value.toFixed(1)}%`;
+      this.pdf.text(valueText, MARGIN + 55 + maxBarWidth + 3, this.currentY);
+
+      this.currentY += barHeight + 4;
+    });
   }
 
   /**
