@@ -585,7 +585,8 @@ export class UnifiedRapportBuilder {
   }
 
   /**
-   * Draw a filled arc segment using small triangles
+   * Draw a filled arc segment as a single continuous path
+   * Uses path drawing to avoid visible lines between triangles
    */
   private drawFilledArc(
     centerX: number,
@@ -596,39 +597,63 @@ export class UnifiedRapportBuilder {
     endAngle: number,
     color: [number, number, number]
   ): void {
-    // Set fill color only - no stroke to prevent visible lines between triangles
+    // Set fill color and explicitly disable stroke
     this.setColor(color, 'fill');
-    // Explicitly set draw state to null/transparent by using same color and zero width
-    this.pdf.setDrawColor(color[0], color[1], color[2]);
-    this.pdf.setLineWidth(0.001); // Effectively invisible
+    this.setColor(color, 'draw'); // Set stroke to same color as fill
+    this.pdf.setLineWidth(0); // Zero line width to ensure no visible stroke
 
-    const steps = Math.max(40, Math.ceil((endAngle - startAngle) * 30)); // More steps for smoother edges
+    // Calculate points for the arc path
+    const steps = Math.max(60, Math.ceil((endAngle - startAngle) * 40)); // High resolution for smooth edges
     const angleStep = (endAngle - startAngle) / steps;
 
-    for (let i = 0; i < steps; i++) {
-      const a1 = startAngle + i * angleStep;
-      const a2 = startAngle + (i + 1) * angleStep;
+    // Build outer arc points
+    const outerPoints: { x: number; y: number }[] = [];
+    for (let i = 0; i <= steps; i++) {
+      const angle = startAngle + i * angleStep;
+      outerPoints.push({
+        x: centerX + Math.cos(angle) * outerRadius,
+        y: centerY + Math.sin(angle) * outerRadius,
+      });
+    }
 
-      // Outer points
-      const x1 = centerX + Math.cos(a1) * outerRadius;
-      const y1 = centerY + Math.sin(a1) * outerRadius;
-      const x2 = centerX + Math.cos(a2) * outerRadius;
-      const y2 = centerY + Math.sin(a2) * outerRadius;
-
-      if (innerRadius > 0) {
-        // Inner points for donut
-        const x3 = centerX + Math.cos(a2) * innerRadius;
-        const y3 = centerY + Math.sin(a2) * innerRadius;
-        const x4 = centerX + Math.cos(a1) * innerRadius;
-        const y4 = centerY + Math.sin(a1) * innerRadius;
-
-        // Draw quadrilateral as two triangles (fill only, no stroke)
-        this.pdf.triangle(x1, y1, x2, y2, x3, y3, 'F');
-        this.pdf.triangle(x1, y1, x3, y3, x4, y4, 'F');
-      } else {
-        // Triangle to center for full pie
-        this.pdf.triangle(centerX, centerY, x1, y1, x2, y2, 'F');
+    if (innerRadius > 0) {
+      // Build inner arc points (reverse direction)
+      const innerPoints: { x: number; y: number }[] = [];
+      for (let i = steps; i >= 0; i--) {
+        const angle = startAngle + i * angleStep;
+        innerPoints.push({
+          x: centerX + Math.cos(angle) * innerRadius,
+          y: centerY + Math.sin(angle) * innerRadius,
+        });
       }
+
+      // Draw as a single filled polygon (donut segment)
+      // Use lines() method with closed path and fill
+      const allPoints = [...outerPoints, ...innerPoints];
+      const linesArray: [number, number][] = allPoints.map(p => [p.x, p.y]);
+
+      // Draw filled polygon using lines with 'F' style (fill only, no stroke)
+      this.pdf.lines(
+        linesArray.slice(1).map((p, i) => [p[0] - linesArray[i][0], p[1] - linesArray[i][1]]),
+        linesArray[0][0],
+        linesArray[0][1],
+        [1, 1],
+        'F', // Fill only - no stroke
+        true // closed path
+      );
+    } else {
+      // Full pie segment - connect to center
+      const allPoints = [{ x: centerX, y: centerY }, ...outerPoints];
+      const linesArray: [number, number][] = allPoints.map(p => [p.x, p.y]);
+
+      this.pdf.lines(
+        linesArray.slice(1).map((p, i) => [p[0] - linesArray[i][0], p[1] - linesArray[i][1]]),
+        linesArray[0][0],
+        linesArray[0][1],
+        [1, 1],
+        'F', // Fill only - no stroke
+        true // closed path
+      );
     }
   }
 
@@ -1121,48 +1146,125 @@ export class UnifiedRapportBuilder {
     });
   }
 
-  // Helper method to draw PVE stacked bar chart
+  // Helper method to draw PVE stacked bar chart (styled to match website)
   private drawPVEChart(
     categories: [string, { percentage: number; m2: number; description: string }][],
     colors: [number, number, number][]
   ): void {
-    const chartHeight = 30;
+    const chartHeight = 40; // Taller bar for better visual impact
     const chartWidth = CONTENT_WIDTH;
+    const borderRadius = 4;
     let chartX = MARGIN;
 
-    // Draw stacked bar
+    // Draw rounded background (light grey)
+    this.setColor([240, 240, 240], 'fill');
+    this.pdf.roundedRect(MARGIN, this.currentY, chartWidth, chartHeight, borderRadius, borderRadius, 'F');
+
+    // Draw each segment (with proper clip to rounded corners)
     categories.forEach(([key, value], index) => {
+      if (value.percentage === 0) return;
+
       const barWidth = (value.percentage / 100) * chartWidth;
-      this.setColor(colors[index % colors.length], 'fill');
-      this.pdf.rect(chartX, this.currentY, barWidth, chartHeight, 'F');
-      chartX += barWidth;
-    });
+      const color = colors[index % colors.length];
+      this.setColor(color, 'fill');
 
-    // Add labels on top of each section
-    chartX = MARGIN;
-    categories.forEach(([key, value], index) => {
-      const barWidth = (value.percentage / 100) * chartWidth;
-      const categoryName = this.t[key as keyof typeof this.t] || key;
-
-      // Label above the bar section
-      this.pdf.setFontSize(7);
-      this.setColor(TEXT_COLOR);
-      this.pdf.setFont('helvetica', 'bold');
-
-      if (barWidth > 15) {
-        // Centered label with percentage
-        const labelText = `${categoryName} (${value.percentage}%)`;
-        const labelWidth = this.pdf.getTextWidth(labelText);
-        const labelX = chartX + (barWidth - labelWidth) / 2;
-
-        // Draw label above bar
-        this.pdf.text(labelText, Math.max(labelX, chartX + 2), this.currentY - 2);
+      // For first segment, apply left rounded corners
+      if (index === 0) {
+        // Draw rounded rect for first segment
+        this.pdf.roundedRect(chartX, this.currentY, barWidth + 2, chartHeight, borderRadius, borderRadius, 'F');
+        // Fill the right side to make it flat (overlap with next segment)
+        this.pdf.rect(chartX + barWidth - 2, this.currentY, 4, chartHeight, 'F');
+      } else if (chartX + barWidth >= MARGIN + chartWidth - 1) {
+        // Last segment - apply right rounded corners
+        this.pdf.roundedRect(chartX - 2, this.currentY, barWidth + 2, chartHeight, borderRadius, borderRadius, 'F');
+        // Fill the left side to make it flat
+        this.pdf.rect(chartX - 2, this.currentY, 4, chartHeight, 'F');
+      } else {
+        // Middle segments - no rounded corners
+        this.pdf.rect(chartX, this.currentY, barWidth, chartHeight, 'F');
       }
 
       chartX += barWidth;
     });
 
-    this.currentY += chartHeight;
+    // Draw white divider lines between segments
+    chartX = MARGIN;
+    this.setColor(WHITE, 'draw');
+    this.pdf.setLineWidth(0.8);
+    categories.forEach(([key, value], index) => {
+      if (value.percentage === 0) return;
+      const barWidth = (value.percentage / 100) * chartWidth;
+      chartX += barWidth;
+
+      // Don't draw line after last segment
+      if (index < categories.length - 1 && chartX < MARGIN + chartWidth - 1) {
+        this.pdf.line(chartX, this.currentY + 2, chartX, this.currentY + chartHeight - 2);
+      }
+    });
+
+    // Draw outer border (subtle)
+    this.setColor(BORDER_COLOR, 'draw');
+    this.pdf.setLineWidth(0.5);
+    this.pdf.roundedRect(MARGIN, this.currentY, chartWidth, chartHeight, borderRadius, borderRadius, 'D');
+
+    this.currentY += chartHeight + 8;
+
+    // Draw labels below the bar (styled like website)
+    const labelHeight = 45;
+    chartX = MARGIN;
+
+    categories.forEach(([key, value], index) => {
+      if (value.percentage === 0) return;
+
+      const barWidth = (value.percentage / 100) * chartWidth;
+      const categoryName = this.t[key as keyof typeof this.t] || key;
+      const color = colors[index % colors.length];
+      const centerX = chartX + barWidth / 2;
+
+      // Vertical connector line from bar to label
+      this.setColor(BORDER_COLOR, 'draw');
+      this.pdf.setLineWidth(0.3);
+      this.pdf.line(centerX, this.currentY - 6, centerX, this.currentY);
+
+      // Only show full label if segment is wide enough
+      if (barWidth > 12) {
+        // Category name (bold)
+        this.pdf.setFontSize(8);
+        this.setColor(TEXT_COLOR);
+        this.pdf.setFont('helvetica', 'bold');
+        const nameWidth = this.pdf.getTextWidth(categoryName);
+        const maxLabelWidth = barWidth - 4;
+
+        // Truncate name if needed
+        let displayName = categoryName;
+        if (nameWidth > maxLabelWidth) {
+          displayName = categoryName.substring(0, Math.floor(categoryName.length * (maxLabelWidth / nameWidth))) + '...';
+        }
+        this.pdf.text(displayName, centerX, this.currentY + 4, { align: 'center' });
+
+        // Percentage (normal)
+        this.pdf.setFontSize(9);
+        this.pdf.setFont('helvetica', 'bold');
+        this.setColor(color, 'text');
+        this.pdf.text(`${value.percentage.toFixed(1)}%`, centerX, this.currentY + 11, { align: 'center' });
+
+        // m² value (smaller, muted)
+        this.pdf.setFontSize(7);
+        this.pdf.setFont('helvetica', 'normal');
+        this.setColor(MUTED_COLOR);
+        this.pdf.text(`${value.m2.toLocaleString()} m²`, centerX, this.currentY + 17, { align: 'center' });
+      } else if (barWidth > 6) {
+        // Compact label for narrow segments
+        this.pdf.setFontSize(7);
+        this.setColor(color, 'text');
+        this.pdf.setFont('helvetica', 'bold');
+        this.pdf.text(`${value.percentage.toFixed(0)}%`, centerX, this.currentY + 8, { align: 'center' });
+      }
+
+      chartX += barWidth;
+    });
+
+    this.currentY += labelHeight;
   }
 
   // ==========================================================================
@@ -1188,14 +1290,15 @@ export class UnifiedRapportBuilder {
     this.pdf.text(scenarioTitle, MARGIN, this.currentY);
     this.currentY += 10;
 
-    // Two-column layout: Cube on left, info on right
-    const leftColWidth = 85;
-    const rightColWidth = CONTENT_WIDTH - leftColWidth - 10;
-    const rightColX = MARGIN + leftColWidth + 10;
+    // Two-column layout: Cube on left, summary + personas on right
+    const cubeSize = 55; // Reduced from 80mm (about 30% smaller)
+    const leftColWidth = cubeSize + 5;
+    const rightColWidth = CONTENT_WIDTH - leftColWidth - 8;
+    const rightColX = MARGIN + leftColWidth + 8;
+    const savedY = this.currentY;
 
     // Cube visualization (left)
     if (cubeCapture) {
-      const cubeSize = 80;
       try {
         this.pdf.addImage(
           cubeCapture.dataUrl, 'PNG',
@@ -1210,39 +1313,60 @@ export class UnifiedRapportBuilder {
         this.setColor(MUTED_COLOR);
         this.pdf.text('Cube visualization', MARGIN + 10, this.currentY + cubeSize / 2);
       }
+    } else {
+      // Draw placeholder if no cube
+      this.setColor(LIGHT_BG, 'fill');
+      this.pdf.rect(MARGIN, this.currentY, cubeSize, cubeSize, 'F');
+      this.setColor(BORDER_COLOR, 'draw');
+      this.pdf.setLineWidth(0.3);
+      this.pdf.rect(MARGIN, this.currentY, cubeSize, cubeSize, 'D');
     }
 
-    // Scenario info (right)
+    // Right column content (next to cube)
     let rightY = this.currentY;
 
-    // Target personas header
-    this.pdf.setFontSize(11);
+    // Summary/Introduction (right of cube) - THIS IS THE KEY CHANGE
+    this.pdf.setFontSize(9);
     this.setColor(TEXT_COLOR);
+    this.pdf.setFont('helvetica', 'normal');
+    const summaryLines = this.wrapText(scenario.summary, rightColWidth);
+    const maxSummaryLines = Math.min(summaryLines.length, 6); // Limit to fit next to cube
+    for (let i = 0; i < maxSummaryLines; i++) {
+      this.pdf.text(summaryLines[i], rightColX, rightY);
+      rightY += 4.5;
+    }
+    rightY += 3;
+
+    // Target personas header (below summary, still next to cube)
+    this.pdf.setFontSize(10);
+    this.setColor(PRIMARY_COLOR);
     this.pdf.setFont('helvetica', 'bold');
     this.pdf.text(this.t.targetGroups, rightColX, rightY);
-    rightY += 6;
+    rightY += 5;
 
     // List target personas (no bullets)
     this.pdf.setFontSize(9);
+    this.setColor(TEXT_COLOR);
     this.pdf.setFont('helvetica', 'normal');
     scenario.target_personas.forEach((persona) => {
       this.pdf.text(persona, rightColX, rightY);
-      rightY += 5;
+      rightY += 4.5;
     });
 
-    // Move past cube
-    this.currentY += 85;
+    // Move past the cube (whichever is taller: cube or right column content)
+    this.currentY = Math.max(savedY + cubeSize + 5, rightY + 3);
 
-    // Summary
-    this.pdf.setFontSize(10);
-    this.setColor(TEXT_COLOR);
-    this.pdf.setFont('helvetica', 'normal');
-    const summaryLines = this.wrapText(scenario.summary, CONTENT_WIDTH);
-    summaryLines.forEach((line) => {
-      this.pdf.text(line, MARGIN, this.currentY);
+    // If summary was truncated, show the rest below the cube
+    if (summaryLines.length > maxSummaryLines) {
+      this.pdf.setFontSize(9);
+      this.setColor(TEXT_COLOR);
+      this.pdf.setFont('helvetica', 'normal');
+      for (let i = maxSummaryLines; i < summaryLines.length; i++) {
+        this.pdf.text(summaryLines[i], MARGIN, this.currentY);
+        this.currentY += 4.5;
+      }
       this.currentY += 5;
-    });
-    this.currentY += 8;
+    }
 
     // Key insights
     if (scenario.key_insights.length > 0) {

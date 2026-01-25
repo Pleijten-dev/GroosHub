@@ -247,29 +247,41 @@ export function GenerateRapportButton({
 
   /**
    * Pre-fetch all persona images for use in PDF
+   * Note: Some persona images are 5-9MB, so timeout is generous
    */
   const fetchAllPersonaImages = async (personaIds: string[]): Promise<Record<string, string>> => {
     const images: Record<string, string> = {};
 
     const fetchWithTimeout = async (id: string): Promise<{ id: string; dataUrl: string | undefined }> => {
       try {
-        const timeoutPromise = new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), 2000));
+        // 15 second timeout - some images are 9MB+
+        const timeoutPromise = new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), 15000));
         const fetchPromise = fetchPersonaImage(id);
         const dataUrl = await Promise.race([fetchPromise, timeoutPromise]);
+        if (!dataUrl) {
+          console.warn(`Persona image timed out or failed for: ${id}`);
+        }
         return { id, dataUrl };
-      } catch {
+      } catch (err) {
+        console.warn(`Failed to fetch persona image for ${id}:`, err);
         return { id, dataUrl: undefined };
       }
     };
 
-    const results = await Promise.all(personaIds.map(fetchWithTimeout));
+    // Fetch in batches of 5 to avoid overwhelming the browser
+    const batchSize = 5;
+    for (let i = 0; i < personaIds.length; i += batchSize) {
+      const batch = personaIds.slice(i, i + batchSize);
+      const batchResults = await Promise.all(batch.map(fetchWithTimeout));
 
-    results.forEach(({ id, dataUrl }) => {
-      if (dataUrl) {
-        images[id] = dataUrl;
-      }
-    });
+      batchResults.forEach(({ id, dataUrl }) => {
+        if (dataUrl) {
+          images[id] = dataUrl;
+        }
+      });
+    }
 
+    console.log(`Successfully loaded ${Object.keys(images).length}/${personaIds.length} persona images`);
     return images;
   };
 
@@ -455,7 +467,7 @@ export function GenerateRapportButton({
               customScenario: cubeIndicesCustom,
             },
             cubeColors,
-            { width: 400, height: 400, backgroundColor: '#1a1a2e' }
+            { width: 400, height: 400, backgroundColor: '#ffffff' }
           );
           console.log('Cube capture result keys:', Object.keys(cubeCaptureResult));
           console.log('scenario1 dataUrl length:', cubeCaptureResult.scenario1?.dataUrl?.length);
