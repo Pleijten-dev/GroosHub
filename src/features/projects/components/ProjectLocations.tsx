@@ -181,6 +181,7 @@ export function ProjectLocations({ projectId, locale }: ProjectLocationsProps) {
 
       sessionStorage.setItem('grooshub_load_snapshot', JSON.stringify({
         snapshotId: snapshotData.id, // Include snapshot ID for WMS grading
+        projectId: snapshotData.project_id, // Include project ID for AI assistant chats
         address: snapshotData.address,
         locationData: {
           // Location data with proper coordinate nesting

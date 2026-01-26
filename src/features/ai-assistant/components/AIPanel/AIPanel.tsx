@@ -9,12 +9,15 @@
  * - Quick action buttons that execute AI tools
  * - Mini chat interface for follow-up questions
  * - Smooth slide animation
+ * - Resizable width
+ * - Markdown rendering for responses
  *
  * Uses the /api/ai-assistant/execute-tool endpoint for tool execution.
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useChat } from '@ai-sdk/react';
+import ReactMarkdown from 'react-markdown';
 import { cn } from '@/shared/utils/cn';
 import { MessageInput } from '@/shared/components/UI/MessageInput';
 import type {
@@ -257,6 +260,107 @@ function LoadingIcon({ className }: { className?: string }) {
   );
 }
 
+// ============================================
+// Markdown Content Renderer
+// ============================================
+
+function MarkdownContent({ content }: { content: string }) {
+  return (
+    <ReactMarkdown
+      components={{
+        // Headings
+        h1: ({ children }) => <h1 className="text-lg font-bold mb-2 mt-3 first:mt-0">{children}</h1>,
+        h2: ({ children }) => <h2 className="text-base font-semibold mb-2 mt-3 first:mt-0">{children}</h2>,
+        h3: ({ children }) => <h3 className="text-sm font-semibold mb-1 mt-2">{children}</h3>,
+        // Paragraphs
+        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+        // Lists
+        ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
+        ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
+        li: ({ children }) => <li className="text-sm">{children}</li>,
+        // Tables
+        table: ({ children }) => (
+          <div className="overflow-x-auto mb-2">
+            <table className="min-w-full text-xs border-collapse">{children}</table>
+          </div>
+        ),
+        thead: ({ children }) => <thead className="bg-gray-100">{children}</thead>,
+        tbody: ({ children }) => <tbody>{children}</tbody>,
+        tr: ({ children }) => <tr className="border-b border-gray-200">{children}</tr>,
+        th: ({ children }) => <th className="px-2 py-1 text-left font-semibold">{children}</th>,
+        td: ({ children }) => <td className="px-2 py-1">{children}</td>,
+        // Code
+        code: ({ children, className }) => {
+          const isInline = !className;
+          return isInline ? (
+            <code className="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">{children}</code>
+          ) : (
+            <code className="block bg-gray-100 p-2 rounded text-xs font-mono overflow-x-auto mb-2">{children}</code>
+          );
+        },
+        pre: ({ children }) => <pre className="mb-2">{children}</pre>,
+        // Blockquote
+        blockquote: ({ children }) => (
+          <blockquote className="border-l-2 border-gray-300 pl-2 italic text-gray-600 mb-2">{children}</blockquote>
+        ),
+        // Horizontal rule
+        hr: () => <hr className="my-3 border-gray-200" />,
+        // Strong/Bold
+        strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+        // Links
+        a: ({ href, children }) => (
+          <a href={href} className="text-primary underline hover:no-underline" target="_blank" rel="noopener noreferrer">
+            {children}
+          </a>
+        ),
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  );
+}
+
+// ============================================
+// Resize Handle
+// ============================================
+
+function ResizeHandle({ onResize }: { onResize: (delta: number) => void }) {
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+
+    // Track the last X position for incremental delta calculation
+    let lastX = e.clientX;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      // Calculate delta from last position (not start position)
+      const delta = lastX - moveEvent.clientX;
+      lastX = moveEvent.clientX; // Update for next move
+      onResize(delta);
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
+  }, [onResize]);
+
+  return (
+    <div
+      className="absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-primary/30 transition-colors group"
+      onMouseDown={handleMouseDown}
+    >
+      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gray-300 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+    </div>
+  );
+}
+
 function QuickActionButton({ action, onExecute }: QuickActionButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -387,6 +491,11 @@ function ContextDisplay({ context }: { context: AIContextData }) {
 // Main AI Panel Component
 // ============================================
 
+// Panel width constraints
+const MIN_PANEL_WIDTH = 320;
+const MAX_PANEL_WIDTH = 800;
+const DEFAULT_PANEL_WIDTH = 400;
+
 export function AIPanel({
   isOpen,
   onClose,
@@ -403,9 +512,17 @@ export function AIPanel({
   const [isToolExecuting, setIsToolExecuting] = useState(false);
   const [currentToolId, setCurrentToolId] = useState<string | null>(null);
   const [toolResponse, setToolResponse] = useState<string>('');
-  const [hasExecutedQuickAction, setHasExecutedQuickAction] = useState(false); // Track if user has clicked a quick action
+  const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH);
   const panelRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Handle panel resize
+  const handleResize = useCallback((delta: number) => {
+    setPanelWidth(prev => {
+      const newWidth = prev + delta;
+      return Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, newWidth));
+    });
+  }, []);
 
   // Use useChat for regular chat messages (fallback/follow-up)
   const {
@@ -461,7 +578,6 @@ export function AIPanel({
       setToolResponse('');
       setCurrentToolId(null);
       setActiveChatId(null); // Reset database chat ID for fresh session
-      setHasExecutedQuickAction(false); // Reset quick action state for fresh session
       // Optionally reset chat ID for a fresh session next time
       // setPanelChatId(null);
     }
@@ -554,6 +670,15 @@ export function AIPanel({
     // Get location data from context (use locationExport for full data, fallback to location view)
     const locationData = (context.locationExport || context.currentView.location) as CompactLocationExport | undefined;
 
+    // Debug: Log what data is available
+    console.log('[AIPanel] Executing tool:', toolId);
+    console.log('[AIPanel] Context locationExport available:', !!context.locationExport);
+    console.log('[AIPanel] Context currentView.location:', context.currentView.location);
+    if (context.locationExport) {
+      const exportKeys = Object.keys(context.locationExport as object);
+      console.log('[AIPanel] locationExport keys:', exportKeys);
+    }
+
     // Determine locale from URL or default to 'nl'
     const locale = (typeof window !== 'undefined' && window.location.pathname.startsWith('/en')) ? 'en' : 'nl';
 
@@ -594,40 +719,121 @@ export function AIPanel({
         console.log(`[AIPanel] Chat created/continued: ${responseChatId}`);
       }
 
+      console.log('[AIPanel] Response received, status:', response.status);
+      console.log('[AIPanel] Response headers:', Object.fromEntries(response.headers.entries()));
+
       // Handle streaming response
       const reader = response.body?.getReader();
       if (!reader) {
+        console.error('[AIPanel] No response body reader available');
         throw new Error('No response body');
       }
 
+      console.log('[AIPanel] Got reader, starting to read stream...');
+
       const decoder = new TextDecoder();
       let accumulatedText = '';
+      let buffer = ''; // Buffer for incomplete lines
+      let chunkCount = 0;
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        chunkCount++;
+
+        if (chunkCount === 1) {
+          console.log('[AIPanel] Received first chunk');
+        }
+
+        if (done) {
+          console.log('[AIPanel] Stream complete after', chunkCount, 'chunks, accumulated text length:', accumulatedText.length);
+          break;
+        }
 
         const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
+
+        // Log first few chunks for debugging
+        if (chunkCount <= 3) {
+          console.log(`[AIPanel] Chunk ${chunkCount} (${chunk.length} bytes):`, chunk.substring(0, 200));
+        }
 
         // Parse the streaming protocol (Vercel AI SDK format)
-        // Each line is prefixed with a type indicator
-        const lines = chunk.split('\n');
+        // Process complete lines only
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
         for (const line of lines) {
-          if (line.startsWith('0:')) {
-            // Text chunk - parse JSON string
+          if (!line.trim()) continue;
+
+          // Server-Sent Events format: data: {...}
+          if (line.startsWith('data: ')) {
+            try {
+              const jsonStr = line.slice(6); // Remove "data: " prefix
+              const data = JSON.parse(jsonStr);
+
+              // Handle different event types
+              if (data.type === 'text-delta' && data.delta) {
+                accumulatedText += data.delta;
+                setToolResponse(accumulatedText);
+              } else if (data.type === 'error') {
+                console.error('[AIPanel] Stream error:', data);
+                throw new Error(data.error || data.message || 'Stream error');
+              } else if (data.type === 'finish' || data.type === 'done') {
+                console.log('[AIPanel] Stream finished:', data);
+              }
+              // Log other types for debugging (but not text-start, start, etc.)
+              else if (!['start', 'start-step', 'text-start', 'finish-step', 'step-finish'].includes(data.type)) {
+                console.log('[AIPanel] Other event type:', data.type);
+              }
+            } catch (e) {
+              // Might be a partial JSON or non-JSON data line
+              if (line !== 'data: [DONE]') {
+                console.warn('[AIPanel] Failed to parse SSE data:', line.substring(0, 100), e);
+              }
+            }
+          }
+          // Legacy format fallback: 0:"text content"
+          else if (line.startsWith('0:')) {
             try {
               const text = JSON.parse(line.slice(2));
               accumulatedText += text;
               setToolResponse(accumulatedText);
-            } catch {
-              // Not valid JSON, might be partial
+            } catch (e) {
+              console.warn('[AIPanel] Failed to parse legacy text chunk:', line, e);
             }
           }
-          // Other prefixes (e, d, etc.) are metadata, ignore for now
         }
       }
 
-      // Add the completed response to messages and clear toolResponse
+      // Process any remaining buffer content
+      if (buffer.trim()) {
+        if (buffer.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(buffer.slice(6));
+            if (data.type === 'text-delta' && data.delta) {
+              accumulatedText += data.delta;
+              setToolResponse(accumulatedText);
+            }
+          } catch {
+            // Partial data, ignore
+          }
+        } else if (buffer.startsWith('0:')) {
+          try {
+            const text = JSON.parse(buffer.slice(2));
+            accumulatedText += text;
+            setToolResponse(accumulatedText);
+          } catch {
+            // Partial data, ignore
+          }
+        }
+      }
+
+      console.log('[AIPanel] Final accumulated text length:', accumulatedText.length);
+      if (accumulatedText.length > 0) {
+        console.log('[AIPanel] First 200 chars:', accumulatedText.substring(0, 200));
+      }
+
+      // Add the completed response to messages
       if (accumulatedText) {
         const userMessage = {
           id: `user-${Date.now()}`,
@@ -642,7 +848,7 @@ export function AIPanel({
           parts: [{ type: 'text' as const, text: accumulatedText }],
         };
         setMessages(prev => [...prev, userMessage, assistantMessage]);
-        // Clear toolResponse now that it's in messages
+        // Clear tool response now that it's in messages
         setToolResponse('');
       }
 
@@ -662,9 +868,6 @@ export function AIPanel({
 
   // Handle quick action execution - uses toolId or falls back to prompt/handler
   const handleQuickAction = useCallback(async (action: QuickAction) => {
-    // Hide quick actions immediately when user makes a selection
-    setHasExecutedQuickAction(true);
-
     // If action has a toolId, execute the AI tool
     if (action.toolId) {
       await executeAITool(action.toolId);
@@ -702,7 +905,7 @@ export function AIPanel({
   return (
     <>
 
-      {/* Panel - Compact size, positioned bottom-right above the button */}
+      {/* Panel - Resizable, positioned bottom-right above the button */}
       <div
         ref={panelRef}
         role="dialog"
@@ -714,18 +917,21 @@ export function AIPanel({
           right: '1rem',
           zIndex: 9998,
           maxHeight: 'calc(100vh - 8rem)',
+          width: `${panelWidth}px`,
         }}
         className={cn(
-          'w-80', // 320px - compact width
           'bg-white shadow-2xl rounded-xl',
-          'flex flex-col',
-          'transition-all duration-300 ease-out',
+          'flex flex-col relative',
+          'transition-opacity duration-300 ease-out',
           'border border-gray-200',
           isOpen
-            ? 'opacity-100 translate-y-0'
-            : 'opacity-0 translate-y-4 pointer-events-none'
+            ? 'opacity-100'
+            : 'opacity-0 pointer-events-none'
         )}
       >
+        {/* Resize handle on left edge */}
+        <ResizeHandle onResize={handleResize} />
+
         {/* Header */}
         <PanelHeader
           title={getTitle()}
@@ -742,8 +948,8 @@ export function AIPanel({
         <div className="flex-1 overflow-y-auto">
           {panelState === 'expanded' && (
             <>
-              {/* Quick Actions - hide after user makes a selection */}
-              {quickActions.length > 0 && !hasExecutedQuickAction && messages.length === 0 && (
+              {/* Quick Actions - hide when tool is executing or has response */}
+              {quickActions.length > 0 && !isToolExecuting && !toolResponse && messages.length === 0 && (
                 <div className="p-4">
                   <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
                     Quick Actions
@@ -776,11 +982,15 @@ export function AIPanel({
                           className={cn(
                             'text-sm rounded-lg p-3',
                             msg.role === 'user'
-                              ? 'bg-primary/10 ml-8'
-                              : 'bg-gray-100 mr-8'
+                              ? 'bg-primary/10 ml-4'
+                              : 'bg-gray-100'
                           )}
                         >
-                          {text}
+                          {msg.role === 'assistant' ? (
+                            <MarkdownContent content={text} />
+                          ) : (
+                            text
+                          )}
                         </div>
                       );
                     })}
@@ -802,11 +1012,15 @@ export function AIPanel({
                       className={cn(
                         'text-sm rounded-lg p-3',
                         msg.role === 'user'
-                          ? 'bg-primary/10 ml-8'
-                          : 'bg-gray-100 mr-8'
+                          ? 'bg-primary/10 ml-4'
+                          : 'bg-gray-100'
                       )}
                     >
-                      {text}
+                      {msg.role === 'assistant' ? (
+                        <MarkdownContent content={text} />
+                      ) : (
+                        text
+                      )}
                     </div>
                   );
                 })}
@@ -814,11 +1028,14 @@ export function AIPanel({
             </div>
           )}
 
-          {/* Tool response - show during streaming and after until messages are populated */}
-          {toolResponse && messages.length === 0 && (
+          {/* Tool response while streaming - show whenever there's content */}
+          {toolResponse && (
             <div className="px-4 pb-4">
-              <div className="text-sm rounded-lg p-3 bg-gray-100 mr-8 whitespace-pre-wrap">
-                {toolResponse}
+              <div className="text-sm rounded-lg p-3 bg-gray-100">
+                <MarkdownContent content={toolResponse} />
+                {isToolExecuting && (
+                  <span className="inline-block w-2 h-4 ml-1 bg-primary/50 animate-pulse" />
+                )}
               </div>
             </div>
           )}

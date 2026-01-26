@@ -58,6 +58,7 @@ export interface ListChatsFilters {
 
 /**
  * Create a new chat
+ * Uses ON CONFLICT to handle cases where the chat was already created (e.g., by file upload)
  */
 export async function createChat(params: CreateChatParams): Promise<string> {
   const db = getDbConnection();
@@ -80,9 +81,19 @@ export async function createChat(params: CreateChatParams): Promise<string> {
       NOW(),
       NOW()
     )
+    ON CONFLICT (id) DO UPDATE
+    SET
+      title = CASE
+        WHEN chat_conversations.title = 'New Chat' THEN EXCLUDED.title
+        ELSE chat_conversations.title
+      END,
+      project_id = COALESCE(EXCLUDED.project_id, chat_conversations.project_id),
+      model_id = COALESCE(EXCLUDED.model_id, chat_conversations.model_id),
+      metadata = COALESCE(EXCLUDED.metadata, chat_conversations.metadata),
+      updated_at = NOW()
   `;
 
-  console.log(`[ChatStore] Created chat ${chatId} for user ${params.userId}`);
+  console.log(`[ChatStore] Created/updated chat ${chatId} for user ${params.userId}`);
 
   return chatId;
 }

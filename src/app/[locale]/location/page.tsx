@@ -4,6 +4,7 @@
 import React, { JSX, useState } from 'react';
 import { Locale } from '../../../lib/i18n/config';
 import { Sidebar, useSidebar } from '../../../shared/components/UI/Sidebar';
+import { MainLayout } from '../../../shared/components/UI/MainLayout';
 import { useLocationSidebarSections } from '../../../features/location/components/LocationSidebar';
 import { useLocationData } from '../../../features/location/hooks/useLocationData';
 import { MultiLevelDataTable } from '../../../features/location/components/DataTables';
@@ -33,6 +34,8 @@ import type { AccessibleLocation } from '../../../features/location/types/saved-
 import { useWMSGrading } from '../../../features/location/hooks/useWMSGrading';
 import { pveConfigCache } from '../../../features/location/data/cache/pveConfigCache';
 import type { WMSGradingData } from '../../../features/location/types/wms-grading';
+import { AIAssistantProvider, useAIAssistantOptional } from '../../../features/ai-assistant/hooks/useAIAssistant';
+import { exportCompactForLLM } from '../../../features/location/utils/jsonExportCompact';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -86,7 +89,8 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
   // Snapshot data state (for loaded snapshots)
   const [loadedSnapshotId, setLoadedSnapshotId] = useState<string | null>(null);
-  const [loadedWMSGradingData, setLoadedWMSGradingData] = useState<WMSGradingData | null>(null);
+  const [loadedProjectId, setLoadedProjectId] = useState<string | null>(null);
+  const [loadedWMSGradingData, setLoadedWMSGradingData] = useState<Record<string, unknown> | null>(null);
 
   // Generate cube colors once and share across all components for consistency
   const cubeColors = React.useMemo(() => generateGradientColors(), []);
@@ -119,6 +123,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
       setAnimationStage('welcome');
       // Clear snapshot data when no data (new search)
       setLoadedSnapshotId(null);
+      setLoadedProjectId(null);
       setLoadedWMSGradingData(null);
     }
   }, [data, isLoading, setCollapsed]);
@@ -154,13 +159,16 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     const snapshotDataStr = sessionStorage.getItem('grooshub_load_snapshot');
     if (snapshotDataStr) {
       try {
-        const { snapshotId, address, locationData, amenitiesData, wmsGradingData } = JSON.parse(snapshotDataStr);
+        const { snapshotId, projectId, address, locationData, amenitiesData, wmsGradingData } = JSON.parse(snapshotDataStr);
         // Clear from sessionStorage after reading
         sessionStorage.removeItem('grooshub_load_snapshot');
 
-        // Store snapshot metadata for WMS grading
+        // Store snapshot metadata for WMS grading and AI assistant
         if (snapshotId) {
           setLoadedSnapshotId(snapshotId);
+        }
+        if (projectId) {
+          setLoadedProjectId(projectId);
         }
         if (wmsGradingData) {
           setLoadedWMSGradingData(wmsGradingData);
@@ -362,9 +370,6 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     wmsGradingData: wmsGrading.gradingData,
     onLoadSavedLocation: handleLoadSavedLocation,
   });
-
-  // Calculate main content margin based on sidebar state
-  const mainContentMargin = isCollapsed ? 'ml-[60px]' : 'ml-[320px]';
 
   /**
    * Render main content based on active tab and data state
@@ -876,39 +881,79 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     );
   };
 
+  // Component to sync activeTab and location data to AI context
+  const AIContextSync = () => {
+    const ai = useAIAssistantOptional();
+
+    // Build compact export for AI tools (memoized to avoid rebuilding on every render)
+    const locationExport = React.useMemo(() => {
+      if (!data || !calculatedScores) return undefined;
+      try {
+        return exportCompactForLLM(
+          data,
+          calculatedScores.sortedPersonas,
+          calculatedScores.scenarios,
+          locale,
+          [], // customScenarioPersonaIds
+          amenities || null,
+          wmsGrading.gradingData || null
+        );
+      } catch (error) {
+        console.error('[AIContextSync] Failed to build compact export:', error);
+        return undefined;
+      }
+    }, [data, calculatedScores, locale, amenities, wmsGrading.gradingData]);
+
+    React.useEffect(() => {
+      if (ai) {
+        ai.setContext({
+          locationExport,
+          currentView: {
+            location: {
+              address: currentAddress || undefined,
+              hasCompletedAnalysis: !!data,
+              activeTab,
+            },
+          },
+        });
+      }
+    }, [ai, activeTab, currentAddress, data, locationExport]);
+    return null;
+  };
+
   return (
-    <div
-      className="page-background w-screen overflow-hidden flex flex-col"
-      style={{
-        height: '100vh',
-        marginTop: '-64px',
-        marginLeft: 'calc(var(--space-base) * -1)',
-        marginRight: 'calc(var(--space-base) * -1)',
-        paddingTop: '64px'
+    <AIAssistantProvider
+      feature="location"
+      projectId={loadedProjectId || undefined}
+      initialContext={{
+        currentView: {
+          location: {
+            address: currentAddress || undefined,
+            hasCompletedAnalysis: !!data,
+            activeTab,
+          },
+        },
       }}
     >
+      {/* Sync active tab to AI context */}
+      <AIContextSync />
 
-      {/* SIDEBAR - Using reusable component (position: fixed, out of flow) */}
-      <Sidebar
+      <MainLayout
         isCollapsed={isCollapsed}
-        onToggle={toggle}
-        sections={sidebarSections}
-        title={locale === 'nl' ? 'Locatie Analyse' : 'Location Analysis'}
-        subtitle={locale === 'nl' ? 'Adres & Data Analyse' : 'Address & Data Analysis'}
-        position="left"
-        expandedWidth="320px"
-        collapsedWidth="60px"
-        className="!top-[64px] !bottom-0 !h-auto"
-      />
-
-      {/* MAIN CONTENT - Margin adjusted for fixed sidebar */}
-      <main className={`
-        flex flex-col overflow-auto h-full
-        ${mainContentMargin}
-      `}>
+        sidebar={
+          <Sidebar
+            isCollapsed={isCollapsed}
+            onToggle={toggle}
+            sections={sidebarSections}
+            title={locale === 'nl' ? 'Locatie Analyse' : 'Location Analysis'}
+            subtitle={locale === 'nl' ? 'Adres & Data Analyse' : 'Address & Data Analysis'}
+            position="left"
+          />
+        }
+      >
         {renderMainContent()}
-      </main>
-    </div>
+      </MainLayout>
+    </AIAssistantProvider>
   );
 };
 

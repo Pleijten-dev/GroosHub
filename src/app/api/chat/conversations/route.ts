@@ -16,12 +16,18 @@ export async function GET(request: NextRequest) {
     // Get query parameters
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('project_id');
+    const personalOnly = searchParams.get('personal_only');
 
     let conversations = await getUserChats(Number(session.user.id));
 
     // Filter by project_id if provided
     if (projectId) {
       conversations = conversations.filter(chat => chat.project_id === projectId);
+    }
+
+    // Filter to personal chats only (no project_id)
+    if (personalOnly === 'true') {
+      conversations = conversations.filter(chat => !chat.project_id);
     }
 
     return NextResponse.json({ conversations });

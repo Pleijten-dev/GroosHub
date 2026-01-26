@@ -18,17 +18,21 @@ export interface AIAssistantPageProps {
     project_id?: string;
     view?: 'overview' | 'chats' | 'tasks' | 'files' | 'notes' | 'members' | 'trash';
     message?: string; // Initial message to send automatically
+    fileIds?: string; // Comma-separated file IDs to include with initial message
   }>;
 }
 
 export default async function AIAssistantPage({ params, searchParams }: AIAssistantPageProps) {
   const session = await auth();
   const { locale } = await params;
-  const { chat, project_id, view, message } = await searchParams;
+  const { chat, project_id, view, message, fileIds } = await searchParams;
 
   if (!session?.user) {
     redirect(`/${locale}/login`);
   }
+
+  // Parse comma-separated fileIds into array
+  const initialFileIds = fileIds ? fileIds.split(',').filter(id => id.trim()) : undefined;
 
   return (
     <Suspense fallback={
@@ -44,6 +48,7 @@ export default async function AIAssistantPage({ params, searchParams }: AIAssist
         projectId={project_id}
         activeView={view || 'overview'}
         initialMessage={message}
+        initialFileIds={initialFileIds}
       />
     </Suspense>
   );

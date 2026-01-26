@@ -15,6 +15,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/shared/components/UI/Sidebar/Sidebar';
+import { MainLayout } from '@/shared/components/UI/MainLayout';
 import { useSidebar } from '@/shared/hooks/useSidebar';
 import { useProjects } from '@/features/lca/hooks';
 import { LCAProjectsSection } from '@/features/lca/components/sidebar';
@@ -312,30 +313,24 @@ export default function LCADashboardPage({
   ];
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Shared Sidebar with LCA Section */}
-      <Sidebar
+    <>
+      <MainLayout
         isCollapsed={isCollapsed}
-        onToggle={toggle}
-        sections={sidebarSections}
-        expandedWidth="280px"
-        collapsedWidth="60px"
-        position="left"
-        withNavbar={true}
-      />
-
-      {/* Main Content */}
-      <div
-        className="flex flex-1 flex-col overflow-hidden transition-all duration-300"
-        style={{
-          marginLeft: isCollapsed ? '60px' : '280px',
-        }}
+        sidebar={
+          <Sidebar
+            isCollapsed={isCollapsed}
+            onToggle={toggle}
+            sections={sidebarSections}
+            position="left"
+            withNavbar={true}
+          />
+        }
       >
         {/* Tab Navigation */}
         <LCATabNavigation locale={locale} />
 
         {/* Content Area */}
-        <main className="flex-1 overflow-y-auto p-8">
+        <div className="flex-1 overflow-y-auto p-8">
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900">{t.welcome}</h1>
@@ -438,8 +433,8 @@ export default function LCADashboardPage({
               </div>
             </section>
           </div>
-        </main>
-      </div>
+        </div>
+      </MainLayout>
 
       {/* New Project Modal */}
       <NewProjectModal
@@ -447,6 +442,6 @@ export default function LCADashboardPage({
         onClose={() => setShowNewProjectModal(false)}
         locale={locale}
       />
-    </div>
+    </>
   );
 }

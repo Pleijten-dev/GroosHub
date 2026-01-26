@@ -67,14 +67,14 @@ export function TaskGroupsModal({
   const t = translations[locale as keyof typeof translations] || translations.en;
 
   const presetColors = [
-    '#477638', // Primary olive green
-    '#86a67d', // Secondary green
-    '#3b82f6', // Blue
-    '#8b5cf6', // Purple
-    '#ec4899', // Pink
-    '#f59e0b', // Amber
-    '#ef4444', // Red
-    '#6b7280'  // Gray
+    '#667b48', // Olive green
+    '#a9bf79', // Light green
+    '#ca5641', // Terra cotta
+    '#f9b7b4', // Soft pink
+    '#798d82', // Sage green
+    '#ced4d0', // Light gray
+    '#7b769e', // Muted purple
+    '#e9e2ed'  // Lavender
   ];
 
   useEffect(() => {
@@ -172,8 +172,10 @@ export function TaskGroupsModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <>
+      <div className="modal-backdrop" onClick={onClose} />
+      <div className="modal-content-area">
+        <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-full overflow-y-auto">
         {/* Header */}
         <div className="border-b border-gray-200 p-6">
           <div className="flex items-center justify-between">
@@ -333,8 +335,9 @@ export function TaskGroupsModal({
             {t.close}
           </Button>
         </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

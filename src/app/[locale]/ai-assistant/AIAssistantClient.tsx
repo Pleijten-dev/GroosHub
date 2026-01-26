@@ -5,7 +5,7 @@ import { ProjectsSidebarEnhanced } from '@/features/projects/components/Projects
 import { ChatUI } from '@/features/chat/components/ChatUI';
 import { OverviewPage } from '@/features/chat/components/OverviewPage';
 import { useProjectsSidebar } from '@/features/projects/hooks/useProjectsSidebar';
-import { cn } from '@/shared/utils/cn';
+import { MainLayout } from '@/shared/components/UI/MainLayout';
 
 interface AIAssistantClientProps {
   locale: string;
@@ -17,6 +17,8 @@ interface AIAssistantClientProps {
   activeView?: 'overview' | 'chats' | 'tasks' | 'files' | 'notes' | 'members' | 'trash';
   /** Initial message to send automatically when chat loads */
   initialMessage?: string;
+  /** Initial file IDs to include with the initial message */
+  initialFileIds?: string[];
 }
 
 type TransitionPhase = 'idle' | 'exiting' | 'entering';
@@ -31,7 +33,8 @@ export function AIAssistantClient({
   chatId,
   projectId,
   activeView = 'overview',
-  initialMessage
+  initialMessage,
+  initialFileIds
 }: AIAssistantClientProps) {
   const { isCollapsed, toggleSidebar, isLoaded } = useProjectsSidebar();
 
@@ -97,6 +100,7 @@ export function AIAssistantClient({
           chatId={chatId}
           projectId={projectId}
           initialMessage={initialMessage}
+          initialFileIds={initialFileIds}
           isEntering={transitionPhase === 'entering'}
         />
       );
@@ -139,28 +143,21 @@ export function AIAssistantClient({
   }
 
   return (
-    <div className="flex overflow-hidden" style={{ height: `calc(100vh - ${NAVBAR_HEIGHT}px)` }}>
-      <ProjectsSidebarEnhanced
-        isCollapsed={isCollapsed}
-        onToggle={toggleSidebar}
-        locale={locale}
-        userEmail={userEmail}
-        userName={userName}
-      />
-
-      {/* Main content area - adjust margin based on sidebar state */}
-      <main
-        className={cn(
-          'flex-1 overflow-hidden transition-[margin] duration-200',
-          getTransitionClasses()
-        )}
-        style={{
-          marginLeft: isCollapsed ? '60px' : '280px'
-        }}
-      >
-        {renderContent()}
-      </main>
-    </div>
+    <MainLayout
+      isCollapsed={isCollapsed}
+      sidebar={
+        <ProjectsSidebarEnhanced
+          isCollapsed={isCollapsed}
+          onToggle={toggleSidebar}
+          locale={locale}
+          userEmail={userEmail}
+          userName={userName}
+        />
+      }
+      mainClassName={getTransitionClasses()}
+    >
+      {renderContent()}
+    </MainLayout>
   );
 }
 

@@ -135,6 +135,9 @@ export function OverviewPage({ locale, className, isEntering = false }: Overview
   const [notes, setNotes] = useState<QuickNote[]>([]);
   const [noteInput, setNoteInput] = useState('');
 
+  // Generate chatId upfront so files can be uploaded to R2 before chat is created
+  const [pendingChatId] = useState(() => crypto.randomUUID());
+
   // Load notes from localStorage on mount
   useEffect(() => {
     const savedNotes = localStorage.getItem('quickNotes');
@@ -259,11 +262,12 @@ export function OverviewPage({ locale, className, isEntering = false }: Overview
       setIsCreatingChat(true);
 
       try {
-        // Create a new chat
+        // Create a new chat with the pre-generated chatId (so files are already uploaded to it)
         const response = await fetch('/api/chats', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            chatId: pendingChatId,  // Use pre-generated ID so files uploaded via MessageInput are associated
             title: message.substring(0, 50) + (message.length > 50 ? '...' : ''),
             initialMessage: message,
             fileIds: files?.map((f) => f.id) || [],
@@ -276,14 +280,15 @@ export function OverviewPage({ locale, className, isEntering = false }: Overview
           throw new Error(data.error || 'Failed to create chat');
         }
 
-        // Navigate to the new chat with initial message
-        router.push(`/${locale}/ai-assistant?chat=${data.chat.id}&message=${encodeURIComponent(message)}`);
+        // Navigate to the new chat with initial message and file IDs
+        const fileIdsParam = files && files.length > 0 ? `&fileIds=${files.map(f => f.id).join(',')}` : '';
+        router.push(`/${locale}/ai-assistant?chat=${data.chat.id}&message=${encodeURIComponent(message)}${fileIdsParam}`);
       } catch (error) {
         console.error('[OverviewPage] Error creating chat:', error);
         setIsCreatingChat(false);
       }
     },
-    [isCreatingChat, locale, router]
+    [isCreatingChat, locale, pendingChatId, router]
   );
 
   // Handle prompt selection
@@ -388,15 +393,15 @@ export function OverviewPage({ locale, className, isEntering = false }: Overview
             isLoading={isCreatingChat}
             showRagToggle={false}
             showFileAttachment={true}
+            chatId={pendingChatId}  // Pass chatId so files are uploaded to R2 immediately
             autoFocus
-            className="shadow-lg"
           />
         </div>
       </div>
 
       {/* Side Section */}
       <div className={cn(
-        "w-80 flex-shrink-0 border-l border-gray-200 bg-gray-50 overflow-y-auto",
+        "w-80 flex-shrink-0 border-l border-gray-200 overflow-y-auto",
         isEntering && "animate-slide-in-left fill-both stagger-2"
       )}>
         <div className="p-base space-y-base">

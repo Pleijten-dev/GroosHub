@@ -159,11 +159,15 @@ export function ProjectOverviewPage({
   const [tasks, setTasks] = useState<TaskPreview[]>([]);
   const [deadlines, setDeadlines] = useState<Deadline[]>([]);
   const [tasksByUser, setTasksByUser] = useState<StackedBarSegment[]>([]);
+  const [totalOpenTasks, setTotalOpenTasks] = useState<number>(0);
   const [isLoadingTasks, setIsLoadingTasks] = useState(true);
   const [taskSortBy, setTaskSortBy] = useState<'created' | 'deadline'>('deadline');
   const [isCreatingChat, setIsCreatingChat] = useState(false);
   const [promptRefreshKey, setPromptRefreshKey] = useState(0);
   const [ragEnabled, setRagEnabled] = useState(true);
+
+  // Generate chatId upfront so files can be uploaded to R2 before chat is created
+  const [pendingChatId] = useState(() => crypto.randomUUID());
 
   // Notes state (project-specific storage key)
   const [notes, setNotes] = useState<Array<{ id: string; text: string; createdAt: Date }>>([]);
@@ -281,19 +285,13 @@ export function ProjectOverviewPage({
         if (statsData.success && statsData.data) {
           const { overall, byUser } = statsData.data;
 
-          // Calculate total open tasks (todo + doing)
-          const totalOpenTasks = (overall?.todo_count || 0) + (overall?.doing_count || 0);
-
-          // Calculate total assigned open tasks
-          const totalAssignedOpenTasks = (byUser || []).reduce(
-            (sum, user) => sum + user.todo_count + user.doing_count,
-            0
-          );
-
-          // Calculate unassigned open tasks
-          const unassignedOpenTasks = totalOpenTasks - totalAssignedOpenTasks;
+          // Calculate total open tasks (todo + doing) - this is the actual count from the database
+          const actualTotalOpenTasks = (overall?.todo_count || 0) + (overall?.doing_count || 0);
+          setTotalOpenTasks(actualTotalOpenTasks);
 
           // Build segments for assigned users
+          // Note: A task can be assigned to multiple users, so the sum of user assignments
+          // may exceed the actual total. We use actualTotalOpenTasks for the display.
           const userSegments: StackedBarSegment[] = (byUser || [])
             .filter((user) => user.todo_count + user.doing_count > 0) // Only show users with open tasks
             .sort((a, b) => (b.todo_count + b.doing_count) - (a.todo_count + a.doing_count))
@@ -304,8 +302,13 @@ export function ProjectOverviewPage({
               color: USER_COLORS[index % USER_COLORS.length],
             }));
 
-          // Add unassigned segment in grey if there are unassigned tasks
-          if (unassignedOpenTasks > 0) {
+          // Calculate how many tasks have any assignment
+          // If sum of assigned > actual total, tasks have multiple assignees, so don't show unassigned
+          const sumAssignedOpenTasks = userSegments.reduce((sum, seg) => sum + seg.value, 0);
+
+          // Only show unassigned if assigned count is less than total (accounting for no multi-assignment)
+          if (sumAssignedOpenTasks < actualTotalOpenTasks) {
+            const unassignedOpenTasks = actualTotalOpenTasks - sumAssignedOpenTasks;
             userSegments.push({
               id: 'unassigned',
               label: translations[locale].unassigned,
@@ -336,11 +339,12 @@ export function ProjectOverviewPage({
       setIsCreatingChat(true);
 
       try {
-        // Create a new chat linked to this project
+        // Create a new chat linked to this project (using pre-generated chatId so files are already associated)
         const response = await fetch('/api/chats', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            chatId: pendingChatId, // Use pre-generated ID so files uploaded via MessageInput are associated
             title: message.substring(0, 50) + (message.length > 50 ? '...' : ''),
             initialMessage: message,
             projectId: projectId,
@@ -354,14 +358,15 @@ export function ProjectOverviewPage({
           throw new Error(data.error || 'Failed to create chat');
         }
 
-        // Navigate to the new chat in AI assistant with project context
-        router.push(`/${locale}/ai-assistant?chat=${data.chat.id}&project_id=${projectId}&message=${encodeURIComponent(message)}`);
+        // Navigate to the new chat in AI assistant with project context and file IDs
+        const fileIdsParam = files && files.length > 0 ? `&fileIds=${files.map(f => f.id).join(',')}` : '';
+        router.push(`/${locale}/ai-assistant?chat=${data.chat.id}&project_id=${projectId}&message=${encodeURIComponent(message)}${fileIdsParam}`);
       } catch (error) {
         console.error('[ProjectOverviewPage] Error creating chat:', error);
         setIsCreatingChat(false);
       }
     },
-    [isCreatingChat, locale, projectId, router]
+    [isCreatingChat, locale, pendingChatId, projectId, router]
   );
 
   // Handle prompt selection
@@ -482,15 +487,16 @@ export function ProjectOverviewPage({
             ragEnabled={ragEnabled}
             onRagToggle={setRagEnabled}
             showFileAttachment={true}
+            chatId={pendingChatId}
+            projectId={projectId}
             autoFocus
-            className="shadow-lg"
           />
         </div>
       </div>
 
       {/* Side Section */}
       <div className={cn(
-        "w-80 flex-shrink-0 border-l border-gray-200 bg-gray-50 overflow-y-auto",
+        "w-80 flex-shrink-0 border-l border-gray-200 overflow-y-auto",
         isEntering && "animate-slide-in-left fill-both stagger-2"
       )}>
         <div className="p-base space-y-base">
@@ -526,6 +532,7 @@ export function ProjectOverviewPage({
                   showValues={true}
                   onSegmentClick={handleUserClick}
                   locale={locale}
+                  totalOverride={totalOpenTasks}
                 />
               </div>
             )}
