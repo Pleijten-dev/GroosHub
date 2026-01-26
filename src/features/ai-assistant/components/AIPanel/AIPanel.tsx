@@ -638,50 +638,72 @@ export function AIPanel({
         for (const line of lines) {
           if (!line.trim()) continue;
 
-          // Text chunk format: 0:"text content"
-          if (line.startsWith('0:')) {
+          // Server-Sent Events format: data: {...}
+          if (line.startsWith('data: ')) {
+            try {
+              const jsonStr = line.slice(6); // Remove "data: " prefix
+              const data = JSON.parse(jsonStr);
+
+              // Handle different event types
+              if (data.type === 'text-delta' && data.delta) {
+                accumulatedText += data.delta;
+                setToolResponse(accumulatedText);
+              } else if (data.type === 'error') {
+                console.error('[AIPanel] Stream error:', data);
+                throw new Error(data.error || data.message || 'Stream error');
+              } else if (data.type === 'finish' || data.type === 'done') {
+                console.log('[AIPanel] Stream finished:', data);
+              }
+              // Log other types for debugging (but not text-start, start, etc.)
+              else if (!['start', 'start-step', 'text-start', 'finish-step', 'step-finish'].includes(data.type)) {
+                console.log('[AIPanel] Other event type:', data.type);
+              }
+            } catch (e) {
+              // Might be a partial JSON or non-JSON data line
+              if (line !== 'data: [DONE]') {
+                console.warn('[AIPanel] Failed to parse SSE data:', line.substring(0, 100), e);
+              }
+            }
+          }
+          // Legacy format fallback: 0:"text content"
+          else if (line.startsWith('0:')) {
             try {
               const text = JSON.parse(line.slice(2));
               accumulatedText += text;
               setToolResponse(accumulatedText);
             } catch (e) {
-              console.warn('[AIPanel] Failed to parse text chunk:', line, e);
+              console.warn('[AIPanel] Failed to parse legacy text chunk:', line, e);
             }
-          }
-          // Error format: e:{"error":"message"}
-          else if (line.startsWith('e:')) {
-            try {
-              const errorData = JSON.parse(line.slice(2));
-              console.error('[AIPanel] Stream error:', errorData);
-              throw new Error(errorData.error || 'Stream error');
-            } catch (e) {
-              if (e instanceof Error && e.message !== 'Stream error') {
-                console.warn('[AIPanel] Failed to parse error chunk:', line);
-              } else {
-                throw e;
-              }
-            }
-          }
-          // Finish/done format: d:{"finishReason":"stop"}
-          else if (line.startsWith('d:')) {
-            console.log('[AIPanel] Stream finished:', line.slice(2));
-          }
-          // Other formats (2: for data, etc.) - log for debugging
-          else if (line.match(/^\d+:/)) {
-            console.log('[AIPanel] Other stream data:', line.substring(0, 100));
           }
         }
       }
 
       // Process any remaining buffer content
-      if (buffer.trim() && buffer.startsWith('0:')) {
-        try {
-          const text = JSON.parse(buffer.slice(2));
-          accumulatedText += text;
-          setToolResponse(accumulatedText);
-        } catch {
-          // Partial data, ignore
+      if (buffer.trim()) {
+        if (buffer.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(buffer.slice(6));
+            if (data.type === 'text-delta' && data.delta) {
+              accumulatedText += data.delta;
+              setToolResponse(accumulatedText);
+            }
+          } catch {
+            // Partial data, ignore
+          }
+        } else if (buffer.startsWith('0:')) {
+          try {
+            const text = JSON.parse(buffer.slice(2));
+            accumulatedText += text;
+            setToolResponse(accumulatedText);
+          } catch {
+            // Partial data, ignore
+          }
         }
+      }
+
+      console.log('[AIPanel] Final accumulated text length:', accumulatedText.length);
+      if (accumulatedText.length > 0) {
+        console.log('[AIPanel] First 200 chars:', accumulatedText.substring(0, 200));
       }
 
       // Add the completed response to messages
