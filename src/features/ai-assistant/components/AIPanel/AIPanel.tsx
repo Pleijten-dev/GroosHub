@@ -600,28 +600,71 @@ export function AIPanel({
 
       const decoder = new TextDecoder();
       let accumulatedText = '';
+      let buffer = ''; // Buffer for incomplete lines
+
+      console.log('[AIPanel] Starting to read stream...');
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          console.log('[AIPanel] Stream complete, accumulated text length:', accumulatedText.length);
+          break;
+        }
 
         const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
 
         // Parse the streaming protocol (Vercel AI SDK format)
-        // Each line is prefixed with a type indicator
-        const lines = chunk.split('\n');
+        // Process complete lines only
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
         for (const line of lines) {
+          if (!line.trim()) continue;
+
+          // Text chunk format: 0:"text content"
           if (line.startsWith('0:')) {
-            // Text chunk - parse JSON string
             try {
               const text = JSON.parse(line.slice(2));
               accumulatedText += text;
               setToolResponse(accumulatedText);
-            } catch {
-              // Not valid JSON, might be partial
+            } catch (e) {
+              console.warn('[AIPanel] Failed to parse text chunk:', line, e);
             }
           }
-          // Other prefixes (e, d, etc.) are metadata, ignore for now
+          // Error format: e:{"error":"message"}
+          else if (line.startsWith('e:')) {
+            try {
+              const errorData = JSON.parse(line.slice(2));
+              console.error('[AIPanel] Stream error:', errorData);
+              throw new Error(errorData.error || 'Stream error');
+            } catch (e) {
+              if (e instanceof Error && e.message !== 'Stream error') {
+                console.warn('[AIPanel] Failed to parse error chunk:', line);
+              } else {
+                throw e;
+              }
+            }
+          }
+          // Finish/done format: d:{"finishReason":"stop"}
+          else if (line.startsWith('d:')) {
+            console.log('[AIPanel] Stream finished:', line.slice(2));
+          }
+          // Other formats (2: for data, etc.) - log for debugging
+          else if (line.match(/^\d+:/)) {
+            console.log('[AIPanel] Other stream data:', line.substring(0, 100));
+          }
+        }
+      }
+
+      // Process any remaining buffer content
+      if (buffer.trim() && buffer.startsWith('0:')) {
+        try {
+          const text = JSON.parse(buffer.slice(2));
+          accumulatedText += text;
+          setToolResponse(accumulatedText);
+        } catch {
+          // Partial data, ignore
         }
       }
 
@@ -640,6 +683,8 @@ export function AIPanel({
           parts: [{ type: 'text' as const, text: accumulatedText }],
         };
         setMessages(prev => [...prev, userMessage, assistantMessage]);
+        // Clear tool response now that it's in messages
+        setToolResponse('');
       }
 
     } catch (error) {
@@ -807,11 +852,14 @@ export function AIPanel({
             </div>
           )}
 
-          {/* Tool response while streaming */}
-          {isToolExecuting && toolResponse && (
+          {/* Tool response while streaming - show whenever there's content */}
+          {toolResponse && (
             <div className="px-4 pb-4">
               <div className="text-sm rounded-lg p-3 bg-gray-100 mr-8 whitespace-pre-wrap">
                 {toolResponse}
+                {isToolExecuting && (
+                  <span className="inline-block w-2 h-4 ml-1 bg-primary/50 animate-pulse" />
+                )}
               </div>
             </div>
           )}
