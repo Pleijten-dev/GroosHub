@@ -272,51 +272,6 @@ export async function getChatTokenUsage(chatId: string) {
 }
 
 /**
- * Create a new chat message
- */
-export async function createChatMessage(params: {
-  chatId: string;
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  modelId?: string;
-  inputTokens?: number;
-  outputTokens?: number;
-  metadata?: Record<string, unknown>;
-}): Promise<ChatMessage> {
-  const db = getDbConnection();
-
-  const result = await db`
-    INSERT INTO chat_messages (
-      chat_id,
-      role,
-      content,
-      model_id,
-      input_tokens,
-      output_tokens,
-      metadata,
-      created_at
-    )
-    VALUES (
-      ${params.chatId},
-      ${params.role},
-      ${params.content},
-      ${params.modelId || null},
-      ${params.inputTokens || null},
-      ${params.outputTokens || null},
-      ${JSON.stringify(params.metadata || {})},
-      CURRENT_TIMESTAMP
-    )
-    RETURNING id, chat_id, role, content, content_json, content_encrypted,
-              model_id, input_tokens, output_tokens, metadata, created_at
-  `;
-
-  // Update the conversation's last_message_at
-  await updateChatLastMessage(params.chatId);
-
-  return result[0] as ChatMessage;
-}
-
-/**
  * Create a new chat conversation
  */
 export async function createChatConversation(params: {
