@@ -597,18 +597,14 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-full bg-transparent">
       {/* Header */}
       <div className={cn(
-        "bg-white border-b border-gray-200 px-base py-sm shadow-sm",
         isEntering && "animate-fade-slide-up fill-both"
       )}>
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-gray-900">{t.title}</h1>
-
-          {/* Controls */}
-          <div className="flex items-center gap-base">
-            {/* Model Selector - Always visible */}
+        <div className="max-w-4xl mx-auto px-base">
+          <div className="flex items-center justify-end border-b border-gray-200 py-sm">
+            {/* Model Selector */}
             <div className="flex items-center gap-sm">
               <label htmlFor="model-select" className="text-sm font-medium text-gray-700">
                 {t.modelLabel}:
@@ -672,7 +668,7 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
                   )}
                   {/* Pending text */}
                   <div className="max-w-[85%] min-w-[240px]">
-                    <div className="bg-[#8a976b] text-white rounded-xl px-base py-sm">
+                    <div className="bg-[#8a976b]/25 text-gray-900 rounded-lg rounded-tr-none px-base py-sm shadow-sm">
                       <p className="whitespace-pre-wrap break-words">{pendingMessageText}</p>
                     </div>
                   </div>
@@ -728,10 +724,10 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
                     {hasText && (
                       <div
                         className={cn(
-                          'max-w-[80%] min-w-[240px] rounded-lg px-base py-sm shadow-sm',
+                          'max-w-[80%] min-w-[240px] px-base py-sm shadow-sm',
                           message.role === 'user'
-                            ? 'bg-[#8a976b] text-white'
-                            : 'bg-white text-gray-900 border border-gray-200'
+                            ? 'bg-[#8a976b]/25 text-gray-900 rounded-lg rounded-tr-none'
+                            : 'bg-white text-gray-900 border border-gray-200 rounded-lg rounded-tl-none'
                         )}
                       >
                         <div className="text-xs font-medium mb-1 opacity-70">
@@ -768,16 +764,16 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
                         if (citedSources.length === 0) {
                           return (
                             <div className="mt-base">
-                              <div className="bg-red-50 border border-red-200 rounded-md p-sm">
+                              <div className="bg-gray-100 border border-gray-300 rounded-md p-sm">
                                 <div className="flex items-start gap-xs">
-                                  <svg className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="currentColor">
+                                  <svg className="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="currentColor">
                                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
                                   </svg>
                                   <div className="flex-1">
-                                    <p className="text-xs text-red-700 font-semibold">
+                                    <p className="text-xs text-gray-700 font-semibold">
                                       {locale === 'nl' ? 'Bronnen niet geciteerd' : 'Sources not cited'}
                                     </p>
-                                    <p className="text-xs text-red-600 mt-1">
+                                    <p className="text-xs text-gray-600 mt-1">
                                       {locale === 'nl'
                                         ? `De AI heeft ${allSources.length} bronnen geraadpleegd maar deze niet correct geciteerd in het antwoord. Dit is een fout in het systeem.`
                                         : `The AI consulted ${allSources.length} sources but did not properly cite them in the answer. This is a system error.`
@@ -798,39 +794,47 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
                             const sourceNumber = originalIndex + 1;
 
                             return (
-                            <div key={source.id} className="border-t-2 border-gray-300 pt-sm mt-sm">
+                            <div key={source.id} className="border-t border-gray-200 pt-sm mt-sm">
                               {/* Source Header */}
                               <div className="flex items-center gap-xs mb-xs">
-                                <span className="font-mono text-xs bg-amber-600 text-white px-xs py-0.5 rounded font-semibold">
+                                <span className="font-mono text-xs bg-gray-700 text-white px-xs py-0.5 rounded font-semibold">
                                   Bron {sourceNumber}
                                 </span>
-                                <span className="text-xs text-gray-600">
+                                <span className="text-xs text-gray-500">
                                   {locale === 'nl' ? 'Directe citaat uit document:' : 'Direct quote from document:'}
                                 </span>
                               </div>
 
-                              {/* Quote Section - Distinct Styling */}
-                              <div className="bg-amber-50 border-l-4 border-amber-500 p-sm rounded-r-md mb-sm">
-                                <div className="flex items-start gap-xs mb-xs">
-                                  <svg className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/>
-                                  </svg>
-                                  <p className="text-sm text-gray-800 italic leading-relaxed flex-1">
-                                    {source.chunkText}
-                                  </p>
-                                </div>
+                              {/* Quote Section - Subtle gradient */}
+                              <div
+                                className="relative rounded-lg mb-sm overflow-hidden"
+                                style={{
+                                  background: 'linear-gradient(135deg, rgba(138, 151, 107, 0.12) 0%, rgba(138, 151, 107, 0.06) 50%, rgba(200, 210, 190, 0.08) 100%)'
+                                }}
+                              >
+                                {/* Content */}
+                                <div className="p-sm border-l-4 border-[#8a976b]/30">
+                                  <div className="flex items-start gap-xs mb-xs">
+                                    <svg className="w-4 h-4 text-[#8a976b] flex-shrink-0 mt-0.5 opacity-50" viewBox="0 0 24 24" fill="currentColor">
+                                      <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/>
+                                    </svg>
+                                    <p className="text-sm text-gray-700 italic leading-relaxed flex-1">
+                                      {source.chunkText}
+                                    </p>
+                                  </div>
 
-                                {/* Source Info */}
-                                <div className="text-xs text-amber-700 flex items-center gap-sm flex-wrap mt-xs">
-                                  <span className="font-medium">📄 {source.sourceFile}</span>
-                                  {source.pageNumber && (
-                                    <span>
-                                      {locale === 'nl' ? 'Pagina' : 'Page'} {source.pageNumber}
+                                  {/* Source Info */}
+                                  <div className="text-xs text-gray-500 flex items-center gap-sm flex-wrap mt-xs">
+                                    <span className="font-medium">📄 {source.sourceFile}</span>
+                                    {source.pageNumber && (
+                                      <span>
+                                        {locale === 'nl' ? 'Pagina' : 'Page'} {source.pageNumber}
+                                      </span>
+                                    )}
+                                    <span className="ml-auto">
+                                      {locale === 'nl' ? 'Relevantie' : 'Relevance'}: {(source.similarity * 100).toFixed(0)}%
                                     </span>
-                                  )}
-                                  <span className="ml-auto">
-                                    {locale === 'nl' ? 'Relevantie' : 'Relevance'}: {(source.similarity * 100).toFixed(0)}%
-                                  </span>
+                                  </div>
                                 </div>
                               </div>
 
@@ -849,7 +853,7 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
                                     console.error('Error opening document:', error);
                                   }
                                 }}
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-base rounded-md transition-colors flex items-center justify-center gap-xs"
+                                className="w-full bg-gray-700 hover:bg-gray-800 text-white text-sm font-medium py-2 px-base rounded-md transition-colors flex items-center justify-center gap-xs"
                               >
                                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -863,17 +867,17 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
                           })}
 
                           {/* Footer Info */}
-                          <div className="border-t-2 border-gray-300 pt-sm mt-sm">
-                            <div className="bg-blue-50 border border-blue-200 rounded-md p-sm">
+                          <div className="border-t border-gray-200 pt-sm mt-sm">
+                            <div className="bg-gray-50 border border-gray-200 rounded-md p-sm">
                               <div className="flex items-start gap-xs">
-                                <svg className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="currentColor">
+                                <svg className="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="currentColor">
                                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                                 </svg>
                                 <div className="flex-1">
-                                  <p className="text-xs text-blue-700 font-semibold">
+                                  <p className="text-xs text-gray-700 font-semibold">
                                     {locale === 'nl' ? 'Geverifieerd antwoord' : 'Verified answer'}
                                   </p>
-                                  <p className="text-xs text-blue-600 mt-1">
+                                  <p className="text-xs text-gray-500 mt-1">
                                     {locale === 'nl'
                                       ? `Bovenstaande antwoord is gebaseerd op ${citedSources.length} geciteerde ${citedSources.length === 1 ? 'bron' : 'bronnen'}. Klik op "Open volledig document" om de informatie te verifiëren.`
                                       : `The answer above is based on ${citedSources.length} cited ${citedSources.length === 1 ? 'source' : 'sources'}. Click "Open complete document" to verify the information.`
@@ -896,14 +900,14 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
               {/* RAG Status Indicator */}
               {ragStatus && (
                 <div className="flex justify-center">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg px-base py-sm shadow-sm">
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg px-base py-sm shadow-sm">
                     <div className="flex items-center gap-2">
                       <div className="flex space-x-1">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                       </div>
-                      <span className="text-sm text-blue-700 font-medium">{ragStatus}</span>
+                      <span className="text-sm text-gray-700 font-medium">{ragStatus}</span>
                     </div>
                   </div>
                 </div>
@@ -944,10 +948,10 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
 
       {/* Input Area */}
       <div className={cn(
-        "bg-white border-t border-gray-200 px-base py-sm shadow-lg",
         isEntering && "animate-message-flow fill-both stagger-2"
       )}>
-        <div className="max-w-4xl mx-auto space-y-sm">
+        <div className="max-w-4xl mx-auto px-base">
+          <div className="border-t border-gray-200 py-sm space-y-sm">
           {/* File Upload Zone - Only shown if model supports vision */}
           {currentChatId && (
             <FileUploadZone
@@ -1060,6 +1064,7 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
           <p className="text-xs text-gray-500 mt-sm text-center">
             {t.shortcuts}
           </p>
+          </div>
         </div>
       </div>
 

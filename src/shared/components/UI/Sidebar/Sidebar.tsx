@@ -13,8 +13,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   sections = [],
   className = '',
   position = 'left',
-  expandedWidth = '320px',
-  collapsedWidth = '60px',
   headerContent,
   showToggleButton = true,
   customToggleButton,
@@ -24,7 +22,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { classBuilders } = useDesignSystem();
 
-  const sidebarWidth = isCollapsed ? collapsedWidth : expandedWidth;
+  // Use CSS variables for width (defined in globals.css)
+  const sidebarWidth = isCollapsed
+    ? 'var(--sidebar-collapsed-width)'
+    : 'var(--sidebar-width)';
   const positionClass = position === 'left' ? 'left-0' : 'right-0';
 
   // Conditional positioning based on navbar presence
@@ -39,19 +40,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
         topClass,
         heightClass,
         positionClass,
-        
-        // Glass background effect
-        classBuilders.glass(true, 'border-r border-gray-200/50 shadow-lg'),
-        
+
+        // Glass background effect (no shadow, no border for cleaner look)
+        classBuilders.glass(true),
+
         // Flex layout
         'flex flex-col',
-        
+
         // Smooth transitions
         'transition-all duration-normal ease-in-out',
-        
+
         // Custom scrollbar for content
         'custom-scrollbar',
-        
+
         className
       )}
       style={{
@@ -63,9 +64,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       
       {/* Sidebar Header */}
       <div className={cn(
-        'p-base border-b border-gray-200/30 min-h-[70px] bg-white/50 flex-shrink-0',
+        'relative p-base min-h-[70px] bg-white/50 flex-shrink-0',
         isCollapsed ? 'flex items-center justify-center' : COMMON_CLASSES.flexBetween
       )}>
+        {/* Bottom border - shorter on left side (only when expanded) */}
+        {!isCollapsed && <div className="absolute bottom-0 right-0 left-2 h-px bg-gray-200/30" />}
 
         {/* When collapsed, only show toggle button centered */}
         {isCollapsed ? (
@@ -149,14 +152,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Sidebar Content - Only show when not collapsed */}
       {!isCollapsed && (
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
-          {sections.map((section) => (
-            <div 
+          {sections.map((section, index) => (
+            <div
               key={section.id}
               className={cn(
-                'border-b border-gray-200/30 last:border-b-0',
+                'relative',
                 section.className
               )}
             >
+              {/* Bottom border - shorter on left side (except last item) */}
+              {index < sections.length - 1 && (
+                <div className="absolute bottom-0 right-0 left-2 h-px bg-gray-200/30" />
+              )}
               {/* Section Header */}
               {(section.title || section.description) && (
                 <div className="p-lg">
@@ -204,18 +211,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       )}
 
-      {/* Collapsed State Indicator */}
-      {isCollapsed && (
-        <div className="flex-1 flex flex-col items-center justify-start pt-lg">
-          {sections.map((section) => (
-            <div
-              key={section.id}
-              className="w-8 h-1 bg-gray-300 rounded-full mb-sm last:mb-0"
-              title={section.title}
-            />
-          ))}
-        </div>
-      )}
     </aside>
   );
 };

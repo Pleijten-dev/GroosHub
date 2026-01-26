@@ -46,6 +46,8 @@ export interface HorizontalStackedBarChartProps {
   onSegmentClick?: (segment: StackedBarSegment) => void;
   /** Current locale for translations */
   locale?: 'nl' | 'en';
+  /** Override the total value displayed (useful when segments overlap/double-count) */
+  totalOverride?: number;
 }
 
 // ============================================================================
@@ -92,6 +94,7 @@ export function HorizontalStackedBarChart({
   className,
   onSegmentClick,
   locale = 'nl',
+  totalOverride,
 }: HorizontalStackedBarChartProps) {
   const [hoveredSegment, setHoveredSegment] = useState<string | null>(null);
 
@@ -206,7 +209,7 @@ export function HorizontalStackedBarChart({
           {/* Total */}
           <div className="flex items-center gap-1 text-xs text-gray-500 ml-auto">
             <span className="font-medium">{t.total}:</span>
-            <span>{total}</span>
+            <span>{totalOverride ?? total}</span>
           </div>
         </div>
       )}

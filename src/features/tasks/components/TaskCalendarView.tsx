@@ -116,10 +116,11 @@ export function TaskCalendarView({ tasks, onTaskClick, locale }: TaskCalendarVie
       <div
         key={`day-${day}`}
         className={`min-h-[100px] border border-gray-200 p-2 ${
-          isCurrentDay ? 'bg-primary bg-opacity-5 border-primary' : 'bg-white'
+          isCurrentDay ? 'border-primary' : 'bg-white'
         }`}
+        style={isCurrentDay ? { background: 'linear-gradient(135deg, #96b068 0%, #a9bf79 100%)' } : undefined}
       >
-        <div className={`text-sm font-medium mb-2 ${isCurrentDay ? 'text-primary' : 'text-gray-700'}`}>
+        <div className={`text-sm font-medium mb-2 ${isCurrentDay ? 'text-white' : 'text-gray-700'}`}>
           {day}
         </div>
         <div className="space-y-1">

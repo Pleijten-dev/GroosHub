@@ -160,12 +160,6 @@ export function KanbanBoard({
         return next;
       });
 
-      // Subtle success feedback
-      showToast(`Task moved to ${t[newStatus]}`, {
-        duration: 2000,
-        type: 'success'
-      });
-
     } catch (error) {
       // 6. Failed - rollback with animation
       setLocalTasks(prevTasks =>
@@ -236,7 +230,7 @@ export function KanbanBoard({
               onDrop={(e) => handleDrop(e, column.id)}
               className={`flex flex-col transition-all duration-200 ${
                 isDragOver
-                  ? 'ring-2 ring-primary ring-opacity-50 bg-primary bg-opacity-5 rounded-lg'
+                  ? 'ring-2 ring-primary ring-opacity-50 bg-primary/25 rounded-lg'
                   : ''
               }`}
             >

@@ -4,6 +4,7 @@
 import React, { JSX, useState } from 'react';
 import { Locale } from '../../../lib/i18n/config';
 import { Sidebar, useSidebar } from '../../../shared/components/UI/Sidebar';
+import { MainLayout } from '../../../shared/components/UI/MainLayout';
 import { useLocationSidebarSections } from '../../../features/location/components/LocationSidebar';
 import { useLocationData } from '../../../features/location/hooks/useLocationData';
 import { MultiLevelDataTable } from '../../../features/location/components/DataTables';
@@ -312,9 +313,6 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     amenitiesData: amenities,
     onLoadSavedLocation: handleLoadSavedLocation,
   });
-
-  // Calculate main content margin based on sidebar state
-  const mainContentMargin = isCollapsed ? 'ml-[60px]' : 'ml-[320px]';
 
   /**
    * Render main content based on active tab and data state

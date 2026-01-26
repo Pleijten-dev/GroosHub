@@ -489,7 +489,7 @@ export function MessageInput({
   return (
     <div
       ref={dropZoneRef}
-      className={cn('bg-white border-t border-gray-200 px-base py-sm', className)}
+      className={cn('border-t border-gray-200 px-base py-sm', className)}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
