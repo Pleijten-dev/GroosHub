@@ -563,19 +563,20 @@ export function AIPanel({
     abortControllerRef.current = new AbortController();
 
     try {
+      // Build request body, omitting undefined/null values
+      const requestBody: Record<string, unknown> = {
+        toolId,
+        locale,
+      };
+      if (locationData) requestBody.locationData = locationData;
+      if (customMessage) requestBody.customMessage = customMessage;
+      if (activeChatId) requestBody.chatId = activeChatId;
+      if (projectId) requestBody.projectId = projectId;
+
       const response = await fetch('/api/ai-assistant/execute-tool', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          toolId,
-          locationData: locationData || null,
-          locale,
-          customMessage,
-          // Pass existing chat ID to continue conversation
-          chatId: activeChatId,
-          // Pass project ID to link chat to project (if viewing a saved snapshot)
-          projectId: projectId || null,
-        }),
+        body: JSON.stringify(requestBody),
         signal: abortControllerRef.current.signal,
       });
 

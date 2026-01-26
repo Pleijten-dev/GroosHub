@@ -28,21 +28,25 @@ import {
 } from '@/lib/db/queries/chats';
 import type { CompactLocationExport } from '@/features/location/utils/jsonExportCompact';
 
+// Helper to convert null to undefined for optional fields
+const nullToUndefined = <T>(val: T | null | undefined): T | undefined =>
+  val === null ? undefined : val;
+
 // Request schema
 const executeToolSchema = z.object({
   toolId: z.string(),
-  locationData: z.any().optional(), // CompactLocationExport
+  locationData: z.any().optional().nullable(), // CompactLocationExport
   locale: z.enum(['nl', 'en']).optional().default('nl'),
   // Optional: override the default model
-  modelId: z.string().optional(),
+  modelId: z.string().optional().nullable(),
   // Optional: custom user message (for agentic follow-ups)
-  customMessage: z.string().optional(),
+  customMessage: z.string().optional().nullable(),
   // Optional: previous messages for multi-turn conversation
-  previousMessages: z.array(z.any()).optional(),
+  previousMessages: z.array(z.any()).optional().nullable(),
   // Optional: existing chat ID to continue a conversation
-  chatId: z.string().uuid().optional(),
+  chatId: z.preprocess(nullToUndefined, z.string().uuid().optional()),
   // Optional: project ID to link the conversation to a project
-  projectId: z.string().uuid().optional(),
+  projectId: z.preprocess(nullToUndefined, z.string().uuid().optional()),
   // Optional: save to database (default true)
   saveToDatabase: z.boolean().optional().default(true),
 });
