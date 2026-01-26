@@ -31,6 +31,8 @@ import { PVEQuestionnaire } from '../../../features/location/components/PVE';
 import { MapExportButton } from '../../../features/location/components/MapExport';
 import type { AccessibleLocation } from '../../../features/location/types/saved-locations';
 import { useWMSGrading } from '../../../features/location/hooks/useWMSGrading';
+import { AIAssistantProvider, useAIAssistantOptional } from '../../../features/ai-assistant/hooks/useAIAssistant';
+import { exportCompactForLLM } from '../../../features/location/utils/jsonExportCompact';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -84,6 +86,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
   // Snapshot data state (for loaded snapshots)
   const [loadedSnapshotId, setLoadedSnapshotId] = useState<string | null>(null);
+  const [loadedProjectId, setLoadedProjectId] = useState<string | null>(null);
   const [loadedWMSGradingData, setLoadedWMSGradingData] = useState<Record<string, unknown> | null>(null);
 
   // Generate cube colors once and share across all components for consistency
@@ -117,6 +120,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
       setAnimationStage('welcome');
       // Clear snapshot data when no data (new search)
       setLoadedSnapshotId(null);
+      setLoadedProjectId(null);
       setLoadedWMSGradingData(null);
     }
   }, [data, isLoading, setCollapsed]);
@@ -152,13 +156,16 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     const snapshotDataStr = sessionStorage.getItem('grooshub_load_snapshot');
     if (snapshotDataStr) {
       try {
-        const { snapshotId, address, locationData, amenitiesData, wmsGradingData } = JSON.parse(snapshotDataStr);
+        const { snapshotId, projectId, address, locationData, amenitiesData, wmsGradingData } = JSON.parse(snapshotDataStr);
         // Clear from sessionStorage after reading
         sessionStorage.removeItem('grooshub_load_snapshot');
 
-        // Store snapshot metadata for WMS grading
+        // Store snapshot metadata for WMS grading and AI assistant
         if (snapshotId) {
           setLoadedSnapshotId(snapshotId);
+        }
+        if (projectId) {
+          setLoadedProjectId(projectId);
         }
         if (wmsGradingData) {
           setLoadedWMSGradingData(wmsGradingData);
@@ -835,22 +842,79 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     );
   };
 
-  return (
-    <MainLayout
-      isCollapsed={isCollapsed}
-      sidebar={
-        <Sidebar
-          isCollapsed={isCollapsed}
-          onToggle={toggle}
-          sections={sidebarSections}
-          title={locale === 'nl' ? 'Locatie Analyse' : 'Location Analysis'}
-          subtitle={locale === 'nl' ? 'Adres & Data Analyse' : 'Address & Data Analysis'}
-          position="left"
-        />
+  // Component to sync activeTab and location data to AI context
+  const AIContextSync = () => {
+    const ai = useAIAssistantOptional();
+
+    // Build compact export for AI tools (memoized to avoid rebuilding on every render)
+    const locationExport = React.useMemo(() => {
+      if (!data || !calculatedScores) return undefined;
+      try {
+        return exportCompactForLLM(
+          data,
+          calculatedScores.sortedPersonas,
+          calculatedScores.scenarios,
+          locale,
+          [], // customScenarioPersonaIds
+          amenities || null,
+          wmsGrading.gradingData || null
+        );
+      } catch (error) {
+        console.error('[AIContextSync] Failed to build compact export:', error);
+        return undefined;
       }
+    }, [data, calculatedScores, locale, amenities, wmsGrading.gradingData]);
+
+    React.useEffect(() => {
+      if (ai) {
+        ai.setContext({
+          locationExport,
+          currentView: {
+            location: {
+              address: currentAddress || undefined,
+              hasCompletedAnalysis: !!data,
+              activeTab,
+            },
+          },
+        });
+      }
+    }, [ai, activeTab, currentAddress, data, locationExport]);
+    return null;
+  };
+
+  return (
+    <AIAssistantProvider
+      feature="location"
+      projectId={loadedProjectId || undefined}
+      initialContext={{
+        currentView: {
+          location: {
+            address: currentAddress || undefined,
+            hasCompletedAnalysis: !!data,
+            activeTab,
+          },
+        },
+      }}
     >
-      {renderMainContent()}
-    </MainLayout>
+      {/* Sync active tab to AI context */}
+      <AIContextSync />
+
+      <MainLayout
+        isCollapsed={isCollapsed}
+        sidebar={
+          <Sidebar
+            isCollapsed={isCollapsed}
+            onToggle={toggle}
+            sections={sidebarSections}
+            title={locale === 'nl' ? 'Locatie Analyse' : 'Location Analysis'}
+            subtitle={locale === 'nl' ? 'Adres & Data Analyse' : 'Address & Data Analysis'}
+            position="left"
+          />
+        }
+      >
+        {renderMainContent()}
+      </MainLayout>
+    </AIAssistantProvider>
   );
 };
 
