@@ -9,12 +9,15 @@
  * - Quick action buttons that execute AI tools
  * - Mini chat interface for follow-up questions
  * - Smooth slide animation
+ * - Resizable width
+ * - Markdown rendering for responses
  *
  * Uses the /api/ai-assistant/execute-tool endpoint for tool execution.
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useChat } from '@ai-sdk/react';
+import ReactMarkdown from 'react-markdown';
 import { cn } from '@/shared/utils/cn';
 import { MessageInput } from '@/shared/components/UI/MessageInput';
 import type {
@@ -257,6 +260,103 @@ function LoadingIcon({ className }: { className?: string }) {
   );
 }
 
+// ============================================
+// Markdown Content Renderer
+// ============================================
+
+function MarkdownContent({ content }: { content: string }) {
+  return (
+    <ReactMarkdown
+      components={{
+        // Headings
+        h1: ({ children }) => <h1 className="text-lg font-bold mb-2 mt-3 first:mt-0">{children}</h1>,
+        h2: ({ children }) => <h2 className="text-base font-semibold mb-2 mt-3 first:mt-0">{children}</h2>,
+        h3: ({ children }) => <h3 className="text-sm font-semibold mb-1 mt-2">{children}</h3>,
+        // Paragraphs
+        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+        // Lists
+        ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
+        ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
+        li: ({ children }) => <li className="text-sm">{children}</li>,
+        // Tables
+        table: ({ children }) => (
+          <div className="overflow-x-auto mb-2">
+            <table className="min-w-full text-xs border-collapse">{children}</table>
+          </div>
+        ),
+        thead: ({ children }) => <thead className="bg-gray-100">{children}</thead>,
+        tbody: ({ children }) => <tbody>{children}</tbody>,
+        tr: ({ children }) => <tr className="border-b border-gray-200">{children}</tr>,
+        th: ({ children }) => <th className="px-2 py-1 text-left font-semibold">{children}</th>,
+        td: ({ children }) => <td className="px-2 py-1">{children}</td>,
+        // Code
+        code: ({ children, className }) => {
+          const isInline = !className;
+          return isInline ? (
+            <code className="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">{children}</code>
+          ) : (
+            <code className="block bg-gray-100 p-2 rounded text-xs font-mono overflow-x-auto mb-2">{children}</code>
+          );
+        },
+        pre: ({ children }) => <pre className="mb-2">{children}</pre>,
+        // Blockquote
+        blockquote: ({ children }) => (
+          <blockquote className="border-l-2 border-gray-300 pl-2 italic text-gray-600 mb-2">{children}</blockquote>
+        ),
+        // Horizontal rule
+        hr: () => <hr className="my-3 border-gray-200" />,
+        // Strong/Bold
+        strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+        // Links
+        a: ({ href, children }) => (
+          <a href={href} className="text-primary underline hover:no-underline" target="_blank" rel="noopener noreferrer">
+            {children}
+          </a>
+        ),
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  );
+}
+
+// ============================================
+// Resize Handle
+// ============================================
+
+function ResizeHandle({ onResize }: { onResize: (delta: number) => void }) {
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const delta = startX - moveEvent.clientX; // Negative because we're on the left edge
+      onResize(delta);
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
+  }, [onResize]);
+
+  return (
+    <div
+      className="absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-primary/30 transition-colors group"
+      onMouseDown={handleMouseDown}
+    >
+      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gray-300 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+    </div>
+  );
+}
+
 function QuickActionButton({ action, onExecute }: QuickActionButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -387,6 +487,11 @@ function ContextDisplay({ context }: { context: AIContextData }) {
 // Main AI Panel Component
 // ============================================
 
+// Panel width constraints
+const MIN_PANEL_WIDTH = 320;
+const MAX_PANEL_WIDTH = 800;
+const DEFAULT_PANEL_WIDTH = 400;
+
 export function AIPanel({
   isOpen,
   onClose,
@@ -403,8 +508,17 @@ export function AIPanel({
   const [isToolExecuting, setIsToolExecuting] = useState(false);
   const [currentToolId, setCurrentToolId] = useState<string | null>(null);
   const [toolResponse, setToolResponse] = useState<string>('');
+  const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH);
   const panelRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Handle panel resize
+  const handleResize = useCallback((delta: number) => {
+    setPanelWidth(prev => {
+      const newWidth = prev + delta;
+      return Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, newWidth));
+    });
+  }, []);
 
   // Use useChat for regular chat messages (fallback/follow-up)
   const {
@@ -551,6 +665,15 @@ export function AIPanel({
   const executeAITool = useCallback(async (toolId: string, customMessage?: string) => {
     // Get location data from context (use locationExport for full data, fallback to location view)
     const locationData = (context.locationExport || context.currentView.location) as CompactLocationExport | undefined;
+
+    // Debug: Log what data is available
+    console.log('[AIPanel] Executing tool:', toolId);
+    console.log('[AIPanel] Context locationExport available:', !!context.locationExport);
+    console.log('[AIPanel] Context currentView.location:', context.currentView.location);
+    if (context.locationExport) {
+      const exportKeys = Object.keys(context.locationExport as object);
+      console.log('[AIPanel] locationExport keys:', exportKeys);
+    }
 
     // Determine locale from URL or default to 'nl'
     const locale = (typeof window !== 'undefined' && window.location.pathname.startsWith('/en')) ? 'en' : 'nl';
@@ -778,7 +901,7 @@ export function AIPanel({
   return (
     <>
 
-      {/* Panel - Compact size, positioned bottom-right above the button */}
+      {/* Panel - Resizable, positioned bottom-right above the button */}
       <div
         ref={panelRef}
         role="dialog"
@@ -790,18 +913,21 @@ export function AIPanel({
           right: '1rem',
           zIndex: 9998,
           maxHeight: 'calc(100vh - 8rem)',
+          width: `${panelWidth}px`,
         }}
         className={cn(
-          'w-80', // 320px - compact width
           'bg-white shadow-2xl rounded-xl',
-          'flex flex-col',
-          'transition-all duration-300 ease-out',
+          'flex flex-col relative',
+          'transition-opacity duration-300 ease-out',
           'border border-gray-200',
           isOpen
-            ? 'opacity-100 translate-y-0'
-            : 'opacity-0 translate-y-4 pointer-events-none'
+            ? 'opacity-100'
+            : 'opacity-0 pointer-events-none'
         )}
       >
+        {/* Resize handle on left edge */}
+        <ResizeHandle onResize={handleResize} />
+
         {/* Header */}
         <PanelHeader
           title={getTitle()}
@@ -852,11 +978,15 @@ export function AIPanel({
                           className={cn(
                             'text-sm rounded-lg p-3',
                             msg.role === 'user'
-                              ? 'bg-primary/10 ml-8'
-                              : 'bg-gray-100 mr-8'
+                              ? 'bg-primary/10 ml-4'
+                              : 'bg-gray-100'
                           )}
                         >
-                          {text}
+                          {msg.role === 'assistant' ? (
+                            <MarkdownContent content={text} />
+                          ) : (
+                            text
+                          )}
                         </div>
                       );
                     })}
@@ -878,11 +1008,15 @@ export function AIPanel({
                       className={cn(
                         'text-sm rounded-lg p-3',
                         msg.role === 'user'
-                          ? 'bg-primary/10 ml-8'
-                          : 'bg-gray-100 mr-8'
+                          ? 'bg-primary/10 ml-4'
+                          : 'bg-gray-100'
                       )}
                     >
-                      {text}
+                      {msg.role === 'assistant' ? (
+                        <MarkdownContent content={text} />
+                      ) : (
+                        text
+                      )}
                     </div>
                   );
                 })}
@@ -893,8 +1027,8 @@ export function AIPanel({
           {/* Tool response while streaming - show whenever there's content */}
           {toolResponse && (
             <div className="px-4 pb-4">
-              <div className="text-sm rounded-lg p-3 bg-gray-100 mr-8 whitespace-pre-wrap">
-                {toolResponse}
+              <div className="text-sm rounded-lg p-3 bg-gray-100">
+                <MarkdownContent content={toolResponse} />
                 {isToolExecuting && (
                   <span className="inline-block w-2 h-4 ml-1 bg-primary/50 animate-pulse" />
                 )}
