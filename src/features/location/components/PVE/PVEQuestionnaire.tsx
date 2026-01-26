@@ -587,7 +587,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
                   );
                 })}
 
-                {/* Draggable dividers */}
+                {/* Draggable dividers (invisible handles for dragging) */}
                 {activeCategories.slice(0, -1).map((cat, idx) => {
                   const x = getCumulativePercentage(idx + 1);
 
@@ -597,15 +597,6 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
                       onMouseDown={() => handleDragStart(idx)}
                       style={{ cursor: 'ew-resize' }}
                     >
-                      <line
-                        x1={`${x}%`}
-                        y1="0"
-                        x2={`${x}%`}
-                        y2="100%"
-                        stroke="#fff"
-                        strokeWidth="3"
-                        opacity="0.8"
-                      />
                       <rect
                         x={`calc(${x}% - 4px)`}
                         y="0"

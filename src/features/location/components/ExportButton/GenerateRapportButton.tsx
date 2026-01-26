@@ -567,8 +567,6 @@ export function GenerateRapportButton({
           }
         }
 
-        setProgress(55);
-
         // Download each WMS layer with its legend
         let successCount = 0;
         let failCount = 0;
@@ -577,8 +575,8 @@ export function GenerateRapportButton({
         for (let i = 0; i < validLayers.length; i++) {
           const { layerId, config: layerConfig } = validLayers[i];
 
-          // Update progress as we go (55-78% range for WMS downloads)
-          const layerProgress = 55 + Math.floor((i / totalLayers) * 23);
+          // Update progress as we go (70-78% range for WMS downloads)
+          const layerProgress = 70 + Math.floor((i / totalLayers) * 8);
           setProgress(layerProgress);
 
           try {
