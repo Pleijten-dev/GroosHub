@@ -162,9 +162,9 @@ function addSmallCube(
   const mesh = new THREE.Mesh(geometry, material);
   group.add(mesh);
 
-  // Edge lines (dark color for visibility on white background)
+  // Edge lines (white to match the interactive visualization)
   const edgesGeometry = new THREE.EdgesGeometry(geometry);
-  const lineMaterial = new THREE.LineBasicMaterial({ color: 0x333333 });
+  const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
   const edges = new THREE.LineSegments(edgesGeometry, lineMaterial);
   group.add(edges);
 
@@ -229,8 +229,8 @@ function addBoundingCube(scene: THREE.Scene, size: number): void {
     new THREE.BufferAttribute(new Float32Array(points), 3)
   );
 
-  // Grid lines (dark color for visibility on white background)
-  const lineMaterial = new THREE.LineBasicMaterial({ color: 0x666666 });
+  // Grid lines (white to match the interactive visualization)
+  const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
   const lines = new THREE.LineSegments(lineGeometry, lineMaterial);
   scene.add(lines);
 

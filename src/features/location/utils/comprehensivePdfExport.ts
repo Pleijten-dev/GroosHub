@@ -1486,7 +1486,7 @@ class PdfBuilder {
   addPVESection(pveData: ComprehensivePdfData['pveData']): void {
     this.addSubsectionTitle(this.t.pveSection);
 
-    if (!pveData || (!pveData.totalM2 && !pveData.percentages && !pveData.capturedBarImage)) {
+    if (!pveData || (!pveData.totalM2 && !pveData.percentages)) {
       const noData = this.locale === 'nl'
         ? 'Geen Programma van Eisen data beschikbaar.'
         : 'No Program of Requirements data available.';
@@ -1520,42 +1520,8 @@ class PdfBuilder {
       this.currentY += 6;
     }
 
-    // If we have a captured bar image, use it instead of drawing programmatically
-    if (pveData.capturedBarImage) {
-      this.currentY += 4;
-      this.pdf.setFontSize(10);
-      this.pdf.setTextColor(71, 118, 56);
-      this.pdf.text(this.t.pveAllocations, MARGIN, this.currentY);
-      this.currentY += 8;
-
-      // Add the captured stacked bar image
-      // The image is wide (aspect ratio ~10:1), so use full content width
-      const imageWidth = CONTENT_WIDTH;
-      const imageHeight = imageWidth / 10; // Approximate aspect ratio of the bar
-      this.checkPageBreak(imageHeight + 10);
-
-      try {
-        this.pdf.addImage(
-          pveData.capturedBarImage,
-          'PNG',
-          MARGIN,
-          this.currentY,
-          imageWidth,
-          imageHeight
-        );
-        this.currentY += imageHeight + 8;
-      } catch (error) {
-        console.error('Failed to add captured PVE bar image:', error);
-        // Fall back to text-based display
-        this.addPVEAllocationsFallback(pveData);
-      }
-
-      // Add allocation breakdown as text below the image
-      if (pveData.percentages) {
-        this.addPVEAllocationsText(pveData);
-      }
-    } else if (pveData.percentages) {
-      // Fall back to programmatic rendering
+    // Draw horizontal stacked bar chart with green tones
+    if (pveData.percentages) {
       this.addPVEAllocationsFallback(pveData);
     }
 
@@ -1563,47 +1529,7 @@ class PdfBuilder {
   }
 
   /**
-   * Add PVE allocations as text breakdown (used below captured image)
-   */
-  private addPVEAllocationsText(pveData: NonNullable<ComprehensivePdfData['pveData']>): void {
-    if (!pveData.percentages) return;
-
-    const allocations = [
-      { label: this.t.apartments, value: pveData.percentages.apartments },
-      { label: this.t.commercial, value: pveData.percentages.commercial },
-      { label: this.t.hospitality, value: pveData.percentages.hospitality },
-      { label: this.t.social, value: pveData.percentages.social },
-      { label: this.t.communal, value: pveData.percentages.communal },
-      { label: this.t.offices, value: pveData.percentages.offices },
-    ].filter(a => a.value > 0);
-
-    // Compact two-column layout for allocation text
-    this.pdf.setFontSize(8);
-    this.pdf.setTextColor(80, 80, 80);
-
-    const colWidth = CONTENT_WIDTH / 2;
-    allocations.forEach((alloc, idx) => {
-      const col = idx % 2;
-      const row = Math.floor(idx / 2);
-
-      if (col === 0 && row > 0) {
-        this.currentY += 5;
-      }
-
-      const x = MARGIN + col * colWidth;
-      const m2Value = pveData.totalM2 ? Math.round((alloc.value / 100) * pveData.totalM2) : 0;
-      const valueText = pveData.totalM2
-        ? `${alloc.label}: ${alloc.value.toFixed(1)}% (${m2Value.toLocaleString()} m²)`
-        : `${alloc.label}: ${alloc.value.toFixed(1)}%`;
-
-      this.pdf.text(valueText, x, this.currentY);
-    });
-
-    this.currentY += 5;
-  }
-
-  /**
-   * Fallback PVE allocations rendering (bar chart style)
+   * Fallback PVE allocations rendering - horizontal stacked bar chart with green tones
    */
   private addPVEAllocationsFallback(pveData: NonNullable<ComprehensivePdfData['pveData']>): void {
     if (!pveData.percentages) return;
@@ -1612,49 +1538,83 @@ class PdfBuilder {
     this.pdf.setFontSize(10);
     this.pdf.setTextColor(71, 118, 56);
     this.pdf.text(this.t.pveAllocations, MARGIN, this.currentY);
-    this.currentY += 6;
+    this.currentY += 8;
 
+    // Green-tone color palette (from lightest to darkest)
+    const greenColors: Record<string, [number, number, number]> = {
+      apartments: [138, 151, 107],   // #8a976b - lightest sage green
+      commercial: [119, 138, 94],    // #778a5e - medium sage
+      hospitality: [99, 131, 76],    // #63834c - forest green
+      social: [71, 118, 56],         // #477638 - primary green
+      communal: [72, 128, 106],      // #48806a - teal green
+      offices: [12, 33, 26],         // #0c211a - dark green
+    };
+
+    // Build allocations array with colors, filtering out zero values
     const allocations = [
-      { label: this.t.apartments, value: pveData.percentages.apartments },
-      { label: this.t.commercial, value: pveData.percentages.commercial },
-      { label: this.t.hospitality, value: pveData.percentages.hospitality },
-      { label: this.t.social, value: pveData.percentages.social },
-      { label: this.t.communal, value: pveData.percentages.communal },
-      { label: this.t.offices, value: pveData.percentages.offices },
+      { key: 'apartments', label: this.t.apartments, value: pveData.percentages.apartments },
+      { key: 'commercial', label: this.t.commercial, value: pveData.percentages.commercial },
+      { key: 'hospitality', label: this.t.hospitality, value: pveData.percentages.hospitality },
+      { key: 'social', label: this.t.social, value: pveData.percentages.social },
+      { key: 'communal', label: this.t.communal, value: pveData.percentages.communal },
+      { key: 'offices', label: this.t.offices, value: pveData.percentages.offices },
     ].filter(a => a.value > 0);
 
-    // Draw simple bar chart for allocations
-    const barHeight = 10;
-    const maxBarWidth = CONTENT_WIDTH - 70;
+    // Draw horizontal stacked bar
+    const barHeight = 20;
+    const barWidth = CONTENT_WIDTH;
+    this.checkPageBreak(barHeight + 50);
 
-    allocations.forEach(alloc => {
-      this.checkPageBreak(barHeight + 4);
+    // Draw the stacked bar segments
+    let currentX = MARGIN;
+    allocations.forEach((alloc) => {
+      const segmentWidth = (alloc.value / 100) * barWidth;
+      const color = greenColors[alloc.key] || [71, 118, 56];
 
-      // Label
-      this.pdf.setFontSize(9);
-      this.pdf.setTextColor(50, 50, 50);
-      this.pdf.text(alloc.label, MARGIN, this.currentY);
+      this.pdf.setFillColor(color[0], color[1], color[2]);
+      this.pdf.rect(currentX, this.currentY, segmentWidth, barHeight, 'F');
 
-      // Bar background
-      this.pdf.setFillColor(240, 240, 240);
-      this.pdf.roundedRect(MARGIN + 55, this.currentY - 5, maxBarWidth, barHeight, 2, 2, 'F');
+      currentX += segmentWidth;
+    });
 
-      // Bar fill (percentage based)
-      const barWidth = (alloc.value / 100) * maxBarWidth;
-      this.pdf.setFillColor(71, 118, 56);
-      this.pdf.roundedRect(MARGIN + 55, this.currentY - 5, barWidth, barHeight, 2, 2, 'F');
+    // Add border around the entire bar
+    this.pdf.setDrawColor(200, 200, 200);
+    this.pdf.setLineWidth(0.5);
+    this.pdf.rect(MARGIN, this.currentY, barWidth, barHeight, 'S');
 
-      // Percentage and m² value
+    this.currentY += barHeight + 8;
+
+    // Add legend below the bar (two rows for compactness)
+    const legendItemWidth = CONTENT_WIDTH / 3;
+    let legendX = MARGIN;
+    let legendRow = 0;
+
+    allocations.forEach((alloc, idx) => {
+      if (idx > 0 && idx % 3 === 0) {
+        legendRow++;
+        legendX = MARGIN;
+        this.currentY += 12;
+      }
+
+      const color = greenColors[alloc.key] || [71, 118, 56];
+
+      // Color swatch
+      this.pdf.setFillColor(color[0], color[1], color[2]);
+      this.pdf.rect(legendX, this.currentY - 3, 8, 8, 'F');
+
+      // Label and value
       this.pdf.setFontSize(8);
       this.pdf.setTextColor(50, 50, 50);
       const m2Value = pveData.totalM2 ? Math.round((alloc.value / 100) * pveData.totalM2) : 0;
-      const valueText = pveData.totalM2
-        ? `${alloc.value.toFixed(1)}% (${m2Value.toLocaleString()} m²)`
-        : `${alloc.value.toFixed(1)}%`;
-      this.pdf.text(valueText, MARGIN + 55 + maxBarWidth + 3, this.currentY);
+      const legendText = pveData.totalM2
+        ? `${alloc.label}: ${alloc.value.toFixed(0)}% (${m2Value.toLocaleString()} m²)`
+        : `${alloc.label}: ${alloc.value.toFixed(0)}%`;
+      this.pdf.text(legendText, legendX + 10, this.currentY + 2);
 
-      this.currentY += barHeight + 4;
+      legendX += legendItemWidth;
     });
+
+    this.currentY += 10;
   }
 
   /**
