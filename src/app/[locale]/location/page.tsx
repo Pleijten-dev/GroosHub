@@ -899,38 +899,21 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
       {/* Sync active tab to AI context */}
       <AIContextSync />
 
-      <div
-        className="page-background w-screen overflow-hidden flex flex-col"
-        style={{
-          height: '100vh',
-          marginTop: '-64px',
-          marginLeft: 'calc(var(--space-base) * -1)',
-          marginRight: 'calc(var(--space-base) * -1)',
-          paddingTop: '64px'
-        }}
+      <MainLayout
+        isCollapsed={isCollapsed}
+        sidebar={
+          <Sidebar
+            isCollapsed={isCollapsed}
+            onToggle={toggle}
+            sections={sidebarSections}
+            title={locale === 'nl' ? 'Locatie Analyse' : 'Location Analysis'}
+            subtitle={locale === 'nl' ? 'Adres & Data Analyse' : 'Address & Data Analysis'}
+            position="left"
+          />
+        }
       >
-
-        {/* SIDEBAR - Using reusable component (position: fixed, out of flow) */}
-        <Sidebar
-          isCollapsed={isCollapsed}
-          onToggle={toggle}
-          sections={sidebarSections}
-          title={locale === 'nl' ? 'Locatie Analyse' : 'Location Analysis'}
-          subtitle={locale === 'nl' ? 'Adres & Data Analyse' : 'Address & Data Analysis'}
-          position="left"
-          expandedWidth="320px"
-          collapsedWidth="60px"
-          className="!top-[64px] !bottom-0 !h-auto"
-        />
-
-        {/* MAIN CONTENT - Margin adjusted for fixed sidebar */}
-        <main className={`
-          flex flex-col overflow-auto h-full
-          ${mainContentMargin}
-        `}>
-          {renderMainContent()}
-        </main>
-      </div>
+        {renderMainContent()}
+      </MainLayout>
     </AIAssistantProvider>
   );
 };
