@@ -327,10 +327,14 @@ function MarkdownContent({ content }: { content: string }) {
 function ResizeHandle({ onResize }: { onResize: (delta: number) => void }) {
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
-    const startX = e.clientX;
+
+    // Track the last X position for incremental delta calculation
+    let lastX = e.clientX;
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
-      const delta = startX - moveEvent.clientX; // Negative because we're on the left edge
+      // Calculate delta from last position (not start position)
+      const delta = lastX - moveEvent.clientX;
+      lastX = moveEvent.clientX; // Update for next move
       onResize(delta);
     };
 
