@@ -18,6 +18,7 @@ import {
   buildToolPayload,
   getToolsByTab,
   hasRequiredData,
+  getToolReferenceData,
   type AITool,
   type AIToolTab,
   type AIToolPayload,
@@ -448,6 +449,7 @@ export default function AIToolsTestPage({ params }: { params: Promise<{ locale: 
                 const dataCheck = snapshotData
                   ? hasRequiredData(tool, snapshotData)
                   : { hasAll: false, missing: tool.requiresData as string[] };
+                const refDataCount = getToolReferenceData(tool).length;
 
                 return (
                   <button
@@ -483,6 +485,14 @@ export default function AIToolsTestPage({ params }: { params: Promise<{ locale: 
                         {tool.isDisabled && (
                           <span className="px-xs py-0.5 rounded bg-gray-100 text-gray-500 text-xs">
                             {text.disabled}
+                          </span>
+                        )}
+                        {refDataCount > 0 && !tool.isDisabled && (
+                          <span
+                            className="px-xs py-0.5 rounded bg-cyan-100 text-cyan-700 text-xs"
+                            title={getToolReferenceData(tool).join(', ')}
+                          >
+                            +{refDataCount} JSON
                           </span>
                         )}
                         {!dataCheck.hasAll && !tool.isDisabled && (
@@ -557,7 +567,7 @@ export default function AIToolsTestPage({ params }: { params: Promise<{ locale: 
                 {/* Required Data */}
                 <div>
                   <h3 className="text-sm font-medium text-gray-700 mb-sm">
-                    {isNl ? 'Vereiste Data' : 'Required Data'}
+                    {isNl ? 'Vereiste Locatie Data' : 'Required Location Data'}
                   </h3>
                   <div className="flex flex-wrap gap-xs">
                     {toolPayload.tool.requiresData.map((key) => {
@@ -580,6 +590,30 @@ export default function AIToolsTestPage({ params }: { params: Promise<{ locale: 
                     })}
                   </div>
                 </div>
+
+                {/* Reference Data (Static JSON files) */}
+                {getToolReferenceData(toolPayload.tool).length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-700 mb-sm">
+                      {isNl ? 'Referentie Data (JSON bestanden)' : 'Reference Data (JSON files)'}
+                    </h3>
+                    <div className="flex flex-wrap gap-xs">
+                      {getToolReferenceData(toolPayload.tool).map((key) => (
+                        <span
+                          key={key}
+                          className="px-sm py-xs rounded text-xs font-medium bg-blue-100 text-blue-800"
+                        >
+                          ✓ {key}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-xs">
+                      {isNl
+                        ? 'Deze data wordt automatisch toegevoegd vanuit statische JSON bestanden'
+                        : 'This data is automatically included from static JSON files'}
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex items-center justify-center h-64 text-gray-500">

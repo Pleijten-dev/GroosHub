@@ -7,6 +7,13 @@
 
 import type { CompactLocationExport } from '@/features/location/utils/jsonExportCompact';
 
+// Import reference JSON data files
+import housingPersonasData from '@/features/location/data/sources/housing-personas.json';
+import housingTypologiesData from '@/features/location/data/sources/housing-typologies.json';
+import communalSpacesData from '@/features/location/data/sources/communal-spaces.json';
+import publicSpacesData from '@/features/location/data/sources/public-spaces.json';
+import buildingAmenitiesData from '@/features/location/data/sources/building-amenities.json';
+
 // ============================================
 // Types
 // ============================================
@@ -24,6 +31,16 @@ export type AIToolTab =
   | 'pve'
   | 'genereer-rapport';
 
+/**
+ * Reference data types that can be included in tool context
+ */
+export type ReferenceDataKey =
+  | 'housingPersonas'      // Full persona details with housing preferences
+  | 'housingTypologies'    // Available housing unit types with specs
+  | 'communalSpaces'       // Shared/communal spaces that can be added
+  | 'publicSpaces'         // Public/commercial spaces for mixed-use
+  | 'buildingAmenities';   // Building-level amenities
+
 export interface AITool {
   id: string;
   tab: AIToolTab;
@@ -38,6 +55,7 @@ export interface AITool {
   disabledReason?: string;
   outputFormat: 'direct' | 'interactive' | 'table';
   requiresData: (keyof CompactLocationExport)[];
+  requiresReferenceData?: ReferenceDataKey[]; // Static reference JSON files
 }
 
 export interface AIToolPayload {
@@ -65,6 +83,7 @@ export const AI_TOOLS: AITool[] = [
     isPrimary: true,
     outputFormat: 'direct',
     requiresData: ['targetGroups', 'allPersonas', 'demographics', 'amenities'],
+    requiresReferenceData: ['housingPersonas'], // Full persona details
   },
   {
     id: 'doelgroepen-suggest-best',
@@ -76,6 +95,7 @@ export const AI_TOOLS: AITool[] = [
     icon: 'target',
     outputFormat: 'direct',
     requiresData: ['targetGroups', 'allPersonas', 'demographics', 'amenities', 'housingMarket'],
+    requiresReferenceData: ['housingPersonas', 'housingTypologies'],
   },
   {
     id: 'doelgroepen-compare',
@@ -87,6 +107,7 @@ export const AI_TOOLS: AITool[] = [
     icon: 'compare',
     outputFormat: 'table',
     requiresData: ['targetGroups', 'allPersonas'],
+    requiresReferenceData: ['housingPersonas'],
   },
 
   // === SCORE TAB ===
@@ -148,6 +169,7 @@ export const AI_TOOLS: AITool[] = [
     icon: 'building',
     outputFormat: 'direct',
     requiresData: ['demographics', 'amenities'],
+    requiresReferenceData: ['publicSpaces', 'communalSpaces'],
   },
   {
     id: 'demografie-scenario-comparison',
@@ -256,6 +278,7 @@ export const AI_TOOLS: AITool[] = [
     icon: 'users',
     outputFormat: 'direct',
     requiresData: ['livability', 'demographics', 'targetGroups'],
+    requiresReferenceData: ['communalSpaces', 'housingPersonas'],
   },
   {
     id: 'leefbaarheid-facility-improvements',
@@ -282,6 +305,7 @@ export const AI_TOOLS: AITool[] = [
     isAgentic: true,
     outputFormat: 'interactive',
     requiresData: ['amenities', 'demographics', 'targetGroups'],
+    requiresReferenceData: ['communalSpaces', 'publicSpaces', 'buildingAmenities'],
   },
   {
     id: 'voorzieningen-recommendations',
@@ -294,6 +318,7 @@ export const AI_TOOLS: AITool[] = [
     isAgentic: true,
     outputFormat: 'interactive',
     requiresData: ['amenities', 'demographics', 'targetGroups', 'allPersonas'],
+    requiresReferenceData: ['communalSpaces', 'publicSpaces', 'buildingAmenities', 'housingPersonas'],
   },
   {
     id: 'voorzieningen-local-guide',
@@ -320,6 +345,7 @@ export const AI_TOOLS: AITool[] = [
     isPrimary: true,
     outputFormat: 'direct',
     requiresData: ['housingMarket', 'metadata'],
+    requiresReferenceData: ['housingTypologies'],
   },
   {
     id: 'woningmarkt-investment-advice',
@@ -331,6 +357,7 @@ export const AI_TOOLS: AITool[] = [
     icon: 'money',
     outputFormat: 'direct',
     requiresData: ['housingMarket', 'demographics', 'amenities', 'safety'],
+    requiresReferenceData: ['housingTypologies'],
   },
   {
     id: 'woningmarkt-demand-analysis',
@@ -342,6 +369,7 @@ export const AI_TOOLS: AITool[] = [
     icon: 'home',
     outputFormat: 'direct',
     requiresData: ['housingMarket', 'demographics', 'targetGroups'],
+    requiresReferenceData: ['housingTypologies', 'housingPersonas'],
   },
 
   // === KAARTEN TAB ===
@@ -392,6 +420,7 @@ export const AI_TOOLS: AITool[] = [
     isPrimary: true,
     outputFormat: 'direct',
     requiresData: ['pve', 'targetGroups', 'demographics', 'housingMarket'],
+    requiresReferenceData: ['housingTypologies', 'housingPersonas', 'communalSpaces'],
   },
   {
     id: 'pve-specifications',
@@ -403,6 +432,7 @@ export const AI_TOOLS: AITool[] = [
     icon: 'document',
     outputFormat: 'direct',
     requiresData: ['pve', 'targetGroups', 'allPersonas'],
+    requiresReferenceData: ['housingTypologies', 'housingPersonas', 'buildingAmenities'],
   },
   {
     id: 'pve-scenario-comparison',
@@ -414,6 +444,7 @@ export const AI_TOOLS: AITool[] = [
     icon: 'compare',
     outputFormat: 'table',
     requiresData: ['pve', 'housingMarket', 'targetGroups'],
+    requiresReferenceData: ['housingTypologies'],
   },
 
   // === GENEREER-RAPPORT TAB (DISABLED) ===
@@ -735,6 +766,17 @@ Investment thesis, market opportunity, expected returns, differentiators.`,
 // ============================================
 
 /**
+ * Reference data registry - maps keys to actual JSON data
+ */
+const REFERENCE_DATA: Record<ReferenceDataKey, { nl: unknown; en: unknown }> = {
+  housingPersonas: housingPersonasData,
+  housingTypologies: housingTypologiesData,
+  communalSpaces: communalSpacesData,
+  publicSpaces: publicSpacesData,
+  buildingAmenities: buildingAmenitiesData,
+};
+
+/**
  * Extract relevant data from CompactLocationExport based on tool requirements
  */
 function extractContextData(
@@ -754,6 +796,30 @@ function extractContextData(
   }
 
   return context;
+}
+
+/**
+ * Extract reference data (static JSON files) based on tool requirements
+ */
+function extractReferenceData(
+  requiredKeys: ReferenceDataKey[] | undefined,
+  locale: 'nl' | 'en'
+): Record<string, unknown> {
+  if (!requiredKeys || requiredKeys.length === 0) {
+    return {};
+  }
+
+  const referenceData: Record<string, unknown> = {};
+
+  for (const key of requiredKeys) {
+    const data = REFERENCE_DATA[key];
+    if (data) {
+      // Use locale-specific data (nl or en)
+      referenceData[key] = data[locale] || data.nl; // Fallback to nl if locale not available
+    }
+  }
+
+  return referenceData;
 }
 
 /**
@@ -908,7 +974,14 @@ export function buildToolPayload(
 ): AIToolPayload {
   const systemPrompt = SYSTEM_PROMPTS[tool.id] || SYSTEM_PROMPT_BASE;
   const userPrompt = buildUserPrompt(tool, locale);
-  const contextData = extractContextData(locationData, tool.requiresData);
+  const locationContextData = extractContextData(locationData, tool.requiresData);
+  const referenceData = extractReferenceData(tool.requiresReferenceData, locale);
+
+  // Combine location data and reference data
+  const contextData = {
+    ...locationContextData,
+    ...(Object.keys(referenceData).length > 0 && { referenceData }),
+  };
 
   // Build full prompt for display
   const fullPrompt = `=== SYSTEM PROMPT ===
@@ -962,4 +1035,18 @@ export function hasRequiredData(
   }
 
   return { hasAll: missing.length === 0, missing };
+}
+
+/**
+ * Get all reference data keys for display
+ */
+export function getAllReferenceDataKeys(): ReferenceDataKey[] {
+  return Object.keys(REFERENCE_DATA) as ReferenceDataKey[];
+}
+
+/**
+ * Check which reference data a tool requires
+ */
+export function getToolReferenceData(tool: AITool): ReferenceDataKey[] {
+  return tool.requiresReferenceData || [];
 }
