@@ -90,7 +90,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   // Snapshot data state (for loaded snapshots)
   const [loadedSnapshotId, setLoadedSnapshotId] = useState<string | null>(null);
   const [loadedProjectId, setLoadedProjectId] = useState<string | null>(null);
-  const [loadedWMSGradingData, setLoadedWMSGradingData] = useState<Record<string, unknown> | null>(null);
+  const [loadedWMSGradingData, setLoadedWMSGradingData] = useState<WMSGradingData | null>(null);
 
   // Generate cube colors once and share across all components for consistency
   const cubeColors = React.useMemo(() => generateGradientColors(), []);
