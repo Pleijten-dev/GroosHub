@@ -211,7 +211,7 @@ export function GenerateRapportButton({
   cubeColors,
   pveData,
   wmsGradingData,
-  usePlaceholder = true, // Default to placeholder to save LLM costs
+  usePlaceholder = false, // Use real LLM backend for rapport generation
   className,
 }: GenerateRapportButtonProps) {
   const [stage, setStage] = useState<GenerationStage>('idle');
