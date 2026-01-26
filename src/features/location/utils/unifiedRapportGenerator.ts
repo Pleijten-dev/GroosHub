@@ -1053,13 +1053,14 @@ export class UnifiedRapportBuilder {
     this.currentY += 12;
 
     const categories = Object.entries(pveData.percentages);
+    // All green-tone color palette (no gold, blue, purple, grey)
     const colors: [number, number, number][] = [
-      [71, 118, 56],   // apartments - primary green
-      [134, 166, 125], // commercial - secondary green
-      [212, 175, 55],  // hospitality - gold
-      [59, 130, 246],  // social - blue
-      [147, 51, 234],  // communal - purple
-      [100, 116, 139], // offices - slate
+      [71, 118, 56],   // apartments - primary green (#477638)
+      [134, 166, 125], // commercial - secondary green (#86a67d)
+      [99, 131, 76],   // hospitality - forest green (#63834c)
+      [72, 128, 106],  // social - teal green (#48806a)
+      [138, 151, 107], // communal - sage green (#8a976b)
+      [45, 85, 45],    // offices - dark green (#2d552d)
     ];
 
     // If we have a screenshot of the PVE graph, use it
