@@ -312,3 +312,54 @@ export async function createChatConversation(params: {
 
   return result[0] as ChatConversation;
 }
+
+/**
+ * Create a new chat message
+ */
+export async function createChatMessage(params: {
+  chatId: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  modelId?: string | null;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  metadata?: Record<string, unknown>;
+}): Promise<ChatMessage> {
+  const db = getDbConnection();
+
+  const result = await db`
+    INSERT INTO chat_messages (
+      chat_id,
+      role,
+      content,
+      content_encrypted,
+      model_id,
+      input_tokens,
+      output_tokens,
+      metadata,
+      created_at
+    )
+    VALUES (
+      ${params.chatId},
+      ${params.role},
+      ${params.content},
+      false,
+      ${params.modelId || null},
+      ${params.inputTokens || null},
+      ${params.outputTokens || null},
+      ${JSON.stringify(params.metadata || {})},
+      CURRENT_TIMESTAMP
+    )
+    RETURNING id, chat_id, role, content, content_json, content_encrypted,
+              model_id, input_tokens, output_tokens, metadata, created_at
+  `;
+
+  // Also update the last_message_at in the conversation
+  await db`
+    UPDATE chat_conversations
+    SET last_message_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ${params.chatId}
+  `;
+
+  return result[0] as ChatMessage;
+}

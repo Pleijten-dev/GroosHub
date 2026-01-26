@@ -28,7 +28,7 @@ import { LocationMap, MapStyle, WMSLayerControl, WMSLayerSelection, WMSFeatureIn
 import { calculateAllAmenityScores, type AmenityScore } from '../../../features/location/data/scoring/amenityScoring';
 import { getOmgevingChartData } from '../../../features/location/utils/calculateOmgevingScores';
 import { PVEQuestionnaire } from '../../../features/location/components/PVE';
-import { MapExportButton, ComprehensivePdfExportButton } from '../../../features/location/components/MapExport';
+import { MapExportButton } from '../../../features/location/components/MapExport';
 import type { AccessibleLocation } from '../../../features/location/types/saved-locations';
 import { useWMSGrading } from '../../../features/location/hooks/useWMSGrading';
 import { pveConfigCache } from '../../../features/location/data/cache/pveConfigCache';
