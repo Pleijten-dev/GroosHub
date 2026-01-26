@@ -418,10 +418,10 @@ export function cachedDataToSnapshotParams(
     latitude: cachedData.coordinates?.lat,
     longitude: cachedData.coordinates?.lon,
     locale: cachedData.locale,
-    stage1Output: cachedData.stage1Output as Record<string, unknown>,
-    stage2Output: cachedData.stage2Output as Record<string, unknown>,
-    stage3Output: cachedData.stage3Output as Record<string, unknown>,
-    combinedProgram: cachedData.combinedProgram as Record<string, unknown>,
+    stage1Output: cachedData.stage1Output as unknown as Record<string, unknown>,
+    stage2Output: cachedData.stage2Output as unknown as Record<string, unknown>,
+    stage3Output: cachedData.stage3Output as unknown as Record<string, unknown>,
+    combinedProgram: cachedData.combinedProgram as unknown as Record<string, unknown>,
     inputData: inputData as unknown as Record<string, unknown>,
     inputHash: cachedData.inputHash,
   };
@@ -434,10 +434,10 @@ export function snapshotToCachedData(
   snapshot: RapportSnapshot
 ): CachedRapportData {
   return {
-    stage1Output: snapshot.stage1_output as CachedRapportData['stage1Output'],
-    stage2Output: snapshot.stage2_output as CachedRapportData['stage2Output'],
-    stage3Output: snapshot.stage3_output as CachedRapportData['stage3Output'],
-    combinedProgram: snapshot.combined_program as CachedRapportData['combinedProgram'],
+    stage1Output: snapshot.stage1_output as unknown as CachedRapportData['stage1Output'],
+    stage2Output: snapshot.stage2_output as unknown as CachedRapportData['stage2Output'],
+    stage3Output: snapshot.stage3_output as unknown as CachedRapportData['stage3Output'],
+    combinedProgram: snapshot.combined_program as unknown as CachedRapportData['combinedProgram'],
     inputHash: snapshot.input_hash,
     timestamp: snapshot.created_at.getTime(),
     locale: snapshot.locale,

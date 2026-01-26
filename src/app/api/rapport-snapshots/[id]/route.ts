@@ -50,7 +50,7 @@ export async function GET(
     }
 
     // Verify ownership
-    if (snapshot.user_id !== parseInt(session.user.id)) {
+    if (snapshot.user_id !== session.user.id) {
       return NextResponse.json(
         { error: 'Forbidden' },
         { status: 403 }
@@ -99,7 +99,7 @@ export async function PATCH(
     }
 
     // Verify ownership
-    if (snapshot.user_id !== parseInt(session.user.id)) {
+    if (snapshot.user_id !== session.user.id) {
       return NextResponse.json(
         { error: 'Forbidden' },
         { status: 403 }
@@ -178,7 +178,7 @@ export async function DELETE(
     }
 
     // Verify ownership
-    if (snapshot.user_id !== parseInt(session.user.id)) {
+    if (snapshot.user_id !== session.user.id) {
       return NextResponse.json(
         { error: 'Forbidden' },
         { status: 403 }

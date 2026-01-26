@@ -39,12 +39,12 @@ export async function GET(request: NextRequest) {
     await ensureRapportSnapshotsTable();
 
     const [snapshots, totalCount] = await Promise.all([
-      getUserRapportSnapshots(parseInt(session.user.id), {
+      getUserRapportSnapshots(session.user.id, {
         limit,
         offset,
         favoritesOnly,
       }),
-      getRapportSnapshotCount(parseInt(session.user.id)),
+      getRapportSnapshotCount(session.user.id),
     ]);
 
     return NextResponse.json({
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
     await ensureRapportSnapshotsTable();
 
     const params: CreateRapportSnapshotParams = {
-      userId: parseInt(session.user.id),
+      userId: session.user.id,
       name,
       locationSnapshotId,
       locationAddress,
