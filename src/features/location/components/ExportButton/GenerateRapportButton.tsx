@@ -23,6 +23,7 @@ import {
   type PersonaBasic,
 } from '../../utils/unifiedRapportGenerator';
 import { exportCompactForLLM, type CompactLocationExport } from '../../utils/jsonExportCompact';
+import { AI_TOOLS, buildToolPayload } from '@/features/ai-assistant/utils/aiToolsPayloadBuilder';
 import { captureAllScenarioCubes } from '../../utils/cubeCapture';
 import { captureRegisteredPVEBar } from '../../utils/pveCapture';
 import type { UnifiedLocationData } from '../../data/aggregator/multiLevelAggregator';
@@ -33,6 +34,108 @@ import { downloadWMSTile, downloadWMSLegend, type MapCapture, type LegendCapture
 import { WMS_CATEGORIES, type WMSLayerConfig } from '../Maps/wmsLayers';
 import { getPersonaCubePosition } from '../../utils/cubePositionMapping';
 import housingPersonasJson from '../../data/sources/housing-personas.json';
+
+/**
+ * Call the LLM API to generate the building program analysis
+ */
+async function generateBuildingProgramWithLLM(
+  locationData: CompactLocationExport,
+  locale: 'nl' | 'en'
+): Promise<LLMBuildingProgram> {
+  // Find the building program tool
+  const tool = AI_TOOLS.find(t => t.id === 'rapport-building-program');
+  if (!tool) {
+    throw new Error('Building program tool not found');
+  }
+
+  // Build the complete payload with context data
+  const payload = buildToolPayload(tool, locationData, locale);
+
+  console.log('[GenerateRapport] Calling LLM API for building program...');
+
+  // Call the execute-tool API endpoint
+  const response = await fetch('/api/ai-assistant/execute-tool', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      toolId: tool.id,
+      locationData,
+      locale,
+      customMessage: payload.userPrompt,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('[GenerateRapport] LLM API error:', errorText);
+    throw new Error(`LLM API error: ${response.status} ${response.statusText}`);
+  }
+
+  // Parse the streaming response
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error('No response body');
+  }
+
+  const decoder = new TextDecoder();
+  let fullText = '';
+
+  // Read the streamed response
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    const chunk = decoder.decode(value, { stream: true });
+
+    // Parse the Vercel AI SDK streaming protocol
+    // Format: 0:"text chunk"\n or other message types
+    const lines = chunk.split('\n');
+    for (const line of lines) {
+      if (line.startsWith('0:')) {
+        // Text chunk - parse the JSON string
+        try {
+          const textContent = JSON.parse(line.slice(2));
+          fullText += textContent;
+        } catch {
+          // If parsing fails, try to extract text directly
+          const match = line.match(/^0:"(.*)"/);
+          if (match) {
+            fullText += match[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
+          }
+        }
+      }
+    }
+  }
+
+  console.log('[GenerateRapport] LLM response length:', fullText.length);
+
+  // Try to extract JSON from the response
+  // The LLM might include markdown code blocks or extra text
+  let jsonString = fullText.trim();
+
+  // Remove markdown code blocks if present
+  const jsonMatch = jsonString.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (jsonMatch) {
+    jsonString = jsonMatch[1].trim();
+  }
+
+  // Try to find JSON object in the response
+  const jsonStartIndex = jsonString.indexOf('{');
+  const jsonEndIndex = jsonString.lastIndexOf('}');
+  if (jsonStartIndex !== -1 && jsonEndIndex !== -1) {
+    jsonString = jsonString.slice(jsonStartIndex, jsonEndIndex + 1);
+  }
+
+  try {
+    const buildingProgram = JSON.parse(jsonString) as LLMBuildingProgram;
+    console.log('[GenerateRapport] Successfully parsed building program');
+    return buildingProgram;
+  } catch (parseError) {
+    console.error('[GenerateRapport] Failed to parse LLM response as JSON:', parseError);
+    console.error('[GenerateRapport] Raw response:', fullText.slice(0, 500));
+    throw new Error('Failed to parse LLM response as JSON. The AI may not have returned valid JSON.');
+  }
+}
 
 interface GenerateRapportButtonProps {
   locale: 'nl' | 'en';
@@ -358,8 +461,7 @@ export function GenerateRapportButton({
         compactData = await loadPlaceholderCompactData();
         buildingProgram = await loadPlaceholderBuildingProgram();
       } else {
-        // Generate real data
-        // TODO: Implement real LLM call
+        // Generate real data from current location
         const exportData = exportCompactForLLM(
           data,
           personaScores,
@@ -375,9 +477,11 @@ export function GenerateRapportButton({
         setStage('generating-llm');
         setProgress(30);
 
-        // TODO: Implement actual LLM API call
-        // For now, use placeholder
-        buildingProgram = await loadPlaceholderBuildingProgram();
+        // Call the real LLM API endpoint
+        buildingProgram = await generateBuildingProgramWithLLM(
+          exportData as CompactLocationExport,
+          locale
+        );
       }
 
       setProgress(50);

@@ -1190,21 +1190,6 @@ export class UnifiedRapportBuilder {
       chartX += barWidth;
     });
 
-    // Draw white divider lines between segments
-    chartX = MARGIN;
-    this.setColor(WHITE, 'draw');
-    this.pdf.setLineWidth(0.8);
-    categories.forEach(([key, value], index) => {
-      if (value.percentage === 0) return;
-      const barWidth = (value.percentage / 100) * chartWidth;
-      chartX += barWidth;
-
-      // Don't draw line after last segment
-      if (index < categories.length - 1 && chartX < MARGIN + chartWidth - 1) {
-        this.pdf.line(chartX, this.currentY + 2, chartX, this.currentY + chartHeight - 2);
-      }
-    });
-
     // Draw outer border (subtle)
     this.setColor(BORDER_COLOR, 'draw');
     this.pdf.setLineWidth(0.5);

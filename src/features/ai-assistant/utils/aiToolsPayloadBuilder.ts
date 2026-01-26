@@ -447,7 +447,20 @@ export const AI_TOOLS: AITool[] = [
     requiresReferenceData: ['housingTypologies'],
   },
 
-  // === GENEREER-RAPPORT TAB (DISABLED) ===
+  // === GENEREER-RAPPORT TAB ===
+  {
+    id: 'rapport-building-program',
+    tab: 'genereer-rapport',
+    label: 'Building Program',
+    labelNl: 'Bouwprogramma',
+    description: 'Generate comprehensive building program analysis with scenarios',
+    descriptionNl: 'Genereer uitgebreide bouwprogramma-analyse met scenario\'s',
+    icon: 'document',
+    isPrimary: true,
+    outputFormat: 'direct',
+    requiresData: ['metadata', 'demographics', 'health', 'safety', 'livability', 'amenities', 'housingMarket', 'targetGroups', 'allPersonas', 'pve'],
+    requiresReferenceData: ['housingPersonas', 'housingTypologies', 'communalSpaces', 'publicSpaces'],
+  },
   {
     id: 'rapport-full-report',
     tab: 'genereer-rapport',
@@ -456,9 +469,8 @@ export const AI_TOOLS: AITool[] = [
     description: 'Generate comprehensive development feasibility report',
     descriptionNl: 'Genereer uitgebreid ontwikkelhaalbaarheidsrapport',
     icon: 'document',
-    isPrimary: true,
     isDisabled: true,
-    disabledReason: 'Report generation system is not yet implemented',
+    disabledReason: 'Use Building Program tool instead',
     outputFormat: 'direct',
     requiresData: ['metadata', 'demographics', 'health', 'safety', 'livability', 'amenities', 'housingMarket', 'targetGroups', 'pve'],
   },
@@ -744,6 +756,66 @@ Create a table showing trade-offs:
 - Market fit
 - Target group coverage`,
 
+  // Rapport - Building Program
+  'rapport-building-program': `${SYSTEM_PROMPT_BASE}
+
+TASK: Generate a comprehensive building program analysis in JSON format.
+You MUST output valid JSON matching this exact structure:
+
+{
+  "project_title": "Project name based on location",
+  "location_summary": "2-3 sentence executive summary of the location analysis",
+  "pve_overview": {
+    "total_m2": <number from PVE data>,
+    "breakdown": "Summary of space allocation"
+  },
+  "swot_analysis": {
+    "strengths": ["strength 1", "strength 2", ...],
+    "weaknesses": ["weakness 1", "weakness 2", ...],
+    "opportunities": ["opportunity 1", "opportunity 2", ...],
+    "threats": ["threat 1", "threat 2", ...]
+  },
+  "scenarios_overview": "Overview explaining the 3 target group scenarios",
+  "scenarios": [
+    {
+      "scenario_name": "Full scenario name",
+      "scenario_simple_name": "Short name (1-2 words)",
+      "target_personas": ["persona-id-1", "persona-id-2", ...],
+      "summary": "2-3 sentence scenario description",
+      "residential": {
+        "total_m2": <number>,
+        "total_units": <number>,
+        "typologies": [
+          {
+            "type": "Unit type name",
+            "count": <number>,
+            "m2_per_unit": <number>,
+            "price_range": "€XXX,XXX - €XXX,XXX"
+          }
+        ]
+      },
+      "non_residential": {
+        "total_m2": <number>,
+        "breakdown": {
+          "commercial": <number>,
+          "communal": <number>,
+          "other": <number>
+        }
+      },
+      "communal_spaces": ["Space 1", "Space 2", ...],
+      "public_amenities": ["Amenity 1", "Amenity 2", ...],
+      "rationale": "Why this scenario fits the location"
+    }
+  ],
+  "comparative_analysis": "Paragraph comparing the 3 scenarios and their trade-offs"
+}
+
+IMPORTANT:
+- Output ONLY the JSON, no markdown code blocks, no explanation before or after
+- Use actual data from the context to calculate realistic numbers
+- Base scenarios on the top personas from targetGroups data
+- Match typologies to persona housing preferences from referenceData`,
+
   // Rapport (disabled)
   'rapport-full-report': `${SYSTEM_PROMPT_BASE}
 
@@ -946,6 +1018,10 @@ function buildUserPrompt(tool: AITool, locale: 'nl' | 'en'): string {
     'pve-scenario-comparison': {
       nl: 'Vergelijk verschillende programmascenario\'s.',
       en: 'Compare different program scenarios.',
+    },
+    'rapport-building-program': {
+      nl: 'Genereer een bouwprogramma-analyse in JSON-formaat op basis van alle locatiegegevens.',
+      en: 'Generate a building program analysis in JSON format based on all location data.',
     },
     'rapport-full-report': {
       nl: 'Genereer een volledig haalbaarheidsrapport.',
