@@ -592,27 +592,43 @@ export function AIPanel({
         console.log(`[AIPanel] Chat created/continued: ${responseChatId}`);
       }
 
+      console.log('[AIPanel] Response received, status:', response.status);
+      console.log('[AIPanel] Response headers:', Object.fromEntries(response.headers.entries()));
+
       // Handle streaming response
       const reader = response.body?.getReader();
       if (!reader) {
+        console.error('[AIPanel] No response body reader available');
         throw new Error('No response body');
       }
+
+      console.log('[AIPanel] Got reader, starting to read stream...');
 
       const decoder = new TextDecoder();
       let accumulatedText = '';
       let buffer = ''; // Buffer for incomplete lines
-
-      console.log('[AIPanel] Starting to read stream...');
+      let chunkCount = 0;
 
       while (true) {
         const { done, value } = await reader.read();
+        chunkCount++;
+
+        if (chunkCount === 1) {
+          console.log('[AIPanel] Received first chunk');
+        }
+
         if (done) {
-          console.log('[AIPanel] Stream complete, accumulated text length:', accumulatedText.length);
+          console.log('[AIPanel] Stream complete after', chunkCount, 'chunks, accumulated text length:', accumulatedText.length);
           break;
         }
 
         const chunk = decoder.decode(value, { stream: true });
         buffer += chunk;
+
+        // Log first few chunks for debugging
+        if (chunkCount <= 3) {
+          console.log(`[AIPanel] Chunk ${chunkCount} (${chunk.length} bytes):`, chunk.substring(0, 200));
+        }
 
         // Parse the streaming protocol (Vercel AI SDK format)
         // Process complete lines only
@@ -780,8 +796,8 @@ export function AIPanel({
         <div className="flex-1 overflow-y-auto">
           {panelState === 'expanded' && (
             <>
-              {/* Quick Actions */}
-              {quickActions.length > 0 && (
+              {/* Quick Actions - hide when tool is executing or has response */}
+              {quickActions.length > 0 && !isToolExecuting && !toolResponse && messages.length === 0 && (
                 <div className="p-4">
                   <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
                     Quick Actions
