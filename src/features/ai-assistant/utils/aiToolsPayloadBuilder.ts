@@ -458,8 +458,11 @@ export const AI_TOOLS: AITool[] = [
     icon: 'document',
     isPrimary: true,
     outputFormat: 'direct',
-    requiresData: ['metadata', 'demographics', 'health', 'safety', 'livability', 'amenities', 'housingMarket', 'targetGroups', 'allPersonas', 'pve'],
-    requiresReferenceData: ['housingPersonas', 'housingTypologies', 'communalSpaces', 'publicSpaces'],
+    // Reduced data requirements to stay under 200k token limit
+    // - Removed allPersonas (redundant with targetGroups)
+    // - Removed communalSpaces and publicSpaces from reference data (too large)
+    requiresData: ['metadata', 'demographics', 'amenities', 'housingMarket', 'targetGroups', 'pve'],
+    requiresReferenceData: ['housingTypologies'],
   },
   {
     id: 'rapport-full-report',
