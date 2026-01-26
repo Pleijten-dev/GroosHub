@@ -3,6 +3,7 @@
  *
  * Executes AI tools with proper context data using Vercel AI SDK v5.
  * Uses Claude Sonnet 4.5 by default (configurable to Haiku for cost optimization).
+ * Saves conversations to database (project chats or personal chats).
  */
 
 import { streamText, type CoreMessage } from 'ai';
@@ -13,7 +14,6 @@ import { getModel, type ModelId } from '@/lib/ai/models';
 import {
   AI_TOOLS,
   buildToolPayload,
-  type AITool,
 } from '@/features/ai-assistant/utils/aiToolsPayloadBuilder';
 import {
   AI_ASSISTANT_CONFIG,
@@ -21,6 +21,11 @@ import {
   getTemperatureForFormat,
   getMaxTokensForFormat,
 } from '@/features/ai-assistant/config/model-config';
+import {
+  createChatConversation,
+  createChatMessage,
+  getChatById,
+} from '@/lib/db/queries/chats';
 import type { CompactLocationExport } from '@/features/location/utils/jsonExportCompact';
 
 // Request schema
@@ -34,12 +39,19 @@ const executeToolSchema = z.object({
   customMessage: z.string().optional(),
   // Optional: previous messages for multi-turn conversation
   previousMessages: z.array(z.any()).optional(),
+  // Optional: existing chat ID to continue a conversation
+  chatId: z.string().uuid().optional(),
+  // Optional: project ID to link the conversation to a project
+  projectId: z.string().uuid().optional(),
+  // Optional: save to database (default true)
+  saveToDatabase: z.boolean().optional().default(true),
 });
 
 /**
  * POST /api/ai-assistant/execute-tool
  *
  * Execute an AI assistant tool with streaming response.
+ * Saves conversations to the database (project chats if projectId provided, else personal).
  */
 export async function POST(request: NextRequest) {
   try {
@@ -52,6 +64,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const userId = Number(session.user.id);
+
     // Parse and validate request
     const body = await request.json();
     const {
@@ -61,6 +75,9 @@ export async function POST(request: NextRequest) {
       modelId: requestedModelId,
       customMessage,
       previousMessages,
+      chatId: existingChatId,
+      projectId,
+      saveToDatabase,
     } = executeToolSchema.parse(body);
 
     // Find the tool
@@ -102,6 +119,37 @@ export async function POST(request: NextRequest) {
     console.log(`[AI Assistant] Model: ${modelId}, Temperature: ${temperature}`);
     console.log(`[AI Assistant] Output format: ${tool.outputFormat}`);
 
+    // Database: Get or create conversation
+    let chatId = existingChatId;
+    if (saveToDatabase) {
+      if (existingChatId) {
+        // Verify the chat exists and user has access
+        const existingChat = await getChatById(existingChatId);
+        if (!existingChat || existingChat.user_id !== userId) {
+          // Chat doesn't exist or user doesn't own it, create a new one
+          chatId = undefined;
+        }
+      }
+
+      if (!chatId) {
+        // Create a new conversation
+        // Use location address for title if available
+        const locationAddress = (locationData as CompactLocationExport | null)?.metadata?.location;
+        const conversationTitle = locationAddress
+          ? `AI Analysis: ${locationAddress}`
+          : `AI Analysis: ${tool.label}`;
+
+        const conversation = await createChatConversation({
+          userId,
+          title: conversationTitle,
+          modelId,
+          projectId: projectId || null,
+        });
+        chatId = conversation.id;
+        console.log(`[AI Assistant] Created conversation: ${chatId}${projectId ? ` (project: ${projectId})` : ' (personal)'}`);
+      }
+    }
+
     // Build messages for the LLM using CoreMessage format
     const messages: CoreMessage[] = [];
 
@@ -129,6 +177,8 @@ export async function POST(request: NextRequest) {
 
     // Build user message with context data
     const contextJson = JSON.stringify(payload.contextData, null, 2);
+    // For database storage, use a cleaner message (without the full context JSON)
+    const userMessageForDisplay = customMessage || tool.label;
     const userMessageText = customMessage
       ? `${customMessage}\n\n---\nCONTEXT DATA:\n${contextJson}`
       : `${payload.userPrompt}\n\n---\nCONTEXT DATA:\n${contextJson}`;
@@ -138,15 +188,52 @@ export async function POST(request: NextRequest) {
       content: userMessageText,
     });
 
+    // Save user message to database (before streaming)
+    if (saveToDatabase && chatId) {
+      await createChatMessage({
+        chatId,
+        role: 'user',
+        content: userMessageForDisplay,
+        modelId,
+        metadata: {
+          toolId,
+          toolName: tool.label,
+          hasLocationData: !!locationData,
+          locale,
+        },
+      });
+    }
+
     // Stream the response
     const result = streamText({
       model,
       messages,
       temperature,
-      maxTokens,
-      onFinish({ text, usage }) {
+      maxOutputTokens: maxTokens,
+      async onFinish({ text, usage }) {
         console.log(`[AI Assistant] Tool ${toolId} completed`);
         console.log(`[AI Assistant] Tokens: ${usage.totalTokens} (in: ${usage.inputTokens}, out: ${usage.outputTokens})`);
+
+        // Save assistant message to database
+        if (saveToDatabase && chatId) {
+          try {
+            await createChatMessage({
+              chatId,
+              role: 'assistant',
+              content: text,
+              modelId,
+              inputTokens: usage.inputTokens,
+              outputTokens: usage.outputTokens,
+              metadata: {
+                toolId,
+                toolName: tool.label,
+              },
+            });
+            console.log(`[AI Assistant] Saved response to chat: ${chatId}`);
+          } catch (error) {
+            console.error('[AI Assistant] Failed to save assistant message:', error);
+          }
+        }
       },
     });
 
@@ -157,6 +244,9 @@ export async function POST(request: NextRequest) {
     response.headers.set('X-Tool-Id', toolId);
     response.headers.set('X-Model-Id', modelId);
     response.headers.set('X-Is-Agentic', tool.isAgentic ? 'true' : 'false');
+    if (chatId) {
+      response.headers.set('X-Chat-Id', chatId);
+    }
 
     return response;
 

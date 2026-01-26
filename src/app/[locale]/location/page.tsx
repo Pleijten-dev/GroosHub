@@ -85,6 +85,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
   // Snapshot data state (for loaded snapshots)
   const [loadedSnapshotId, setLoadedSnapshotId] = useState<string | null>(null);
+  const [loadedProjectId, setLoadedProjectId] = useState<string | null>(null);
   const [loadedWMSGradingData, setLoadedWMSGradingData] = useState<Record<string, unknown> | null>(null);
 
   // Generate cube colors once and share across all components for consistency
@@ -118,6 +119,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
       setAnimationStage('welcome');
       // Clear snapshot data when no data (new search)
       setLoadedSnapshotId(null);
+      setLoadedProjectId(null);
       setLoadedWMSGradingData(null);
     }
   }, [data, isLoading, setCollapsed]);
@@ -153,13 +155,16 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     const snapshotDataStr = sessionStorage.getItem('grooshub_load_snapshot');
     if (snapshotDataStr) {
       try {
-        const { snapshotId, address, locationData, amenitiesData, wmsGradingData } = JSON.parse(snapshotDataStr);
+        const { snapshotId, projectId, address, locationData, amenitiesData, wmsGradingData } = JSON.parse(snapshotDataStr);
         // Clear from sessionStorage after reading
         sessionStorage.removeItem('grooshub_load_snapshot');
 
-        // Store snapshot metadata for WMS grading
+        // Store snapshot metadata for WMS grading and AI assistant
         if (snapshotId) {
           setLoadedSnapshotId(snapshotId);
+        }
+        if (projectId) {
+          setLoadedProjectId(projectId);
         }
         if (wmsGradingData) {
           setLoadedWMSGradingData(wmsGradingData);
@@ -882,6 +887,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   return (
     <AIAssistantProvider
       feature="location"
+      projectId={loadedProjectId || undefined}
       initialContext={{
         currentView: {
           location: {

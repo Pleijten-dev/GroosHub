@@ -3,9 +3,17 @@
  *
  * Centralized configuration for the AI assistant tools.
  * Easy to switch between Sonnet (quality) and Haiku (cost).
+ *
+ * Environment variables:
+ * - AI_ASSISTANT_USE_BUDGET_MODEL=true  Force all tools to use Haiku
+ * - AI_ASSISTANT_DEFAULT_MODEL=claude-haiku-3.5  Override default model
  */
 
 import type { ModelId } from '@/lib/ai/models';
+
+// Check for environment variable overrides
+const ENV_USE_BUDGET = process.env.AI_ASSISTANT_USE_BUDGET_MODEL === 'true';
+const ENV_DEFAULT_MODEL = process.env.AI_ASSISTANT_DEFAULT_MODEL as ModelId | undefined;
 
 /**
  * AI Assistant configuration
@@ -58,13 +66,30 @@ export const AI_ASSISTANT_CONFIG = {
 
 /**
  * Get the model to use for a specific tool
+ *
+ * Priority:
+ * 1. ENV_USE_BUDGET=true → Force budget model for all tools
+ * 2. ENV_DEFAULT_MODEL → Override default model globally
+ * 3. Tool in budgetModelTools list → Use budget model
+ * 4. Default → Use default model (Sonnet)
  */
 export function getModelForTool(toolId: string): ModelId {
-  // Cast to readonly string[] to allow generic string comparison
+  // Environment override: force all tools to use budget model
+  if (ENV_USE_BUDGET) {
+    return AI_ASSISTANT_CONFIG.budgetModel;
+  }
+
+  // Check if tool is in budget tools list
   const budgetTools = AI_ASSISTANT_CONFIG.budgetModelTools as readonly string[];
   if (budgetTools.includes(toolId)) {
     return AI_ASSISTANT_CONFIG.budgetModel;
   }
+
+  // Environment override: custom default model
+  if (ENV_DEFAULT_MODEL) {
+    return ENV_DEFAULT_MODEL;
+  }
+
   return AI_ASSISTANT_CONFIG.defaultModel;
 }
 
@@ -80,4 +105,20 @@ export function getTemperatureForFormat(format: 'direct' | 'table' | 'interactiv
  */
 export function getMaxTokensForFormat(format: 'direct' | 'table' | 'interactive'): number {
   return AI_ASSISTANT_CONFIG.maxTokensByFormat[format];
+}
+
+/**
+ * Get the current effective configuration (for admin/debugging)
+ * Note: This is server-side only, not exposed to users
+ */
+export function getEffectiveConfig(): {
+  effectiveDefaultModel: ModelId;
+  budgetModeEnabled: boolean;
+  envOverrideActive: boolean;
+} {
+  return {
+    effectiveDefaultModel: ENV_DEFAULT_MODEL || AI_ASSISTANT_CONFIG.defaultModel,
+    budgetModeEnabled: ENV_USE_BUDGET,
+    envOverrideActive: ENV_USE_BUDGET || !!ENV_DEFAULT_MODEL,
+  };
 }

@@ -399,6 +399,7 @@ export function AIPanel({
 }: AIPanelProps) {
   const [panelState, setPanelState] = useState<AIPanelState>(state);
   const [panelChatId, setPanelChatId] = useState<string | null>(null);
+  const [activeChatId, setActiveChatId] = useState<string | null>(null); // Database chat ID
   const [isToolExecuting, setIsToolExecuting] = useState(false);
   const [currentToolId, setCurrentToolId] = useState<string | null>(null);
   const [toolResponse, setToolResponse] = useState<string>('');
@@ -458,6 +459,7 @@ export function AIPanel({
       setMessages([]);
       setToolResponse('');
       setCurrentToolId(null);
+      setActiveChatId(null); // Reset database chat ID for fresh session
       // Optionally reset chat ID for a fresh session next time
       // setPanelChatId(null);
     }
@@ -569,6 +571,10 @@ export function AIPanel({
           locationData: locationData || null,
           locale,
           customMessage,
+          // Pass existing chat ID to continue conversation
+          chatId: activeChatId,
+          // Pass project ID to link chat to project (if viewing a saved snapshot)
+          projectId: projectId || null,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -576,6 +582,13 @@ export function AIPanel({
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      // Extract chat ID from response headers for subsequent requests
+      const responseChatId = response.headers.get('X-Chat-Id');
+      if (responseChatId && !activeChatId) {
+        setActiveChatId(responseChatId);
+        console.log(`[AIPanel] Chat created/continued: ${responseChatId}`);
       }
 
       // Handle streaming response
@@ -640,7 +653,7 @@ export function AIPanel({
       setCurrentToolId(null);
       abortControllerRef.current = null;
     }
-  }, [context, setMessages]);
+  }, [context, setMessages, activeChatId, projectId]);
 
   // Handle quick action execution - uses toolId or falls back to prompt/handler
   const handleQuickAction = useCallback(async (action: QuickAction) => {

@@ -172,6 +172,7 @@ export function ProjectLocations({ projectId, locale }: ProjectLocationsProps) {
       // Store snapshot data in sessionStorage for the location page to retrieve
       sessionStorage.setItem('grooshub_load_snapshot', JSON.stringify({
         snapshotId: snapshotData.id, // Include snapshot ID for WMS grading
+        projectId: snapshotData.project_id, // Include project ID for AI assistant chats
         address: snapshotData.address,
         locationData: {
           address: snapshotData.address,
