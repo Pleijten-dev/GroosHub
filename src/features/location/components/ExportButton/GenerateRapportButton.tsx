@@ -171,6 +171,7 @@ interface GenerateRapportButtonProps {
   };
   wmsGradingData?: WMSGradingData | null;
   usePlaceholder?: boolean; // Use placeholder JSON instead of LLM call
+  projectId?: string; // If provided, also saves PDF to R2 storage
   className?: string;
 }
 
@@ -184,6 +185,7 @@ type GenerationStage =
   | 'stage3-pve'
   | 'capturing-visuals'
   | 'building-pdf'
+  | 'uploading-r2'
   | 'complete'
   | 'error';
 
@@ -199,6 +201,7 @@ const STAGE_MESSAGES = {
     'stage3-pve': 'Stap 3/3: Bouwprogramma genereren...',
     'capturing-visuals': 'Visualisaties vastleggen...',
     'building-pdf': 'PDF samenstellen...',
+    'uploading-r2': 'PDF opslaan naar cloud...',
     complete: 'Voltooid!',
     error: 'Fout opgetreden',
   },
@@ -213,6 +216,7 @@ const STAGE_MESSAGES = {
     'stage3-pve': 'Step 3/3: Generating building program...',
     'capturing-visuals': 'Capturing visualizations...',
     'building-pdf': 'Building PDF...',
+    'uploading-r2': 'Saving PDF to cloud...',
     complete: 'Complete!',
     error: 'Error occurred',
   },
@@ -230,6 +234,7 @@ export function GenerateRapportButton({
   pveData,
   wmsGradingData,
   usePlaceholder = false, // Use real LLM backend for rapport generation
+  projectId,
   className,
 }: GenerateRapportButtonProps) {
   const [stage, setStage] = useState<GenerationStage>('idle');
@@ -883,6 +888,35 @@ export function GenerateRapportButton({
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
+      // Upload to R2 if projectId is provided
+      if (projectId) {
+        setStage('uploading-r2');
+        setProgress(96);
+
+        try {
+          const formData = new FormData();
+          formData.append('file', pdfBlob, filename);
+          formData.append('projectId', projectId);
+          formData.append('filename', filename);
+
+          const uploadResponse = await fetch('/api/rapport/upload-pdf', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (uploadResponse.ok) {
+            const uploadResult = await uploadResponse.json();
+            console.log('[GenerateRapport] PDF uploaded to R2:', uploadResult.data?.fileKey);
+          } else {
+            // Don't fail the whole operation if R2 upload fails - the PDF was already downloaded
+            console.warn('[GenerateRapport] Failed to upload PDF to R2:', await uploadResponse.text());
+          }
+        } catch (uploadErr) {
+          // Don't fail the whole operation if R2 upload fails
+          console.warn('[GenerateRapport] Error uploading PDF to R2:', uploadErr);
+        }
+      }
+
       setProgress(100);
       setStage('complete');
 
@@ -897,7 +931,7 @@ export function GenerateRapportButton({
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
       setStage('error');
     }
-  }, [stage, usePlaceholder, data, amenitiesData, personaScores, pveData, locale, coordinates, wmsGradingData, scenarios, cubeColors]);
+  }, [stage, usePlaceholder, data, amenitiesData, personaScores, pveData, locale, coordinates, wmsGradingData, scenarios, cubeColors, projectId]);
 
   const isGenerating = stage !== 'idle' && stage !== 'error' && stage !== 'complete';
 
