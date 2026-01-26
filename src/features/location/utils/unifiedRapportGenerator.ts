@@ -1602,11 +1602,12 @@ export class UnifiedRapportBuilder {
     this.currentY += 6;
 
     const colWidths = [50, 20, 25, 75];
-    const rowHeight = 12;
+    const baseRowHeight = 12;
+    const lineHeight = 3.5;
 
     // Table header
     this.setColor(PRIMARY_COLOR, 'fill');
-    this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, rowHeight, 'F');
+    this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, baseRowHeight, 'F');
 
     this.pdf.setFontSize(8);
     this.pdf.setTextColor(255, 255, 255);
@@ -1617,11 +1618,15 @@ export class UnifiedRapportBuilder {
       this.pdf.text(header, headerX, this.currentY + 8);
       headerX += colWidths[i];
     });
-    this.currentY += rowHeight;
+    this.currentY += baseRowHeight;
 
-    // Table rows
+    // Table rows with text wrapping
     this.pdf.setFont('helvetica', 'normal');
     scenario.residential.unit_mix.forEach((unit, index) => {
+      // Calculate dynamic row height based on rationale text
+      const rationaleLines = this.wrapText(unit.rationale, colWidths[3] - 4);
+      const rowHeight = Math.max(baseRowHeight, rationaleLines.length * lineHeight + 6);
+
       this.checkPageBreak(rowHeight + 5);
 
       const isEven = index % 2 === 0;
@@ -1634,17 +1639,21 @@ export class UnifiedRapportBuilder {
       this.setColor(TEXT_COLOR);
 
       let cellX = MARGIN + 2;
-      this.pdf.text(unit.typology_name, cellX, this.currentY + 8);
+      this.pdf.text(unit.typology_name, cellX, this.currentY + 6);
       cellX += colWidths[0];
 
-      this.pdf.text(unit.quantity.toString(), cellX, this.currentY + 8);
+      this.pdf.text(unit.quantity.toString(), cellX, this.currentY + 6);
       cellX += colWidths[1];
 
-      this.pdf.text(unit.total_m2.toLocaleString(), cellX, this.currentY + 8);
+      this.pdf.text(unit.total_m2.toLocaleString(), cellX, this.currentY + 6);
       cellX += colWidths[2];
 
-      const rationaleText = this.wrapText(unit.rationale, colWidths[3] - 4)[0];
-      this.pdf.text(rationaleText, cellX, this.currentY + 8);
+      // Rationale - render all wrapped lines
+      let rationaleY = this.currentY + 6;
+      rationaleLines.forEach((line) => {
+        this.pdf.text(line, cellX, rationaleY);
+        rationaleY += lineHeight;
+      });
 
       this.currentY += rowHeight;
     });
@@ -1848,11 +1857,12 @@ export class UnifiedRapportBuilder {
     if (spaces.length === 0) return;
 
     const colWidths = [50, 25, 95];
-    const rowHeight = 10;
+    const baseRowHeight = 10;
+    const lineHeight = 3.5;
 
     // Table header
     this.setColor(PRIMARY_COLOR, 'fill');
-    this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, rowHeight, 'F');
+    this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, baseRowHeight, 'F');
 
     this.pdf.setFontSize(8);
     this.pdf.setTextColor(255, 255, 255);
@@ -1863,11 +1873,17 @@ export class UnifiedRapportBuilder {
       this.pdf.text(header, headerX, this.currentY + 7);
       headerX += colWidths[i];
     });
-    this.currentY += rowHeight;
+    this.currentY += baseRowHeight;
 
-    // Table rows
+    // Table rows with text wrapping
     this.pdf.setFont('helvetica', 'normal');
     spaces.forEach((space, index) => {
+      // Calculate wrapped lines for dynamic row height
+      const typeLines = this.wrapText(space.type, colWidths[0] - 4);
+      const rationaleLines = this.wrapText(space.rationale, colWidths[2] - 4);
+      const maxLines = Math.max(typeLines.length, rationaleLines.length, 1);
+      const rowHeight = Math.max(baseRowHeight, maxLines * lineHeight + 5);
+
       this.checkPageBreak(rowHeight + 5);
 
       const isEven = index % 2 === 0;
@@ -1891,18 +1907,24 @@ export class UnifiedRapportBuilder {
 
       cellX = MARGIN + 2;
 
-      // Type
-      const typeText = this.wrapText(space.type, colWidths[0] - 4)[0];
-      this.pdf.text(typeText, cellX, this.currentY + 6);
+      // Type - render all wrapped lines
+      let typeY = this.currentY + 5;
+      typeLines.forEach((line) => {
+        this.pdf.text(line, cellX, typeY);
+        typeY += lineHeight;
+      });
       cellX += colWidths[0];
 
       // Size
-      this.pdf.text(`${space.size_m2}`, cellX, this.currentY + 6);
+      this.pdf.text(`${space.size_m2}`, cellX, this.currentY + 5);
       cellX += colWidths[1];
 
-      // Rationale
-      const rationaleText = this.wrapText(space.rationale, colWidths[2] - 4)[0];
-      this.pdf.text(rationaleText, cellX, this.currentY + 6);
+      // Rationale - render all wrapped lines
+      let rationaleY = this.currentY + 5;
+      rationaleLines.forEach((line) => {
+        this.pdf.text(line, cellX, rationaleY);
+        rationaleY += lineHeight;
+      });
 
       this.currentY += rowHeight;
     });
@@ -2115,6 +2137,7 @@ export class UnifiedRapportBuilder {
   /**
    * Add a detailed matrix showing each persona's scores on individual metrics
    * Groups metrics by category and shows weighted scores
+   * Displays all personas in paginated tables (1-10, 11-20, 21-27)
    */
   private addPersonaDetailedScoreMatrix(rankedPersonas: RankedPersona[]): void {
     // Only render if we have detailed scores
@@ -2123,34 +2146,12 @@ export class UnifiedRapportBuilder {
       return;
     }
 
-    this.addNewPage();
-    const title = this.locale === 'nl' ? 'Gedetailleerde Score Matrix' : 'Detailed Score Matrix';
-    this.addTocEntry(title, 1);
-
-    this.pdf.setFontSize(14);
-    this.setColor(PRIMARY_COLOR);
-    this.pdf.setFont('helvetica', 'bold');
-    this.pdf.text(title, MARGIN, this.currentY);
-    this.currentY += 8;
-
-    // Add description
-    this.pdf.setFontSize(8);
-    this.setColor(TEXT_COLOR);
-    this.pdf.setFont('helvetica', 'normal');
-    const description = this.locale === 'nl'
-      ? 'Deze matrix toont per persona de gewogen scores voor elke metriek. De multiplier (1-3) is gebaseerd op hoe relevant de metriek is voor het persona-profiel.'
-      : 'This matrix shows per persona the weighted scores for each metric. The multiplier (1-3) is based on how relevant the metric is for the persona profile.';
-    this.pdf.text(description, MARGIN, this.currentY);
-    this.currentY += 8;
-
-    // Collect all unique subcategories (metrics)
-    const allMetrics = new Set<string>();
+    // Collect all unique subcategories (metrics) grouped by category
     const metricsByCategory = new Map<string, Set<string>>();
 
     rankedPersonas.forEach(persona => {
       if (persona.detailedScores) {
         persona.detailedScores.forEach(score => {
-          allMetrics.add(score.subcategory);
           if (!metricsByCategory.has(score.category)) {
             metricsByCategory.set(score.category, new Set());
           }
@@ -2159,92 +2160,134 @@ export class UnifiedRapportBuilder {
       }
     });
 
-    // Process each category
     const categories = Array.from(metricsByCategory.keys()).sort();
 
-    categories.forEach(category => {
-      const metrics = Array.from(metricsByCategory.get(category) || []).sort();
-      if (metrics.length === 0) return;
+    // Split personas into batches of 10
+    const personaBatches: RankedPersona[][] = [];
+    for (let i = 0; i < rankedPersonas.length; i += 10) {
+      personaBatches.push(rankedPersonas.slice(i, Math.min(i + 10, rankedPersonas.length)));
+    }
 
-      this.checkPageBreak(60);
+    // Render a table for each batch
+    personaBatches.forEach((batchPersonas, batchIndex) => {
+      const startRank = batchIndex * 10 + 1;
+      const endRank = startRank + batchPersonas.length - 1;
 
-      // Category header
-      this.pdf.setFontSize(10);
+      this.addNewPage();
+
+      // Title with page indicator
+      const title = this.locale === 'nl'
+        ? `Gedetailleerde Score Matrix (Persona ${startRank}-${endRank})`
+        : `Detailed Score Matrix (Persona ${startRank}-${endRank})`;
+
+      // Only add TOC entry for first batch
+      if (batchIndex === 0) {
+        const mainTitle = this.locale === 'nl' ? 'Gedetailleerde Score Matrix' : 'Detailed Score Matrix';
+        this.addTocEntry(mainTitle, 1);
+      }
+
+      this.pdf.setFontSize(14);
       this.setColor(PRIMARY_COLOR);
       this.pdf.setFont('helvetica', 'bold');
-      this.pdf.text(category, MARGIN, this.currentY);
-      this.currentY += 6;
+      this.pdf.text(title, MARGIN, this.currentY);
+      this.currentY += 8;
 
-      // For each metric in this category, show a mini-table with top 10 personas
-      const top10Personas = rankedPersonas.slice(0, 10);
-      const rowHeight = 5;
-      const colWidths = [45, ...Array(top10Personas.length).fill((CONTENT_WIDTH - 45) / top10Personas.length)];
-
-      // Header row with persona names (abbreviated)
-      this.setColor(PRIMARY_COLOR, 'fill');
-      this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, rowHeight, 'F');
-
-      this.pdf.setFontSize(4.5);
-      this.pdf.setTextColor(255, 255, 255);
-      this.pdf.setFont('helvetica', 'bold');
-
-      let headerX = MARGIN + 2;
-      this.pdf.text('Metriek', headerX, this.currentY + 3.5);
-      headerX += colWidths[0];
-
-      top10Personas.forEach((persona, i) => {
-        // Abbreviate persona name to fit
-        const abbrev = persona.name.substring(0, 8);
-        this.pdf.text(abbrev, headerX, this.currentY + 3.5);
-        headerX += colWidths[i + 1];
-      });
-      this.currentY += rowHeight;
-
-      // Data rows - one per metric
-      metrics.forEach((metric, metricIndex) => {
-        this.checkPageBreak(rowHeight + 2);
-
-        if (metricIndex % 2 === 0) {
-          this.setColor(LIGHT_BG, 'fill');
-          this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, rowHeight, 'F');
-        }
-
-        this.pdf.setFontSize(4);
+      // Add description only on first page
+      if (batchIndex === 0) {
+        this.pdf.setFontSize(8);
         this.setColor(TEXT_COLOR);
         this.pdf.setFont('helvetica', 'normal');
+        const description = this.locale === 'nl'
+          ? 'Deze matrix toont per persona de gewogen scores voor elke metriek. De multiplier (1-3) is gebaseerd op hoe relevant de metriek is voor het persona-profiel.'
+          : 'This matrix shows per persona the weighted scores for each metric. The multiplier (1-3) is based on how relevant the metric is for the persona profile.';
+        this.pdf.text(description, MARGIN, this.currentY);
+        this.currentY += 8;
+      }
 
-        let cellX = MARGIN + 2;
+      // Process each category for this batch
+      categories.forEach(category => {
+        const metrics = Array.from(metricsByCategory.get(category) || []).sort();
+        if (metrics.length === 0) return;
 
-        // Metric name (truncated)
-        const metricName = metric.length > 25 ? metric.substring(0, 22) + '...' : metric;
-        this.pdf.text(metricName, cellX, this.currentY + 3.5);
-        cellX += colWidths[0];
+        this.checkPageBreak(60);
 
-        // Scores for each persona
-        top10Personas.forEach((persona, i) => {
-          const detailedScore = persona.detailedScores?.find(
-            d => d.subcategory === metric && d.category === category
-          );
-          if (detailedScore) {
-            // Color code based on weighted score
-            const scoreColor = detailedScore.weightedScore > 0
-              ? [34, 120, 54]  // Green for positive
-              : detailedScore.weightedScore < 0
-                ? [180, 60, 60]  // Red for negative
-                : [100, 100, 100];  // Gray for zero
-            this.pdf.setTextColor(...scoreColor as [number, number, number]);
-            this.pdf.text(detailedScore.weightedScore.toFixed(1), cellX, this.currentY + 3.5);
-          } else {
-            this.setColor(TEXT_COLOR);
-            this.pdf.text('-', cellX, this.currentY + 3.5);
+        // Category header
+        this.pdf.setFontSize(10);
+        this.setColor(PRIMARY_COLOR);
+        this.pdf.setFont('helvetica', 'bold');
+        this.pdf.text(category, MARGIN, this.currentY);
+        this.currentY += 6;
+
+        const rowHeight = 5;
+        const personaColWidth = (CONTENT_WIDTH - 45) / batchPersonas.length;
+        const colWidths = [45, ...Array(batchPersonas.length).fill(personaColWidth)];
+
+        // Header row with persona names (abbreviated)
+        this.setColor(PRIMARY_COLOR, 'fill');
+        this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, rowHeight, 'F');
+
+        this.pdf.setFontSize(4.5);
+        this.pdf.setTextColor(255, 255, 255);
+        this.pdf.setFont('helvetica', 'bold');
+
+        let headerX = MARGIN + 2;
+        this.pdf.text('Metriek', headerX, this.currentY + 3.5);
+        headerX += colWidths[0];
+
+        batchPersonas.forEach((persona, i) => {
+          // Abbreviate persona name to fit
+          const abbrev = persona.name.substring(0, 8);
+          this.pdf.text(abbrev, headerX, this.currentY + 3.5);
+          headerX += colWidths[i + 1];
+        });
+        this.currentY += rowHeight;
+
+        // Data rows - one per metric
+        metrics.forEach((metric, metricIndex) => {
+          this.checkPageBreak(rowHeight + 2);
+
+          if (metricIndex % 2 === 0) {
+            this.setColor(LIGHT_BG, 'fill');
+            this.pdf.rect(MARGIN, this.currentY, CONTENT_WIDTH, rowHeight, 'F');
           }
-          cellX += colWidths[i + 1];
+
+          this.pdf.setFontSize(4);
+          this.setColor(TEXT_COLOR);
+          this.pdf.setFont('helvetica', 'normal');
+
+          let cellX = MARGIN + 2;
+
+          // Metric name (truncated)
+          const metricName = metric.length > 25 ? metric.substring(0, 22) + '...' : metric;
+          this.pdf.text(metricName, cellX, this.currentY + 3.5);
+          cellX += colWidths[0];
+
+          // Scores for each persona in this batch
+          batchPersonas.forEach((persona, i) => {
+            const detailedScore = persona.detailedScores?.find(
+              d => d.subcategory === metric && d.category === category
+            );
+            if (detailedScore) {
+              // Color code based on weighted score
+              const scoreColor = detailedScore.weightedScore > 0
+                ? [34, 120, 54]  // Green for positive
+                : detailedScore.weightedScore < 0
+                  ? [180, 60, 60]  // Red for negative
+                  : [100, 100, 100];  // Gray for zero
+              this.pdf.setTextColor(...scoreColor as [number, number, number]);
+              this.pdf.text(detailedScore.weightedScore.toFixed(1), cellX, this.currentY + 3.5);
+            } else {
+              this.setColor(TEXT_COLOR);
+              this.pdf.text('-', cellX, this.currentY + 3.5);
+            }
+            cellX += colWidths[i + 1];
+          });
+
+          this.currentY += rowHeight;
         });
 
-        this.currentY += rowHeight;
+        this.currentY += 4;
       });
-
-      this.currentY += 4;
     });
   }
 
