@@ -520,7 +520,8 @@ CRITICAL RULES:
 2. All data comes from real Dutch sources: CBS (demographics), RIVM (health), Politie (safety), Google Places (amenities).
 3. Be specific and reference actual numbers from the data.
 4. Respond in the same language as the user's query (Dutch or English).
-5. Format output for easy scanning - use headers, bullet points, and tables where appropriate.`;
+5. Format output for easy scanning - use headers, bullet points, and tables where appropriate.
+6. NEVER use emoticons or emojis in your responses. Keep the tone professional and factual.`;
 
 const SYSTEM_PROMPTS: Record<string, string> = {
   // Doelgroepen
