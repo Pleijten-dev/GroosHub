@@ -13,7 +13,12 @@
  */
 
 import type { CompactLocationExport } from './jsonExportCompact';
-import { extractStage1Data, type Stage1Output } from './stagedGenerationData';
+import { extractStage1Data, type Stage1Output, type Stage1Input } from './stagedGenerationData';
+import {
+  RapportCache,
+  generateInputHash,
+  type CachedRapportData,
+} from '../data/cache/rapportCache';
 
 // Stage 2 Output type (matches API schema)
 export interface Stage2Output {
@@ -428,13 +433,36 @@ function combineStageOutputs(
 }
 
 /**
+ * Result type that includes cache info
+ */
+export interface StagedGenerationResult {
+  program: StagedBuildingProgram;
+  fromCache: boolean;
+  stage1Output: Stage1Output;
+  stage2Output: Stage2Output;
+  stage3Output: Stage3Output;
+  inputHash: string;
+  generationTimeMs?: number;
+}
+
+/**
  * Main orchestration function for staged generation
+ * Now with cache support - checks cache first before calling LLM
  */
 export async function generateBuildingProgramStaged(
   data: CompactLocationExport,
   locale: 'nl' | 'en',
-  onProgress?: (progress: StagedGenerationProgress) => void
-): Promise<StagedBuildingProgram> {
+  onProgress?: (progress: StagedGenerationProgress) => void,
+  options?: {
+    skipCache?: boolean; // Force regeneration even if cached
+    saveToCache?: boolean; // Save result to cache (default: true)
+  }
+): Promise<StagedGenerationResult> {
+  const startTime = Date.now();
+  const cache = new RapportCache(locale);
+  const inputHash = generateInputHash(data, locale);
+  const shouldSaveToCache = options?.saveToCache !== false;
+
   const reportProgress = (stage: StagedGenerationStage, progress: number, stageProgress: number) => {
     if (onProgress) {
       onProgress({
@@ -447,6 +475,27 @@ export async function generateBuildingProgramStaged(
   };
 
   try {
+    // Check cache first (unless skipCache is true)
+    if (!options?.skipCache) {
+      reportProgress('preparing', 0, 0);
+      const cached = cache.get(data);
+
+      if (cached) {
+        console.log('[Staged Generation] Cache hit! Using cached data.');
+        reportProgress('complete', 100, 100);
+
+        return {
+          program: cached.combinedProgram,
+          fromCache: true,
+          stage1Output: cached.stage1Output,
+          stage2Output: cached.stage2Output,
+          stage3Output: cached.stage3Output,
+          inputHash: cached.inputHash,
+        };
+      }
+      console.log('[Staged Generation] Cache miss. Generating new data...');
+    }
+
     // Prepare Stage 1 data
     reportProgress('preparing', 0, 0);
     const stage1Data = extractStage1Data(data);
@@ -469,16 +518,72 @@ export async function generateBuildingProgramStaged(
     // Combine all outputs (90-100%)
     reportProgress('combining', 95, 0);
     const combinedProgram = combineStageOutputs(stage1Output, stage2Output, stage3Output, data.pve);
-    reportProgress('complete', 100, 100);
 
-    console.log('[Staged Generation] All stages complete!');
-    return combinedProgram;
+    const generationTimeMs = Date.now() - startTime;
+
+    // Save to cache
+    if (shouldSaveToCache) {
+      const saved = cache.save(data, stage1Output, stage2Output, stage3Output, combinedProgram);
+      if (saved) {
+        console.log('[Staged Generation] Saved to cache');
+      }
+    }
+
+    reportProgress('complete', 100, 100);
+    console.log(`[Staged Generation] All stages complete! (${generationTimeMs}ms)`);
+
+    return {
+      program: combinedProgram,
+      fromCache: false,
+      stage1Output,
+      stage2Output,
+      stage3Output,
+      inputHash,
+      generationTimeMs,
+    };
 
   } catch (error) {
     console.error('[Staged Generation] Error:', error);
     reportProgress('error', 0, 0);
     throw error;
   }
+}
+
+/**
+ * Check if rapport data is cached for given input
+ */
+export function isRapportCached(data: CompactLocationExport, locale: 'nl' | 'en'): boolean {
+  const cache = new RapportCache(locale);
+  return cache.isCached(data);
+}
+
+/**
+ * Get cached rapport data if available
+ */
+export function getCachedRapport(
+  data: CompactLocationExport,
+  locale: 'nl' | 'en'
+): CachedRapportData | null {
+  const cache = new RapportCache(locale);
+  return cache.get(data);
+}
+
+/**
+ * Clear rapport cache for specific data
+ */
+export function clearRapportCache(data: CompactLocationExport, locale: 'nl' | 'en'): void {
+  const cache = new RapportCache(locale);
+  cache.clear(data);
+}
+
+/**
+ * Clear all rapport cache
+ */
+export function clearAllRapportCache(): void {
+  const nlCache = new RapportCache('nl');
+  const enCache = new RapportCache('en');
+  nlCache.clearAll();
+  enCache.clearAll();
 }
 
 /**

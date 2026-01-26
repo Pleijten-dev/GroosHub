@@ -26,9 +26,11 @@ import { exportCompactForLLM, type CompactLocationExport } from '../../utils/jso
 import { AI_TOOLS, buildToolPayload } from '@/features/ai-assistant/utils/aiToolsPayloadBuilder';
 import {
   generateBuildingProgramStaged,
+  isRapportCached,
   type StagedGenerationProgress,
-  type StagedBuildingProgram,
+  type StagedGenerationResult,
 } from '../../utils/stagedGenerationOrchestrator';
+import { generateInputHash, type CachedRapportData } from '../../data/cache/rapportCache';
 import { captureAllScenarioCubes } from '../../utils/cubeCapture';
 import { captureRegisteredPVEBar } from '../../utils/pveCapture';
 import type { UnifiedLocationData } from '../../data/aggregator/multiLevelAggregator';
@@ -188,9 +190,10 @@ type GenerationStage =
 const STAGE_MESSAGES = {
   nl: {
     idle: 'Genereer Rapport',
+    'idle-cached': 'Download Rapport (gecached)',
     preparing: 'Voorbereiden...',
     'exporting-json': 'Data exporteren...',
-    'generating-llm': 'AI analyse genereren...',
+    'generating-llm': 'Rapport ophalen uit cache...',
     'stage1-location': 'Stap 1/3: Locatie analyseren...',
     'stage2-personas': 'Stap 2/3: Doelgroepen analyseren...',
     'stage3-pve': 'Stap 3/3: Bouwprogramma genereren...',
@@ -201,9 +204,10 @@ const STAGE_MESSAGES = {
   },
   en: {
     idle: 'Generate Report',
+    'idle-cached': 'Download Report (cached)',
     preparing: 'Preparing...',
     'exporting-json': 'Exporting data...',
-    'generating-llm': 'Generating AI analysis...',
+    'generating-llm': 'Loading from cache...',
     'stage1-location': 'Step 1/3: Analyzing location...',
     'stage2-personas': 'Step 2/3: Analyzing personas...',
     'stage3-pve': 'Step 3/3: Generating building program...',
@@ -231,8 +235,35 @@ export function GenerateRapportButton({
   const [stage, setStage] = useState<GenerationStage>('idle');
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [isCached, setIsCached] = useState(false);
+  const [lastGenerationFromCache, setLastGenerationFromCache] = useState(false);
 
   const messages = STAGE_MESSAGES[locale];
+
+  // Check cache status when data changes
+  React.useEffect(() => {
+    if (data && personaScores.length > 0 && scenarios) {
+      try {
+        const exportData = exportCompactForLLM(
+          data,
+          personaScores,
+          scenarios,
+          locale,
+          [],
+          amenitiesData,
+          null
+        );
+        const cached = isRapportCached(exportData as CompactLocationExport, locale);
+        setIsCached(cached);
+        if (cached) {
+          console.log('[GenerateRapport] Cached rapport data available');
+        }
+      } catch (e) {
+        // Ignore errors during cache check
+        setIsCached(false);
+      }
+    }
+  }, [data, personaScores, scenarios, locale, amenitiesData]);
 
   /**
    * Direct mapping from persona ID to actual image filename
@@ -489,6 +520,7 @@ export function GenerateRapportButton({
 
         // Use staged generation for better token efficiency
         // Stage 1: Location Analysis, Stage 2: Persona Analysis, Stage 3: PVE Allocation
+        // Now with caching - if data is cached, skips LLM calls entirely
         const handleStagedProgress = (stagedProgress: StagedGenerationProgress) => {
           // Map staged generation progress to button progress (10-50% range)
           const mappedProgress = 10 + Math.floor(stagedProgress.progress * 0.4);
@@ -504,18 +536,37 @@ export function GenerateRapportButton({
           }
         };
 
-        setStage('stage1-location');
-        setProgress(15);
+        // Check if we have cached data first
+        const isCached = isRapportCached(exportData as CompactLocationExport, locale);
+        if (isCached) {
+          console.log('[GenerateRapport] Using cached rapport data - no LLM calls needed');
+          setStage('generating-llm'); // Show generic stage for cache retrieval
+          setProgress(15);
+        } else {
+          setStage('stage1-location');
+          setProgress(15);
+        }
 
-        // Call the staged generation pipeline
-        const stagedProgram = await generateBuildingProgramStaged(
+        // Call the staged generation pipeline (checks cache automatically)
+        const stagedResult = await generateBuildingProgramStaged(
           exportData as CompactLocationExport,
           locale,
-          handleStagedProgress
+          handleStagedProgress,
+          { saveToCache: true } // Always save to cache for future use
         );
 
+        if (stagedResult.fromCache) {
+          console.log('[GenerateRapport] Report generated from cache - saved LLM costs!');
+          setLastGenerationFromCache(true);
+        } else {
+          console.log(`[GenerateRapport] Report generated via LLM in ${stagedResult.generationTimeMs}ms`);
+          setLastGenerationFromCache(false);
+          // Update cache status since we just generated new data
+          setIsCached(true);
+        }
+
         // Convert staged program to LLMBuildingProgram format
-        buildingProgram = stagedProgram as unknown as LLMBuildingProgram;
+        buildingProgram = stagedResult.program as unknown as LLMBuildingProgram;
       }
 
       setProgress(50);
@@ -933,7 +984,11 @@ export function GenerateRapportButton({
             </svg>
           )}
 
-          <span>{messages[stage]}</span>
+          <span>
+            {stage === 'idle' && isCached
+              ? (messages['idle-cached'] || messages.idle)
+              : messages[stage]}
+          </span>
 
           {isGenerating && (
             <span className="text-sm opacity-75">({progress}%)</span>
@@ -949,9 +1004,19 @@ export function GenerateRapportButton({
       {/* Stage description */}
       {isGenerating && (
         <p className="mt-2 text-sm text-gray-500 text-center">
-          {locale === 'nl'
-            ? 'Dit kan enkele seconden duren...'
-            : 'This may take a few seconds...'}
+          {isCached
+            ? (locale === 'nl' ? 'Rapport ophalen uit cache...' : 'Loading report from cache...')
+            : (locale === 'nl' ? 'Dit kan enkele seconden duren...' : 'This may take a few seconds...')}
+        </p>
+      )}
+
+      {/* Cache indicator when idle */}
+      {stage === 'idle' && isCached && (
+        <p className="mt-2 text-xs text-green-600 text-center flex items-center justify-center gap-1">
+          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+          </svg>
+          {locale === 'nl' ? 'Gecached - geen AI kosten' : 'Cached - no AI costs'}
         </p>
       )}
     </div>
