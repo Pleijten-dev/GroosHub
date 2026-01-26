@@ -1,0 +1,453 @@
+/**
+ * Stage 3: PVE & Spaces Allocation
+ *
+ * Input: Stage 1+2 outputs + PVE + communalSpaces + publicSpaces + typologies
+ * Output: Detailed building program for each scenario
+ *
+ * Token usage: ~25KB input + 4KB summaries → ~15KB output
+ * Purpose: Generate the detailed PVE allocations using filtered, relevant data
+ */
+
+import { anthropic } from '@ai-sdk/anthropic';
+import { streamObject } from 'ai';
+import { z } from 'zod';
+import housingTypologies from '@/features/location/data/sources/housing-typologies.json';
+import buildingAmenities from '@/features/location/data/sources/building-amenities.json';
+import communalSpacesData from '@/features/location/data/sources/communal-spaces.json';
+import publicSpacesData from '@/features/location/data/sources/public-spaces.json';
+import propertyTypeMapping from '@/features/location/data/sources/property-type-mapping.json';
+import type { Stage1Output } from '../stage1/route';
+import type { Stage2Output } from '../stage2/route';
+
+export const maxDuration = 300; // Stage 3 needs full time for detailed generation
+
+// ============================================================================
+// DATA SIMPLIFICATION
+// ============================================================================
+
+interface SimplifiedSpace {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  area_min_m2: number;
+  area_max_m2: number;
+  m2_per_resident?: number;
+  target_groups: string[];
+}
+
+interface SimplifiedTypology {
+  id: string;
+  name: string;
+  description: string;
+  size_m2: number;
+  rooms: number;
+  suitable_for: string[];
+}
+
+interface SimplifiedAmenity {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function simplifySpaces(spaces: any[], locale: 'nl' | 'en'): SimplifiedSpace[] {
+  return spaces.map(space => ({
+    id: space.id,
+    name: locale === 'nl' ? space.name_nl : space.name_en,
+    description: locale === 'nl' ? space.description_nl : space.description_en,
+    category: space.category,
+    area_min_m2: space.area_min_m2,
+    area_max_m2: space.area_max_m2,
+    m2_per_resident: space.m2_per_resident,
+    target_groups: space.target_groups || [],
+  }));
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function simplifyTypologies(typologies: any[], locale: 'nl' | 'en'): SimplifiedTypology[] {
+  return typologies.map(typology => ({
+    id: typology.id,
+    name: locale === 'nl' ? typology.name_nl : typology.name_en,
+    description: locale === 'nl' ? typology.description_nl : typology.description_en,
+    size_m2: typology.size_m2,
+    rooms: typology.rooms,
+    suitable_for: typology.suitable_for || [],
+  }));
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function simplifyAmenities(amenities: any[], locale: 'nl' | 'en'): SimplifiedAmenity[] {
+  return amenities.map(amenity => ({
+    id: amenity.id,
+    name: locale === 'nl' ? amenity.name_nl : amenity.name_en,
+    description: locale === 'nl' ? amenity.description_nl : amenity.description_en,
+    category: amenity.category,
+  }));
+}
+
+function filterSpacesByTargetGroups(
+  spaces: SimplifiedSpace[],
+  scenarioPersonaNames: string[]
+): SimplifiedSpace[] {
+  const targetGroups = new Set<string>();
+
+  scenarioPersonaNames.forEach(name => {
+    const lowerName = name.toLowerCase();
+    if (lowerName.includes('starter') || lowerName.includes('jong')) {
+      targetGroups.add('starters');
+      targetGroups.add('jonge_professionals');
+    }
+    if (lowerName.includes('gezin') || lowerName.includes('familie') || lowerName.includes('family')) {
+      targetGroups.add('gezinnen');
+    }
+    if (lowerName.includes('senior') || lowerName.includes('oudere')) {
+      targetGroups.add('senioren');
+    }
+    if (lowerName.includes('student')) {
+      targetGroups.add('studenten');
+    }
+    if (lowerName.includes('professional')) {
+      targetGroups.add('jonge_professionals');
+    }
+  });
+
+  if (targetGroups.size === 0) return spaces;
+
+  return spaces.filter(space => {
+    const matchesGroup = space.target_groups.some(tg => targetGroups.has(tg));
+    const isUniversal = space.target_groups.includes('alle') || space.target_groups.includes('all');
+    return matchesGroup || isUniversal;
+  });
+}
+
+// ============================================================================
+// SCHEMAS
+// ============================================================================
+
+const UnitMixItemSchema = z.object({
+  typology_id: z.string().describe('ID of the housing typology'),
+  typology_name: z.string().describe('Name of the housing typology'),
+  quantity: z.number().describe('Number of units'),
+  total_m2: z.number().describe('Total square meters'),
+  rationale: z.string().describe('Why this unit type was chosen'),
+});
+
+const AmenityItemSchema = z.object({
+  amenity_id: z.string().describe('ID of the amenity/space'),
+  amenity_name: z.string().describe('Name of the amenity/space'),
+  size_m2: z.number().describe('Allocated square meters'),
+  rationale: z.string().describe('Why this was selected'),
+});
+
+const CommercialSpaceSchema = z.object({
+  type: z.string().describe('Type of commercial space'),
+  size_m2: z.number().describe('Size in square meters'),
+  rationale: z.string().describe('Explanation'),
+});
+
+const CategoryBreakdownSchema = z.record(z.string(), z.object({
+  total_m2: z.number(),
+  percentage: z.number(),
+}));
+
+const ScenarioPVESchema = z.object({
+  scenario_name: z.string(),
+  residential: z.object({
+    total_m2: z.number(),
+    unit_mix: z.array(UnitMixItemSchema),
+    total_units: z.number(),
+  }),
+  commercial: z.object({
+    total_m2: z.number(),
+    spaces: z.array(CommercialSpaceSchema),
+    local_amenities_analysis: z.string(),
+  }),
+  hospitality: z.object({
+    total_m2: z.number(),
+    concept: z.string(),
+  }),
+  social: z.object({
+    total_m2: z.number(),
+    facilities: z.array(z.object({
+      type: z.string(),
+      size_m2: z.number(),
+      rationale: z.string(),
+    })),
+  }),
+  communal: z.object({
+    total_m2: z.number(),
+    amenities: z.array(AmenityItemSchema),
+    persona_needs_analysis: z.string(),
+  }),
+  communal_spaces: z.object({
+    total_m2: z.number(),
+    spaces: z.array(AmenityItemSchema),
+    category_breakdown: CategoryBreakdownSchema,
+  }),
+  public_spaces: z.object({
+    total_m2: z.number(),
+    spaces: z.array(AmenityItemSchema),
+    category_breakdown: CategoryBreakdownSchema,
+  }),
+  offices: z.object({
+    total_m2: z.number(),
+    concept: z.string(),
+  }),
+});
+
+const Stage3OutputSchema = z.object({
+  scenarios: z.array(ScenarioPVESchema),
+  generalized_pve: z.object({
+    communal_categories: z.record(z.string(), z.object({
+      category_name: z.string(),
+      total_m2: z.number(),
+      amenities: z.array(z.string()),
+    })),
+    public_categories: z.record(z.string(), z.object({
+      category_name: z.string(),
+      total_m2: z.number(),
+      amenities: z.array(z.string()),
+    })),
+  }),
+  comparative_analysis: z.string().describe('Comparison of scenarios and recommendations'),
+});
+
+export type Stage3Output = z.infer<typeof Stage3OutputSchema>;
+
+// ============================================================================
+// INPUT TYPE
+// ============================================================================
+
+interface PVEData {
+  totalM2: number;
+  percentages: {
+    apartments: { percentage: number; m2: number };
+    commercial: { percentage: number; m2: number };
+    hospitality: { percentage: number; m2: number };
+    social: { percentage: number; m2: number };
+    communal: { percentage: number; m2: number };
+    offices: { percentage: number; m2: number };
+  };
+}
+
+interface Stage3Input {
+  stage1Output: Stage1Output;
+  stage2Output: Stage2Output;
+  pve: PVEData;
+  scenarios: Array<{
+    name: string;
+    personaNames: string[];
+  }>;
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { stageData, locale = 'nl' } = body as { stageData: Stage3Input; locale: 'nl' | 'en' };
+
+    if (!stageData || !stageData.stage1Output || !stageData.stage2Output || !stageData.pve) {
+      return new Response(
+        JSON.stringify({ error: 'Stage 3 data with Stage 1+2 outputs and PVE is required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Load and simplify data
+    const rawTypologies = housingTypologies[locale].typologies;
+    const rawAmenities = buildingAmenities[locale].amenities;
+    const rawCommunalSpaces = communalSpacesData[locale].spaces;
+    const rawPublicSpaces = publicSpacesData[locale].spaces;
+    const mapping = propertyTypeMapping[locale];
+
+    const simplifiedTypologies = simplifyTypologies(rawTypologies, locale);
+    const simplifiedAmenities = simplifyAmenities(rawAmenities, locale);
+    const simplifiedCommunalSpaces = simplifySpaces(rawCommunalSpaces, locale);
+    const simplifiedPublicSpaces = simplifySpaces(rawPublicSpaces, locale);
+
+    // Get all persona names from scenarios
+    const allPersonaNames = stageData.scenarios.flatMap(s => s.personaNames);
+
+    // Filter spaces by target groups
+    const filteredCommunalSpaces = filterSpacesByTargetGroups(simplifiedCommunalSpaces, allPersonaNames);
+    const filteredPublicSpaces = filterSpacesByTargetGroups(simplifiedPublicSpaces, allPersonaNames);
+
+    console.log('Stage 3 data reduction:');
+    console.log(`- Communal spaces: ${rawCommunalSpaces.length} → ${filteredCommunalSpaces.length}`);
+    console.log(`- Public spaces: ${rawPublicSpaces.length} → ${filteredPublicSpaces.length}`);
+
+    const prompt = locale === 'nl' ? `
+Je bent een expert in vastgoedontwikkeling. Maak een gedetailleerd bouwprogramma voor elk scenario.
+
+# LOCATIESAMENVATTING (uit eerdere analyse)
+${stageData.stage1Output.location_summary}
+
+Kernpunten:
+${stageData.stage1Output.key_location_insights.map((i, idx) => `${idx + 1}. ${i}`).join('\n')}
+
+# SCENARIO ANALYSES (uit eerdere analyse)
+${stageData.stage2Output.scenarios.map(s => `
+## ${s.scenario_name}: ${s.scenario_simple_name}
+Doelgroepen: ${s.target_personas.join(', ')}
+
+${s.summary}
+
+Woonstrategie: ${s.residential_strategy}
+
+Demografische overwegingen: ${s.demographics_considerations}
+`).join('\n---\n')}
+
+# PROGRAM VAN EISEN (PVE)
+Totaal: ${stageData.pve.totalM2} m²
+- Woningen: ${stageData.pve.percentages.apartments.percentage}% (${stageData.pve.percentages.apartments.m2} m²)
+- Commercieel: ${stageData.pve.percentages.commercial.percentage}% (${stageData.pve.percentages.commercial.m2} m²)
+- Horeca: ${stageData.pve.percentages.hospitality.percentage}% (${stageData.pve.percentages.hospitality.m2} m²)
+- Sociaal: ${stageData.pve.percentages.social.percentage}% (${stageData.pve.percentages.social.m2} m²)
+- Gemeenschappelijk: ${stageData.pve.percentages.communal.percentage}% (${stageData.pve.percentages.communal.m2} m²)
+- Kantoren: ${stageData.pve.percentages.offices.percentage}% (${stageData.pve.percentages.offices.m2} m²)
+
+# BESCHIKBARE WONINGTYPOLOGIEËN
+${JSON.stringify(simplifiedTypologies, null, 2)}
+
+# MAPPING PERSONA WONINGTYPEN → TYPOLOGIEËN
+${mapping.note}
+${JSON.stringify(mapping.mappings, null, 2)}
+
+# BESCHIKBARE GEBOUWVOORZIENINGEN
+${JSON.stringify(simplifiedAmenities, null, 2)}
+
+# BESCHIKBARE GEMEENSCHAPPELIJKE RUIMTES (gefilterd op relevantie)
+${JSON.stringify(filteredCommunalSpaces, null, 2)}
+
+# BESCHIKBARE PUBLIEKE/COMMERCIËLE RUIMTES (gefilterd op relevantie)
+${JSON.stringify(filteredPublicSpaces, null, 2)}
+
+# OPDRACHT
+Maak voor ELK scenario een gedetailleerd bouwprogramma:
+
+1. WONINGEN: Unit mix met typology_id, aantal, m², en onderbouwing per type
+2. COMMERCIEEL: Winkel/retail concepten met m² en onderbouwing
+3. HORECA: Concept beschrijving
+4. SOCIAAL: Sociale faciliteiten met m² en onderbouwing
+5. GEMEENSCHAPPELIJK: Gebouwvoorzieningen met amenity_id, m², onderbouwing
+6. GEMEENSCHAPPELIJKE RUIMTES: Selecteer uit de gefilterde lijst, groepeer per category
+7. PUBLIEKE RUIMTES: Selecteer uit de gefilterde lijst, groepeer per category
+8. KANTOREN: Concept beschrijving
+
+Maak ook:
+- Een generalized_pve met totaal m² per categorie over alle scenarios
+- Een vergelijkende analyse met aanbevelingen
+
+Gebruik de scenario-analyses als basis en wees specifiek in je onderbouwing.
+` : `
+You are a real estate development expert. Create a detailed building program for each scenario.
+
+# LOCATION SUMMARY (from previous analysis)
+${stageData.stage1Output.location_summary}
+
+Key insights:
+${stageData.stage1Output.key_location_insights.map((i, idx) => `${idx + 1}. ${i}`).join('\n')}
+
+# SCENARIO ANALYSES (from previous analysis)
+${stageData.stage2Output.scenarios.map(s => `
+## ${s.scenario_name}: ${s.scenario_simple_name}
+Target groups: ${s.target_personas.join(', ')}
+
+${s.summary}
+
+Residential strategy: ${s.residential_strategy}
+
+Demographic considerations: ${s.demographics_considerations}
+`).join('\n---\n')}
+
+# PROGRAM OF REQUIREMENTS (PVE)
+Total: ${stageData.pve.totalM2} m²
+- Residential: ${stageData.pve.percentages.apartments.percentage}% (${stageData.pve.percentages.apartments.m2} m²)
+- Commercial: ${stageData.pve.percentages.commercial.percentage}% (${stageData.pve.percentages.commercial.m2} m²)
+- Hospitality: ${stageData.pve.percentages.hospitality.percentage}% (${stageData.pve.percentages.hospitality.m2} m²)
+- Social: ${stageData.pve.percentages.social.percentage}% (${stageData.pve.percentages.social.m2} m²)
+- Communal: ${stageData.pve.percentages.communal.percentage}% (${stageData.pve.percentages.communal.m2} m²)
+- Offices: ${stageData.pve.percentages.offices.percentage}% (${stageData.pve.percentages.offices.m2} m²)
+
+# AVAILABLE HOUSING TYPOLOGIES
+${JSON.stringify(simplifiedTypologies, null, 2)}
+
+# MAPPING PERSONA HOUSING TYPES → TYPOLOGIES
+${mapping.note}
+${JSON.stringify(mapping.mappings, null, 2)}
+
+# AVAILABLE BUILDING AMENITIES
+${JSON.stringify(simplifiedAmenities, null, 2)}
+
+# AVAILABLE COMMUNAL SPACES (filtered for relevance)
+${JSON.stringify(filteredCommunalSpaces, null, 2)}
+
+# AVAILABLE PUBLIC/COMMERCIAL SPACES (filtered for relevance)
+${JSON.stringify(filteredPublicSpaces, null, 2)}
+
+# TASK
+Create a detailed building program for EACH scenario:
+
+1. RESIDENTIAL: Unit mix with typology_id, quantity, m², and rationale per type
+2. COMMERCIAL: Retail/shop concepts with m² and rationale
+3. HOSPITALITY: Concept description
+4. SOCIAL: Social facilities with m² and rationale
+5. COMMUNAL: Building amenities with amenity_id, m², rationale
+6. COMMUNAL SPACES: Select from filtered list, group by category
+7. PUBLIC SPACES: Select from filtered list, group by category
+8. OFFICES: Concept description
+
+Also create:
+- A generalized_pve with total m² per category across all scenarios
+- A comparative analysis with recommendations
+
+Use the scenario analyses as foundation and be specific in your rationale.
+`;
+
+    const result = await streamObject({
+      model: anthropic('claude-sonnet-4-20250514'),
+      schema: Stage3OutputSchema,
+      schemaName: 'Stage3PVEAllocation',
+      schemaDescription: locale === 'nl'
+        ? 'Gedetailleerde PVE-allocatie voor vastgoedontwikkeling'
+        : 'Detailed PVE allocation for real estate development',
+      prompt,
+      temperature: 0.7,
+    });
+
+    // Stream response
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const partialObject of result.partialObjectStream) {
+            const json = JSON.stringify(partialObject);
+            controller.enqueue(encoder.encode(`data: ${json}\n\n`));
+          }
+          controller.close();
+        } catch (error) {
+          controller.error(error);
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
+  } catch (error) {
+    console.error('Stage 3 error:', error);
+    return new Response(
+      JSON.stringify({
+        error: 'Failed to generate PVE allocation',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+}

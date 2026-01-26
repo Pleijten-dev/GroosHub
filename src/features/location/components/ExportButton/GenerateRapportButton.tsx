@@ -24,6 +24,11 @@ import {
 } from '../../utils/unifiedRapportGenerator';
 import { exportCompactForLLM, type CompactLocationExport } from '../../utils/jsonExportCompact';
 import { AI_TOOLS, buildToolPayload } from '@/features/ai-assistant/utils/aiToolsPayloadBuilder';
+import {
+  generateBuildingProgramStaged,
+  type StagedGenerationProgress,
+  type StagedBuildingProgram,
+} from '../../utils/stagedGenerationOrchestrator';
 import { captureAllScenarioCubes } from '../../utils/cubeCapture';
 import { captureRegisteredPVEBar } from '../../utils/pveCapture';
 import type { UnifiedLocationData } from '../../data/aggregator/multiLevelAggregator';
@@ -172,6 +177,9 @@ type GenerationStage =
   | 'preparing'
   | 'exporting-json'
   | 'generating-llm'
+  | 'stage1-location'
+  | 'stage2-personas'
+  | 'stage3-pve'
   | 'capturing-visuals'
   | 'building-pdf'
   | 'complete'
@@ -183,6 +191,9 @@ const STAGE_MESSAGES = {
     preparing: 'Voorbereiden...',
     'exporting-json': 'Data exporteren...',
     'generating-llm': 'AI analyse genereren...',
+    'stage1-location': 'Stap 1/3: Locatie analyseren...',
+    'stage2-personas': 'Stap 2/3: Doelgroepen analyseren...',
+    'stage3-pve': 'Stap 3/3: Bouwprogramma genereren...',
     'capturing-visuals': 'Visualisaties vastleggen...',
     'building-pdf': 'PDF samenstellen...',
     complete: 'Voltooid!',
@@ -193,6 +204,9 @@ const STAGE_MESSAGES = {
     preparing: 'Preparing...',
     'exporting-json': 'Exporting data...',
     'generating-llm': 'Generating AI analysis...',
+    'stage1-location': 'Step 1/3: Analyzing location...',
+    'stage2-personas': 'Step 2/3: Analyzing personas...',
+    'stage3-pve': 'Step 3/3: Generating building program...',
     'capturing-visuals': 'Capturing visualizations...',
     'building-pdf': 'Building PDF...',
     complete: 'Complete!',
@@ -473,15 +487,35 @@ export function GenerateRapportButton({
         );
         compactData = exportData as unknown as CompactExportData;
 
-        // Stage 2: Call LLM for building program
-        setStage('generating-llm');
-        setProgress(30);
+        // Use staged generation for better token efficiency
+        // Stage 1: Location Analysis, Stage 2: Persona Analysis, Stage 3: PVE Allocation
+        const handleStagedProgress = (stagedProgress: StagedGenerationProgress) => {
+          // Map staged generation progress to button progress (10-50% range)
+          const mappedProgress = 10 + Math.floor(stagedProgress.progress * 0.4);
+          setProgress(mappedProgress);
 
-        // Call the real LLM API endpoint
-        buildingProgram = await generateBuildingProgramWithLLM(
+          // Update stage based on staged generation stage
+          if (stagedProgress.stage === 'stage1-location') {
+            setStage('stage1-location');
+          } else if (stagedProgress.stage === 'stage2-personas') {
+            setStage('stage2-personas');
+          } else if (stagedProgress.stage === 'stage3-pve') {
+            setStage('stage3-pve');
+          }
+        };
+
+        setStage('stage1-location');
+        setProgress(15);
+
+        // Call the staged generation pipeline
+        const stagedProgram = await generateBuildingProgramStaged(
           exportData as CompactLocationExport,
-          locale
+          locale,
+          handleStagedProgress
         );
+
+        // Convert staged program to LLMBuildingProgram format
+        buildingProgram = stagedProgram as unknown as LLMBuildingProgram;
       }
 
       setProgress(50);
