@@ -31,6 +31,7 @@ import { MapExportButton } from '../../../features/location/components/MapExport
 import type { AccessibleLocation } from '../../../features/location/types/saved-locations';
 import { useWMSGrading } from '../../../features/location/hooks/useWMSGrading';
 import { AIAssistantProvider, useAIAssistantOptional } from '../../../features/ai-assistant/hooks/useAIAssistant';
+import { exportCompactForLLM } from '../../../features/location/utils/jsonExportCompact';
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -838,12 +839,33 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     );
   };
 
-  // Component to sync activeTab to AI context
+  // Component to sync activeTab and location data to AI context
   const AIContextSync = () => {
     const ai = useAIAssistantOptional();
+
+    // Build compact export for AI tools (memoized to avoid rebuilding on every render)
+    const locationExport = React.useMemo(() => {
+      if (!data || !calculatedScores) return undefined;
+      try {
+        return exportCompactForLLM(
+          data,
+          calculatedScores.sortedPersonas,
+          calculatedScores.scenarios,
+          locale,
+          [], // customScenarioPersonaIds
+          amenities || null,
+          wmsGrading.gradingData || null
+        );
+      } catch (error) {
+        console.error('[AIContextSync] Failed to build compact export:', error);
+        return undefined;
+      }
+    }, [data, calculatedScores, locale, amenities, wmsGrading.gradingData]);
+
     React.useEffect(() => {
       if (ai) {
         ai.setContext({
+          locationExport,
           currentView: {
             location: {
               address: currentAddress || undefined,
@@ -853,7 +875,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
           },
         });
       }
-    }, [ai, activeTab, currentAddress, data]);
+    }, [ai, activeTab, currentAddress, data, locationExport]);
     return null;
   };
 

@@ -63,7 +63,7 @@ function getLocationQuickActionsByTab(activeTab?: string): QuickAction[] {
           label: 'Explain current scenario',
           icon: 'cube',
           description: 'Why are these personas selected?',
-          prompt: 'Based on the current location data and demographics, explain why the selected target group scenario (doelgroepen) makes sense. What characteristics of this area support this choice?',
+          toolId: 'doelgroepen-explain-scenario',
           isPrimary: true,
         },
         {
@@ -71,14 +71,14 @@ function getLocationQuickActionsByTab(activeTab?: string): QuickAction[] {
           label: 'Suggest best scenario',
           icon: 'target',
           description: 'Recommend based on location data',
-          prompt: 'Analyze this location and recommend the optimal target group scenario (doelgroepen). Consider the demographics, amenities, transport, and housing market data to suggest which personas would be the best fit for development here.',
+          toolId: 'doelgroepen-suggest-best',
         },
         {
           id: 'compare-scenarios',
           label: 'Compare all scenarios',
           icon: 'compare',
           description: 'Show tradeoffs between options',
-          prompt: 'Compare the different target group scenarios available for this location. What are the pros and cons of each option? Create a comparison table showing viability, demand, and fit for each scenario.',
+          toolId: 'doelgroepen-compare',
         },
       ];
 
@@ -89,7 +89,7 @@ function getLocationQuickActionsByTab(activeTab?: string): QuickAction[] {
           label: 'Explain score breakdown',
           icon: 'chart',
           description: 'What influences each category?',
-          prompt: 'Explain the location scores in detail. For each category (demographics, safety, health, livability, amenities, housing), describe what factors contributed to the score and what the numbers mean for development potential.',
+          toolId: 'score-explain-breakdown',
           isPrimary: true,
         },
         {
@@ -97,14 +97,14 @@ function getLocationQuickActionsByTab(activeTab?: string): QuickAction[] {
           label: 'How to improve scores',
           icon: 'target',
           description: 'Actionable recommendations',
-          prompt: 'Based on the current location scores, what are actionable recommendations to improve the weaker areas? Focus on practical steps that could enhance the development potential of this location.',
+          toolId: 'score-improvement-tips',
         },
         {
           id: 'generate-summary',
           label: 'Generate executive summary',
           icon: 'summary',
           description: 'Create location overview',
-          prompt: 'Generate an executive summary for this location analysis. Include the key scores, notable strengths, areas of concern, and an overall assessment suitable for presenting to stakeholders.',
+          toolId: 'score-executive-summary',
         },
       ];
 
@@ -115,7 +115,7 @@ function getLocationQuickActionsByTab(activeTab?: string): QuickAction[] {
           label: 'Summarize demographics',
           icon: 'users',
           description: 'Key population characteristics',
-          prompt: 'Summarize the demographic profile of this location. Include population composition, age distribution, household types, income levels, and any notable trends. What does this tell us about potential residents?',
+          toolId: 'demografie-population-profile',
           isPrimary: true,
         },
         {
@@ -123,14 +123,14 @@ function getLocationQuickActionsByTab(activeTab?: string): QuickAction[] {
           label: 'Recommend services',
           icon: 'building',
           description: 'What does this population need?',
-          prompt: 'Based on the demographic data, what services and facilities would this population benefit from? Consider age groups, household types, and socioeconomic factors to recommend appropriate amenities for new development.',
+          toolId: 'demografie-service-recommendations',
         },
         {
-          id: 'target-marketing',
-          label: 'Create target messaging',
-          icon: 'document',
-          description: 'Marketing for this demographic',
-          prompt: 'Create marketing messaging tailored to the demographic profile of this area. What value propositions would resonate with potential residents? Suggest key selling points and communication angles.',
+          id: 'scenario-comparison',
+          label: 'Compare scenarios',
+          icon: 'compare',
+          description: 'Match demographics to personas',
+          toolId: 'demografie-scenario-comparison',
         },
       ];
 
@@ -141,7 +141,7 @@ function getLocationQuickActionsByTab(activeTab?: string): QuickAction[] {
           label: 'Safety risk assessment',
           icon: 'shield',
           description: 'Identify key safety concerns',
-          prompt: 'Provide a comprehensive safety assessment for this location. Analyze crime statistics, incident types, and trends. What are the key safety concerns that should be addressed in the development?',
+          toolId: 'veiligheid-safety-assessment',
           isPrimary: true,
         },
         {
@@ -149,14 +149,14 @@ function getLocationQuickActionsByTab(activeTab?: string): QuickAction[] {
           label: 'Recommend improvements',
           icon: 'check',
           description: 'How to improve safety metrics',
-          prompt: 'Based on the safety data, recommend improvements that could enhance security for residents. Consider design features, lighting, community programs, and surveillance that could mitigate risks.',
+          toolId: 'veiligheid-improvements',
         },
         {
           id: 'compare-safety',
           label: 'Compare to similar areas',
           icon: 'compare',
           description: 'Benchmark safety performance',
-          prompt: 'Compare the safety metrics of this location to similar neighborhoods or the municipal average. How does this area perform relative to benchmarks? Are there areas where it excels or falls behind?',
+          toolId: 'veiligheid-benchmarking',
         },
       ];
 
@@ -167,7 +167,7 @@ function getLocationQuickActionsByTab(activeTab?: string): QuickAction[] {
           label: 'Health needs assessment',
           icon: 'heart',
           description: 'Priority health concerns',
-          prompt: 'Analyze the health data for this location and identify priority health concerns. What health indicators stand out? What does this mean for the wellness needs of future residents?',
+          toolId: 'gezondheid-health-needs',
           isPrimary: true,
         },
         {
@@ -175,14 +175,14 @@ function getLocationQuickActionsByTab(activeTab?: string): QuickAction[] {
           label: 'Suggest wellness programs',
           icon: 'leaf',
           description: 'Programs for this community',
-          prompt: 'Based on the health profile, suggest wellness programs and initiatives that would benefit this community. Consider both preventive health measures and support services that address identified needs.',
+          toolId: 'gezondheid-wellness-programs',
         },
         {
           id: 'health-facilities',
           label: 'Prioritize health facilities',
           icon: 'building',
           description: 'What facilities are needed?',
-          prompt: 'What health and medical facilities should be prioritized in or near this development? Consider the health data, demographics, and existing healthcare infrastructure to make recommendations.',
+          toolId: 'gezondheid-facility-priorities',
         },
       ];
 
@@ -193,7 +193,7 @@ function getLocationQuickActionsByTab(activeTab?: string): QuickAction[] {
           label: 'Analyze livability factors',
           icon: 'home',
           description: 'What affects quality of life?',
-          prompt: 'Analyze the livability factors for this location. What contributes positively to quality of life here? What detracts from it? Provide a comprehensive assessment of the living environment.',
+          toolId: 'leefbaarheid-factors-analysis',
           isPrimary: true,
         },
         {
@@ -201,14 +201,14 @@ function getLocationQuickActionsByTab(activeTab?: string): QuickAction[] {
           label: 'Create community plan',
           icon: 'users',
           description: 'Improve social cohesion',
-          prompt: 'Suggest a community development plan that would enhance social cohesion and livability. What shared spaces, community programs, and design features would foster a strong neighborhood identity?',
+          toolId: 'leefbaarheid-community-plan',
         },
         {
           id: 'facility-improvements',
           label: 'Facility improvements',
           icon: 'building',
           description: 'Which facilities need attention?',
-          prompt: 'Based on the livability data, which public facilities and infrastructure need improvement? Prioritize areas that would have the greatest impact on resident satisfaction and quality of life.',
+          toolId: 'leefbaarheid-facility-improvements',
         },
       ];
 
@@ -219,7 +219,8 @@ function getLocationQuickActionsByTab(activeTab?: string): QuickAction[] {
           label: 'Find missing amenities',
           icon: 'search',
           description: 'What is this area lacking?',
-          prompt: 'Analyze the amenities data and identify gaps. What services and facilities are missing or underrepresented in this area? What would residents need that isn\'t currently available nearby?',
+          toolId: 'voorzieningen-amenity-gaps',
+          isAgentic: true,
           isPrimary: true,
         },
         {
@@ -227,14 +228,16 @@ function getLocationQuickActionsByTab(activeTab?: string): QuickAction[] {
           label: 'Recommend new amenities',
           icon: 'building',
           description: 'What should be added?',
-          prompt: 'Based on the demographics and current amenities, recommend specific new amenities that should be included in or near the development. Prioritize by impact and feasibility.',
+          toolId: 'voorzieningen-recommendations',
+          isAgentic: true,
         },
         {
           id: 'local-guide',
           label: 'Generate local guide',
           icon: 'map',
           description: 'Resident-friendly overview',
-          prompt: 'Create a local amenities guide that could be shared with prospective residents. Highlight the best nearby shops, restaurants, parks, schools, and other facilities that make this area attractive.',
+          toolId: 'voorzieningen-local-guide',
+          isAgentic: true,
         },
       ];
 
@@ -245,7 +248,7 @@ function getLocationQuickActionsByTab(activeTab?: string): QuickAction[] {
           label: 'Housing market analysis',
           icon: 'chart',
           description: 'Key market insights',
-          prompt: 'Provide a comprehensive housing market analysis for this location. Include price trends, supply and demand dynamics, comparable developments, and market outlook. What do the numbers tell us?',
+          toolId: 'woningmarkt-market-analysis',
           isPrimary: true,
         },
         {
@@ -253,14 +256,14 @@ function getLocationQuickActionsByTab(activeTab?: string): QuickAction[] {
           label: 'Investment recommendation',
           icon: 'money',
           description: 'Is this a good investment?',
-          prompt: 'Evaluate this location as an investment opportunity. Consider market conditions, price trends, rental yields, and growth potential. What is the investment thesis for developing here?',
+          toolId: 'woningmarkt-investment-advice',
         },
         {
           id: 'housing-demand',
           label: 'Analyze housing demand',
           icon: 'home',
           description: 'What types are in demand?',
-          prompt: 'Analyze housing demand in this area. What unit types, sizes, and price points are most in demand? How should the unit mix be optimized to match market demand?',
+          toolId: 'woningmarkt-demand-analysis',
         },
       ];
 
@@ -271,7 +274,7 @@ function getLocationQuickActionsByTab(activeTab?: string): QuickAction[] {
           label: 'Site constraints analysis',
           icon: 'map',
           description: 'Regulatory & environmental limits',
-          prompt: 'Analyze the site constraints visible in the map layers. What regulatory restrictions, zoning limitations, or environmental constraints affect development potential? Summarize key restrictions.',
+          toolId: 'kaarten-site-constraints',
           isPrimary: true,
         },
         {
@@ -279,14 +282,14 @@ function getLocationQuickActionsByTab(activeTab?: string): QuickAction[] {
           label: 'Environmental risk assessment',
           icon: 'risk',
           description: 'Flooding, noise, and more',
-          prompt: 'Conduct an environmental risk assessment based on the map data. Evaluate flood risk, noise levels, soil conditions, and other environmental factors. What mitigation measures might be needed?',
+          toolId: 'kaarten-environmental-risks',
         },
         {
           id: 'development-strategy',
           label: 'Development strategy',
           icon: 'building',
           description: 'Recommendations based on layers',
-          prompt: 'Based on the map analysis and all visible layers, recommend a development strategy. How should the site be utilized given the constraints and opportunities revealed by the spatial data?',
+          toolId: 'kaarten-development-strategy',
         },
       ];
 
@@ -297,7 +300,7 @@ function getLocationQuickActionsByTab(activeTab?: string): QuickAction[] {
           label: 'Recommend program mix',
           icon: 'target',
           description: 'Best allocation for this location',
-          prompt: 'Recommend an optimal program of requirements (programma van eisen) for this location. Based on the demographics, market data, and location characteristics, suggest the ideal mix of unit types, sizes, and target prices.',
+          toolId: 'pve-program-mix',
           isPrimary: true,
         },
         {
@@ -305,14 +308,14 @@ function getLocationQuickActionsByTab(activeTab?: string): QuickAction[] {
           label: 'Generate specifications',
           icon: 'document',
           description: 'Detailed unit requirements',
-          prompt: 'Generate detailed specifications for each unit type in the program. Include recommended floor areas, room counts, target prices, quality levels, and any special features that would appeal to the target demographic.',
+          toolId: 'pve-specifications',
         },
         {
           id: 'compare-pve',
           label: 'Compare PVE scenarios',
           icon: 'compare',
           description: 'Cost & viability analysis',
-          prompt: 'Compare different program scenarios for this development. What are the trade-offs between maximizing unit count vs. unit size? How do different mixes affect total revenue and marketability?',
+          toolId: 'pve-scenario-comparison',
         },
       ];
 
@@ -323,7 +326,8 @@ function getLocationQuickActionsByTab(activeTab?: string): QuickAction[] {
           label: 'Generate full report',
           icon: 'document',
           description: 'Complete development proposal',
-          prompt: 'Generate a comprehensive development feasibility report for this location. Include executive summary, location analysis, market assessment, recommended program, financial overview, and key risks and opportunities.',
+          toolId: 'rapport-full-report',
+          available: false, // Disabled - not yet implemented
           isPrimary: true,
         },
         {
@@ -331,14 +335,16 @@ function getLocationQuickActionsByTab(activeTab?: string): QuickAction[] {
           label: 'Create executive summary',
           icon: 'summary',
           description: 'One-page overview',
-          prompt: 'Create a one-page executive summary suitable for decision makers. Summarize the key findings, opportunity assessment, and recommended next steps in a concise, compelling format.',
+          toolId: 'rapport-executive-summary',
+          available: false, // Disabled - not yet implemented
         },
         {
           id: 'investor-pitch',
           label: 'Create investor pitch',
           icon: 'money',
           description: 'Investment-ready summary',
-          prompt: 'Create an investor pitch document for this development opportunity. Highlight the investment thesis, market opportunity, expected returns, and key differentiators that make this location attractive.',
+          toolId: 'rapport-investor-pitch',
+          available: false, // Disabled - not yet implemented
         },
       ];
 
@@ -350,15 +356,15 @@ function getLocationQuickActionsByTab(activeTab?: string): QuickAction[] {
           label: 'Summarize location',
           icon: 'location',
           description: 'Quick overview of this location',
-          prompt: 'Provide a comprehensive summary of this location for urban development. Cover the key demographic, safety, health, livability, amenity, and housing market characteristics. What makes this location unique?',
+          toolId: 'score-executive-summary', // Use SWOT as default summary
           isPrimary: true,
         },
         {
-          id: 'create-tasks',
-          label: 'Create follow-up tasks',
-          icon: 'tasks',
-          description: 'Generate tasks from analysis',
-          prompt: 'Based on the location analysis, generate a list of follow-up tasks and action items. What further research, site visits, or stakeholder consultations should be planned?',
+          id: 'explain-scores',
+          label: 'Explain scores',
+          icon: 'chart',
+          description: 'Understand score breakdown',
+          toolId: 'score-explain-breakdown',
         },
       ];
   }

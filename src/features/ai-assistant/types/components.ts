@@ -46,6 +46,9 @@ export interface AIContextData {
   /** Which feature page we're on */
   feature: AIFeature;
 
+  /** Full location data export for AI tool execution */
+  locationExport?: unknown; // CompactLocationExport - using unknown to avoid circular import
+
   /** Current view data (varies by feature) */
   currentView: {
     // Location page context
@@ -108,9 +111,13 @@ export interface QuickAction {
   icon: string;
   /** Description shown on hover */
   description?: string;
-  /** Prompt to send to AI when action is clicked */
+  /** AI Tool ID to execute (preferred over prompt) */
+  toolId?: string;
+  /** Whether this is an agentic tool that supports follow-up */
+  isAgentic?: boolean;
+  /** Prompt to send to AI when action is clicked (legacy - use toolId instead) */
   prompt?: string;
-  /** Handler when clicked (optional - prompt is preferred) */
+  /** Handler when clicked (optional - toolId/prompt is preferred) */
   handler?: () => void | Promise<void>;
   /** Whether this action is currently available */
   available?: boolean;

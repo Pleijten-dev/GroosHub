@@ -6,12 +6,11 @@
  * Slide-out panel (from right) that provides contextual AI assistance.
  * Features:
  * - Context-aware header showing current page
- * - Quick action buttons
- * - Mini chat interface using the SAME chat infrastructure as the main AI assistant
+ * - Quick action buttons that execute AI tools
+ * - Mini chat interface for follow-up questions
  * - Smooth slide animation
  *
- * IMPORTANT: This panel uses the same useChat hook and /api/chat endpoint
- * as the main AI assistant, ensuring identical tooling, memory, and behavior.
+ * Uses the /api/ai-assistant/execute-tool endpoint for tool execution.
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -24,6 +23,7 @@ import type {
   QuickAction,
   AIContextData,
 } from '../../types/components';
+import type { CompactLocationExport } from '@/features/location/utils/jsonExportCompact';
 
 // ============================================
 // Icons
@@ -399,19 +399,32 @@ export function AIPanel({
 }: AIPanelProps) {
   const [panelState, setPanelState] = useState<AIPanelState>(state);
   const [panelChatId, setPanelChatId] = useState<string | null>(null);
+  const [isToolExecuting, setIsToolExecuting] = useState(false);
+  const [currentToolId, setCurrentToolId] = useState<string | null>(null);
+  const [toolResponse, setToolResponse] = useState<string>('');
   const panelRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Use the SAME useChat hook as the main AI assistant
-  // This ensures identical tooling, memory, and behavior
+  // Use useChat for regular chat messages (fallback/follow-up)
   const {
     messages,
     sendMessage,
     status,
-    stop,
+    stop: stopChat,
     setMessages,
   } = useChat();
 
-  const isProcessing = status === 'streaming' || status === 'submitted';
+  const isProcessing = status === 'streaming' || status === 'submitted' || isToolExecuting;
+
+  // Stop both tool execution and chat
+  const stop = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsToolExecuting(false);
+    stopChat();
+  }, [stopChat]);
 
   // Create a chat session for this panel when opened
   useEffect(() => {
@@ -439,10 +452,12 @@ export function AIPanel({
     createPanelChat();
   }, [isOpen, panelChatId, projectId, feature]);
 
-  // Clear messages when panel closes
+  // Clear messages and tool state when panel closes
   useEffect(() => {
     if (!isOpen) {
       setMessages([]);
+      setToolResponse('');
+      setCurrentToolId(null);
       // Optionally reset chat ID for a fresh session next time
       // setPanelChatId(null);
     }
@@ -530,9 +545,112 @@ export function AIPanel({
     onStateChange?.(newState);
   };
 
-  // Handle quick action execution - sends prompt to chat or runs handler
+  // Execute an AI tool using the execute-tool endpoint
+  const executeAITool = useCallback(async (toolId: string, customMessage?: string) => {
+    // Get location data from context (use locationExport for full data, fallback to location view)
+    const locationData = (context.locationExport || context.currentView.location) as CompactLocationExport | undefined;
+
+    // Determine locale from URL or default to 'nl'
+    const locale = (typeof window !== 'undefined' && window.location.pathname.startsWith('/en')) ? 'en' : 'nl';
+
+    setIsToolExecuting(true);
+    setCurrentToolId(toolId);
+    setToolResponse('');
+
+    // Create abort controller for cancellation
+    abortControllerRef.current = new AbortController();
+
+    try {
+      const response = await fetch('/api/ai-assistant/execute-tool', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          toolId,
+          locationData: locationData || null,
+          locale,
+          customMessage,
+        }),
+        signal: abortControllerRef.current.signal,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      // Handle streaming response
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      const decoder = new TextDecoder();
+      let accumulatedText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+
+        // Parse the streaming protocol (Vercel AI SDK format)
+        // Each line is prefixed with a type indicator
+        const lines = chunk.split('\n');
+        for (const line of lines) {
+          if (line.startsWith('0:')) {
+            // Text chunk - parse JSON string
+            try {
+              const text = JSON.parse(line.slice(2));
+              accumulatedText += text;
+              setToolResponse(accumulatedText);
+            } catch {
+              // Not valid JSON, might be partial
+            }
+          }
+          // Other prefixes (e, d, etc.) are metadata, ignore for now
+        }
+      }
+
+      // Add the completed response to messages
+      if (accumulatedText) {
+        const userMessage = {
+          id: `user-${Date.now()}`,
+          role: 'user' as const,
+          content: customMessage || `[Executed: ${toolId}]`,
+          parts: [{ type: 'text' as const, text: customMessage || `[Executed: ${toolId}]` }],
+        };
+        const assistantMessage = {
+          id: `assistant-${Date.now()}`,
+          role: 'assistant' as const,
+          content: accumulatedText,
+          parts: [{ type: 'text' as const, text: accumulatedText }],
+        };
+        setMessages(prev => [...prev, userMessage, assistantMessage]);
+      }
+
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('[AIPanel] Tool execution cancelled');
+      } else {
+        console.error('[AIPanel] Tool execution error:', error);
+        setToolResponse(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    } finally {
+      setIsToolExecuting(false);
+      setCurrentToolId(null);
+      abortControllerRef.current = null;
+    }
+  }, [context, setMessages]);
+
+  // Handle quick action execution - uses toolId or falls back to prompt/handler
   const handleQuickAction = useCallback(async (action: QuickAction) => {
-    // If action has a prompt, send it to the chat
+    // If action has a toolId, execute the AI tool
+    if (action.toolId) {
+      await executeAITool(action.toolId);
+      return;
+    }
+
+    // Legacy: If action has a prompt, send it to the chat
     if (action.prompt) {
       await handleSendMessage(action.prompt);
       return;
@@ -542,7 +660,7 @@ export function AIPanel({
     if (action.handler) {
       await action.handler();
     }
-  }, [handleSendMessage]);
+  }, [executeAITool, handleSendMessage]);
 
   // Get title based on feature
   const getTitle = () => {
@@ -675,6 +793,15 @@ export function AIPanel({
             </div>
           )}
 
+          {/* Tool response while streaming */}
+          {isToolExecuting && toolResponse && (
+            <div className="px-4 pb-4">
+              <div className="text-sm rounded-lg p-3 bg-gray-100 mr-8 whitespace-pre-wrap">
+                {toolResponse}
+              </div>
+            </div>
+          )}
+
           {/* Streaming indicator */}
           {isProcessing && (
             <div className="px-4 pb-4">
@@ -684,7 +811,7 @@ export function AIPanel({
                   <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                   <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                 </span>
-                <span>AI is thinking...</span>
+                <span>{isToolExecuting ? 'AI is analyzing...' : 'AI is thinking...'}</span>
               </div>
             </div>
           )}
