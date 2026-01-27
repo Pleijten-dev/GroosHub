@@ -1,11 +1,11 @@
 # Location Page - Complete Technical Documentation
 
 > **Last Updated**: 2026-01-27
-> **Version**: 2.2.0 (Quadruple-Verified)
+> **Version**: 2.3.0 (Five-Pass Verified)
 > **Status**: Definitive Reference - Verified Against Codebase
 > **Supersedes**: All previous location-related documentation files
 
-**VERIFICATION NOTE**: This documentation has been verified against the actual codebase on 2026-01-27 through four verification rounds. All file paths, interfaces, API methods, and code examples have been validated.
+**VERIFICATION NOTE**: This documentation has been verified against the actual codebase on 2026-01-27 through five verification rounds. All file paths, interfaces, API methods, external API URLs, and type definitions have been validated.
 
 ---
 
@@ -232,7 +232,7 @@ src/features/location/
 - Immigration background (Western, Non-western)
 - Household composition
 
-**API Endpoint**: `https://opendata.cbs.nl/ODataApi/odata/85163NED/TypedDataSet`
+**API Endpoint**: `https://opendata.cbs.nl/ODataApi/odata/84583NED/UntypedDataSet`
 
 **Geographic Levels**:
 - National (NL00)
@@ -262,7 +262,7 @@ class CBSDemographicsClient {
 - Youth-related indicators
 - Maintenance levels
 
-**API Endpoint**: `https://opendata.cbs.nl/ODataApi/odata/83220NED/TypedDataSet`
+**API Endpoint**: `https://opendata.cbs.nl/ODataApi/odata/85146NED/UntypedDataSet`
 
 ### 3.4 RIVM Health Client
 
@@ -279,7 +279,7 @@ class CBSDemographicsClient {
 - Psychological distress
 - Chronic conditions
 
-**API Endpoint**: `https://statline.rivm.nl/`
+**API Endpoint**: `https://dataderden.cbs.nl/ODataApi/odata/50120NED/UntypedDataSet`
 
 ### 3.5 Politie Safety Client
 
@@ -296,7 +296,7 @@ class CBSDemographicsClient {
 - Traffic accidents
 - Street lighting quality
 
-**API Endpoint**: `https://api.politie.nl/`
+**API Endpoint**: `https://dataderden.cbs.nl/ODataApi/odata/47018NED/UntypedDataSet`
 
 ### 3.6 Google Places Client (Amenities)
 
@@ -362,7 +362,7 @@ class GooglePlacesSearchOrchestrator {
 - Rental prices
 - New construction data
 
-**API Endpoint**: `https://mopsus.altum.ai/api/v1/`
+**API Endpoint**: `https://api.altum.ai/interactive-reference`
 
 **Authentication**: API key via `Altum_AI_Key` environment variable
 
@@ -1734,22 +1734,34 @@ const coordinates = useMemo<[number, number]>(() => {
 | `data/cache/rapportCache.ts` | Rapport cache |
 | `data/cache/llmRapportCache.ts` | LLM rapport cache |
 
-### 11.3 Component Files
+### 11.3 Component Files (24 directories, 86 files total)
 
 | Directory | Components | Count |
 |-----------|------------|-------|
 | `components/AddressAutocomplete/` | Address search | 1 |
 | `components/Amenities/` | Amenity display | 7 |
+| `components/CacheStatus/` | Cache indicators | 2 |
+| `components/DataTables/` | Data table display | 2 |
 | `components/Demographics/` | Demographics | 2 |
 | `components/Doelgroepen/` | Target groups | 6 |
 | `components/DoelgroepenResult/` | Scenario display | 5 |
 | `components/ExportButton/` | Export buttons | 7 |
-| `components/Maps/` | Map components | 8 |
-| `components/PVE/` | Questionnaire | 2 |
-| `components/Residential/` | Housing market | 9 |
-| `components/Safety/` | Safety display | 2 |
 | `components/Health/` | Health display | 2 |
 | `components/Livability/` | Livability display | 2 |
+| `components/LoadingAnimation/` | Loading states | 2 |
+| `components/LocationAnimation/` | Location animations | 2 |
+| `components/LocationPage/` | Page exports | 1 |
+| `components/LocationSidebar/` | Sidebar components | 3 |
+| `components/LocationWelcome/` | Welcome screen | 3 |
+| `components/MapExport/` | Map export button | 2 |
+| `components/Maps/` | Map components | 8 |
+| `components/PVE/` | Questionnaire | 2 |
+| `components/ProgramRecommendations/` | Recommendations | 4 |
+| `components/Residential/` | Housing market | 9 |
+| `components/Safety/` | Safety display | 2 |
+| `components/SavedLocations/` | Location management | 6 |
+| `components/TabContent/` | Tab exports | 1 |
+| `components/shared/` | Shared components | 5 |
 
 ### 11.4 Utility Files
 
@@ -1802,18 +1814,19 @@ const coordinates = useMemo<[number, number]>(() => {
 | `/api/generate-building-program/stage3` | POST | PVE generation |
 | `/api/rapport/upload-pdf` | POST | Upload PDF to R2 |
 | `/api/rapport-snapshots` | GET/POST | List/save snapshots |
-| `/api/rapport-snapshots/[id]` | GET/DELETE | Get/delete snapshot |
+| `/api/rapport-snapshots/[id]` | GET/PATCH/DELETE | Get/update/delete snapshot |
 
 ### 12.3 External APIs
 
-| API | Base URL | Auth |
-|-----|----------|------|
-| CBS Open Data | `https://opendata.cbs.nl/ODataApi/odata/` | None |
-| RIVM Statline | `https://statline.rivm.nl/` | None |
-| Politie | `https://api.politie.nl/` | None |
-| Google Places | `https://maps.googleapis.com/maps/api/place/` | API Key |
-| Altum AI | `https://mopsus.altum.ai/api/v1/` | API Key |
-| PDOK WMS | `https://service.pdok.nl/` | None |
+| API | Base URL | Dataset | Auth |
+|-----|----------|---------|------|
+| CBS Demographics | `https://opendata.cbs.nl/ODataApi/odata/` | 84583NED | None |
+| CBS Livability | `https://opendata.cbs.nl/ODataApi/odata/` | 85146NED | None |
+| RIVM Health | `https://dataderden.cbs.nl/ODataApi/odata/` | 50120NED | None |
+| Politie Safety | `https://dataderden.cbs.nl/ODataApi/odata/` | 47018NED | None |
+| Google Places | `https://places.googleapis.com/v1/places` | - | API Key |
+| Altum AI | `https://api.altum.ai/interactive-reference` | - | API Key |
+| PDOK WMS | `https://service.pdok.nl/` | - | None |
 
 ---
 
@@ -2246,7 +2259,10 @@ type ComparisonType = 'relatief' | 'absoluut';
 type ScoreDirection = 'positive' | 'negative';
 
 // Coordinates
-type LatLng = [number, number];  // [latitude, longitude]
+interface LatLng {
+  lat: number;
+  lng: number;
+}
 
 // Locale
 type Locale = 'nl' | 'en';
