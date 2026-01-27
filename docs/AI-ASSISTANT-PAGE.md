@@ -2247,11 +2247,3 @@ The AI Assistant requires these environment variables to function:
 - `ENCRYPTION_MASTER_KEY` is optional - if not set, messages are stored unencrypted
 
 ---
-
-## Related Documentation
-
-- [Memory System](./memory-system.md)
-- [Multimodal Support](./multimodal-support.md)
-- [Model Configuration](./model-config.md)
-- [Database Schema](/docs/07-database/current-schema.md)
-- [API Reference](/docs/04-api-reference/endpoints.md)
