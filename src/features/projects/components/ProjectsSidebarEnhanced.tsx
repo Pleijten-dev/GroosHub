@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { Sidebar } from '@/shared/components/UI/Sidebar/Sidebar';
 import { Button } from '@/shared/components/UI/Button/Button';
 import { ContextMenu, ContextMenuItem } from '@/shared/components/UI/ContextMenu/ContextMenu';
+import { PersonalMemoryModal } from '@/features/ai-assistant/components/PersonalMemoryModal/PersonalMemoryModal';
 import { cn } from '@/shared/utils/cn';
 
 interface Project {
@@ -84,6 +85,7 @@ export function ProjectsSidebarEnhanced({
   const [renameProjectId, setRenameProjectId] = useState<string | null>(null);
   const [renameChatId, setRenameChatId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const [isMemoryModalOpen, setIsMemoryModalOpen] = useState(false);
 
   const translations = {
     nl: {
@@ -113,6 +115,8 @@ export function ProjectsSidebarEnhanced({
       confirmDelete: 'Weet je zeker dat je dit wilt verwijderen? Het gaat naar het archief voor 30 dagen.',
       confirmPermanentDelete: 'Weet je zeker dat je dit permanent wilt verwijderen? Dit kan niet ongedaan worden gemaakt!',
       renaming: 'Hernoemen...',
+      yourAIMemory: 'Jouw AI Geheugen',
+      viewMemory: 'Bekijk wat ik over jou weet en pas voorkeuren aan',
     },
     en: {
       projects: 'Projects',
@@ -141,6 +145,8 @@ export function ProjectsSidebarEnhanced({
       confirmDelete: 'Are you sure you want to delete this? It will be moved to archive for 30 days.',
       confirmPermanentDelete: 'Are you sure you want to permanently delete this? This cannot be undone!',
       renaming: 'Renaming...',
+      yourAIMemory: 'Your AI Memory',
+      viewMemory: 'View what I know about you and edit preferences',
     }
   };
 
@@ -838,26 +844,56 @@ export function ProjectsSidebarEnhanced({
     </div>
   );
 
+  // Memory button footer content
+  const memoryFooterContent = (
+    <button
+      onClick={() => setIsMemoryModalOpen(true)}
+      className="w-full flex items-center gap-sm p-sm rounded-lg hover:bg-gray-100 transition-colors text-left"
+    >
+      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+        <svg className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/>
+          <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-medium text-gray-900">{t.yourAIMemory}</div>
+        <div className="text-xs text-gray-500 truncate">{t.viewMemory}</div>
+      </div>
+    </button>
+  );
+
   return (
-    <Sidebar
-      isCollapsed={isCollapsed}
-      onToggle={onToggle}
-      headerContent={headerContent}
-      sections={[
-        {
-          id: 'projects',
-          title: '',
-          content: projectsContent
-        },
-        {
-          id: 'chats',
-          title: '',
-          content: chatsContent
-        }
-      ]}
-      position="left"
-      withNavbar={true}
-    />
+    <>
+      <Sidebar
+        isCollapsed={isCollapsed}
+        onToggle={onToggle}
+        headerContent={headerContent}
+        sections={[
+          {
+            id: 'projects',
+            title: '',
+            content: projectsContent
+          },
+          {
+            id: 'chats',
+            title: '',
+            content: chatsContent
+          }
+        ]}
+        position="left"
+        withNavbar={true}
+        footerContent={memoryFooterContent}
+      />
+
+      {/* Personal Memory Modal */}
+      <PersonalMemoryModal
+        isOpen={isMemoryModalOpen}
+        onClose={() => setIsMemoryModalOpen(false)}
+        locale={locale as 'nl' | 'en'}
+      />
+    </>
   );
 }
 

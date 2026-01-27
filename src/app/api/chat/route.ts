@@ -25,9 +25,9 @@ import {
   trackLLMUsage
 } from '@/lib/ai/chat-store';
 import { getSystemPrompt } from '@/features/chat/lib/prompts/system-prompt';
-import { getUserMemory, formatMemoryForPrompt } from '@/lib/ai/memory-store';
-import { enhanceSystemPromptWithMemory } from '@/lib/ai/memory-prompts';
-import { queueMemoryAnalysis } from '@/lib/ai/memory-analyzer';
+// 3-Tier Memory System
+import { enhancePromptWithMemory } from '@/features/ai-assistant/lib/memory-injector';
+import { queuePreferenceAnalysis } from '@/features/ai-assistant/lib/preference-analyzer';
 import { getLocationAgentPrompt, getTaskAgentPrompt, getCombinedPrompt } from '@/features/chat/lib/prompts/agent-prompts';
 import { getDbConnection } from '@/lib/db/connection';
 import type { AccessibleLocation } from '@/features/location/types/saved-locations';
@@ -429,16 +429,45 @@ export async function POST(request: NextRequest) {
     const taskAgentPrompt = getTaskAgentPrompt(locale);
     let systemPrompt = getCombinedPrompt(baseSystemPrompt, locationAgentPrompt, taskAgentPrompt);
 
-    // Get user memory and enhance system prompt
+    // Get 3-tier memory (personal + project + domain) and enhance system prompt
     try {
-      const userMemory = await getUserMemory(userId);
-      const memoryText = formatMemoryForPrompt(userMemory);
-      if (memoryText) {
-        systemPrompt = enhanceSystemPromptWithMemory(systemPrompt, memoryText, locale);
-        console.log(`[Chat API] 🧠 User memory loaded (${userMemory.token_count} tokens)`);
+      // Get user's organization ID for domain memory
+      let orgId: string | undefined;
+      try {
+        const orgResult = await getDbConnection()`
+          SELECT organization_id FROM user_accounts WHERE id = ${userId}
+        `;
+        if (orgResult.length > 0 && orgResult[0].organization_id) {
+          orgId = orgResult[0].organization_id;
+        }
+      } catch {
+        // User may not have an organization, continue without domain memory
+      }
+
+      const { enhancedPrompt, memoryResult } = await enhancePromptWithMemory(
+        systemPrompt,
+        {
+          userId,
+          projectId: projectId || (existingChat?.project_id as string | undefined),
+          orgId,
+          locale,
+          maxTokens: 1500
+        }
+      );
+
+      systemPrompt = enhancedPrompt;
+
+      const includedTypes = [
+        memoryResult.included.personal && 'personal',
+        memoryResult.included.project && 'project',
+        memoryResult.included.domain && 'domain'
+      ].filter(Boolean).join(', ');
+
+      if (includedTypes) {
+        console.log(`[Chat API] 🧠 Memory loaded: ${includedTypes} (${memoryResult.tokenEstimate} tokens)`);
       }
     } catch (error) {
-      console.error('[Chat API] ⚠️  Failed to load user memory:', error);
+      console.error('[Chat API] ⚠️  Failed to load memory:', error);
       // Continue without memory if there's an error
     }
 
@@ -1597,15 +1626,35 @@ export async function POST(request: NextRequest) {
 
           console.log(`[Chat API] ✅ Usage stats saved successfully!`);
 
-          // Queue memory analysis (background, non-blocking)
+          // Queue preference analysis (background, non-blocking)
           // Analyzes last 10 messages using cheap model (Claude Haiku)
-          // Only triggers every 10 messages or when significant new info detected
+          // Extracts preferences with confidence scoring
           try {
-            queueMemoryAnalysis(userId, chatId!, allMessages, locale);
-            console.log(`[Chat API] 🧠 Memory analysis queued for user ${userId}`);
+            // Get user's organization ID for domain memory updates
+            let orgId: string | undefined;
+            try {
+              const orgResult = await getDbConnection()`
+                SELECT organization_id FROM user_accounts WHERE id = ${userId}
+              `;
+              if (orgResult.length > 0 && orgResult[0].organization_id) {
+                orgId = orgResult[0].organization_id;
+              }
+            } catch {
+              // Continue without org ID
+            }
+
+            queuePreferenceAnalysis({
+              userId,
+              chatId: chatId!,
+              projectId: projectId || existingChat?.project_id || undefined,
+              orgId,
+              messages: allMessages,
+              locale
+            });
+            console.log(`[Chat API] 🧠 Preference analysis queued for user ${userId}`);
           } catch (error) {
-            console.error(`[Chat API] ⚠️  Failed to queue memory analysis:`, error);
-            // Non-critical - continue even if memory analysis fails
+            console.error(`[Chat API] ⚠️  Failed to queue preference analysis:`, error);
+            // Non-critical - continue even if analysis fails
           }
         } catch (error) {
           console.error(`[Chat API] ❌ Error in onFinish callback:`, error);

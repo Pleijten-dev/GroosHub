@@ -8,6 +8,7 @@ import { ProjectFiles } from './ProjectFiles';
 import { ProjectChats } from './ProjectChats';
 import { ProjectLocations } from './ProjectLocations';
 import { ProjectTrash } from './ProjectTrash';
+import { ProjectMemory } from './ProjectMemory';
 import { ProjectTasks } from '@/features/tasks/components/ProjectTasks';
 import { ProjectOverviewPage } from '@/features/chat/components/ProjectOverviewPage';
 
@@ -41,7 +42,7 @@ interface Project {
   last_accessed_at: string;
 }
 
-type Tab = 'overview' | 'tasks' | 'files' | 'members' | 'chats' | 'locations' | 'lca' | 'trash';
+type Tab = 'overview' | 'tasks' | 'files' | 'members' | 'chats' | 'locations' | 'lca' | 'memory' | 'trash';
 
 export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
   const [project, setProject] = useState<Project | null>(null);
@@ -58,6 +59,7 @@ export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
       chats: 'Chats',
       locations: 'Locaties',
       lca: 'LCA',
+      memory: 'Geheugen',
       trash: 'Prullenbak',
       projectNumber: 'Projectnummer',
       loading: 'Laden...',
@@ -72,6 +74,7 @@ export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
       chats: 'Chats',
       locations: 'Locations',
       lca: 'LCA',
+      memory: 'Memory',
       trash: 'Trash',
       projectNumber: 'Project Number',
       loading: 'Loading...',
@@ -143,6 +146,7 @@ export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
     { id: 'locations', label: t.locations, count: project.location_count },
     { id: 'lca', label: t.lca, count: project.lca_count },
     { id: 'members', label: t.members, count: project.member_count },
+    { id: 'memory', label: t.memory },
     { id: 'trash', label: t.trash }
   ];
 
@@ -265,6 +269,18 @@ export function ProjectOverview({ projectId, locale }: ProjectOverviewProps) {
             <Card>
               <h2 className="text-xl font-semibold mb-base">{t.lca}</h2>
               <p className="text-gray-600">LCA snapshots coming soon...</p>
+            </Card>
+          </div>
+        )}
+
+        {activeTab === 'memory' && (
+          <div className="h-full overflow-y-auto p-lg">
+            <Card>
+              <ProjectMemory
+                projectId={projectId}
+                locale={locale}
+                canEdit={project.permissions.can_edit}
+              />
             </Card>
           </div>
         )}

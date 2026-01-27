@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { Input } from '@/shared/components/UI/Input/Input';
 import { Button } from '@/shared/components/UI/Button/Button';
 import { Card } from '@/shared/components/UI/Card/Card';
+import { DomainMemoryPanel } from '@/features/ai-assistant/components/DomainMemoryPanel/DomainMemoryPanel';
+import { cn } from '@/shared/utils/cn';
 
 interface User {
   id: number;
@@ -42,9 +44,13 @@ interface AdminPanelProps {
     create: string;
     error: string;
   };
+  locale: string;
 }
 
-export function AdminPanel({ translations, common }: AdminPanelProps) {
+type AdminTab = 'users' | 'ai-memory';
+
+export function AdminPanel({ translations, common, locale }: AdminPanelProps) {
+  const [activeTab, setActiveTab] = useState<AdminTab>('users');
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -169,31 +175,63 @@ export function AdminPanel({ translations, common }: AdminPanelProps) {
     );
   }
 
+  const tabLabels = {
+    users: locale === 'nl' ? 'Gebruikers' : 'Users',
+    'ai-memory': locale === 'nl' ? 'AI Geheugen' : 'AI Memory',
+  };
+
   return (
     <div className="min-h-screen bg-background-secondary p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-6 flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-text-primary">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-text-primary mb-4">
             {translations.title}
           </h1>
-          <Button onClick={handleCreateUser} variant="primary">
-            {translations.createUser}
-          </Button>
+
+          {/* Admin Tabs */}
+          <div className="flex gap-base border-b border-gray-200">
+            {(['users', 'ai-memory'] as AdminTab[]).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={cn(
+                  'pb-sm px-xs whitespace-nowrap transition-colors relative',
+                  activeTab === tab
+                    ? 'text-primary font-medium'
+                    : 'text-gray-600 hover:text-gray-900'
+                )}
+              >
+                <span>{tabLabels[tab]}</span>
+                {activeTab === tab && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                )}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {successMessage && (
-          <div className="mb-4 p-4 bg-green-100 text-green-800 rounded-lg">
-            {successMessage}
-          </div>
-        )}
+        {/* Tab Content */}
+        {activeTab === 'users' && (
+          <>
+            <div className="mb-4 flex justify-end">
+              <Button onClick={handleCreateUser} variant="primary">
+                {translations.createUser}
+              </Button>
+            </div>
 
-        {error && (
-          <div className="mb-4 p-4 bg-error-light text-error rounded-lg">
-            {error}
-          </div>
-        )}
+            {successMessage && (
+              <div className="mb-4 p-4 bg-green-100 text-green-800 rounded-lg">
+                {successMessage}
+              </div>
+            )}
 
-        {/* User Form Modal */}
+            {error && (
+              <div className="mb-4 p-4 bg-error-light text-error rounded-lg">
+                {error}
+              </div>
+            )}
+
+            {/* User Form Modal */}
         {isFormOpen && (
           <Card className="mb-6" padding="lg">
             <h2 className="text-xl font-bold text-text-primary mb-4">
@@ -333,6 +371,13 @@ export function AdminPanel({ translations, common }: AdminPanelProps) {
             </div>
           )}
         </Card>
+          </>
+        )}
+
+        {/* AI Memory Tab */}
+        {activeTab === 'ai-memory' && (
+          <DomainMemoryPanel locale={locale} />
+        )}
       </div>
     </div>
   );
