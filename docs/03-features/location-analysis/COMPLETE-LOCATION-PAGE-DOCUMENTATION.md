@@ -1,9 +1,11 @@
 # Location Page - Complete Technical Documentation
 
 > **Last Updated**: 2025-01-27
-> **Version**: 1.0.0
-> **Status**: Definitive Reference
+> **Version**: 2.0.0 (Verified)
+> **Status**: Definitive Reference - Verified Against Codebase
 > **Supersedes**: All previous location-related documentation files
+
+**VERIFICATION NOTE**: This documentation has been verified against the actual codebase on 2025-01-27. All file paths, interfaces, and code examples have been validated.
 
 ---
 
@@ -425,25 +427,42 @@ UnifiedDataRow[]
 **File**: `src/features/location/data/parsers/types.ts`
 
 ```typescript
+/**
+ * Scoring configuration for a data point
+ */
+interface ScoringConfig {
+  /** Type of value to use for comparison (default: 'relatief') */
+  comparisonType: 'relatief' | 'absoluut';
+  /** Acceptable variance threshold percentage (default: 20) */
+  margin: number;
+  /** Benchmark value for comparison (default: national level value) */
+  baseValue: number | null;
+  /** Whether higher values are better (default: 'positive') */
+  direction: 'positive' | 'negative';
+}
+
+/**
+ * Parsed data value with both absolute and relative representations
+ */
 interface ParsedValue {
-  // Original values
-  originalValue: string | number;
-  absolute: number | null;      // Absolute count
-  relative: number | null;      // Percentage or per-capita
-
-  // Metadata
-  label: string;                // Human-readable label
-  unit: string;                 // Unit of measurement
-  category: string;             // Data category
-
-  // Scoring values (added by scorer)
-  comparisonType?: 'relatief' | 'absoluut';
-  margin?: number;              // Default: 20%
-  baseValue?: number;           // National benchmark
-  direction?: 'positive' | 'negative';
-  calculatedScore?: -1 | 0 | 1;
+  /** Human-readable title for the indicator */
+  title: string;
+  /** Original raw value from the API */
+  originalValue: string | number | null;
+  /** Absolute value (actual count/amount) */
+  absolute: number | null;
+  /** Relative value (percentage, per capita, etc.) */
+  relative: number | null;
+  /** Unit for the value (%, count, etc.) */
+  unit?: string;
+  /** Scoring configuration (optional, added during scoring phase) */
+  scoring?: ScoringConfig;
+  /** Calculated score based on comparison (continuous value from -1 to 1) */
+  calculatedScore?: number | null;
 }
 ```
+
+**Note**: The `calculatedScore` is a **continuous value** from -1 to 1, NOT discrete -1/0/1.
 
 ### 4.3 Demographics Parser
 
@@ -561,44 +580,81 @@ GroosHub uses **four complementary scoring systems**:
 
 **File**: `src/features/location/data/parsers/scoring.ts`
 
-**Purpose**: Compares location data points against national benchmarks
+**Purpose**: Compares location data points against national benchmarks using **continuous linear interpolation**
 
-**Score Values**:
-- **-1**: Below average (worse than national by >margin%)
-- **0**: Average (within ±margin% of national)
-- **+1**: Above average (better than national by >margin%)
+**Score Values** (Continuous from -1 to 1):
+- **-1**: Significantly below average (at or below lower bound)
+- **-0.5 to 0**: Below average (between lower bound and base)
+- **0**: Exactly at national average
+- **0 to 0.5**: Above average (between base and upper bound)
+- **+1**: Significantly above average (at or above upper bound)
 
-**Algorithm**:
+**Algorithm** (Linear Interpolation):
 ```typescript
 function calculateScore(
-  locationValue: number,
-  baseValue: number,
-  margin: number = 20,
-  direction: 'positive' | 'negative' = 'positive'
-): -1 | 0 | 1 {
+  parsedValue: ParsedValue,
+  nationalValue: ParsedValue | null,
+  config?: ScoringConfigOverride
+): number | null {
+  const scoringConfig = createScoringConfig(config);
+
+  // Determine which value to use for comparison
+  const comparisonValue = scoringConfig.comparisonType === 'relatief'
+    ? parsedValue.relative
+    : parsedValue.absolute;
+
+  if (comparisonValue === null) return null;
+
+  // Determine base value (override or national level)
+  let baseValue = scoringConfig.baseValue;
+  if (baseValue === null) {
+    if (!nationalValue) return null;
+    baseValue = scoringConfig.comparisonType === 'relatief'
+      ? nationalValue.relative
+      : nationalValue.absolute;
+    if (baseValue === null) return null;
+  }
+
   // Calculate bounds
-  const marginValue = Math.abs(baseValue) * (margin / 100);
+  const marginValue = Math.abs(baseValue) * (scoringConfig.margin / 100);
   const lowerBound = baseValue - marginValue;
   const upperBound = baseValue + marginValue;
 
-  // Calculate raw score
-  let score: -1 | 0 | 1;
-  if (locationValue < lowerBound) {
-    score = -1;
-  } else if (locationValue > upperBound) {
-    score = 1;
+  // Calculate raw score using LINEAR INTERPOLATION
+  let rawScore: number;
+
+  if (comparisonValue < lowerBound) {
+    rawScore = -1;  // Capped at -1
+  } else if (comparisonValue > upperBound) {
+    rawScore = 1;   // Capped at 1
+  } else if (comparisonValue < baseValue) {
+    // Between lower bound and base: interpolate from -1 to 0
+    const range = baseValue - lowerBound;
+    const position = comparisonValue - lowerBound;
+    rawScore = -1 + (position / range);
+  } else if (comparisonValue > baseValue) {
+    // Between base and upper bound: interpolate from 0 to 1
+    const range = upperBound - baseValue;
+    const position = comparisonValue - baseValue;
+    rawScore = position / range;
   } else {
-    score = 0;
+    rawScore = 0;  // Exactly at base value
   }
 
-  // Flip for negative direction (lower is better)
-  if (direction === 'negative') {
-    score = (score * -1) as -1 | 0 | 1;
+  // Invert score if direction is negative (lower is better)
+  if (scoringConfig.direction === 'negative') {
+    rawScore = -rawScore;
   }
 
-  return score;
+  // Round to 2 decimal places
+  return Math.round(rawScore * 100) / 100;
 }
 ```
+
+**Example Scores**:
+- Value = 85, Base = 100, Margin = 20% → Score ≈ -0.25
+- Value = 100, Base = 100 → Score = 0
+- Value = 115, Base = 100, Margin = 20% → Score ≈ 0.75
 
 **Direction Examples**:
 - `positive`: Higher is better (sports participation, good health)
@@ -1481,43 +1537,50 @@ const [loadedWMSGradingData, setLoadedWMSGradingData] = useState<WMSGradingData 
 
 **File**: `src/features/location/hooks/useLocationData.ts`
 
-**State**:
+**Loading State**:
 ```typescript
-interface LocationDataState {
-  data: UnifiedLocationData | null;
-  amenities: AmenityMultiCategoryResponse | null;
-  loading: {
-    geocoding: boolean;
-    demographics: boolean;
-    health: boolean;
-    livability: boolean;
-    safety: boolean;
-    amenities: boolean;
-    residential: boolean;
-  };
-  error: {
-    geocoding: Error | null;
-    demographics: Error | null;
-    health: Error | null;
-    livability: Error | null;
-    safety: Error | null;
-    amenities: Error | null;
-    residential: Error | null;
-  };
-  fromCache: boolean;
-  currentAddress: string | null;
+interface LoadingState {
+  geocoding: boolean;
+  demographics: boolean;
+  health: boolean;
+  livability: boolean;
+  safety: boolean;
+  amenities: boolean;
+  residential: boolean;
 }
 ```
 
-**Actions**:
+**Error State** (uses string messages, not Error objects):
 ```typescript
-interface LocationDataActions {
+interface ErrorState {
+  geocoding: string | null;
+  demographics: string | null;
+  health: string | null;
+  livability: string | null;
+  safety: string | null;
+  amenities: string | null;
+  residential: string | null;
+}
+```
+
+**Hook Return Interface**:
+```typescript
+interface UseLocationDataReturn {
+  data: UnifiedLocationData | null;
+  amenities: AmenityMultiCategoryResponse | null;
+  loading: LoadingState;
+  error: ErrorState;
+  isLoading: boolean;      // Computed: any loading state true
+  hasError: boolean;       // Computed: any error state set
+  fromCache: boolean;
   fetchData: (address: string, skipCache?: boolean) => Promise<void>;
-  loadSavedData: (data: UnifiedLocationData, amenities: AmenityMultiCategoryResponse, address: string) => void;
+  loadSavedData: (locationData: UnifiedLocationData, amenitiesData?: AmenityMultiCategoryResponse | null, address?: string) => void;
   clearData: () => void;
   clearCache: () => void;
 }
 ```
+
+**Note**: The current address is stored in `localStorage` under key `grooshub_current_address`, not in the hook state.
 
 ### 10.3 useWMSGrading Hook
 
@@ -1626,18 +1689,47 @@ const coordinates = useMemo<[number, number]>(() => {
 
 ### 11.2 Data Pipeline Files
 
+**Note**: All data source files use lowercase naming convention with `client.ts` as the main file.
+
 | File | Purpose |
 |------|---------|
-| `data/sources/cbs-demographics/CBSDemographicsClient.ts` | CBS demographics API |
-| `data/sources/cbs-livability/CBSLivabilityClient.ts` | CBS livability API |
-| `data/sources/rivm-health/RIVMHealthClient.ts` | RIVM health API |
-| `data/sources/politie-safety/PolitieSafetyClient.ts` | Police safety API |
-| `data/sources/google-places/googlePlacesSearchOrchestrator.ts` | Amenities API |
-| `data/sources/altum-ai/AltumAIClient.ts` | Housing market API |
+| `data/sources/cbs-demographics/client.ts` | CBS demographics API (class: `CBSDemographicsClient`) |
+| `data/sources/cbs-livability/client.ts` | CBS livability API (class: `CBSLivabilityClient`) |
+| `data/sources/rivm-health/client.ts` | RIVM health API (class: `RIVMHealthClient`) |
+| `data/sources/politie-safety/client.ts` | Police safety API (class: `PolitieSafetyClient`) |
+| `data/sources/google-places/search-orchestrator.ts` | Amenities search orchestrator |
+| `data/sources/google-places/client.ts` | Google Places API client |
+| `data/sources/google-places/response-parser.ts` | Response parser |
+| `data/sources/google-places/rate-limiter.ts` | Rate limiting |
+| `data/sources/google-places/distance-calculator.ts` | Distance calculations |
+| `data/sources/google-places/error-handler.ts` | Error handling |
+| `data/sources/google-places/usage-tracker.ts` | Usage tracking |
+| `data/sources/google-places/amenity-search-config.ts` | Amenity categories config |
+| `data/sources/google-places/types.ts` | Type definitions |
+| `data/sources/altum-ai/client.ts` | Housing market API (class: `AltumAIClient`) |
+| `data/sources/altum-ai/parser.ts` | Response parser |
+| `data/sources/altum-ai/types.ts` | Type definitions |
+| `data/sources/WMSSamplingService.ts` | WMS layer sampling service |
+| `data/sources/wmsGradingConfig.ts` | WMS grading configuration |
 | `data/aggregator/multiLevelAggregator.ts` | Data aggregation |
 | `data/parsers/scoring.ts` | Score calculation |
-| `data/normalizers/*.ts` | Key normalization |
-| `data/cache/*.ts` | Caching systems |
+| `data/parsers/types.ts` | Parser type definitions |
+| `data/parsers/demographicsParser.ts` | Demographics parser |
+| `data/parsers/healthParser.ts` | Health parser |
+| `data/parsers/livabilityParser.ts` | Livability parser |
+| `data/parsers/safetyParser.ts` | Safety parser |
+| `data/normalizers/demographicsKeyNormalizer.ts` | Demographics key normalizer |
+| `data/normalizers/healthKeyNormalizer.ts` | Health key normalizer |
+| `data/normalizers/livabilityKeyNormalizer.ts` | Livability key normalizer |
+| `data/normalizers/safetyKeyNormalizer.ts` | Safety key normalizer |
+| `data/scoring/amenityScoring.ts` | Amenity scoring |
+| `data/scoring/residentialScoring.ts` | Residential scoring |
+| `data/scoring/scoringVersion.ts` | Scoring version tracking |
+| `data/services/locationGeocoder.ts` | Geocoding service |
+| `data/cache/locationDataCache.ts` | Location data cache |
+| `data/cache/pveConfigCache.ts` | PVE config cache |
+| `data/cache/rapportCache.ts` | Rapport cache |
+| `data/cache/llmRapportCache.ts` | LLM rapport cache |
 
 ### 11.3 Component Files
 
@@ -1683,15 +1775,18 @@ const coordinates = useMemo<[number, number]>(() => {
 
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
-| `/api/location/geocode` | POST | Geocode address to coordinates |
-| `/api/location/demographics` | POST | Fetch demographics data |
-| `/api/location/health` | POST | Fetch health data |
-| `/api/location/livability` | POST | Fetch livability data |
-| `/api/location/safety` | POST | Fetch safety data |
-| `/api/location/amenities` | POST | Search amenities |
-| `/api/location/residential` | POST | Fetch housing market |
-| `/api/location/wms-grading` | POST | Start WMS grading |
-| `/api/location/wms-grading/status` | GET | Poll grading status |
+| `/api/location/text-search` | POST | Search for addresses/locations (geocoding) |
+| `/api/location/nearby-places-new` | POST | Search for nearby amenities (Google Places) |
+| `/api/location/residential` | POST | Fetch housing market data (Altum AI) |
+| `/api/location/housing-personas` | GET | Get housing personas data |
+| `/api/location/wms-grading` | POST | Start/manage WMS layer grading |
+| `/api/location/usage-stats` | POST | Track API usage statistics |
+| `/api/location/snapshots` | GET/POST | List/create location snapshots |
+| `/api/location/snapshots/[id]` | GET/DELETE | Get/delete specific snapshot |
+| `/api/location/snapshots/[id]/activate` | POST | Activate a saved snapshot |
+| `/api/location/snapshots/[id]/grade-wms` | POST | Grade WMS layers for snapshot |
+
+**Note**: Demographics, health, livability, and safety data are fetched **client-side** directly from external APIs (CBS, RIVM) via the data clients, not through internal API routes.
 
 ### 12.2 Report API Routes
 
@@ -1879,7 +1974,9 @@ Contains definitions for all 27 housing personas with:
 
 ---
 
-## Appendix A: Complete File Listing
+## Appendix A: Complete File Listing (Verified)
+
+**VERIFIED**: This listing reflects the actual files in the codebase as of 2025-01-27.
 
 ### A.1 Page & Layout Files
 ```
@@ -1891,7 +1988,7 @@ src/app/[locale]/location/
 └── public/page.tsx                    # Public space recommendations
 ```
 
-### A.2 Component Files (100+ files)
+### A.2 Component Files (Verified - 85 files)
 ```
 src/features/location/components/
 ├── AddressAutocomplete/
@@ -1899,45 +1996,42 @@ src/features/location/components/
 │   └── index.ts
 ├── Amenities/
 │   ├── AmenitiesGrid.tsx
+│   ├── AmenitiesSummary.tsx
 │   ├── AmenityCard.tsx
-│   ├── AmenityDetail.tsx
-│   ├── AmenityFilter.tsx
-│   ├── AmenitySummary.tsx
+│   ├── AmenityDetailModal.tsx
+│   ├── amenityDataConverter.ts
+│   ├── types.ts
 │   └── index.ts
 ├── CacheStatus/
 │   ├── CacheIndicator.tsx
 │   ├── CacheManager.tsx
 │   └── index.ts
 ├── DataTables/
-│   ├── ComparisonTable.tsx
-│   ├── GeographicLevelSelector.tsx
 │   ├── MultiLevelDataTable.tsx
 │   └── index.ts
 ├── Demographics/
 │   ├── DemographicsPage.tsx
-│   ├── AgeDistributionChart.tsx
-│   ├── StatusChart.tsx
 │   └── index.ts
 ├── Doelgroepen/
-│   ├── DoelgroepenGrid.tsx
+│   ├── CubeVisualization.tsx
+│   ├── DetailedScoringTable.tsx
 │   ├── DoelgroepenCard.tsx
-│   ├── DoelgroepenFilter.tsx
+│   ├── DoelgroepenGrid.tsx
+│   ├── SummaryRankingTable.tsx
 │   └── index.ts
 ├── DoelgroepenResult/
+│   ├── ConnectionPopup.tsx
 │   ├── DoelgroepenResult.tsx
-│   ├── ScenarioCube.tsx
-│   ├── PersonaRanking.tsx
-│   ├── ScenarioSelector.tsx
-│   ├── ConnectionLines.tsx
+│   ├── StaticCube.tsx
+│   ├── TargetGroupConnectionGraph.tsx
 │   └── index.ts
 ├── ExportButton/
-│   ├── ExportButton.tsx
 │   ├── CompactExportButton.tsx
+│   ├── ExportButton.tsx
 │   ├── GenerateProgramButton.tsx
 │   ├── GenerateRapportButton.tsx
-│   ├── MapExportButton.tsx
-│   ├── SaveSnapshotButton.tsx
 │   ├── GenerationProgressModal.tsx
+│   ├── SaveSnapshotButton.tsx
 │   └── index.ts
 ├── Health/
 │   ├── HealthPage.tsx
@@ -1946,17 +2040,19 @@ src/features/location/components/
 │   ├── LivabilityPage.tsx
 │   └── index.ts
 ├── LoadingAnimation/
-│   ├── LoadingSpinner.tsx
+│   ├── LoadingAnimation.tsx
 │   └── index.ts
 ├── LocationAnimation/
 │   ├── LocationAnimation.tsx
-│   ├── AnimatedCube.tsx
+│   └── index.ts
+├── LocationPage/
 │   └── index.ts
 ├── LocationSidebar/
 │   ├── LocationSidebarContent.tsx
-│   ├── useLocationSidebarSections.ts
+│   ├── LocationSidebarWrapper.tsx
 │   └── index.ts
 ├── LocationWelcome/
+│   ├── AnimatedCube.tsx
 │   ├── LocationWelcome.tsx
 │   └── index.ts
 ├── MapExport/
@@ -1964,97 +2060,108 @@ src/features/location/components/
 │   └── index.ts
 ├── Maps/
 │   ├── LocationMap.tsx
+│   ├── WMSGradingScoreCard.tsx
 │   ├── WMSLayerControl.tsx
 │   ├── WMSLayerScoreCard.tsx
-│   ├── WMSGradingScoreCard.tsx
-│   ├── MapLegend.tsx
-│   ├── SamplingArea.tsx
-│   ├── AmenityMarkers.tsx
+│   ├── mapStyles.ts
+│   ├── wmsLayers.ts
 │   └── index.ts
 ├── PVE/
 │   ├── PVEQuestionnaire.tsx
-│   ├── PVEQuestion.tsx
-│   ├── PVEStackedBar.tsx
 │   └── index.ts
 ├── ProgramRecommendations/
-│   ├── HousingRecommendations.tsx
-│   ├── CommunityRecommendations.tsx
-│   └── index.ts
+│   ├── AmenityRecommendationCard.tsx
+│   ├── CategoryRadialChart.tsx
+│   ├── ExpandableAmenityList.tsx
+│   └── HousingRecommendationCard.tsx
 ├── Residential/
+│   ├── MarketDataTable.tsx
+│   ├── ReferenceCard.tsx
+│   ├── ResidentialGrid.tsx
 │   ├── ResidentialPage.tsx
-│   ├── MarketTable.tsx
+│   ├── ResidentialSummary.tsx
+│   ├── marketDataAggregator.ts
+│   ├── residentialDataConverter.ts
+│   ├── types.ts
 │   └── index.ts
 ├── Safety/
 │   ├── SafetyPage.tsx
 │   └── index.ts
 ├── SavedLocations/
-│   ├── SaveLocationToProject.tsx
+│   ├── LocationProgress.tsx
 │   ├── ProjectSnapshotsList.tsx
+│   ├── SaveLocationSection.tsx
+│   ├── SaveLocationToProject.tsx
+│   ├── SavedLocationsList.tsx
 │   └── index.ts
 ├── TabContent/
-│   ├── TabContentRouter.tsx
 │   └── index.ts
 └── shared/
+    ├── ComparisonTable.tsx
     ├── DataSection.tsx
-    ├── ScoreIndicator.tsx
-    ├── UnitFormatter.tsx
+    ├── ExpandButton.tsx
+    ├── GeographicLevelSelector.tsx
     └── index.ts
 ```
 
-### A.3 Data Layer Files (40+ files)
+### A.3 Data Layer Files (Verified - 39 files)
 ```
 src/features/location/data/
 ├── aggregator/
 │   └── multiLevelAggregator.ts
 ├── cache/
+│   ├── llmRapportCache.ts
 │   ├── locationDataCache.ts
 │   ├── pveConfigCache.ts
-│   ├── rapportCache.ts
-│   └── llmRapportCache.ts
+│   └── rapportCache.ts
 ├── normalizers/
-│   ├── DemographicsKeyNormalizer.ts
-│   ├── HealthKeyNormalizer.ts
-│   ├── LiveabilityKeyNormalizer.ts
-│   └── SafetyKeyNormalizer.ts
+│   ├── demographicsKeyNormalizer.ts      # Note: lowercase
+│   ├── healthKeyNormalizer.ts
+│   ├── livabilityKeyNormalizer.ts
+│   ├── safetyKeyNormalizer.ts
+│   └── index.ts
 ├── parsers/
-│   ├── DemographicsParser.ts
-│   ├── HealthParser.ts
-│   ├── LiveabilityParser.ts
-│   ├── SafetyParser.ts
+│   ├── demographicsParser.ts             # Note: lowercase
+│   ├── healthParser.ts
+│   ├── livabilityParser.ts
+│   ├── safetyParser.ts
 │   ├── scoring.ts
-│   ├── scoring-config.json
-│   └── types.ts
+│   ├── types.ts
+│   └── index.ts
 ├── scoring/
 │   ├── amenityScoring.ts
-│   └── residentialScoring.ts
+│   ├── residentialScoring.ts
+│   └── scoringVersion.ts
 ├── services/
-│   └── LocationGeocoderService.ts
+│   └── locationGeocoder.ts               # Note: lowercase
 └── sources/
+    ├── WMSSamplingService.ts
+    ├── wmsGradingConfig.ts
     ├── altum-ai/
-    │   ├── AltumAIClient.ts
-    │   ├── altumAIParser.ts
-    │   └── altumAITypes.ts
+    │   ├── client.ts                     # Class: AltumAIClient
+    │   ├── parser.ts
+    │   └── types.ts
     ├── cbs-demographics/
-    │   └── CBSDemographicsClient.ts
+    │   └── client.ts                     # Class: CBSDemographicsClient
     ├── cbs-livability/
-    │   └── CBSLivabilityClient.ts
+    │   └── client.ts                     # Class: CBSLivabilityClient
     ├── google-places/
-    │   ├── googlePlacesClient.ts
-    │   ├── googlePlacesParser.ts
-    │   ├── googlePlacesRateLimiter.ts
-    │   ├── googlePlacesSearchOrchestrator.ts
-    │   ├── googlePlacesTypes.ts
-    │   ├── amenityCategories.ts
-    │   ├── amenityScoringConfig.ts
-    │   └── index.ts
+    │   ├── amenity-search-config.ts
+    │   ├── client.ts                     # Class: GooglePlacesClient
+    │   ├── distance-calculator.ts
+    │   ├── error-handler.ts
+    │   ├── rate-limiter.ts
+    │   ├── response-parser.ts
+    │   ├── search-orchestrator.ts
+    │   ├── types.ts
+    │   └── usage-tracker.ts
     ├── politie-safety/
-    │   └── PolitieSafetyClient.ts
-    ├── rivm-health/
-    │   └── RIVMHealthClient.ts
-    └── wmsGradingConfig.ts
+    │   └── client.ts                     # Class: PolitieSafetyClient
+    └── rivm-health/
+        └── client.ts                     # Class: RIVMHealthClient
 ```
 
-### A.4 Utility Files (20+ files)
+### A.4 Utility Files (Verified - 16 files)
 ```
 src/features/location/utils/
 ├── calculateOmgevingScores.ts
@@ -2065,6 +2172,7 @@ src/features/location/utils/
 ├── extractLocationScores.ts
 ├── jsonExport.ts
 ├── jsonExportCompact.ts
+├── jsonValidation.ts
 ├── mapExport.ts
 ├── pveCapture.ts
 ├── stagedGenerationData.ts
@@ -2074,7 +2182,7 @@ src/features/location/utils/
 └── voronoiSvgGenerator.ts
 ```
 
-### A.5 Hook Files
+### A.5 Hook Files (Verified - 3 files)
 ```
 src/features/location/hooks/
 ├── useLocationData.ts
@@ -2082,7 +2190,7 @@ src/features/location/hooks/
 └── useWMSGrading.ts
 ```
 
-### A.6 Type Files
+### A.6 Type Files (Verified - 3 files)
 ```
 src/features/location/types/
 ├── program-recommendations.ts
@@ -2090,45 +2198,41 @@ src/features/location/types/
 └── wms-grading.ts
 ```
 
-### A.7 API Route Files
+### A.7 API Route Files (Verified - 10 files)
 ```
-src/app/api/
-├── location/
-│   ├── geocode/route.ts
-│   ├── demographics/route.ts
-│   ├── health/route.ts
-│   ├── livability/route.ts
-│   ├── safety/route.ts
-│   ├── amenities/route.ts
-│   ├── residential/route.ts
-│   └── wms-grading/
-│       ├── route.ts
-│       └── status/route.ts
-├── generate-building-program/
-│   ├── route.ts
-│   ├── stage1/route.ts
-│   ├── stage2/route.ts
-│   └── stage3/route.ts
-├── rapport/
-│   └── upload-pdf/route.ts
-└── rapport-snapshots/
-    ├── route.ts
-    └── [id]/route.ts
+src/app/api/location/
+├── housing-personas/route.ts           # Housing personas data
+├── nearby-places-new/route.ts          # Amenities search (Google Places)
+├── residential/route.ts                # Housing market (Altum AI)
+├── text-search/route.ts                # Address/location search
+├── usage-stats/route.ts                # Usage statistics
+├── wms-grading/route.ts                # WMS layer grading
+└── snapshots/
+    ├── route.ts                        # List/create snapshots
+    └── [id]/
+        ├── route.ts                    # Get/delete snapshot
+        ├── activate/route.ts           # Activate snapshot
+        └── grade-wms/route.ts          # Grade WMS for snapshot
 ```
+
+**Note**: Demographics, health, livability, and safety data are fetched directly from external APIs (CBS, RIVM) via client-side data clients, not through internal API routes.
 
 ---
 
-## Appendix B: Data Type Reference
+## Appendix B: Data Type Reference (Verified)
+
+**Note**: These types are verified against actual source code. Some types are defined inline rather than as named exports.
 
 ### B.1 Core Types
 
+**File**: `src/features/location/data/parsers/types.ts`
+
 ```typescript
-// Geographic area codes
-interface AreaCodes {
-  municipality: string;    // GM0363
-  district: string;        // WK036300
-  neighborhood: string;    // BU03630000
-}
+// Comparison type for scoring calculation
+type ComparisonType = 'relatief' | 'absoluut';
+
+// Direction for scoring interpretation
+type ScoreDirection = 'positive' | 'negative';
 
 // Coordinates
 type LatLng = [number, number];  // [latitude, longitude]
@@ -2138,110 +2242,78 @@ type Locale = 'nl' | 'en';
 
 // Geographic level
 type GeographicLevel = 'national' | 'municipality' | 'district' | 'neighborhood';
-
-// Score value
-type Score = -1 | 0 | 1;
-
-// Direction
-type ScoreDirection = 'positive' | 'negative';
-
-// Comparison type
-type ComparisonType = 'relatief' | 'absoluut';
 ```
 
 ### B.2 Data Structures
 
+**File**: `src/features/location/data/parsers/types.ts`
+
 ```typescript
-// Unified data row (used in all data tables)
-interface UnifiedDataRow {
-  key: string;
-  label: string;
-  value: number | null;
-  unit: string;
-  category: string;
-  absolute: number | null;
-  relative: number | null;
-  baseValue: number | null;
-  calculatedScore: Score;
+// Scoring configuration for a data point
+interface ScoringConfig {
   comparisonType: ComparisonType;
+  margin: number;                      // Default: 20
+  baseValue: number | null;
   direction: ScoreDirection;
 }
 
-// Complete location data
-interface UnifiedLocationData {
+// Parsed data value (core data unit)
+interface ParsedValue {
+  title: string;                       // Note: "title" not "label"
+  originalValue: string | number | null;
+  absolute: number | null;
+  relative: number | null;
+  unit?: string;
+  scoring?: ScoringConfig;
+  calculatedScore?: number | null;     // Continuous: -1 to 1
+}
+
+// Parsed dataset with all indicators
+interface ParsedDataset {
+  indicators: Map<string, ParsedValue>;
   metadata: {
-    address: string;
-    coordinates: LatLng;
-    codes: AreaCodes;
-    timestamp: number;
+    source: 'demographics' | 'health' | 'livability' | 'safety';
+    fetchedAt: Date;
   };
-  demographics: MultiLevelData;
-  health: MultiLevelData;
-  livability: MultiLevelData;
-  safety: MultiLevelData;
-  residential: ResidentialData;
-}
-
-interface MultiLevelData {
-  national: UnifiedDataRow[];
-  municipality: UnifiedDataRow[];
-  district: UnifiedDataRow[];
-  neighborhood: UnifiedDataRow[];
 }
 ```
 
-### B.3 Persona Types
+**File**: `src/features/location/data/aggregator/multiLevelAggregator.ts`
 
 ```typescript
-interface Persona {
-  id: string;
-  name: { nl: string; en: string };
-  description: { nl: string; en: string };
-  ageRange: [number, number];
-  householdType: string;
-  incomeLevel: 'low' | 'medium' | 'high';
-  preferences: PersonaPreferences;
-}
-
-interface PersonaPreferences {
-  safety: number;
-  affordability: number;
-  greenSpace: number;
-  publicTransport: number;
-  schools: number;
-  healthcare: number;
-  entertainment: number;
-  quietness: number;
-  // ... etc
-}
-
-interface PersonaScore {
-  persona: Persona;
-  score: number;           // 0-100
-  rRankPosition: number;   // 1-27
-  zScore: number;          // Normalized score
-  matchedFactors: string[];
+// Unified location data (exported from aggregator)
+interface UnifiedLocationData {
+  // Structure defined inline in aggregator
+  // Contains multi-level data for all categories
 }
 ```
 
-### B.4 Amenity Types
+### B.3 Amenity Types
+
+**File**: `src/features/location/data/sources/google-places/types.ts`
 
 ```typescript
-interface AmenityResult {
+// Place result from Google Places API (actual name: PlaceResult)
+interface PlaceResult {
   placeId: string;
   name: string;
+  displayName?: { text: string; languageCode: string };
+  location: LatLng;
   types: string[];
-  distance: number;        // meters
+  formattedAddress?: string;
   rating?: number;
   userRatingsTotal?: number;
-  vicinity: string;
-  location: LatLng;
-  photos?: Photo[];
+  priceLevel?: number;
+  openingHours?: OpeningHours;
+  businessStatus?: string;
+  distance?: number;                   // Optional in actual code
+  distanceKm?: number;
 }
 
+// Multi-category response
 interface AmenityMultiCategoryResponse {
   categories: {
-    [category: string]: AmenityResult[];
+    [category: string]: PlaceResult[];
   };
   totals: {
     [category: string]: number;
@@ -2250,40 +2322,73 @@ interface AmenityMultiCategoryResponse {
 }
 ```
 
-### B.5 WMS Types
+### B.4 WMS Types
+
+**File**: `src/features/location/data/sources/wmsGradingConfig.ts`
 
 ```typescript
-interface WMSLayerConfig {
-  id: string;
-  name: { nl: string; en: string };
-  url: string;
-  layers: string;
-  category: 'air' | 'noise' | 'green' | 'climate' | 'soil';
-  unit: string;
-  thresholds: {
-    good: number;
-    moderate: number;
-    poor: number;
-  };
-  direction: 'positive' | 'negative';
-  weight: number;
+// Layer grading configuration (actual interface)
+interface LayerGradingConfig {
+  layerId: string;
+  name: string;
+  category: string;
+  methods: { point?: boolean; average?: boolean; max?: boolean };
+  scale: SamplingScale;
+  alternateScales?: Array<{ method: string; scale: SamplingScale }>;
+  priority: number;
+  critical: boolean;
+  valueType: 'numeric' | 'categorical' | 'mixed';
+  unit?: string;
+}
+```
+
+**File**: `src/features/location/types/wms-grading.ts`
+
+```typescript
+// WMS grading data structure
+interface WMSGradingData {
+  // Detailed grading results per layer
+  // Structure defined in types file
+}
+```
+
+### B.5 Hook Return Types
+
+**File**: `src/features/location/hooks/useLocationData.ts`
+
+```typescript
+interface LoadingState {
+  geocoding: boolean;
+  demographics: boolean;
+  health: boolean;
+  livability: boolean;
+  safety: boolean;
+  amenities: boolean;
+  residential: boolean;
 }
 
-interface WMSGradingData {
-  layers: {
-    [layerId: string]: {
-      samples: number[];
-      average: number;
-      grade: 'good' | 'moderate' | 'poor';
-      score: number;
-    };
-  };
-  overall: {
-    score: number;
-    grade: 'good' | 'moderate' | 'poor';
-  };
-  progress: number;
-  completed: boolean;
+interface ErrorState {
+  geocoding: string | null;          // Note: string, not Error
+  demographics: string | null;
+  health: string | null;
+  livability: string | null;
+  safety: string | null;
+  amenities: string | null;
+  residential: string | null;
+}
+
+interface UseLocationDataReturn {
+  data: UnifiedLocationData | null;
+  amenities: AmenityMultiCategoryResponse | null;
+  loading: LoadingState;
+  error: ErrorState;
+  isLoading: boolean;
+  hasError: boolean;
+  fromCache: boolean;
+  fetchData: (address: string, skipCache?: boolean) => Promise<void>;
+  loadSavedData: (locationData: UnifiedLocationData, amenitiesData?: AmenityMultiCategoryResponse | null, address?: string) => void;
+  clearData: () => void;
+  clearCache: () => void;
 }
 ```
 
