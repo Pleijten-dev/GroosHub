@@ -1616,6 +1616,405 @@ await db`
 
 ---
 
+## 18. Quick Actions System
+
+### Overview
+
+The AI Assistant provides context-aware quick actions through the `useAIAssistant` hook and floating AIButton/AIPanel components.
+
+**Location**: `src/features/ai-assistant/hooks/useAIAssistant.tsx` (~670 lines)
+
+### AIAssistantProvider
+
+```typescript
+interface AIAssistantProviderProps {
+  children: ReactNode;
+  feature: AIFeature;      // 'location' | 'project' | 'task' | 'lca' | 'chat'
+  projectId?: string;
+  initialContext?: Partial<AIContextData>;
+  showButton?: boolean;    // Show floating AI button
+}
+```
+
+### Quick Actions by Location Tab
+
+The Location page has **11 tabs**, each with 3 context-specific quick actions:
+
+| Tab | Primary Action | Other Actions |
+|-----|----------------|---------------|
+| **doelgroepen** | Explain scenario | Suggest best, Compare all |
+| **score** | Explain breakdown | Improvement tips, Executive summary |
+| **demografie** | Population profile | Recommend services, Compare scenarios |
+| **veiligheid** | Safety assessment | Recommend improvements, Benchmark |
+| **gezondheid** | Health needs | Wellness programs, Facility priorities |
+| **leefbaarheid** | Livability factors | Community plan, Facility improvements |
+| **voorzieningen** | Find missing amenities | Recommend new, Local guide |
+| **woningmarkt** | Market analysis | Investment recommendation, Demand analysis |
+| **kaarten** | Site constraints | Environmental risks, Development strategy |
+| **pve** | Program mix | Generate specifications, Compare scenarios |
+| **genereer-rapport** | Full report (disabled) | Executive summary, Investor pitch |
+
+### Animation States
+
+```typescript
+type AIButtonAnimationState = 'idle' | 'pulse' | 'glow';
+
+// Animation triggers:
+// - Tab change → 'glow' for 5s
+// - New suggestions available → 'glow'
+// - Auto-decay: glow → pulse (10s) → idle (20s)
+```
+
+### Hook Usage
+
+```typescript
+const {
+  // Panel controls
+  isPanelOpen,
+  openPanel,
+  closePanel,
+  togglePanel,
+
+  // Context
+  context,
+  setContext,
+  registerAction,
+
+  // Animation
+  animationState,
+  triggerAnimation,
+
+  // Quick actions
+  quickActions,
+  registerQuickAction,
+  unregisterQuickAction,
+
+  // Analytics
+  trackEvent,
+} = useAIAssistant();
+```
+
+---
+
+## 19. Additional Components
+
+### ChatList Component
+
+**Location**: `src/features/chat/components/ChatList.tsx` (~210 lines)
+
+Standalone page for viewing all user conversations.
+
+**Features**:
+- List all chats with title, model, and timestamp
+- Delete chats with confirmation dialog
+- Navigate to individual chats
+- Relative time formatting (now, 5m, 2h, 3d)
+- Empty state with "Start new conversation" prompt
+
+### NotesPageClient Component
+
+**Location**: `src/app/[locale]/ai-assistant/notes/NotesPageClient.tsx` (~176 lines)
+
+**Status**: UI Only - Backend Not Implemented
+
+**Current State**:
+- Grid layout for note cards (responsive)
+- "Coming Soon" placeholder message
+- Create note button (logs to console only)
+- ProjectsSidebarEnhanced integration
+
+**TODOs** (from source code):
+1. Create notes table in database
+2. Create API endpoints for CRUD operations
+3. Implement note creation modal
+4. Add rich text editor support
+5. Link notes to projects/tasks
+
+### ProjectOverviewPage Component
+
+**Location**: `src/features/chat/components/ProjectOverviewPage/ProjectOverviewPage.tsx`
+
+Project-specific landing page with:
+- Project summary and metadata
+- Recent project chats
+- Project-specific sample prompts
+- Quick actions for the project
+
+---
+
+## 20. Complete API Endpoint Reference
+
+### Chat Operations
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/chat` | `POST` | Stream chat response |
+| `/api/chat` | `GET` | Health check |
+| `/api/chat/[id]/messages` | `GET` | Load messages for chat |
+| `/api/chat/conversations` | `GET` | List conversations |
+| `/api/chats` | `POST` | Create new chat |
+| `/api/chats` | `GET` | List user's chats |
+| `/api/chats/[id]` | `GET` | Get single chat |
+| `/api/chats/[id]` | `PATCH` | Update chat |
+| `/api/chats/[id]` | `DELETE` | Soft delete chat |
+| `/api/chats/[id]/restore` | `POST` | Restore deleted chat |
+| `/api/chats/[id]/permanent` | `DELETE` | Permanently delete |
+
+### File Operations
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/upload` | `POST` | Upload file to R2 |
+| `/api/upload/presigned` | `POST` | Get presigned URL for direct upload |
+| `/api/upload/complete` | `POST` | Mark upload complete |
+| `/api/files` | `GET` | List files |
+| `/api/files/[fileId]` | `GET` | Get file metadata |
+| `/api/files/[fileId]` | `DELETE` | Soft delete file |
+| `/api/files/[fileId]/restore` | `POST` | Restore deleted file |
+| `/api/files/[fileId]/permanent` | `DELETE` | Permanently delete |
+| `/api/files/trash` | `GET` | List deleted files |
+| `/api/files/cleanup` | `POST` | Cleanup old files |
+
+### RAG Operations
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/rag/classify-query` | `POST` | Classify if query is document-related |
+| `/api/projects/[id]/rag/agent` | `POST` | Full RAG agent query |
+| `/api/projects/[id]/rag/retrieve` | `POST` | Vector similarity search |
+| `/api/projects/[id]/rag/inspect-chunks` | `GET` | Debug document chunks |
+
+### AI Assistant
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/ai-assistant/execute-tool` | `POST` | Execute quick action tool |
+
+---
+
+## 21. Incomplete Features (TODOs)
+
+### Notes Feature (HIGH PRIORITY)
+
+**Status**: UI only, no backend
+
+**Required Implementation**:
+1. Database schema for `notes` table
+2. API endpoints: `/api/notes` (CRUD)
+3. Note creation modal with rich text editor
+4. Project/task linking
+5. Search and filtering
+
+**Files affected**:
+- `src/app/[locale]/ai-assistant/notes/page.tsx`
+- `src/app/[locale]/ai-assistant/notes/NotesPageClient.tsx`
+
+### Analytics Tracking (LOW PRIORITY)
+
+**Status**: Console logging only
+
+**Location**: `src/features/ai-assistant/hooks/useAIAssistant.tsx:577`
+
+```typescript
+const trackEvent = useCallback(async (action: string, metadata?: Record<string, unknown>) => {
+  // TODO: Implement actual analytics tracking
+  console.log(`[AIAssistant] Track: ${feature}/${action}`, metadata);
+}, [feature]);
+```
+
+### Report Generation (DISABLED)
+
+**Status**: Actions defined but marked as `available: false`
+
+Quick actions for `genereer-rapport` tab are disabled:
+- Full report generation
+- Executive summary
+- Investor pitch
+
+---
+
+## 22. Complete File Inventory
+
+### Page Components (6 files)
+
+```
+src/app/[locale]/ai-assistant/
+├── page.tsx                     # Main page (server component)
+├── AIAssistantClient.tsx        # Client orchestrator
+├── new/page.tsx                 # New chat page
+├── chats/[id]/page.tsx          # Individual chat page
+├── notes/page.tsx               # Notes page (server)
+└── notes/NotesPageClient.tsx    # Notes page (client)
+```
+
+### Chat Components (15 files)
+
+```
+src/features/chat/components/
+├── ChatUI.tsx                   # Main chat interface (~1,100 lines)
+├── ChatList.tsx                 # Chat list view (~210 lines)
+├── MarkdownMessage.tsx          # Markdown rendering
+├── ImageAttachment.tsx          # Image display
+├── ImageLightbox.tsx            # Fullscreen viewer
+├── FileUploadZone.tsx           # File upload UI
+├── FilePreview.tsx              # File preview cards
+├── ChartVisualization.tsx       # 3D chart rendering
+├── MessageSources.tsx           # RAG citations
+├── OverviewPage/
+│   ├── OverviewPage.tsx         # Landing page (~575 lines)
+│   └── index.ts
+├── ProjectOverviewPage/
+│   ├── ProjectOverviewPage.tsx  # Project overview
+│   └── index.ts
+└── SamplePrompts/
+    ├── SamplePrompts.tsx        # Prompt suggestions
+    └── index.ts
+```
+
+### Chat Data Layer (5 files)
+
+```
+src/features/chat/
+├── types/index.ts               # Type definitions
+├── config/samplePrompts.ts      # Sample prompts config
+├── lib/prompts/
+│   ├── system-prompt.ts         # System prompts
+│   └── agent-prompts.ts         # Agent prompts
+└── tools/taskTools.ts           # Task management tools
+```
+
+### AI Assistant Feature (15 files)
+
+```
+src/features/ai-assistant/
+├── components/
+│   ├── AIButton/AIButton.tsx    # Floating button
+│   ├── AIButton/index.ts
+│   ├── AIPanel/AIPanel.tsx      # Side panel
+│   ├── AIPanel/index.ts
+│   └── index.ts
+├── hooks/
+│   ├── useAIAssistant.tsx       # Context + hook (~670 lines)
+│   └── index.ts
+├── lib/
+│   ├── memory-injector.ts       # Memory prompt injection (~340 lines)
+│   ├── personal-memory-store.ts # Personal memory (~670 lines)
+│   ├── project-memory-store.ts  # Project memory
+│   ├── domain-memory-store.ts   # Domain memory
+│   └── index.ts
+├── config/model-config.ts       # Model configuration
+├── types/
+│   ├── memory.ts                # Memory types (~460 lines)
+│   ├── components.ts            # Component types
+│   └── index.ts
+├── utils/
+│   ├── aiToolsPayloadBuilder.ts # Tool payload builder
+│   └── index.ts
+└── index.ts
+```
+
+### API Routes (17+ files)
+
+```
+src/app/api/
+├── chat/
+│   ├── route.ts                 # Main streaming (~1,740 lines)
+│   ├── [id]/messages/route.ts   # Load messages
+│   └── conversations/route.ts   # List conversations
+├── chats/
+│   ├── route.ts                 # Create/list chats
+│   └── [id]/
+│       ├── route.ts             # Get/update/delete
+│       ├── restore/route.ts     # Restore deleted
+│       └── permanent/route.ts   # Permanent delete
+├── upload/
+│   ├── route.ts                 # Upload handler
+│   ├── presigned/route.ts       # Presigned URLs
+│   └── complete/route.ts        # Complete upload
+├── files/
+│   ├── route.ts                 # List files
+│   ├── trash/route.ts           # Deleted files
+│   ├── cleanup/route.ts         # Cleanup
+│   └── [fileId]/
+│       ├── route.ts             # Get/delete
+│       ├── restore/route.ts     # Restore
+│       └── permanent/route.ts   # Permanent delete
+├── rag/
+│   └── classify-query/route.ts  # Query classification
+├── projects/[id]/rag/
+│   ├── agent/route.ts           # RAG agent
+│   ├── retrieve/route.ts        # Vector search
+│   └── inspect-chunks/route.ts  # Debug chunks
+└── ai-assistant/
+    └── execute-tool/route.ts    # Tool execution
+```
+
+### Library Files (8 files)
+
+```
+src/lib/ai/
+├── chat-store.ts                # Chat persistence (~530 lines)
+├── models.ts                    # Model configuration
+├── memory-store.ts              # Memory utilities
+└── memory-analyzer.ts           # Background analysis
+
+src/lib/storage/
+├── r2-client.ts                 # Cloudflare R2 client
+└── file-validation.ts           # File type validation
+
+src/lib/db/queries/
+├── chats.ts                     # Chat queries
+└── files.ts                     # File queries
+```
+
+---
+
+## 23. Verification Checklist
+
+Use this checklist to verify documentation accuracy:
+
+### Core Features
+- [x] Chat streaming with Vercel AI SDK v5
+- [x] Multi-model support (17 models)
+- [x] File upload to Cloudflare R2
+- [x] Image processing with sharp
+- [x] Three-tier memory system
+- [x] RAG document retrieval
+- [x] Location analysis tools (13)
+- [x] Task management tools (5)
+- [x] Visualization tools (5)
+
+### UI Components
+- [x] ChatUI main interface
+- [x] OverviewPage landing
+- [x] ChatList view
+- [x] FileUploadZone
+- [x] MessageSources (RAG citations)
+- [x] ChartVisualization
+- [x] Quick Notes (localStorage)
+- [x] Task summary & calendar
+
+### API Endpoints
+- [x] Chat streaming endpoint
+- [x] Chat CRUD operations
+- [x] File upload/management
+- [x] RAG endpoints
+- [x] Soft delete + restore
+- [x] Permanent delete
+
+### Quick Actions
+- [x] AIButton floating button
+- [x] AIPanel side panel
+- [x] 11 tab-specific action sets
+- [x] Animation states
+
+### Incomplete Features
+- [ ] Notes backend (database + API)
+- [ ] Analytics tracking implementation
+- [ ] Report generation (genereer-rapport)
+
+---
+
 ## Related Documentation
 
 - [Memory System](./memory-system.md)
