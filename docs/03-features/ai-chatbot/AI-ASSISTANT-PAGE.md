@@ -1059,6 +1059,55 @@ CREATE TABLE memory_updates (
 );
 ```
 
+#### `project_memories`
+
+```sql
+CREATE TABLE project_memories (
+  project_id UUID PRIMARY KEY REFERENCES project_projects(id),
+  memory_content TEXT DEFAULT '',     -- Synthesized memory content
+  hard_values JSONB DEFAULT '{}',     -- Structured project facts (BVO, units, etc.)
+  soft_context JSONB DEFAULT '[]',    -- Learned context array
+  total_updates INTEGER DEFAULT 0,
+  token_count INTEGER DEFAULT 0,
+  last_synthesized_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### `project_memory_updates` (Project Audit Trail)
+
+```sql
+CREATE TABLE project_memory_updates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL REFERENCES project_projects(id),
+  update_type VARCHAR(20) NOT NULL,
+  field_path VARCHAR(100),
+  old_value JSONB,
+  new_value JSONB,
+  source VARCHAR(20) NOT NULL,
+  source_ref UUID,
+  updated_by INTEGER,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### `domain_memories`
+
+```sql
+CREATE TABLE domain_memories (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id UUID REFERENCES org_organizations(id),
+  explicit_knowledge JSONB DEFAULT '[]',  -- Admin-entered knowledge
+  learned_patterns JSONB DEFAULT '[]',    -- Cross-project patterns
+  token_count INTEGER DEFAULT 0,
+  last_synthesized_at TIMESTAMP,
+  last_updated_by INTEGER,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
 ### RAG Tables
 
 #### `project_doc_chunks`
@@ -2009,6 +2058,24 @@ import RadialChart from '@/shared/components/common/RadialChart/RadialChart';
 import BarChart from '@/shared/components/common/BarChart/BarChart';
 import DensityChart from '@/shared/components/common/DensityChart/DensityChart';
 import { HorizontalStackedBarChart } from '@/shared/components/common/HorizontalStackedBarChart';
+```
+
+### Cross-Feature Dependencies
+
+The AI Assistant integrates with other features in the codebase:
+
+```typescript
+// From @/features/projects/ - Sidebar navigation
+import { ProjectsSidebarEnhanced } from '@/features/projects/components/ProjectsSidebarEnhanced';
+import { useProjectsSidebar } from '@/features/projects/hooks/useProjectsSidebar';
+
+// From @/features/tasks/ - Task list in overview
+import { TaskListPreview } from '@/features/tasks/components/TaskListPreview';
+
+// From @/features/location/ - Data types for AI tools
+import type { AccessibleLocation } from '@/features/location/types/saved-locations';
+import type { UnifiedLocationData } from '@/features/location/data/aggregator/multiLevelAggregator';
+import personasData from '@/features/location/data/sources/housing-personas.json';
 ```
 
 ### Additional API Routes (Project Files & Rapport)
