@@ -4,9 +4,17 @@
  *
  * Purpose: Compress old messages to save context window space
  * Complements: User memory system (learns user preferences)
+ *
+ * Security: Summary content is encrypted at rest using AES-256-GCM
  */
 
 import { getDbConnection } from '@/lib/db/connection';
+import {
+  encryptForStorage,
+  decryptFromStorage,
+  encryptJSONForStorage,
+  decryptJSONFromStorage
+} from '@/lib/encryption';
 
 // ============================================
 // Types
@@ -44,15 +52,29 @@ export interface CreateSummaryParams {
 
 /**
  * Create a new conversation summary
+ * Automatically encrypts content if ENCRYPTION_MASTER_KEY is configured
  */
 export async function createChatSummary(params: CreateSummaryParams): Promise<string> {
   const db = getDbConnection();
+
+  // Encrypt summary text and key points for storage
+  const { encrypted: encryptedSummary, isEncrypted: summaryEncrypted } = encryptForStorage(params.summaryText);
+  const { encrypted: encryptedKeyPoints, isEncrypted: keyPointsEncrypted } = encryptJSONForStorage(params.keyPoints);
+
+  // Both should have same encryption status
+  const isEncrypted = summaryEncrypted && keyPointsEncrypted;
+
+  console.log(
+    `[SummaryStore] Creating summary for chat ${params.chatId} ` +
+    `(messages ${params.messageRangeStart}-${params.messageRangeEnd}, encrypted: ${isEncrypted ? '🔐 Yes' : '⚠️ No'})`
+  );
 
   const result = await db`
     INSERT INTO chat_summaries (
       chat_id,
       summary_text,
       key_points,
+      content_encrypted,
       message_range_start,
       message_range_end,
       token_count,
@@ -62,8 +84,9 @@ export async function createChatSummary(params: CreateSummaryParams): Promise<st
       created_at
     ) VALUES (
       ${params.chatId},
-      ${params.summaryText},
-      ${JSON.stringify(params.keyPoints)},
+      ${encryptedSummary},
+      ${encryptedKeyPoints},
+      ${isEncrypted},
       ${params.messageRangeStart},
       ${params.messageRangeEnd},
       ${params.tokenCount || 0},
@@ -77,16 +100,14 @@ export async function createChatSummary(params: CreateSummaryParams): Promise<st
 
   const summaryId = result[0].id as string;
 
-  console.log(
-    `[SummaryStore] Created summary for chat ${params.chatId} ` +
-    `(messages ${params.messageRangeStart}-${params.messageRangeEnd})`
-  );
+  console.log(`[SummaryStore] ✅ Created summary ${summaryId}`);
 
   return summaryId;
 }
 
 /**
  * Get all summaries for a chat in chronological order
+ * Automatically decrypts content if it was encrypted
  */
 export async function getChatSummaries(chatId: string): Promise<ChatSummary[]> {
   const db = getDbConnection();
@@ -95,24 +116,43 @@ export async function getChatSummaries(chatId: string): Promise<ChatSummary[]> {
     SELECT * FROM get_chat_summaries(${chatId})
   `;
 
-  return result.map(row => ({
-    id: row.id as string,
-    chat_id: chatId,
-    summary_text: row.summary_text as string,
-    key_points: row.key_points as string[],
-    message_range_start: row.message_range_start as number,
-    message_range_end: row.message_range_end as number,
-    message_count: row.message_count as number,
-    token_count: 0, // Not in view return
-    compression_ratio: null,
-    model_used: 'claude-haiku',
-    generation_timestamp: new Date(),
-    created_at: row.created_at as Date
-  }));
+  return result.map(row => {
+    const isEncrypted = row.content_encrypted as boolean;
+    let summaryText = row.summary_text as string;
+    let keyPoints = row.key_points as string[];
+
+    // Decrypt if encrypted
+    if (isEncrypted) {
+      try {
+        summaryText = decryptFromStorage(summaryText, true);
+        keyPoints = decryptJSONFromStorage<string[]>(row.key_points as string, true);
+      } catch (error) {
+        console.error(`[SummaryStore] ❌ Failed to decrypt summary ${row.id}:`, error);
+        summaryText = '[Summary encrypted - decryption failed]';
+        keyPoints = [];
+      }
+    }
+
+    return {
+      id: row.id as string,
+      chat_id: chatId,
+      summary_text: summaryText,
+      key_points: keyPoints,
+      message_range_start: row.message_range_start as number,
+      message_range_end: row.message_range_end as number,
+      message_count: row.message_count as number,
+      token_count: 0, // Not in view return
+      compression_ratio: null,
+      model_used: 'claude-haiku',
+      generation_timestamp: new Date(),
+      created_at: row.created_at as Date
+    };
+  });
 }
 
 /**
  * Get latest summary for a chat
+ * Automatically decrypts content if it was encrypted
  */
 export async function getLatestChatSummary(chatId: string): Promise<ChatSummary | null> {
   const db = getDbConnection();
@@ -126,11 +166,27 @@ export async function getLatestChatSummary(chatId: string): Promise<ChatSummary 
   }
 
   const row = result[0];
+  const isEncrypted = row.content_encrypted as boolean;
+  let summaryText = row.summary_text as string;
+  let keyPoints = row.key_points as string[];
+
+  // Decrypt if encrypted
+  if (isEncrypted) {
+    try {
+      summaryText = decryptFromStorage(summaryText, true);
+      keyPoints = decryptJSONFromStorage<string[]>(row.key_points as string, true);
+    } catch (error) {
+      console.error(`[SummaryStore] ❌ Failed to decrypt latest summary ${row.id}:`, error);
+      summaryText = '[Summary encrypted - decryption failed]';
+      keyPoints = [];
+    }
+  }
+
   return {
     id: row.id as string,
     chat_id: chatId,
-    summary_text: row.summary_text as string,
-    key_points: row.key_points as string[],
+    summary_text: summaryText,
+    key_points: keyPoints,
     message_range_start: 0,
     message_range_end: row.message_range_end as number,
     message_count: row.message_range_end as number,

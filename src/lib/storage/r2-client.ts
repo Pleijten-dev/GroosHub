@@ -9,6 +9,7 @@
  * - Presigned URLs with expiration (1 hour default)
  * - Structured file paths: users/{userId}/chats/{chatId}/messages/{messageId}/{timestamp}-{filename}
  * - Support for images and PDFs
+ * - Server-side encryption using AES-256-GCM (when ENCRYPTION_MASTER_KEY is set)
  *
  * Documentation:
  * - Presigned URLs: https://developers.cloudflare.com/r2/api/s3/presigned-urls/
@@ -23,6 +24,7 @@ import {
   HeadObjectCommand
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { encryptBuffer, decryptBuffer, isEncryptionEnabled } from '@/lib/encryption';
 
 // Validate required environment variables
 const requiredEnvVars = [
@@ -96,6 +98,7 @@ export function generateFileKey(
 
 /**
  * Upload a file to R2 storage
+ * Automatically encrypts the file if ENCRYPTION_MASTER_KEY is configured
  *
  * @param file - File buffer to upload
  * @param key - Storage key (use generateFileKey)
@@ -108,20 +111,30 @@ export async function uploadFileToR2(
   contentType: string
 ): Promise<string> {
   try {
+    // Convert to Buffer if Uint8Array
+    const fileBuffer = Buffer.isBuffer(file) ? file : Buffer.from(file);
+
+    // Encrypt file buffer for storage
+    const { encrypted: encryptedBuffer, isEncrypted } = encryptBuffer(fileBuffer);
+
+    console.log(`[R2] Uploading file: ${key} (encrypted: ${isEncrypted ? '🔐 Yes' : '⚠️ No'})`);
+
     const command = new PutObjectCommand({
       Bucket: R2_BUCKET_NAME,
       Key: key,
-      Body: file,
+      Body: encryptedBuffer,
       ContentType: contentType,
-      // Metadata for tracking
+      // Metadata for tracking (including encryption status)
       Metadata: {
         uploadedAt: new Date().toISOString(),
+        encrypted: isEncrypted ? 'true' : 'false',
+        originalSize: fileBuffer.length.toString(),
       },
     });
 
     await r2Client.send(command);
 
-    console.log(`[R2] File uploaded successfully: ${key}`);
+    console.log(`[R2] ✅ File uploaded successfully: ${key}`);
     return key;
   } catch (error) {
     console.error('[R2] Upload error:', error);
@@ -196,9 +209,10 @@ export async function getPresignedUploadUrl(
 
 /**
  * Get file as buffer from R2 storage
+ * Automatically decrypts if the file was encrypted
  *
  * @param key - Storage key
- * @returns File contents as Buffer
+ * @returns File contents as Buffer (decrypted if applicable)
  */
 export async function getFileBuffer(key: string): Promise<Buffer> {
   try {
@@ -219,7 +233,22 @@ export async function getFileBuffer(key: string): Promise<Buffer> {
       chunks.push(chunk);
     }
 
-    return Buffer.concat(chunks);
+    const buffer = Buffer.concat(chunks);
+
+    // Check metadata for encryption status
+    const isEncrypted = response.Metadata?.encrypted === 'true';
+
+    if (isEncrypted) {
+      console.log(`[R2] 🔐 Decrypting file: ${key}`);
+      try {
+        return decryptBuffer(buffer, true);
+      } catch (error) {
+        console.error(`[R2] ❌ Failed to decrypt file ${key}:`, error);
+        throw new Error('Failed to decrypt file');
+      }
+    }
+
+    return buffer;
   } catch (error) {
     console.error('[R2] Get file buffer error:', error);
     throw new Error(`Failed to get file buffer: ${error instanceof Error ? error.message : 'Unknown error'}`);

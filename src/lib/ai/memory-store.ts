@@ -7,9 +7,16 @@
  * - Brief, structured memory (~500 tokens max)
  * - Updated by LLM analysis of conversations
  * - Injected into system prompts for personalization
+ *
+ * Security: Memory content is encrypted at rest using AES-256-GCM
  */
 
 import { getDbConnection } from '@/lib/db/connection';
+import {
+  encryptForStorage,
+  decryptFromStorage,
+  isEncryptionEnabled
+} from '@/lib/encryption';
 
 // ============================================
 // Types
@@ -91,6 +98,7 @@ export interface UpdateMemoryParams {
 /**
  * Get user memory
  * Returns existing memory or creates an empty one
+ * Automatically decrypts content if it was encrypted
  */
 export async function getUserMemory(userId: number): Promise<UserMemory> {
   const db = getDbConnection();
@@ -129,11 +137,23 @@ export async function getUserMemory(userId: number): Promise<UserMemory> {
     context: unknown;
     token_count: number;
     last_analysis_at: Date | null;
+    content_encrypted: boolean;
   };
+
+  // Decrypt memory_content if it was encrypted
+  let memoryContent = row.memory_content || '';
+  if (row.content_encrypted && memoryContent) {
+    try {
+      memoryContent = decryptFromStorage(memoryContent, true);
+    } catch (error) {
+      console.error(`[MemoryStore] ❌ Failed to decrypt memory for user ${userId}:`, error);
+      memoryContent = '[Memory encrypted - decryption failed]';
+    }
+  }
 
   return {
     user_id: row.user_id,
-    memory_content: row.memory_content || '',
+    memory_content: memoryContent,
     user_name: row.user_name,
     user_role: row.user_role,
     preferences: (row.preferences as Record<string, unknown>) || {},
@@ -150,16 +170,23 @@ export async function getUserMemory(userId: number): Promise<UserMemory> {
 
 /**
  * Create initial memory for a user
+ * Automatically encrypts content if ENCRYPTION_MASTER_KEY is configured
  */
 export async function createUserMemory(params: CreateMemoryParams): Promise<void> {
   const db = getDbConnection();
 
   const tokenCount = estimateTokenCount(params.memoryContent);
 
+  // Encrypt memory content for storage
+  const { encrypted: encryptedContent, isEncrypted } = encryptForStorage(params.memoryContent);
+
+  console.log(`[MemoryStore] Creating memory for user ${params.userId} (${tokenCount} tokens, encrypted: ${isEncrypted ? '🔐 Yes' : '⚠️ No'})`);
+
   await db`
     INSERT INTO user_memories (
       user_id,
       memory_content,
+      content_encrypted,
       user_name,
       user_role,
       preferences,
@@ -172,7 +199,8 @@ export async function createUserMemory(params: CreateMemoryParams): Promise<void
       updated_at
     ) VALUES (
       ${params.userId},
-      ${params.memoryContent},
+      ${encryptedContent},
+      ${isEncrypted},
       ${params.userName || null},
       ${params.userRole || null},
       ${JSON.stringify(params.preferences || {})},
@@ -187,6 +215,7 @@ export async function createUserMemory(params: CreateMemoryParams): Promise<void
     ON CONFLICT (user_id) DO UPDATE
     SET
       memory_content = EXCLUDED.memory_content,
+      content_encrypted = EXCLUDED.content_encrypted,
       user_name = EXCLUDED.user_name,
       user_role = EXCLUDED.user_role,
       preferences = EXCLUDED.preferences,
@@ -198,14 +227,15 @@ export async function createUserMemory(params: CreateMemoryParams): Promise<void
       updated_at = NOW()
   `;
 
-  console.log(`[MemoryStore] Created/updated memory for user ${params.userId} (${tokenCount} tokens)`);
+  console.log(`[MemoryStore] ✅ Created/updated memory for user ${params.userId}`);
 
-  // Record the initial memory creation
+  // Record the initial memory creation (also encrypted)
   await db`
     INSERT INTO user_memory_updates (
       user_id,
       previous_content,
       new_content,
+      content_encrypted,
       change_summary,
       change_type,
       trigger_source,
@@ -214,7 +244,8 @@ export async function createUserMemory(params: CreateMemoryParams): Promise<void
     ) VALUES (
       ${params.userId},
       NULL,
-      ${params.memoryContent},
+      ${encryptedContent},
+      ${isEncrypted},
       'Initial memory creation',
       'initial',
       'system',
@@ -226,11 +257,12 @@ export async function createUserMemory(params: CreateMemoryParams): Promise<void
 
 /**
  * Update user memory
+ * Automatically encrypts content if ENCRYPTION_MASTER_KEY is configured
  */
 export async function updateUserMemory(params: UpdateMemoryParams): Promise<void> {
   const db = getDbConnection();
 
-  // Get current memory for history
+  // Get current memory for history (already decrypted by getUserMemory)
   const currentMemory = await getUserMemory(params.userId);
 
   const tokenCount = estimateTokenCount(params.memoryContent);
@@ -240,10 +272,20 @@ export async function updateUserMemory(params: UpdateMemoryParams): Promise<void
     console.warn(`[MemoryStore] Warning: Memory for user ${params.userId} exceeds recommended token limit (${tokenCount} > 600)`);
   }
 
+  // Encrypt new memory content for storage
+  const { encrypted: encryptedContent, isEncrypted } = encryptForStorage(params.memoryContent);
+  // Also encrypt previous content for history (if not empty)
+  const { encrypted: encryptedPreviousContent } = currentMemory.memory_content
+    ? encryptForStorage(currentMemory.memory_content)
+    : { encrypted: null, isEncrypted: false };
+
+  console.log(`[MemoryStore] Updating memory for user ${params.userId} (${tokenCount} tokens, encrypted: ${isEncrypted ? '🔐 Yes' : '⚠️ No'})`);
+
   await db`
     INSERT INTO user_memories (
       user_id,
       memory_content,
+      content_encrypted,
       user_name,
       user_role,
       preferences,
@@ -256,7 +298,8 @@ export async function updateUserMemory(params: UpdateMemoryParams): Promise<void
       updated_at
     ) VALUES (
       ${params.userId},
-      ${params.memoryContent},
+      ${encryptedContent},
+      ${isEncrypted},
       ${params.userName || null},
       ${params.userRole || null},
       ${JSON.stringify(params.preferences || {})},
@@ -271,6 +314,7 @@ export async function updateUserMemory(params: UpdateMemoryParams): Promise<void
     ON CONFLICT (user_id) DO UPDATE
     SET
       memory_content = EXCLUDED.memory_content,
+      content_encrypted = EXCLUDED.content_encrypted,
       user_name = COALESCE(EXCLUDED.user_name, user_memories.user_name),
       user_role = COALESCE(EXCLUDED.user_role, user_memories.user_role),
       preferences = EXCLUDED.preferences,
@@ -282,14 +326,15 @@ export async function updateUserMemory(params: UpdateMemoryParams): Promise<void
       updated_at = NOW()
   `;
 
-  console.log(`[MemoryStore] Updated memory for user ${params.userId} (${tokenCount} tokens)`);
+  console.log(`[MemoryStore] ✅ Updated memory for user ${params.userId}`);
 
-  // Record the update in history
+  // Record the update in history (both previous and new content encrypted)
   await db`
     INSERT INTO user_memory_updates (
       user_id,
       previous_content,
       new_content,
+      content_encrypted,
       change_summary,
       change_type,
       trigger_source,
@@ -298,8 +343,9 @@ export async function updateUserMemory(params: UpdateMemoryParams): Promise<void
       created_at
     ) VALUES (
       ${params.userId},
-      ${currentMemory.memory_content || null},
-      ${params.memoryContent},
+      ${encryptedPreviousContent},
+      ${encryptedContent},
+      ${isEncrypted},
       ${params.changeSummary || null},
       ${params.changeType || 'modification'},
       ${params.triggerSource || 'manual'},
