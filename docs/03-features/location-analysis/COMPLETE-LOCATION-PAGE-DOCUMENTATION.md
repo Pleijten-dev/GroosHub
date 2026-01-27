@@ -1,11 +1,11 @@
 # Location Page - Complete Technical Documentation
 
 > **Last Updated**: 2026-01-27
-> **Version**: 2.3.0 (Five-Pass Verified)
+> **Version**: 2.4.0 (Six-Pass Verified)
 > **Status**: Definitive Reference - Verified Against Codebase
 > **Supersedes**: All previous location-related documentation files
 
-**VERIFICATION NOTE**: This documentation has been verified against the actual codebase on 2026-01-27 through five verification rounds. All file paths, interfaces, API methods, external API URLs, and type definitions have been validated.
+**VERIFICATION NOTE**: This documentation has been verified against the actual codebase on 2026-01-27 through six verification rounds. All file paths, interfaces, API methods, external API URLs, file counts, and type definitions have been validated.
 
 ---
 
@@ -2120,7 +2120,7 @@ src/features/location/components/
     └── index.ts
 ```
 
-### A.3 Data Layer Files (Verified - 47 files, includes JSON data files)
+### A.3 Data Layer Files (Verified - 48 files, includes JSON data files)
 ```
 src/features/location/data/
 ├── aggregator/
@@ -2131,6 +2131,7 @@ src/features/location/data/
 │   ├── pveConfigCache.ts
 │   └── rapportCache.ts
 ├── normalizers/
+│   ├── README.md                         # Normalizer documentation
 │   ├── demographicsKeyNormalizer.ts      # Note: lowercase
 │   ├── healthKeyNormalizer.ts
 │   ├── livabilityKeyNormalizer.ts
@@ -2234,7 +2235,7 @@ src/app/api/location/
 └── snapshots/
     ├── route.ts                        # List/create snapshots
     └── [id]/
-        ├── route.ts                    # Get/delete snapshot
+        ├── route.ts                    # Get/update/delete snapshot
         ├── activate/route.ts           # Activate snapshot
         └── grade-wms/route.ts          # Grade WMS for snapshot
 ```
