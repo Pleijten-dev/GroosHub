@@ -1,11 +1,11 @@
 # Location Page - Complete Technical Documentation
 
 > **Last Updated**: 2026-01-27
-> **Version**: 2.4.0 (Six-Pass Verified)
+> **Version**: 2.5.0 (Seven-Pass Verified)
 > **Status**: Definitive Reference - Verified Against Codebase
 > **Supersedes**: All previous location-related documentation files
 
-**VERIFICATION NOTE**: This documentation has been verified against the actual codebase on 2026-01-27 through six verification rounds. All file paths, interfaces, API methods, external API URLs, file counts, and type definitions have been validated.
+**VERIFICATION NOTE**: This documentation has been verified against the actual codebase on 2026-01-27 through seven verification rounds. All file paths, interfaces, API methods, external API URLs, file counts, and type definitions have been validated.
 
 ---
 
@@ -1781,6 +1781,7 @@ const coordinates = useMemo<[number, number]>(() => {
 | `utils/stagedGenerationData.ts` | LLM data prep |
 | `utils/stagedGenerationOrchestrator.ts` | LLM orchestration |
 | `utils/targetGroupScoring.ts` | Target group scores |
+| `utils/unifiedRapportGenerator.ts` | PDF rapport generator |
 | `utils/voronoiSvgGenerator.ts` | Cover generation |
 
 ---
@@ -1993,7 +1994,7 @@ Contains definitions for all 27 housing personas with:
 
 ## Appendix A: Complete File Listing (Verified)
 
-**VERIFIED**: This listing reflects the actual files in the codebase as of 2025-01-27.
+**VERIFIED**: This listing reflects the actual files in the codebase as of 2026-01-27.
 
 ### A.1 Page & Layout Files
 ```
