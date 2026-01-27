@@ -1,11 +1,11 @@
 # Location Page - Complete Technical Documentation
 
-> **Last Updated**: 2025-01-27
-> **Version**: 2.1.0 (Triple-Verified)
+> **Last Updated**: 2026-01-27
+> **Version**: 2.2.0 (Quadruple-Verified)
 > **Status**: Definitive Reference - Verified Against Codebase
 > **Supersedes**: All previous location-related documentation files
 
-**VERIFICATION NOTE**: This documentation has been verified against the actual codebase on 2025-01-27. All file paths, interfaces, and code examples have been validated.
+**VERIFICATION NOTE**: This documentation has been verified against the actual codebase on 2026-01-27 through four verification rounds. All file paths, interfaces, API methods, and code examples have been validated.
 
 ---
 
@@ -220,7 +220,7 @@ src/features/location/
 
 ### 3.2 CBS Demographics Client
 
-**File**: `src/features/location/data/sources/cbs-demographics/CBSDemographicsClient.ts`
+**File**: `src/features/location/data/sources/cbs-demographics/client.ts`
 
 **Purpose**: Fetches demographic data from CBS Open Data API
 
@@ -250,7 +250,7 @@ class CBSDemographicsClient {
 
 ### 3.3 CBS Livability Client
 
-**File**: `src/features/location/data/sources/cbs-livability/CBSLivabilityClient.ts`
+**File**: `src/features/location/data/sources/cbs-livability/client.ts`
 
 **Purpose**: Fetches livability indicators from CBS
 
@@ -266,7 +266,7 @@ class CBSDemographicsClient {
 
 ### 3.4 RIVM Health Client
 
-**File**: `src/features/location/data/sources/rivm-health/RIVMHealthClient.ts`
+**File**: `src/features/location/data/sources/rivm-health/client.ts`
 
 **Purpose**: Fetches health data from RIVM health atlas
 
@@ -283,7 +283,7 @@ class CBSDemographicsClient {
 
 ### 3.5 Politie Safety Client
 
-**File**: `src/features/location/data/sources/politie-safety/PolitieSafetyClient.ts`
+**File**: `src/features/location/data/sources/politie-safety/client.ts`
 
 **Purpose**: Fetches crime and safety statistics
 
@@ -305,13 +305,15 @@ class CBSDemographicsClient {
 **Purpose**: Searches for nearby amenities and points of interest
 
 **Files**:
-- `googlePlacesClient.ts` - Main API client
-- `googlePlacesParser.ts` - Response parser
-- `googlePlacesRateLimiter.ts` - Rate limiting (50 req/sec)
-- `googlePlacesSearchOrchestrator.ts` - Multi-category orchestrator
-- `googlePlacesTypes.ts` - Type definitions
-- `amenityCategories.ts` - Category definitions (20+ categories)
-- `amenityScoringConfig.ts` - Scoring configuration
+- `client.ts` - Main API client (class: `GooglePlacesClient`)
+- `response-parser.ts` - Response parser
+- `rate-limiter.ts` - Rate limiting (50 req/sec)
+- `search-orchestrator.ts` - Multi-category orchestrator
+- `types.ts` - Type definitions
+- `amenity-search-config.ts` - Category definitions and scoring config
+- `distance-calculator.ts` - Distance calculations
+- `error-handler.ts` - Error handling
+- `usage-tracker.ts` - Usage tracking
 
 **Amenity Categories**:
 ```typescript
@@ -347,9 +349,9 @@ class GooglePlacesSearchOrchestrator {
 **Purpose**: Fetches housing market data and valuations
 
 **Files**:
-- `AltumAIClient.ts` - Main API client
-- `altumAIParser.ts` - Response parser
-- `altumAITypes.ts` - Type definitions
+- `client.ts` - Main API client (class: `AltumAIClient`)
+- `parser.ts` - Response parser
+- `types.ts` - Type definitions
 
 **Data Retrieved**:
 - WOZ values (property valuations)
@@ -495,10 +497,10 @@ const DEMOGRAPHICS_MAPPINGS = {
 
 | Normalizer | Purpose |
 |------------|---------|
-| `DemographicsKeyNormalizer.ts` | Standardizes CBS demographics keys |
-| `HealthKeyNormalizer.ts` | Standardizes RIVM health keys |
-| `LiveabilityKeyNormalizer.ts` | Standardizes CBS livability keys |
-| `SafetyKeyNormalizer.ts` | Standardizes Politie safety keys |
+| `demographicsKeyNormalizer.ts` | Standardizes CBS demographics keys |
+| `healthKeyNormalizer.ts` | Standardizes RIVM health keys |
+| `livabilityKeyNormalizer.ts` | Standardizes CBS livability keys |
+| `safetyKeyNormalizer.ts` | Standardizes Politie safety keys |
 
 **Normalization Process**:
 1. Map raw API keys to standardized Dutch labels
@@ -1685,6 +1687,7 @@ const coordinates = useMemo<[number, number]>(() => {
 | `src/app/[locale]/location/layout.tsx` | Layout wrapper | ~50 |
 | `src/features/location/hooks/useLocationData.ts` | Data fetching hook | ~400 |
 | `src/features/location/hooks/useWMSGrading.ts` | WMS grading hook | ~200 |
+| `src/features/location/hooks/useSelectedDoelgroepen.ts` | Target group selection state | ~50 |
 | `src/features/location/utils/unifiedRapportGenerator.ts` | PDF generator | ~3100 |
 
 ### 11.2 Data Pipeline Files
@@ -1760,6 +1763,7 @@ const coordinates = useMemo<[number, number]>(() => {
 | `utils/extractLocationScores.ts` | Extract scores |
 | `utils/jsonExport.ts` | Full JSON export |
 | `utils/jsonExportCompact.ts` | Compact export |
+| `utils/jsonValidation.ts` | JSON validation utilities |
 | `utils/mapExport.ts` | Map/ZIP export |
 | `utils/pveCapture.ts` | Capture PVE chart |
 | `utils/stagedGenerationData.ts` | LLM data prep |
@@ -1780,10 +1784,10 @@ const coordinates = useMemo<[number, number]>(() => {
 | `/api/location/residential` | POST | Fetch housing market data (Altum AI) |
 | `/api/location/housing-personas` | GET | Get housing personas data |
 | `/api/location/wms-grading` | POST | Start/manage WMS layer grading |
-| `/api/location/usage-stats` | POST | Track API usage statistics |
+| `/api/location/usage-stats` | GET | Get API usage statistics |
 | `/api/location/snapshots` | GET/POST | List/create location snapshots |
-| `/api/location/snapshots/[id]` | GET/DELETE | Get/delete specific snapshot |
-| `/api/location/snapshots/[id]/activate` | POST | Activate a saved snapshot |
+| `/api/location/snapshots/[id]` | GET/PATCH/DELETE | Get/update/delete specific snapshot |
+| `/api/location/snapshots/[id]/activate` | PATCH | Activate a saved snapshot |
 | `/api/location/snapshots/[id]/grade-wms` | POST | Grade WMS layers for snapshot |
 
 **Note**: Demographics, health, livability, and safety data are fetched **client-side** directly from external APIs (CBS, RIVM) via the data clients, not through internal API routes.
@@ -1988,7 +1992,7 @@ src/app/[locale]/location/
 └── public/page.tsx                    # Public space recommendations
 ```
 
-### A.2 Component Files (Verified - 85 files)
+### A.2 Component Files (Verified - 86 files)
 ```
 src/features/location/components/
 ├── AddressAutocomplete/
@@ -2003,8 +2007,7 @@ src/features/location/components/
 │   └── index.ts
 ├── CacheStatus/
 │   ├── CacheIndicator.tsx
-│   ├── CacheManager.tsx
-│   └── index.ts
+│   └── CacheManager.tsx
 ├── DataTables/
 │   ├── MultiLevelDataTable.tsx
 │   └── index.ts
