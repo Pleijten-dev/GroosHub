@@ -1,11 +1,11 @@
 # Location Page - Complete Technical Documentation
 
 > **Last Updated**: 2026-01-27
-> **Version**: 2.5.0 (Seven-Pass Verified)
+> **Version**: 2.6.0 (Final Review - Self-Contained)
 > **Status**: Definitive Reference - Verified Against Codebase
 > **Supersedes**: All previous location-related documentation files
 
-**VERIFICATION NOTE**: This documentation has been verified against the actual codebase on 2026-01-27 through seven verification rounds. All file paths, interfaces, API methods, external API URLs, file counts, and type definitions have been validated.
+**VERIFICATION NOTE**: This documentation has been verified against the actual codebase on 2026-01-27 through seven verification rounds plus final structural review. All file paths, interfaces, API methods, external API URLs, file counts, and type definitions have been validated. This document is self-contained and does not depend on any other documentation files.
 
 ---
 
@@ -556,10 +556,8 @@ interface UnifiedDataRow {
   category: string;
   absolute: number | null;
   relative: number | null;
-  baseValue: number | null;      // National benchmark
-  calculatedScore: -1 | 0 | 1;   // Comparison score
-  comparisonType: 'relatief' | 'absoluut';
-  direction: 'positive' | 'negative';
+  scoring?: ScoringConfig;       // Scoring configuration
+  calculatedScore?: number | null;  // Continuous score (-1 to 1)
 }
 ```
 
@@ -573,7 +571,7 @@ GroosHub uses **four complementary scoring systems**:
 
 | System | Scale | Purpose | Used For |
 |--------|-------|---------|----------|
-| **Primary** | -1, 0, +1 | Compare against national benchmark | Demographics, Health, Safety, Livability |
+| **Primary** | -1 to +1 (continuous) | Compare against national benchmark | Demographics, Health, Safety, Livability |
 | **Secondary (R-rank)** | 1-27 | Rank personas for location | Target group matching |
 | **Amenity** | 0-100 | Score amenity availability | Voorzieningen tab |
 | **Residential** | 0-100 | Score housing market | Woningmarkt tab |
