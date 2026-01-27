@@ -268,7 +268,8 @@ export const GenerateProgramButton: React.FC<GenerateProgramButtonProps> = ({
       const locationDisplayName =
         data.location.neighborhood?.statnaam ||
         data.location.district?.statnaam ||
-        data.location.municipality.statnaam;
+        data.location.municipality?.statnaam ||
+        'location';
       const filename = `${locationDisplayName.replace(/\s+/g, '-')}-building-program-${date}.json`;
 
       const jsonString = JSON.stringify(buildingProgram, null, 2);

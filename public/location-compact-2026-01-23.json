@@ -1,0 +1,1453 @@
+{
+  "metadata": {
+    "location": "Kralingen-West, Kralingen-Crooswijk, Rotterdam",
+    "exportDate": "2026-01-23",
+    "coordinates": {
+      "lat": 51.9266039,
+      "lon": 4.4590867
+    }
+  },
+  "pve": {
+    "description": "Program van Eisen (PvE) - De definitieve verdeling van het te ontwikkelen programma. Alle waarden zijn uitgedrukt in percentages van het totaal en vierkante meters (m²).",
+    "totalM2": 10000,
+    "percentages": {
+      "apartments": {
+        "percentage": 70,
+        "m2": 7000,
+        "description": "Woningen/appartementen - Het percentage en m² toegewezen aan residentiële wooneenheden"
+      },
+      "commercial": {
+        "percentage": 15,
+        "m2": 1500,
+        "description": "Commercieel - Het percentage en m² voor winkels, retail en commerciële activiteiten"
+      },
+      "hospitality": {
+        "percentage": 5,
+        "m2": 500,
+        "description": "Horeca - Het percentage en m² voor restaurants, cafés en horecagelegenheden"
+      },
+      "social": {
+        "percentage": 5,
+        "m2": 500,
+        "description": "Sociaal - Het percentage en m² voor sociale voorzieningen zoals zorg, onderwijs en welzijn"
+      },
+      "communal": {
+        "percentage": 3,
+        "m2": 300,
+        "description": "Gemeenschappelijk - Het percentage en m² voor gedeelde ruimtes en gemeenschappelijke voorzieningen"
+      },
+      "offices": {
+        "percentage": 2,
+        "m2": 200,
+        "description": "Kantoren - Het percentage en m² voor kantoorruimtes en werkplekken"
+      }
+    },
+    "timestamp": "2026-01-23T13:22:15.132Z"
+  },
+  "allPersonas": [
+    {
+      "id": "jonge-starters",
+      "name": "Jonge Starters",
+      "incomeLevel": "Laag inkomen",
+      "householdType": "1-persoonshuishouden",
+      "ageGroup": "20-35 jaar",
+      "description": "Jonge volwassenen met beperkte financiële middelen, net begonnen met werken of nog studerend, op zoek naar betaalbare kleine woningen dichtbij voorzieningen."
+    },
+    {
+      "id": "de-doorzetter",
+      "name": "De Doorzetter",
+      "incomeLevel": "Laag inkomen",
+      "householdType": "1-persoonshuishouden",
+      "ageGroup": "35-55 jaar",
+      "description": "Alleenstaande volwassenen met een bescheiden inkomen, vaak langdurig werkzaam in parttime of lagere functies, zoeken betaalbare woningen met rust en gemak."
+    },
+    {
+      "id": "senior-op-budget",
+      "name": "Senior op Budget",
+      "incomeLevel": "Laag inkomen",
+      "householdType": "1-persoonshuishouden",
+      "ageGroup": "55+ jaar",
+      "description": "Ouderen met een klein pensioen of uitkering, zoeken goedkope, toegankelijke woningen nabij voorzieningen en openbaar vervoer."
+    },
+    {
+      "id": "de-groeiers",
+      "name": "De Groeiers",
+      "incomeLevel": "Laag inkomen",
+      "householdType": "2-persoonshuishouden",
+      "ageGroup": "20-35 jaar",
+      "description": "Jonge koppels of huisgenoten met beperkt inkomen, vaak starters of studenten die betaalbaarheid combineren met goede bereikbaarheid."
+    },
+    {
+      "id": "bescheiden-stellen",
+      "name": "Bescheiden Stellen",
+      "incomeLevel": "Laag inkomen",
+      "householdType": "2-persoonshuishouden",
+      "ageGroup": "35-55 jaar",
+      "description": "Stellen met stabiel maar bescheiden inkomen, waarde hechtend aan betaalbaarheid, comfort en nabijheid van voorzieningen."
+    },
+    {
+      "id": "de-levensgenieters",
+      "name": "De Levensgenieters",
+      "incomeLevel": "Laag inkomen",
+      "householdType": "2-persoonshuishouden",
+      "ageGroup": "55+ jaar",
+      "description": "Oudere koppels met beperkt budget die eenvoudige maar comfortabele en onderhoudsvriendelijke woningen zoeken."
+    },
+    {
+      "id": "de-groeigezinnen",
+      "name": "De Groeigezinnen",
+      "incomeLevel": "Laag inkomen",
+      "householdType": "met kinderen",
+      "ageGroup": "20-35 jaar",
+      "description": "Jonge ouders met beperkte financiële middelen die een betaalbaar huis zoeken met speelruimte en nabij scholen."
+    },
+    {
+      "id": "knusse-gezinnen",
+      "name": "Knusse Gezinnen",
+      "incomeLevel": "Laag inkomen",
+      "householdType": "met kinderen",
+      "ageGroup": "35-55 jaar",
+      "description": "Gezinnen met kinderen, stabiele maar beperkte inkomens, zoeken betaalbare gezinswoningen dichtbij scholen en voorzieningen."
+    },
+    {
+      "id": "senioren-met-thuiswonende-kinderen",
+      "name": "Senioren met Thuiswonende Kinderen",
+      "incomeLevel": "Laag inkomen",
+      "householdType": "met kinderen",
+      "ageGroup": "55+ jaar",
+      "description": "Oudere gezinnen met (volwassen) kinderen thuis, weinig financiële ruimte, op zoek naar ruime maar goedkope huisvesting."
+    },
+    {
+      "id": "ambitieuze-singles",
+      "name": "Ambitieuze Singles",
+      "incomeLevel": "Gemiddeld inkomen",
+      "householdType": "1-persoonshuishouden",
+      "ageGroup": "20-35 jaar",
+      "description": "Jonge volwassenen met gemiddeld inkomen, carrièregericht en op zoek naar comfortabele appartementen in aantrekkelijke wijken."
+    },
+    {
+      "id": "zelfbewuste-solisten",
+      "name": "Zelfbewuste Solisten",
+      "incomeLevel": "Gemiddeld inkomen",
+      "householdType": "1-persoonshuishouden",
+      "ageGroup": "35-55 jaar",
+      "description": "Alleenstaanden met stabiel gemiddeld inkomen, zoeken comfortabele woningen met goede verbindingen naar werk en vrijetijdsvoorzieningen."
+    },
+    {
+      "id": "zelfstandige-senior",
+      "name": "Zelfstandige Senior",
+      "incomeLevel": "Gemiddeld inkomen",
+      "householdType": "1-persoonshuishouden",
+      "ageGroup": "55+ jaar",
+      "description": "Alleenstaande ouderen met gemiddeld pensioen, zoeken woningen met comfort en gemak, dichtbij winkels en recreatievoorzieningen."
+    },
+    {
+      "id": "samen-starters",
+      "name": "Samen Starters",
+      "incomeLevel": "Gemiddeld inkomen",
+      "householdType": "2-persoonshuishouden",
+      "ageGroup": "20-35 jaar",
+      "description": "Jonge koppels met gemiddeld inkomen, zoeken comfortabele woningen in aantrekkelijke wijken met goede voorzieningen."
+    },
+    {
+      "id": "de-balanszoekers",
+      "name": "De Balanszoekers",
+      "incomeLevel": "Gemiddeld inkomen",
+      "householdType": "2-persoonshuishouden",
+      "ageGroup": "35-55 jaar",
+      "description": "Stellen met stabiel inkomen, op zoek naar wooncomfort en gemak in rustige, kindvriendelijke omgevingen (zelfs als ze geen kinderen hebben)."
+    },
+    {
+      "id": "de-zwitserlevers",
+      "name": "De Zwitserlevers",
+      "incomeLevel": "Gemiddeld inkomen",
+      "householdType": "2-persoonshuishouden",
+      "ageGroup": "55+ jaar",
+      "description": "Oudere stellen met gemiddeld pensioen, zoeken eenvoudig maar comfortabel en onderhoudsvriendelijk wonen met alle voorzieningen binnen bereik."
+    },
+    {
+      "id": "actieve-jonge-gezinnen",
+      "name": "Actieve Jonge Gezinnen",
+      "incomeLevel": "Gemiddeld inkomen",
+      "householdType": "met kinderen",
+      "ageGroup": "20-35 jaar",
+      "description": "Jonge gezinnen met groeiend inkomen, zoeken prettige gezinswoningen met toegang tot scholen, sport en groen."
+    },
+    {
+      "id": "stabiele-gezinnen",
+      "name": "Stabiele Gezinnen",
+      "incomeLevel": "Gemiddeld inkomen",
+      "householdType": "met kinderen",
+      "ageGroup": "35-55 jaar",
+      "description": "Gezinnen met schoolgaande kinderen en gemiddeld inkomen, op zoek naar comfortabele en veilige woningen met ruimte voor kinderen."
+    },
+    {
+      "id": "gezellige-nesthouders",
+      "name": "Gezellige Nesthouders",
+      "incomeLevel": "Gemiddeld inkomen",
+      "householdType": "met kinderen",
+      "ageGroup": "55+ jaar",
+      "description": "Oudere gezinnen met tieners of volwassen kinderen thuis, zoeken woningen met ruimte en voorzieningen passend bij een levendig gezinsleven."
+    },
+    {
+      "id": "carrierestarter",
+      "name": "Carrièrestarter",
+      "incomeLevel": "Hoog inkomen",
+      "householdType": "1-persoonshuishouden",
+      "ageGroup": "20-35 jaar",
+      "description": "Jonge professionals met hoog inkomen, zoeken stijlvolle en luxe appartementen in stadscentra of hippe buurten."
+    },
+    {
+      "id": "succesvolle-singles",
+      "name": "Succesvolle Singles",
+      "incomeLevel": "Hoog inkomen",
+      "householdType": "1-persoonshuishouden",
+      "ageGroup": "35-55 jaar",
+      "description": "Alleenstaanden met hoog inkomen en intensief werkend leven, zoeken luxe, gemak en centrale locaties met hoogwaardige voorzieningen."
+    },
+    {
+      "id": "de-rentenier",
+      "name": "De Rentenier",
+      "incomeLevel": "Hoog inkomen",
+      "householdType": "1-persoonshuishouden",
+      "ageGroup": "55+ jaar",
+      "description": "Welvarende alleenstaande senioren, zoeken ruime, luxe en comfortabele woningen met uitstekende diensten en veiligheid."
+    },
+    {
+      "id": "grenzeloos-duo",
+      "name": "Grenzeloos Duo",
+      "incomeLevel": "Hoog inkomen",
+      "householdType": "2-persoonshuishouden",
+      "ageGroup": "20-35 jaar",
+      "description": "Jonge stellen met bovengemiddeld inkomen, houden van luxe appartementen of stijlvolle woningen nabij uitgaansgelegenheden."
+    },
+    {
+      "id": "carriere-stampers",
+      "name": "Carrière Stampers",
+      "incomeLevel": "Hoog inkomen",
+      "householdType": "2-persoonshuishouden",
+      "ageGroup": "35-55 jaar",
+      "description": "Welgestelde koppels met goede carrières, zoeken ruime woningen met hoog comfortniveau en kwaliteit, rustig gelegen maar centraal."
+    },
+    {
+      "id": "welvarende-bourgondiers",
+      "name": "Welvarende Bourgondiërs",
+      "incomeLevel": "Hoog inkomen",
+      "householdType": "2-persoonshuishouden",
+      "ageGroup": "55+ jaar",
+      "description": "Oudere koppels met hoge inkomens en ruim vermogen, wensen luxe, ruime woningen in aantrekkelijke woonwijken met hoogwaardige voorzieningen."
+    },
+    {
+      "id": "hard-van-start",
+      "name": "Hard van Start",
+      "incomeLevel": "Hoog inkomen",
+      "householdType": "met kinderen",
+      "ageGroup": "20-35 jaar",
+      "description": "Jonge ouders met uitstekend inkomen, zoeken ruime, comfortabele woningen nabij scholen, groen en stedelijke voorzieningen."
+    },
+    {
+      "id": "vermogende-gezinnen",
+      "name": "Vermogende Gezinnen",
+      "incomeLevel": "Hoog inkomen",
+      "householdType": "met kinderen",
+      "ageGroup": "35-55 jaar",
+      "description": "Welgestelde gezinnen die investeren in ruim wonen, veiligheid en uitstekende voorzieningen voor onderwijs en recreatie."
+    },
+    {
+      "id": "laat-bloeiers",
+      "name": "Laat Bloeiers",
+      "incomeLevel": "Hoog inkomen",
+      "householdType": "met kinderen",
+      "ageGroup": "55+ jaar",
+      "description": "Oudere gezinnen met volwassen kinderen nog thuis of regelmatig bezoek van kleinkinderen, zoeken luxe woningen met ruimte, comfort en privacy, vaak voorzien van extra faciliteiten."
+    }
+  ],
+  "demographics": {
+    "description": "Demografische kenmerken van de bevolking, inclusief leeftijd, burgerlijke staat, herkomst en inkomen",
+    "age": [
+      {
+        "name": "0-15 jaar",
+        "description": "Percentage kinderen en jongeren",
+        "neighborhood": "11,66%",
+        "municipality": "16,08%",
+        "national": "15,85%"
+      },
+      {
+        "name": "15-25 jaar",
+        "description": "Percentage jongvolwassenen",
+        "neighborhood": "11,27%",
+        "municipality": "13,35%",
+        "national": "12,34%"
+      },
+      {
+        "name": "25-45 jaar",
+        "description": "Percentage volwassenen in de werkzame leeftijd",
+        "neighborhood": "44,46%",
+        "municipality": "30,63%",
+        "national": "24,62%"
+      },
+      {
+        "name": "45-65 jaar",
+        "description": "Percentage middelbare leeftijd",
+        "neighborhood": "20,41%",
+        "municipality": "24,67%",
+        "national": "28,01%"
+      },
+      {
+        "name": "65+ jaar",
+        "description": "Percentage ouderen (gepensioneerd)",
+        "neighborhood": "12,15%",
+        "municipality": "15,28%",
+        "national": "19,18%"
+      }
+    ],
+    "status": [
+      {
+        "name": "Ongehuwd",
+        "description": "Percentage ongehuwden",
+        "neighborhood": "67,1%",
+        "municipality": "56,98%",
+        "national": "48,46%"
+      },
+      {
+        "name": "Gehuwd",
+        "description": "Percentage gehuwden",
+        "neighborhood": "22,21%",
+        "municipality": "29,14%",
+        "national": "38,81%"
+      },
+      {
+        "name": "Gescheiden",
+        "description": "Percentage gescheidenen",
+        "neighborhood": "7,43%",
+        "municipality": "9,73%",
+        "national": "7,77%"
+      },
+      {
+        "name": "Verweduwd",
+        "description": "Percentage weduwen/weduwnaars",
+        "neighborhood": "3,26%",
+        "municipality": "4,16%",
+        "national": "4,97%"
+      }
+    ],
+    "immigration": [
+      {
+        "name": "Autochtoon",
+        "description": "Percentage met Nederlandse herkomst",
+        "neighborhood": "69,63%",
+        "municipality": "48,45%",
+        "national": "76,36%"
+      },
+      {
+        "name": "Westers",
+        "description": "Percentage met Westerse migratieachtergrond",
+        "neighborhood": "16,03%",
+        "municipality": "12,99%",
+        "national": "10,27%"
+      },
+      {
+        "name": "Niet-Westers",
+        "description": "Percentage met niet-Westerse migratieachtergrond",
+        "neighborhood": "14,33%",
+        "municipality": "38,56%",
+        "national": "13,38%"
+      },
+      {
+        "name": "Marokko",
+        "description": "Percentage met Marokkaanse herkomst",
+        "neighborhood": "1,12%",
+        "municipality": "6,97%",
+        "national": "2,33%"
+      },
+      {
+        "name": "Antillen/Aruba",
+        "description": "Percentage met Antilliaanse/Arubaanse herkomst",
+        "neighborhood": "1,17%",
+        "municipality": "3,96%",
+        "national": "0,93%"
+      },
+      {
+        "name": "Suriname",
+        "description": "Percentage met Surinaamse herkomst",
+        "neighborhood": "2,82%",
+        "municipality": "8,17%",
+        "national": "2,05%"
+      },
+      {
+        "name": "Turkije",
+        "description": "Percentage met Turkse herkomst",
+        "neighborhood": "1,07%",
+        "municipality": "7,41%",
+        "national": "2,37%"
+      },
+      {
+        "name": "Overig Niet-Westers",
+        "description": "Percentage met overige niet-Westerse herkomst",
+        "neighborhood": "8,16%",
+        "municipality": "12,05%",
+        "national": "5,7%"
+      }
+    ],
+    "familySize": {
+      "description": "Gemiddeld aantal personen per huishouden",
+      "neighborhood": "-",
+      "municipality": "-",
+      "national": "-"
+    },
+    "familyType": [
+      {
+        "name": "Eenpersoons",
+        "description": "Percentage alleenstaanden",
+        "neighborhood": "53,99%",
+        "municipality": "48,12%",
+        "national": "38,33%"
+      },
+      {
+        "name": "Zonder kinderen",
+        "description": "Percentage huishoudens zonder kinderen",
+        "neighborhood": "27,04%",
+        "municipality": "22,4%",
+        "national": "28,8%"
+      },
+      {
+        "name": "Met kinderen",
+        "description": "Percentage huishoudens met kinderen",
+        "neighborhood": "18,97%",
+        "municipality": "29,48%",
+        "national": "32,87%"
+      }
+    ],
+    "income": {
+      "description": "Gemiddeld inkomen per inwoner per jaar (in euro)",
+      "neighborhood": "35,4x1000",
+      "municipality": "25,2x1000",
+      "national": "27,1x1000"
+    }
+  },
+  "health": {
+    "description": "Gezondheidskenmerken van de bevolking, inclusief fysieke en mentale gezondheid",
+    "experiencedHealth": {
+      "description": "Percentage dat eigen gezondheid als goed of zeer goed ervaart",
+      "neighborhood": "75,4%",
+      "municipality": "62,7%",
+      "national": "69%"
+    },
+    "sports": {
+      "description": "Percentage dat wekelijks sport",
+      "neighborhood": "66,4%",
+      "municipality": "49%",
+      "national": "51,5%"
+    },
+    "weight": [
+      {
+        "name": "Ondergewicht",
+        "description": "Percentage met ondergewicht (BMI < 18.5)",
+        "neighborhood": "2,4%",
+        "municipality": "2,2%",
+        "national": "1,9%"
+      },
+      {
+        "name": "Normaal gewicht",
+        "description": "Percentage met gezond gewicht (BMI 18.5-25)",
+        "neighborhood": "59,5%",
+        "municipality": "46,1%",
+        "national": "46,6%"
+      },
+      {
+        "name": "Overgewicht",
+        "description": "Percentage met overgewicht (BMI 25-30)",
+        "neighborhood": "37,6%",
+        "municipality": "51,7%",
+        "national": "51,6%"
+      },
+      {
+        "name": "Ernstig overgewicht",
+        "description": "Percentage met obesitas (BMI > 30)",
+        "neighborhood": "10,8%",
+        "municipality": "18%",
+        "national": "16,5%"
+      }
+    ],
+    "smoker": {
+      "description": "Percentage rokers",
+      "neighborhood": "18,9%",
+      "municipality": "22,4%",
+      "national": "18%"
+    },
+    "alcohol": [
+      {
+        "name": "Voldoet aan alcoholrichtlijn",
+        "description": "Percentage dat zich houdt aan gezonde alcoholrichtlijnen",
+        "neighborhood": "30,1%",
+        "municipality": "50,8%",
+        "national": "43,1%"
+      },
+      {
+        "name": "Drinker",
+        "description": "Percentage dat alcohol drinkt",
+        "neighborhood": "86%",
+        "municipality": "68,5%",
+        "national": "77,7%"
+      },
+      {
+        "name": "Zware drinker",
+        "description": "Percentage zware drinkers (>14 glazen/week)",
+        "neighborhood": "14,2%",
+        "municipality": "9,4%",
+        "national": "10,4%"
+      },
+      {
+        "name": "Overmatige drinker",
+        "description": "Percentage overmatige drinkers (>21 glazen/week)",
+        "neighborhood": "8,6%",
+        "municipality": "6,3%",
+        "national": "7,2%"
+      }
+    ],
+    "limitedHealth": {
+      "description": "Percentage met langdurige beperkingen vanwege gezondheidsproblemen",
+      "neighborhood": "27%",
+      "municipality": "36,5%",
+      "national": "33,8%"
+    },
+    "loneliness": [
+      {
+        "name": "Eenzaam",
+        "description": "Percentage dat zich eenzaam voelt",
+        "neighborhood": "49,8%",
+        "municipality": "59%",
+        "national": "49,2%"
+      },
+      {
+        "name": "Ernstig/zeer ernstig eenzaam",
+        "description": "Percentage met ernstige eenzaamheidsgevoelens",
+        "neighborhood": "15%",
+        "municipality": "20,9%",
+        "national": "14,4%"
+      },
+      {
+        "name": "Emotioneel eenzaam",
+        "description": "Percentage dat emotionele verbinding mist",
+        "neighborhood": "33,5%",
+        "municipality": "40,3%",
+        "national": "30,1%"
+      },
+      {
+        "name": "Sociaal eenzaam",
+        "description": "Percentage dat sociaal netwerk mist",
+        "neighborhood": "34,4%",
+        "municipality": "44,2%",
+        "national": "35,3%"
+      }
+    ],
+    "emotionalSupport": {
+      "description": "Percentage dat emotionele steun mist",
+      "neighborhood": "7,1%",
+      "municipality": "10,4%",
+      "national": "6,4%"
+    },
+    "psychologicalHealth": [
+      {
+        "name": "Suïcidegedachten laatste 12 maanden",
+        "description": "Percentage met suïcidale gedachten in afgelopen jaar",
+        "neighborhood": "12%",
+        "municipality": "13,4%",
+        "national": "11,3%"
+      },
+      {
+        "name": "Hoog risico op angst/depressie",
+        "description": "Percentage met verhoogd risico op angststoornissen of depressie",
+        "neighborhood": "10,7%",
+        "municipality": "15,6%",
+        "national": "10,2%"
+      },
+      {
+        "name": "Veel stress afgelopen 4 weken",
+        "description": "Percentage met veel stress in afgelopen maand",
+        "neighborhood": "25,7%",
+        "municipality": "26,3%",
+        "national": "20,7%"
+      }
+    ]
+  },
+  "safety": {
+    "description": "Veiligheidsindicatoren inclusief criminaliteit en veiligheidsbeleving",
+    "totalCrimes": {
+      "description": "Totaal aantal geregistreerde misdrijven per 1000 inwoners",
+      "neighborhood": "6,65%",
+      "municipality": "8,42%",
+      "national": "4,66%"
+    },
+    "burglary": {
+      "description": "Aantal woninginbraken per 1000 woningen",
+      "neighborhood": "0,17%",
+      "municipality": "0,15%",
+      "national": "0,13%"
+    },
+    "pickpocketing": {
+      "description": "Aantal zakkenrollerij incidenten per 1000 inwoners",
+      "neighborhood": "0,01%",
+      "municipality": "0,12%",
+      "national": "0,05%"
+    },
+    "accidents": {
+      "description": "Aantal verkeersongevallen per 1000 inwoners",
+      "neighborhood": "0,65%",
+      "municipality": "0,88%",
+      "national": "0,44%"
+    },
+    "feelsUnsafe": {
+      "description": "Percentage dat zich weleens onveilig voelt in de buurt",
+      "neighborhood": "44,3%",
+      "municipality": "44,3%",
+      "national": "34,9%"
+    },
+    "streetLighting": {
+      "description": "Waardering voor straatverlichting (schaal 1-10)",
+      "neighborhood": "79,8%",
+      "municipality": "79,8%",
+      "national": "82,5%"
+    }
+  },
+  "livability": {
+    "description": "Leefbaarheid van de buurt, inclusief onderhoud, voorzieningen en sociale cohesie",
+    "maintenance": [
+      {
+        "name": "Onderhoud stoepen, straten en pleintjes",
+        "description": "Waardering onderhoud openbare ruimte (schaal 1-10)",
+        "neighborhood": "56,6%",
+        "municipality": "56,6%",
+        "national": "60,8%"
+      },
+      {
+        "name": "Onderhoud plantsoenen en parken",
+        "description": "Waardering onderhoud groen (schaal 1-10)",
+        "neighborhood": "64,5%",
+        "municipality": "64,5%",
+        "national": "65%"
+      }
+    ],
+    "streetLighting": {
+      "description": "Waardering voor straatverlichting (schaal 1-10)",
+      "neighborhood": "79,8%",
+      "municipality": "79,8%",
+      "national": "82,5%"
+    },
+    "youthFacilities": [
+      {
+        "name": "Speelplekken voor kinderen",
+        "description": "Waardering speelvoorzieningen (schaal 1-10)",
+        "neighborhood": "53,5%",
+        "municipality": "53,5%",
+        "national": "59,5%"
+      },
+      {
+        "name": "Voorzieningen voor jongeren",
+        "description": "Waardering jongerenvoorzieningen (schaal 1-10)",
+        "neighborhood": "43,3%",
+        "municipality": "43,3%",
+        "national": "45,3%"
+      }
+    ],
+    "contact": [
+      {
+        "name": "Mensen kennen elkaar nauwelijks",
+        "description": "Percentage dat weinig contact heeft met buurtbewoners",
+        "neighborhood": "39,6%",
+        "municipality": "39,6%",
+        "national": "26,1%"
+      },
+      {
+        "name": "Mensen gaan prettig met elkaar om",
+        "description": "Percentage dat positief is over onderlinge omgang",
+        "neighborhood": "60,9%",
+        "municipality": "60,9%",
+        "national": "75,3%"
+      },
+      {
+        "name": "Gezellige buurt waar men elkaar helpt",
+        "description": "Percentage dat buurt als gezellig en helpend ervaart",
+        "neighborhood": "45,9%",
+        "municipality": "45,9%",
+        "national": "60,5%"
+      },
+      {
+        "name": "Veel contact met andere buurtbewoners",
+        "description": "Percentage met veel buurtcontact",
+        "neighborhood": "29,7%",
+        "municipality": "29,7%",
+        "national": "37%"
+      }
+    ],
+    "volunteers": {
+      "description": "Percentage dat vrijwilligerswerk doet",
+      "neighborhood": "18,7%",
+      "municipality": "16,7%",
+      "national": "23,8%"
+    },
+    "socialCohesion": {
+      "description": "Score voor sociale cohesie (schaal 0-100)",
+      "neighborhood": "5,6%",
+      "municipality": "5,6%",
+      "national": "6,4%"
+    },
+    "livabilityScore": {
+      "description": "Rapportcijfer voor leefbaarheid woonbuurt (schaal 1-10)",
+      "neighborhood": "7%",
+      "municipality": "7%",
+      "national": "7,6%"
+    }
+  },
+  "amenities": {
+    "description": "Voorzieningen in de buurt met aantal, nabijheid en scores. Alle scores liggen tussen -1 en 1, waarbij 1 de best mogelijke score is. De proximityBonus geeft +1 wanneer een voorziening binnen 250m van de locatie ligt.",
+    "items": [
+      {
+        "name": "Budget Restaurants (€)",
+        "description": "Aantal budget restaurants (€) en nabijheid",
+        "count": 4,
+        "countScore": 0.75,
+        "proximityCount": 0,
+        "proximityBonus": 0,
+        "closestDistance": 464,
+        "averageDistance": 1715,
+        "scoringNote": "Scores liggen tussen -1 en 1, waarbij 1 de best mogelijke score is. De proximityBonus geeft +1 wanneer een voorziening binnen 250m van de locatie ligt."
+      },
+      {
+        "name": "Cafés en avond programma",
+        "description": "Aantal cafés en avond programma en nabijheid",
+        "count": 20,
+        "countScore": 1,
+        "proximityCount": 0,
+        "proximityBonus": 0,
+        "closestDistance": 1124,
+        "averageDistance": 1522,
+        "scoringNote": "Scores liggen tussen -1 en 1, waarbij 1 de best mogelijke score is. De proximityBonus geeft +1 wanneer een voorziening binnen 250m van de locatie ligt."
+      },
+      {
+        "name": "Cultuur & Entertainment",
+        "description": "Aantal cultuur & entertainment en nabijheid",
+        "count": 20,
+        "countScore": 1,
+        "proximityCount": 0,
+        "proximityBonus": 0,
+        "closestDistance": 713,
+        "averageDistance": 1461,
+        "scoringNote": "Scores liggen tussen -1 en 1, waarbij 1 de best mogelijke score is. De proximityBonus geeft +1 wanneer een voorziening binnen 250m van de locatie ligt."
+      },
+      {
+        "name": "Groen & Recreatie",
+        "description": "Aantal groen & recreatie en nabijheid",
+        "count": 20,
+        "countScore": 1,
+        "proximityCount": 0,
+        "proximityBonus": 0,
+        "closestDistance": 365,
+        "averageDistance": 1357,
+        "scoringNote": "Scores liggen tussen -1 en 1, waarbij 1 de best mogelijke score is. De proximityBonus geeft +1 wanneer een voorziening binnen 250m van de locatie ligt."
+      },
+      {
+        "name": "Kinderopvang & Opvang",
+        "description": "Aantal kinderopvang & opvang en nabijheid",
+        "count": 20,
+        "countScore": 1,
+        "proximityCount": 0,
+        "proximityBonus": 0,
+        "closestDistance": 353,
+        "averageDistance": 764,
+        "scoringNote": "Scores liggen tussen -1 en 1, waarbij 1 de best mogelijke score is. De proximityBonus geeft +1 wanneer een voorziening binnen 250m van de locatie ligt."
+      },
+      {
+        "name": "Mid-range Restaurants (€€€)",
+        "description": "Aantal mid-range restaurants (€€€) en nabijheid",
+        "count": 15,
+        "countScore": 1,
+        "proximityCount": 1,
+        "proximityBonus": 1,
+        "closestDistance": 100,
+        "averageDistance": 891,
+        "scoringNote": "Scores liggen tussen -1 en 1, waarbij 1 de best mogelijke score is. De proximityBonus geeft +1 wanneer een voorziening binnen 250m van de locatie ligt."
+      },
+      {
+        "name": "Mobiliteit & Parkeren",
+        "description": "Aantal mobiliteit & parkeren en nabijheid",
+        "count": 20,
+        "countScore": 1,
+        "proximityCount": 9,
+        "proximityBonus": 1,
+        "closestDistance": 83,
+        "averageDistance": 268,
+        "scoringNote": "Scores liggen tussen -1 en 1, waarbij 1 de best mogelijke score is. De proximityBonus geeft +1 wanneer een voorziening binnen 250m van de locatie ligt."
+      },
+      {
+        "name": "Nutsvoorzieningen & Overheid",
+        "description": "Aantal nutsvoorzieningen & overheid en nabijheid",
+        "count": 2,
+        "countScore": 0.25,
+        "proximityCount": 0,
+        "proximityBonus": 0,
+        "closestDistance": 1450,
+        "averageDistance": 1475,
+        "scoringNote": "Scores liggen tussen -1 en 1, waarbij 1 de best mogelijke score is. De proximityBonus geeft +1 wanneer een voorziening binnen 250m van de locatie ligt."
+      },
+      {
+        "name": "Onderwijs (Basisschool)",
+        "description": "Aantal onderwijs (basisschool) en nabijheid",
+        "count": 20,
+        "countScore": 1,
+        "proximityCount": 2,
+        "proximityBonus": 1,
+        "closestDistance": 211,
+        "averageDistance": 526,
+        "scoringNote": "Scores liggen tussen -1 en 1, waarbij 1 de best mogelijke score is. De proximityBonus geeft +1 wanneer een voorziening binnen 250m van de locatie ligt."
+      },
+      {
+        "name": "Onderwijs (Hoger onderwijs)",
+        "description": "Aantal onderwijs (hoger onderwijs) en nabijheid",
+        "count": 20,
+        "countScore": 1,
+        "proximityCount": 2,
+        "proximityBonus": 1,
+        "closestDistance": 211,
+        "averageDistance": 1314,
+        "scoringNote": "Scores liggen tussen -1 en 1, waarbij 1 de best mogelijke score is. De proximityBonus geeft +1 wanneer een voorziening binnen 250m van de locatie ligt."
+      },
+      {
+        "name": "Onderwijs (Voortgezet onderwijs)",
+        "description": "Aantal onderwijs (voortgezet onderwijs) en nabijheid",
+        "count": 20,
+        "countScore": 1,
+        "proximityCount": 2,
+        "proximityBonus": 1,
+        "closestDistance": 211,
+        "averageDistance": 1025,
+        "scoringNote": "Scores liggen tussen -1 en 1, waarbij 1 de best mogelijke score is. De proximityBonus geeft +1 wanneer een voorziening binnen 250m van de locatie ligt."
+      },
+      {
+        "name": "Openbaar vervoer (halte)",
+        "description": "Aantal openbaar vervoer (halte) en nabijheid",
+        "count": 20,
+        "countScore": 1,
+        "proximityCount": 4,
+        "proximityBonus": 1,
+        "closestDistance": 124,
+        "averageDistance": 326,
+        "scoringNote": "Scores liggen tussen -1 en 1, waarbij 1 de best mogelijke score is. De proximityBonus geeft +1 wanneer een voorziening binnen 250m van de locatie ligt."
+      },
+      {
+        "name": "Sport faciliteiten",
+        "description": "Aantal sport faciliteiten en nabijheid",
+        "count": 20,
+        "countScore": 1,
+        "proximityCount": 0,
+        "proximityBonus": 0,
+        "closestDistance": 668,
+        "averageDistance": 1359,
+        "scoringNote": "Scores liggen tussen -1 en 1, waarbij 1 de best mogelijke score is. De proximityBonus geeft +1 wanneer een voorziening binnen 250m van de locatie ligt."
+      },
+      {
+        "name": "Sportschool / Fitnesscentrum",
+        "description": "Aantal sportschool / fitnesscentrum en nabijheid",
+        "count": 20,
+        "countScore": 1,
+        "proximityCount": 0,
+        "proximityBonus": 0,
+        "closestDistance": 524,
+        "averageDistance": 1282,
+        "scoringNote": "Scores liggen tussen -1 en 1, waarbij 1 de best mogelijke score is. De proximityBonus geeft +1 wanneer een voorziening binnen 250m van de locatie ligt."
+      },
+      {
+        "name": "Upscale Restaurants (€€€€-€€€€€)",
+        "description": "Aantal upscale restaurants (€€€€-€€€€€) en nabijheid",
+        "count": 3,
+        "countScore": 0.5,
+        "proximityCount": 0,
+        "proximityBonus": 0,
+        "closestDistance": 1306,
+        "averageDistance": 51129,
+        "scoringNote": "Scores liggen tussen -1 en 1, waarbij 1 de best mogelijke score is. De proximityBonus geeft +1 wanneer een voorziening binnen 250m van de locatie ligt."
+      },
+      {
+        "name": "Wellness & Recreatie",
+        "description": "Aantal wellness & recreatie en nabijheid",
+        "count": 20,
+        "countScore": 1,
+        "proximityCount": 0,
+        "proximityBonus": 0,
+        "closestDistance": 497,
+        "averageDistance": 1473,
+        "scoringNote": "Scores liggen tussen -1 en 1, waarbij 1 de best mogelijke score is. De proximityBonus geeft +1 wanneer een voorziening binnen 250m van de locatie ligt."
+      },
+      {
+        "name": "Winkels (Dagelijkse boodschappen)",
+        "description": "Aantal winkels (dagelijkse boodschappen) en nabijheid",
+        "count": 20,
+        "countScore": 1,
+        "proximityCount": 1,
+        "proximityBonus": 1,
+        "closestDistance": 196,
+        "averageDistance": 765,
+        "scoringNote": "Scores liggen tussen -1 en 1, waarbij 1 de best mogelijke score is. De proximityBonus geeft +1 wanneer een voorziening binnen 250m van de locatie ligt."
+      },
+      {
+        "name": "Winkels (Overige retail)",
+        "description": "Aantal winkels (overige retail) en nabijheid",
+        "count": 20,
+        "countScore": 1,
+        "proximityCount": 0,
+        "proximityBonus": 0,
+        "closestDistance": 1336,
+        "averageDistance": 1617,
+        "scoringNote": "Scores liggen tussen -1 en 1, waarbij 1 de best mogelijke score is. De proximityBonus geeft +1 wanneer een voorziening binnen 250m van de locatie ligt."
+      },
+      {
+        "name": "Zakelijke Dienstverlening",
+        "description": "Aantal zakelijke dienstverlening en nabijheid",
+        "count": 20,
+        "countScore": 1,
+        "proximityCount": 0,
+        "proximityBonus": 0,
+        "closestDistance": 660,
+        "averageDistance": 1260,
+        "scoringNote": "Scores liggen tussen -1 en 1, waarbij 1 de best mogelijke score is. De proximityBonus geeft +1 wanneer een voorziening binnen 250m van de locatie ligt."
+      },
+      {
+        "name": "Zorg (Huisarts & Apotheek)",
+        "description": "Aantal zorg (huisarts & apotheek) en nabijheid",
+        "count": 20,
+        "countScore": 1,
+        "proximityCount": 1,
+        "proximityBonus": 1,
+        "closestDistance": 180,
+        "averageDistance": 754,
+        "scoringNote": "Scores liggen tussen -1 en 1, waarbij 1 de best mogelijke score is. De proximityBonus geeft +1 wanneer een voorziening binnen 250m van de locatie ligt."
+      },
+      {
+        "name": "Zorg (Paramedische voorzieningen)",
+        "description": "Aantal zorg (paramedische voorzieningen) en nabijheid",
+        "count": 20,
+        "countScore": 1,
+        "proximityCount": 1,
+        "proximityBonus": 1,
+        "closestDistance": 87,
+        "averageDistance": 674,
+        "scoringNote": "Scores liggen tussen -1 en 1, waarbij 1 de best mogelijke score is. De proximityBonus geeft +1 wanneer een voorziening binnen 250m van de locatie ligt."
+      }
+    ]
+  },
+  "housingMarket": {
+    "description": "Woningmarkt statistieken gebaseerd op referentiewoningen in het gebied",
+    "avgPrice": 536667,
+    "avgSize": 105,
+    "avgBuildYear": 1942,
+    "typeDistribution": [
+      {
+        "type": "Bovenwoning",
+        "percentage": 43
+      },
+      {
+        "type": "Benedenwoning",
+        "percentage": 33
+      },
+      {
+        "type": "Portiekwoning",
+        "percentage": 13
+      },
+      {
+        "type": "Meergezinswoning",
+        "percentage": 3
+      },
+      {
+        "type": "Portiekflat",
+        "percentage": 3
+      },
+      {
+        "type": "Galerijflat",
+        "percentage": 3
+      }
+    ],
+    "priceDistribution": [
+      {
+        "range": "Low (<€300k)",
+        "percentage": 0
+      },
+      {
+        "range": "Medium (€300k-€500k)",
+        "percentage": 27
+      },
+      {
+        "range": "High (≥€500k)",
+        "percentage": 73
+      }
+    ]
+  },
+  "targetGroups": {
+    "description": "Alle 27 woonpersona's gerangschikt op geschiktheid voor deze locatie, met geautomatiseerde scenario's en optioneel een op maat samengesteld scenario",
+    "rankedPersonas": [
+      {
+        "id": "jonge-starters",
+        "name": "Jonge Starters",
+        "incomeLevel": "Laag inkomen",
+        "householdType": "1-persoonshuishouden",
+        "ageGroup": "20-35 jaar",
+        "description": "Jonge volwassenen met beperkte financiële middelen, net begonnen met werken of nog studerend, op zoek naar betaalbare kleine woningen dichtbij voorzieningen.",
+        "rank": 1,
+        "score": 0.43,
+        "categoryScores": {
+          "voorzieningen": 73.75,
+          "leefbaarheid": -0.72,
+          "woningvooraad": -5.7,
+          "demografie": 1.4499999999999993
+        }
+      },
+      {
+        "id": "ambitieuze-singles",
+        "name": "Ambitieuze Singles",
+        "incomeLevel": "Gemiddeld inkomen",
+        "householdType": "1-persoonshuishouden",
+        "ageGroup": "20-35 jaar",
+        "description": "Jonge volwassenen met gemiddeld inkomen, carrièregericht en op zoek naar comfortabele appartementen in aantrekkelijke wijken.",
+        "rank": 2,
+        "score": 0.43,
+        "categoryScores": {
+          "voorzieningen": 79.5,
+          "leefbaarheid": -0.72,
+          "woningvooraad": -5.7,
+          "demografie": 0.4500000000000002
+        }
+      },
+      {
+        "id": "de-groeiers",
+        "name": "De Groeiers",
+        "incomeLevel": "Laag inkomen",
+        "householdType": "2-persoonshuishouden",
+        "ageGroup": "20-35 jaar",
+        "description": "Jonge koppels of huisgenoten met beperkt inkomen, vaak starters of studenten die betaalbaarheid combineren met goede bereikbaarheid.",
+        "rank": 3,
+        "score": 0.42,
+        "categoryScores": {
+          "voorzieningen": 78.75,
+          "leefbaarheid": -1.44,
+          "woningvooraad": -2.3000000000000003,
+          "demografie": -2.29
+        }
+      },
+      {
+        "id": "samen-starters",
+        "name": "Samen Starters",
+        "incomeLevel": "Gemiddeld inkomen",
+        "householdType": "2-persoonshuishouden",
+        "ageGroup": "20-35 jaar",
+        "description": "Jonge koppels met gemiddeld inkomen, zoeken comfortabele woningen in aantrekkelijke wijken met goede voorzieningen.",
+        "rank": 4,
+        "score": 0.42,
+        "categoryScores": {
+          "voorzieningen": 84.5,
+          "leefbaarheid": -1.44,
+          "woningvooraad": -2.3000000000000003,
+          "demografie": -3.29
+        }
+      },
+      {
+        "id": "de-groeigezinnen",
+        "name": "De Groeigezinnen",
+        "incomeLevel": "Laag inkomen",
+        "householdType": "met kinderen",
+        "ageGroup": "20-35 jaar",
+        "description": "Jonge ouders met beperkte financiële middelen die een betaalbaar huis zoeken met speelruimte en nabij scholen.",
+        "rank": 5,
+        "score": 0.42,
+        "categoryScores": {
+          "voorzieningen": 86.75,
+          "leefbaarheid": -2.16,
+          "woningvooraad": -3.9999999999999996,
+          "demografie": -5.1
+        }
+      },
+      {
+        "id": "actieve-jonge-gezinnen",
+        "name": "Actieve Jonge Gezinnen",
+        "incomeLevel": "Gemiddeld inkomen",
+        "householdType": "met kinderen",
+        "ageGroup": "20-35 jaar",
+        "description": "Jonge gezinnen met groeiend inkomen, zoeken prettige gezinswoningen met toegang tot scholen, sport en groen.",
+        "rank": 6,
+        "score": 0.42,
+        "categoryScores": {
+          "voorzieningen": 92.5,
+          "leefbaarheid": -2.16,
+          "woningvooraad": -3.9999999999999996,
+          "demografie": -6.1
+        }
+      },
+      {
+        "id": "carrierestarter",
+        "name": "Carrièrestarter",
+        "incomeLevel": "Hoog inkomen",
+        "householdType": "1-persoonshuishouden",
+        "ageGroup": "20-35 jaar",
+        "description": "Jonge professionals met hoog inkomen, zoeken stijlvolle en luxe appartementen in stadscentra of hippe buurten.",
+        "rank": 7,
+        "score": 0.41,
+        "categoryScores": {
+          "voorzieningen": 79.25,
+          "leefbaarheid": -0.72,
+          "woningvooraad": -8.7,
+          "demografie": 0.9500000000000002
+        }
+      },
+      {
+        "id": "grenzeloos-duo",
+        "name": "Grenzeloos Duo",
+        "incomeLevel": "Hoog inkomen",
+        "householdType": "2-persoonshuishouden",
+        "ageGroup": "20-35 jaar",
+        "description": "Jonge stellen met bovengemiddeld inkomen, houden van luxe appartementen of stijlvolle woningen nabij uitgaansgelegenheden.",
+        "rank": 8,
+        "score": 0.41,
+        "categoryScores": {
+          "voorzieningen": 84.25,
+          "leefbaarheid": -1.44,
+          "woningvooraad": -5.300000000000001,
+          "demografie": -2.79
+        }
+      },
+      {
+        "id": "senior-op-budget",
+        "name": "Senior op Budget",
+        "incomeLevel": "Laag inkomen",
+        "householdType": "1-persoonshuishouden",
+        "ageGroup": "55+ jaar",
+        "description": "Ouderen met een klein pensioen of uitkering, zoeken goedkope, toegankelijke woningen nabij voorzieningen en openbaar vervoer.",
+        "rank": 9,
+        "score": 0.41,
+        "categoryScores": {
+          "voorzieningen": 67.75,
+          "leefbaarheid": -0.72,
+          "woningvooraad": -4.8999999999999995,
+          "demografie": -3.55
+        }
+      },
+      {
+        "id": "zelfstandige-senior",
+        "name": "Zelfstandige Senior",
+        "incomeLevel": "Gemiddeld inkomen",
+        "householdType": "1-persoonshuishouden",
+        "ageGroup": "55+ jaar",
+        "description": "Alleenstaande ouderen met gemiddeld pensioen, zoeken woningen met comfort en gemak, dichtbij winkels en recreatievoorzieningen.",
+        "rank": 10,
+        "score": 0.41,
+        "categoryScores": {
+          "voorzieningen": 73.5,
+          "leefbaarheid": -0.72,
+          "woningvooraad": -4.8999999999999995,
+          "demografie": -4.55
+        }
+      },
+      {
+        "id": "hard-van-start",
+        "name": "Hard van Start",
+        "incomeLevel": "Hoog inkomen",
+        "householdType": "met kinderen",
+        "ageGroup": "20-35 jaar",
+        "description": "Jonge ouders met uitstekend inkomen, zoeken ruime, comfortabele woningen nabij scholen, groen en stedelijke voorzieningen.",
+        "rank": 11,
+        "score": 0.41,
+        "categoryScores": {
+          "voorzieningen": 92.25,
+          "leefbaarheid": -2.16,
+          "woningvooraad": -7.000000000000002,
+          "demografie": -5.6
+        }
+      },
+      {
+        "id": "de-levensgenieters",
+        "name": "De Levensgenieters",
+        "incomeLevel": "Laag inkomen",
+        "householdType": "2-persoonshuishouden",
+        "ageGroup": "55+ jaar",
+        "description": "Oudere koppels met beperkt budget die eenvoudige maar comfortabele en onderhoudsvriendelijke woningen zoeken.",
+        "rank": 12,
+        "score": 0.4,
+        "categoryScores": {
+          "voorzieningen": 72.75,
+          "leefbaarheid": -1.44,
+          "woningvooraad": -1.5000000000000004,
+          "demografie": -7.29
+        }
+      },
+      {
+        "id": "de-zwitserlevers",
+        "name": "De Zwitserlevers",
+        "incomeLevel": "Gemiddeld inkomen",
+        "householdType": "2-persoonshuishouden",
+        "ageGroup": "55+ jaar",
+        "description": "Oudere stellen met gemiddeld pensioen, zoeken eenvoudig maar comfortabel en onderhoudsvriendelijk wonen met alle voorzieningen binnen bereik.",
+        "rank": 13,
+        "score": 0.4,
+        "categoryScores": {
+          "voorzieningen": 78.5,
+          "leefbaarheid": -1.44,
+          "woningvooraad": -1.5000000000000004,
+          "demografie": -8.29
+        }
+      },
+      {
+        "id": "senioren-met-thuiswonende-kinderen",
+        "name": "Senioren met Thuiswonende Kinderen",
+        "incomeLevel": "Laag inkomen",
+        "householdType": "met kinderen",
+        "ageGroup": "55+ jaar",
+        "description": "Oudere gezinnen met (volwassen) kinderen thuis, weinig financiële ruimte, op zoek naar ruime maar goedkope huisvesting.",
+        "rank": 14,
+        "score": 0.4,
+        "categoryScores": {
+          "voorzieningen": 80.75,
+          "leefbaarheid": -2.16,
+          "woningvooraad": -3.1999999999999997,
+          "demografie": -10.099999999999998
+        }
+      },
+      {
+        "id": "gezellige-nesthouders",
+        "name": "Gezellige Nesthouders",
+        "incomeLevel": "Gemiddeld inkomen",
+        "householdType": "met kinderen",
+        "ageGroup": "55+ jaar",
+        "description": "Oudere gezinnen met tieners of volwassen kinderen thuis, zoeken woningen met ruimte en voorzieningen passend bij een levendig gezinsleven.",
+        "rank": 15,
+        "score": 0.4,
+        "categoryScores": {
+          "voorzieningen": 86.5,
+          "leefbaarheid": -2.16,
+          "woningvooraad": -3.1999999999999997,
+          "demografie": -11.1
+        }
+      },
+      {
+        "id": "de-rentenier",
+        "name": "De Rentenier",
+        "incomeLevel": "Hoog inkomen",
+        "householdType": "1-persoonshuishouden",
+        "ageGroup": "55+ jaar",
+        "description": "Welvarende alleenstaande senioren, zoeken ruime, luxe en comfortabele woningen met uitstekende diensten en veiligheid.",
+        "rank": 16,
+        "score": 0.4,
+        "categoryScores": {
+          "voorzieningen": 73.25,
+          "leefbaarheid": -0.72,
+          "woningvooraad": -7.900000000000001,
+          "demografie": -4.05
+        }
+      },
+      {
+        "id": "welvarende-bourgondiers",
+        "name": "Welvarende Bourgondiërs",
+        "incomeLevel": "Hoog inkomen",
+        "householdType": "2-persoonshuishouden",
+        "ageGroup": "55+ jaar",
+        "description": "Oudere koppels met hoge inkomens en ruim vermogen, wensen luxe, ruime woningen in aantrekkelijke woonwijken met hoogwaardige voorzieningen.",
+        "rank": 17,
+        "score": 0.39,
+        "categoryScores": {
+          "voorzieningen": 78.25,
+          "leefbaarheid": -1.44,
+          "woningvooraad": -4.500000000000001,
+          "demografie": -7.789999999999999
+        }
+      },
+      {
+        "id": "laat-bloeiers",
+        "name": "Laat Bloeiers",
+        "incomeLevel": "Hoog inkomen",
+        "householdType": "met kinderen",
+        "ageGroup": "55+ jaar",
+        "description": "Oudere gezinnen met volwassen kinderen nog thuis of regelmatig bezoek van kleinkinderen, zoeken luxe woningen met ruimte, comfort en privacy, vaak voorzien van extra faciliteiten.",
+        "rank": 18,
+        "score": 0.39,
+        "categoryScores": {
+          "voorzieningen": 86.25,
+          "leefbaarheid": -2.16,
+          "woningvooraad": -6.200000000000001,
+          "demografie": -10.6
+        }
+      },
+      {
+        "id": "zelfbewuste-solisten",
+        "name": "Zelfbewuste Solisten",
+        "incomeLevel": "Gemiddeld inkomen",
+        "householdType": "1-persoonshuishouden",
+        "ageGroup": "35-55 jaar",
+        "description": "Alleenstaanden met stabiel gemiddeld inkomen, zoeken comfortabele woningen met goede verbindingen naar werk en vrijetijdsvoorzieningen.",
+        "rank": 19,
+        "score": 0.38,
+        "categoryScores": {
+          "voorzieningen": 76.5,
+          "leefbaarheid": -0.72,
+          "woningvooraad": -8.299999999999999,
+          "demografie": -3.55
+        }
+      },
+      {
+        "id": "de-doorzetter",
+        "name": "De Doorzetter",
+        "incomeLevel": "Laag inkomen",
+        "householdType": "1-persoonshuishouden",
+        "ageGroup": "35-55 jaar",
+        "description": "Alleenstaande volwassenen met een bescheiden inkomen, vaak langdurig werkzaam in parttime of lagere functies, zoeken betaalbare woningen met rust en gemak.",
+        "rank": 20,
+        "score": 0.38,
+        "categoryScores": {
+          "voorzieningen": 70.75,
+          "leefbaarheid": -0.72,
+          "woningvooraad": -8.299999999999999,
+          "demografie": -2.55
+        }
+      },
+      {
+        "id": "de-balanszoekers",
+        "name": "De Balanszoekers",
+        "incomeLevel": "Gemiddeld inkomen",
+        "householdType": "2-persoonshuishouden",
+        "ageGroup": "35-55 jaar",
+        "description": "Stellen met stabiel inkomen, op zoek naar wooncomfort en gemak in rustige, kindvriendelijke omgevingen (zelfs als ze geen kinderen hebben).",
+        "rank": 21,
+        "score": 0.38,
+        "categoryScores": {
+          "voorzieningen": 81.5,
+          "leefbaarheid": -1.44,
+          "woningvooraad": -4.9,
+          "demografie": -7.289999999999999
+        }
+      },
+      {
+        "id": "bescheiden-stellen",
+        "name": "Bescheiden Stellen",
+        "incomeLevel": "Laag inkomen",
+        "householdType": "2-persoonshuishouden",
+        "ageGroup": "35-55 jaar",
+        "description": "Stellen met stabiel maar bescheiden inkomen, waarde hechtend aan betaalbaarheid, comfort en nabijheid van voorzieningen.",
+        "rank": 22,
+        "score": 0.38,
+        "categoryScores": {
+          "voorzieningen": 75.75,
+          "leefbaarheid": -1.44,
+          "woningvooraad": -4.9,
+          "demografie": -6.29
+        }
+      },
+      {
+        "id": "stabiele-gezinnen",
+        "name": "Stabiele Gezinnen",
+        "incomeLevel": "Gemiddeld inkomen",
+        "householdType": "met kinderen",
+        "ageGroup": "35-55 jaar",
+        "description": "Gezinnen met schoolgaande kinderen en gemiddeld inkomen, op zoek naar comfortabele en veilige woningen met ruimte voor kinderen.",
+        "rank": 23,
+        "score": 0.38,
+        "categoryScores": {
+          "voorzieningen": 89.5,
+          "leefbaarheid": -2.16,
+          "woningvooraad": -6.6,
+          "demografie": -10.1
+        }
+      },
+      {
+        "id": "knusse-gezinnen",
+        "name": "Knusse Gezinnen",
+        "incomeLevel": "Laag inkomen",
+        "householdType": "met kinderen",
+        "ageGroup": "35-55 jaar",
+        "description": "Gezinnen met kinderen, stabiele maar beperkte inkomens, zoeken betaalbare gezinswoningen dichtbij scholen en voorzieningen.",
+        "rank": 24,
+        "score": 0.38,
+        "categoryScores": {
+          "voorzieningen": 83.75,
+          "leefbaarheid": -2.16,
+          "woningvooraad": -6.6,
+          "demografie": -9.099999999999998
+        }
+      },
+      {
+        "id": "succesvolle-singles",
+        "name": "Succesvolle Singles",
+        "incomeLevel": "Hoog inkomen",
+        "householdType": "1-persoonshuishouden",
+        "ageGroup": "35-55 jaar",
+        "description": "Alleenstaanden met hoog inkomen en intensief werkend leven, zoeken luxe, gemak en centrale locaties met hoogwaardige voorzieningen.",
+        "rank": 25,
+        "score": 0.37,
+        "categoryScores": {
+          "voorzieningen": 76.25,
+          "leefbaarheid": -0.72,
+          "woningvooraad": -11.299999999999999,
+          "demografie": -3.05
+        }
+      },
+      {
+        "id": "carriere-stampers",
+        "name": "Carrière Stampers",
+        "incomeLevel": "Hoog inkomen",
+        "householdType": "2-persoonshuishouden",
+        "ageGroup": "35-55 jaar",
+        "description": "Welgestelde koppels met goede carrières, zoeken ruime woningen met hoog comfortniveau en kwaliteit, rustig gelegen maar centraal.",
+        "rank": 26,
+        "score": 0.37,
+        "categoryScores": {
+          "voorzieningen": 81.25,
+          "leefbaarheid": -1.44,
+          "woningvooraad": -7.9,
+          "demografie": -6.789999999999999
+        }
+      },
+      {
+        "id": "vermogende-gezinnen",
+        "name": "Vermogende Gezinnen",
+        "incomeLevel": "Hoog inkomen",
+        "householdType": "met kinderen",
+        "ageGroup": "35-55 jaar",
+        "description": "Welgestelde gezinnen die investeren in ruim wonen, veiligheid en uitstekende voorzieningen voor onderwijs en recreatie.",
+        "rank": 27,
+        "score": 0.37,
+        "categoryScores": {
+          "voorzieningen": 89.25,
+          "leefbaarheid": -2.16,
+          "woningvooraad": -9.6,
+          "demografie": -9.6
+        }
+      }
+    ],
+    "recommendedScenarios": [
+      {
+        "name": "Scenario 1",
+        "personaNames": [
+          "Jonge Starters",
+          "Ambitieuze Singles",
+          "De Groeiers",
+          "Actieve Jonge Gezinnen"
+        ],
+        "avgScore": 0.42
+      },
+      {
+        "name": "Scenario 2",
+        "personaNames": [
+          "Samen Starters",
+          "Jonge Starters",
+          "Ambitieuze Singles",
+          "Carrièrestarter"
+        ],
+        "avgScore": 0.42
+      },
+      {
+        "name": "Scenario 3",
+        "personaNames": [
+          "De Groeigezinnen",
+          "De Groeiers",
+          "Actieve Jonge Gezinnen",
+          "Senioren met Thuiswonende Kinderen"
+        ],
+        "avgScore": 0.41
+      }
+    ]
+  }
+}

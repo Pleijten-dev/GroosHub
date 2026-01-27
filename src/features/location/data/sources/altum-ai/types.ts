@@ -4,6 +4,8 @@
  * Documentation: https://api.altum.ai/interactive-reference
  */
 
+import type { ResidentialScores } from '../../scoring/residentialScoring';
+
 /**
  * Energy Label Information
  */
@@ -190,6 +192,13 @@ export interface ResidentialData {
   searchParameters: InputParameters;
   fetchedAt: Date;
   hasData: boolean;
+  /**
+   * Pre-computed residential scores (optional).
+   * When saving to database, these scores are computed and stored.
+   * When loading from database, these saved scores are used instead of
+   * recalculating from referenceHouses (which may have serialization issues).
+   */
+  precomputedScores?: ResidentialScores;
 }
 
 /**

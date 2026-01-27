@@ -49,7 +49,8 @@ export const CompactExportButton: React.FC<CompactExportButtonProps> = ({
     const locationName =
       data.location.neighborhood?.statnaam ||
       data.location.district?.statnaam ||
-      data.location.municipality.statnaam;
+      data.location.municipality?.statnaam ||
+      'location';
     const date = new Date().toISOString().split('T')[0];
     const filename = `${locationName.replace(/\s+/g, '-')}-compact-${date}.json`;
 

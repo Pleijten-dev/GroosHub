@@ -186,14 +186,16 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
             </span>{' '}
             <span className="font-medium">{data.location.address}</span>
           </div>
-          <div>
-            <span className="text-text-muted">
-              {locale === 'nl' ? 'Gemeente' : 'Municipality'}:
-            </span>{' '}
-            <span className="font-medium">
-              {data.location.municipality.statnaam} ({data.location.municipality.statcode})
-            </span>
-          </div>
+          {data.location.municipality && (
+            <div>
+              <span className="text-text-muted">
+                {locale === 'nl' ? 'Gemeente' : 'Municipality'}:
+              </span>{' '}
+              <span className="font-medium">
+                {data.location.municipality.statnaam} ({data.location.municipality.statcode})
+              </span>
+            </div>
+          )}
           {data.location.district && (
             <div>
               <span className="text-text-muted">

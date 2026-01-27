@@ -4,6 +4,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Locale } from '../../../../lib/i18n/config';
 import { pveConfigCache } from '../../data/cache/pveConfigCache';
+import { registerPVEBarElement } from '../../utils/pveCapture';
 
 interface PVEAllocations {
   apartments: number;
@@ -89,6 +90,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
   const [expandedLabel, setExpandedLabel] = useState<keyof PVEAllocations | null>(null);
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
+  const captureRef = useRef<HTMLDivElement>(null);
 
   // Get only active (non-disabled) categories
   const activeCategories = useMemo(() =>
@@ -349,6 +351,12 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
     return () => clearTimeout(debounceTimer);
   }, [totalM2, percentages]);
 
+  // Register the bar element for PDF capture
+  useEffect(() => {
+    registerPVEBarElement(captureRef.current);
+    return () => registerPVEBarElement(null);
+  }, []);
+
   // Calculate absolute values
   const absoluteValues = useMemo(() => {
     const result: Record<keyof PVEAllocations, number> = {
@@ -507,7 +515,11 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
         <div className="flex justify-center mb-lg">
           <div className="w-[1200px]">
             <div
-              ref={barRef}
+              ref={(el) => {
+                (barRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+                (captureRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+              }}
+              id="pve-stacked-bar"
               className="relative h-32 rounded-lg overflow-hidden border-2 border-gray-300 shadow-lg bg-white"
               style={{ cursor: draggingIndex !== null ? 'ew-resize' : 'default' }}
             >
@@ -575,7 +587,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
                   );
                 })}
 
-                {/* Draggable dividers */}
+                {/* Draggable dividers (invisible handles for dragging) */}
                 {activeCategories.slice(0, -1).map((cat, idx) => {
                   const x = getCumulativePercentage(idx + 1);
 
@@ -585,15 +597,6 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
                       onMouseDown={() => handleDragStart(idx)}
                       style={{ cursor: 'ew-resize' }}
                     >
-                      <line
-                        x1={`${x}%`}
-                        y1="0"
-                        x2={`${x}%`}
-                        y2="100%"
-                        stroke="#fff"
-                        strokeWidth="3"
-                        opacity="0.8"
-                      />
                       <rect
                         x={`calc(${x}% - 4px)`}
                         y="0"

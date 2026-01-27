@@ -15,7 +15,7 @@ import { DemographicsPage } from '../../../features/location/components/Demograp
 import { SafetyPage } from '../../../features/location/components/Safety';
 import { HealthPage } from '../../../features/location/components/Health';
 import { LivabilityPage } from '../../../features/location/components/Livability';
-import { ExportButton, CompactExportButton, GenerateProgramButton } from '../../../features/location/components/ExportButton';
+import { ExportButton, CompactExportButton, GenerateProgramButton, GenerateRapportButton } from '../../../features/location/components/ExportButton';
 import { RadialChart, BarChart, DensityChart } from '../../../shared/components/common';
 import { extractLocationScores } from '../../../features/location/utils/extractLocationScores';
 import { LocationAnimation } from '../../../features/location/components/LocationAnimation';
@@ -27,10 +27,13 @@ import { calculateConnections, calculateScenarios } from '../../../features/loca
 import housingPersonasData from '../../../features/location/data/sources/housing-personas.json';
 import { LocationMap, MapStyle, WMSLayerControl, WMSLayerSelection, WMSFeatureInfo, WMSGradingScoreCard, WMSLayerScoreCard } from '../../../features/location/components/Maps';
 import { calculateAllAmenityScores, type AmenityScore } from '../../../features/location/data/scoring/amenityScoring';
+import { getOmgevingChartData } from '../../../features/location/utils/calculateOmgevingScores';
 import { PVEQuestionnaire } from '../../../features/location/components/PVE';
 import { MapExportButton } from '../../../features/location/components/MapExport';
 import type { AccessibleLocation } from '../../../features/location/types/saved-locations';
 import { useWMSGrading } from '../../../features/location/hooks/useWMSGrading';
+import { pveConfigCache } from '../../../features/location/data/cache/pveConfigCache';
+import type { WMSGradingData } from '../../../features/location/types/wms-grading';
 import { AIAssistantProvider, useAIAssistantOptional } from '../../../features/ai-assistant/hooks/useAIAssistant';
 import { exportCompactForLLM } from '../../../features/location/utils/jsonExportCompact';
 
@@ -87,7 +90,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
   // Snapshot data state (for loaded snapshots)
   const [loadedSnapshotId, setLoadedSnapshotId] = useState<string | null>(null);
   const [loadedProjectId, setLoadedProjectId] = useState<string | null>(null);
-  const [loadedWMSGradingData, setLoadedWMSGradingData] = useState<Record<string, unknown> | null>(null);
+  const [loadedWMSGradingData, setLoadedWMSGradingData] = useState<WMSGradingData | null>(null);
 
   // Generate cube colors once and share across all components for consistency
   const cubeColors = React.useMemo(() => generateGradientColors(), []);
@@ -257,13 +260,36 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     const connections = calculateConnections(personas);
     const scenarios = calculateScenarios(personas, sortedPersonas, connections);
 
+    // Read custom scenario selection from localStorage
+    let customScenario: number[] | undefined;
+    try {
+      const stored = localStorage.getItem('grooshub_doelgroepen_scenario_selection');
+      if (stored) {
+        const { customIds } = JSON.parse(stored);
+        if (customIds && Array.isArray(customIds) && customIds.length > 0) {
+          // Convert persona IDs to R-rank positions
+          customScenario = customIds
+            .map((id: string) => {
+              const score = personaScores.find(ps => ps.personaId === id);
+              return score?.rRankPosition;
+            })
+            .filter((pos: number | undefined): pos is number => pos !== undefined);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load custom scenario from cache:', error);
+    }
+
     return {
       locationScores,
       personas,
       personaScores,
       sortedPersonas,
       connections,
-      scenarios
+      scenarios: {
+        ...scenarios,
+        customScenario
+      }
     };
   }, [data, locale]);
 
@@ -282,6 +308,36 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
       // Store the current address
       const address = location.address;
       localStorage.setItem('grooshub_current_address', address);
+
+      // Store snapshot ID for reference
+      setLoadedSnapshotId(location.id);
+
+      // Restore WMS grading data if available (prevents re-grading)
+      if (location.wmsGradingData) {
+        console.log('📊 Restoring saved WMS grading data');
+        setLoadedWMSGradingData(location.wmsGradingData as WMSGradingData);
+      } else {
+        // Clear any previous WMS grading data if not available
+        setLoadedWMSGradingData(null);
+      }
+
+      // Restore PVE data to cache if available
+      if (location.pveData) {
+        console.log('📋 Restoring saved PVE configuration');
+        pveConfigCache.setFinalPVE(location.pveData);
+      }
+
+      // Restore custom scenario selection if available in PVE data
+      if (location.pveData?.customScenarioIds && Array.isArray(location.pveData.customScenarioIds)) {
+        console.log('🎯 Restoring custom scenario selection');
+        localStorage.setItem('grooshub_doelgroepen_scenario_selection', JSON.stringify({
+          scenario: 'custom',
+          customIds: location.pveData.customScenarioIds
+        }));
+      } else {
+        // Clear custom scenario if not in snapshot (prevents stale data from previous sessions)
+        localStorage.removeItem('grooshub_doelgroepen_scenario_selection');
+      }
 
       // Load the saved data directly without making API calls
       // The location.locationData contains UnifiedLocationData
@@ -311,6 +367,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     currentAddress,
     locationData: data,
     amenitiesData: amenities,
+    wmsGradingData: wmsGrading.gradingData,
     onLoadSavedLocation: handleLoadSavedLocation,
   });
 
@@ -437,14 +494,9 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
           voorzieningenScore = Math.round(((rawScore + 21) / 63) * 90 + 10);
         }
 
-        // Define the 5 omgeving categories
-        const omgevingData = [
-          { name: locale === 'nl' ? 'Betaalbaarheid' : 'Affordability', value: 75, color: '#48806a' },
-          { name: locale === 'nl' ? 'Veiligheid' : 'Safety', value: 85, color: '#477638' },
-          { name: locale === 'nl' ? 'Gezondheid' : 'Health', value: 72, color: '#8a976b' },
-          { name: locale === 'nl' ? 'Leefbaarheid' : 'Livability', value: 80, color: '#0c211a' },
-          { name: locale === 'nl' ? 'Voorzieningen' : 'Amenities', value: voorzieningenScore, color: '#48806a' }
-        ];
+        // Calculate all 5 omgeving category scores from actual data
+        // This uses the real data from health, safety, livability, and residential sources
+        const omgevingData = getOmgevingChartData(data, voorzieningenScore, locale);
 
         // Map category names to tab IDs
         const categoryToTab: Record<string, TabName> = {
@@ -624,7 +676,32 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         const personaScores = calculatePersonaScores(personas, locationScores);
         const sortedPersonas = [...personaScores].sort((a, b) => a.rRankPosition - b.rRankPosition);
         const connections = calculateConnections(personas);
-        const scenarios = calculateScenarios(personas, sortedPersonas, connections);
+        const baseScenarios = calculateScenarios(personas, sortedPersonas, connections);
+
+        // Read custom scenario selection from localStorage
+        let customScenario: number[] | undefined;
+        try {
+          const stored = localStorage.getItem('grooshub_doelgroepen_scenario_selection');
+          if (stored) {
+            const { customIds } = JSON.parse(stored);
+            if (customIds && Array.isArray(customIds) && customIds.length > 0) {
+              // Convert persona IDs to R-rank positions
+              customScenario = customIds
+                .map((id: string) => {
+                  const score = personaScores.find(ps => ps.personaId === id);
+                  return score?.rRankPosition;
+                })
+                .filter((pos: number | undefined): pos is number => pos !== undefined);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to load custom scenario from cache:', error);
+        }
+
+        const scenarios = {
+          ...baseScenarios,
+          customScenario
+        };
 
         return (
           <div className="p-lg overflow-auto h-full">
@@ -678,104 +755,62 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
                   </li>
                 </ul>
 
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">
-                      {locale === 'nl' ? 'Kies export formaat:' : 'Choose export format:'}
-                    </h4>
-                    <div className="flex flex-col gap-3">
-                      <div className="flex items-start gap-3">
-                        <CompactExportButton
-                          data={data}
-                          personaScores={sortedPersonas}
-                          scenarios={scenarios}
-                          locale={locale}
-                          amenitiesData={amenities}
-                        />
-                        <div className="flex-1 text-sm text-gray-600">
-                          <strong className="block mb-1">
-                            {locale === 'nl' ? '✓ Aanbevolen voor LLM' : '✓ Recommended for LLM'}
-                          </strong>
-                          {locale === 'nl'
-                            ? 'Geoptimaliseerd formaat (~500 regels) met samenvattingen en highlights. Perfect voor rapportgeneratie met AI.'
-                            : 'Optimized format (~500 lines) with summaries and highlights. Perfect for AI report generation.'}
-                        </div>
+                {/* Generate Unified Rapport Button */}
+                <GenerateRapportButton
+                  locale={locale}
+                  data={data}
+                  amenitiesData={amenities}
+                  personaScores={sortedPersonas}
+                  scenarios={scenarios}
+                  cubeColors={cubeColors}
+                  coordinates={coordinates || undefined}
+                  wmsGradingData={wmsGrading.gradingData}
+                  pveData={(() => {
+                    const cached = pveConfigCache.get();
+                    if (!cached) return undefined;
+                    return {
+                      totalM2: cached.totalM2,
+                      percentages: cached.percentages,
+                    };
+                  })()}
+                  className="mt-base"
+                />
+
+                <div className="mt-base pt-base border-t border-gray-200">
+                  <h4 className="text-sm font-medium text-gray-500 mb-2">
+                    {locale === 'nl' ? 'Alternatieve exports:' : 'Alternative exports:'}
+                  </h4>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <CompactExportButton
+                        data={data}
+                        personaScores={sortedPersonas}
+                        scenarios={scenarios}
+                        locale={locale}
+                        amenitiesData={amenities}
+                      />
+                      <div className="flex-1 text-xs text-gray-500">
+                        {locale === 'nl'
+                          ? 'JSON voor LLM analyse'
+                          : 'JSON for LLM analysis'}
                       </div>
-                      <div className="flex items-start gap-3">
-                        <ExportButton
-                          data={data}
-                          personaScores={sortedPersonas}
-                          scenarios={scenarios}
-                          customScenarioPersonaIds={[]}
-                          locale={locale}
-                        />
-                        <div className="flex-1 text-sm text-gray-600">
-                          <strong className="block mb-1">
-                            {locale === 'nl' ? 'Volledig export' : 'Complete export'}
-                          </strong>
-                          {locale === 'nl'
-                            ? 'Complete dataset met alle individuele datapunten en metadata. Voor verdere verwerking of analyse.'
-                            : 'Complete dataset with all individual data points and metadata. For further processing or analysis.'}
-                        </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <ExportButton
+                        data={data}
+                        personaScores={sortedPersonas}
+                        scenarios={scenarios}
+                        customScenarioPersonaIds={[]}
+                        locale={locale}
+                      />
+                      <div className="flex-1 text-xs text-gray-500">
+                        {locale === 'nl'
+                          ? 'Volledige JSON dataset'
+                          : 'Complete JSON dataset'}
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {/* AI Building Program Generation Section */}
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-sm p-base border border-blue-200">
-                <h3 className="text-lg font-semibold text-text-primary mb-base flex items-center gap-2">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-                    <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                  </svg>
-                  {locale === 'nl' ? 'AI Bouwprogramma Generatie' : 'AI Building Program Generation'}
-                </h3>
-                <p className="text-sm text-text-secondary mb-base">
-                  {locale === 'nl'
-                    ? 'Gebruik Claude AI om een gedetailleerd bouwprogramma te genereren op basis van alle verzamelde data, het PVE, en de doelgroep scenarios. De AI analyseert lokale demografische data, voorzieningen, en persona-geschiktheid om een optimaal unit mix en voorzieningen programma voor te stellen.'
-                    : 'Use Claude AI to generate a detailed building program based on all collected data, the PVE, and target group scenarios. The AI analyzes local demographics, amenities, and persona suitability to propose an optimal unit mix and amenities program.'}
-                </p>
-                <div className="bg-white/60 rounded p-3 mb-base text-sm">
-                  <p className="font-medium text-gray-900 mb-2">
-                    {locale === 'nl' ? 'Het gegenereerde programma bevat:' : 'The generated program includes:'}
-                  </p>
-                  <ul className="space-y-1 text-gray-700 ml-5">
-                    <li className="list-disc">
-                      {locale === 'nl'
-                        ? 'Gedetailleerde unit mix per scenario met aantallen en m²'
-                        : 'Detailed unit mix per scenario with quantities and m²'}
-                    </li>
-                    <li className="list-disc">
-                      {locale === 'nl'
-                        ? 'Commerciële ruimtes die lokale voorzieningen aanvullen'
-                        : 'Commercial spaces that complement local amenities'}
-                    </li>
-                    <li className="list-disc">
-                      {locale === 'nl'
-                        ? 'Gemeenschappelijke voorzieningen afgestemd op doelgroepen'
-                        : 'Communal facilities tailored to target groups'}
-                    </li>
-                    <li className="list-disc">
-                      {locale === 'nl'
-                        ? 'Data-gedreven rationale voor elke keuze'
-                        : 'Data-driven rationale for each choice'}
-                    </li>
-                    <li className="list-disc">
-                      {locale === 'nl'
-                        ? 'Vergelijkende analyse van alle scenarios'
-                        : 'Comparative analysis of all scenarios'}
-                    </li>
-                  </ul>
-                </div>
-                <GenerateProgramButton
-                  data={data}
-                  personaScores={sortedPersonas}
-                  scenarios={scenarios}
-                  locale={locale}
-                  amenitiesData={amenities}
-                  wmsGradingData={wmsGrading.gradingData}
-                />
               </div>
 
               {/* Map Export Section */}
@@ -791,14 +826,18 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
                 <MapExportButton
                   locale={locale}
-                  coordinates={[
-                    data.location.coordinates.wgs84.latitude,
-                    data.location.coordinates.wgs84.longitude,
-                  ]}
+                  coordinates={
+                    data.location?.coordinates?.wgs84
+                      ? [
+                          data.location.coordinates.wgs84.latitude,
+                          data.location.coordinates.wgs84.longitude,
+                        ]
+                      : [0, 0]
+                  }
                   locationName={[
-                    data.location.neighborhood?.statnaam,
-                    data.location.district?.statnaam,
-                    data.location.municipality?.statnaam,
+                    data.location?.neighborhood?.statnaam,
+                    data.location?.district?.statnaam,
+                    data.location?.municipality?.statnaam,
                   ]
                     .filter(Boolean)
                     .join(', ')}

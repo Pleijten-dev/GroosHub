@@ -1,0 +1,899 @@
+{
+  "location_summary": "Deze locatie in Rotterdam bevindt zich in een dynamische stedelijke omgeving met een jonge demografische samenstelling (44,46% tussen 25-45 jaar) en hoog aandeel alleenstaanden (53,99%). Het gebied kenmerkt zich door een hoger inkomen dan gemiddeld (€35.400 vs €25.200 gemeentelijk), uitstekende voorzieningen (nabij scholen, OV, zorgverlening), maar lagere sociale cohesie dan landelijk gemiddeld. De woningmarkt is hoogwaardig (73% woningen >€500k) met gemiddeld 105m² per woning uit 1942.",
+  "pve_overview": {
+    "total_m2": 10000,
+    "breakdown": "Woningen 70% (7000m²), Commercieel 15% (1500m²), Horeca 5% (500m²), Sociaal 5% (500m²), Gemeenschappelijk 3% (300m²), Kantoren 2% (200m²)"
+  },
+  "generalized_pve": {
+    "communal_categories": {},
+    "public_categories": {}
+  },
+  "project_title": "Woonontwikkeling Kralingen-West",
+  "swot_analysis": {
+    "strengths": [
+      "Uitstekende bereikbaarheid met OV binnen 124m",
+      "Hoog gemiddeld inkomen (€35.400 vs €25.200 gemeentelijk)",
+      "Jonge, dynamische bevolkingssamenstelling (44,46% 25-45 jaar)",
+      "Goede gezondheidsindicatoren (75,4% ervaart goede gezondheid)",
+      "Nabijheid van scholen (211m), zorg (180m) en dagelijkse voorzieningen"
+    ],
+    "weaknesses": [
+      "Lagere sociale cohesie dan landelijk gemiddelde (5,6 vs 6,4)",
+      "Hoge stressniveaus onder bewoners (25,7% vs 20,7% landelijk)",
+      "Beperkte speelvoorzieningen waardering (53,5% vs 59,5%)",
+      "Hoge woningprijzen kunnen betaalbaarheid beperken (73% >€500k)",
+      "Oudere woningvoorraad (gemiddeld bouwjaar 1942)"
+    ],
+    "opportunities": [
+      "Groeiende vraag naar flexibele werkruimtes voor young professionals",
+      "Behoefte aan community-building faciliteiten gezien lage cohesie",
+      "Potentieel voor gezinswoningen (lokaal aandeel 18,97% vs 32,87% landelijk)",
+      "Kans voor premium woonconcepten passend bij hoge inkomens",
+      "Vraag naar wellness en stressreductie voorzieningen"
+    ],
+    "threats": [
+      "Concurrentie van bestaande hoogwaardige woningvoorraad",
+      "Economische onzekerheid kan premium segment beïnvloeden",
+      "Vergrijzing van de bevolking op langere termijn",
+      "Stijgende bouwkosten kunnen marges onder druk zetten",
+      "Regulering rond sociale woningbouw percentages"
+    ]
+  },
+  "scenarios_overview": "Dit rapport presenteert vier scenario's die elk inspelen op verschillende doelgroepen binnen de lokale context. Scenario 1 (Young Urban Hub) richt zich op jonge starters en professionals - de grootste en best scorende doelgroep met een score van 0.42. Scenario 2 (Professional Living) bedient het premium segment met focus op kwaliteit en professionele ontwikkeling, eveneens met score 0.42. Scenario 3 (Family Community) focust op gezinnen met een score van 0.41, een kleinere maar gedifferentieerde niche. Scenario 4 (Custom Mix) is een op maat samengestelde combinatie van doelgroepen, geoptimaliseerd voor de specifieke projectdoelstellingen. Alle scenario's zijn gebaseerd op 10.000m² BVO met 70% woningen, 15% commercieel, 5% horeca, 5% sociaal, 3% gemeenschappelijk en 2% kantoren.",
+  "scenarios": [
+    {
+      "scenario_name": "Scenario 1",
+      "scenario_simple_name": "Young Urban Hub",
+      "target_personas": [
+        "Jonge Starters",
+        "Ambitieuze Singles",
+        "De Groeiers",
+        "Actieve Jonge Gezinnen"
+      ],
+      "summary": "Een dynamisch woonproject gericht op jonge professionals en starter gezinnen die waarde hechten aan stedelijke voorzieningen, bereikbaarheid en gemeenschapsleven. Het project combineert betaalbare en middensegment woningen met moderne voorzieningen.",
+      "residential": {
+        "total_m2": 7000,
+        "total_units": 110,
+        "unit_mix": [
+          {
+            "typology_id": "studio_35",
+            "typology_name": "Studio 35m²",
+            "quantity": 25,
+            "total_m2": 875,
+            "rationale": "Voor Jonge Starters met beperkt budget die een betaalbare eerste woning zoeken in stedelijke omgeving"
+          },
+          {
+            "typology_id": "social_housing_50",
+            "typology_name": "Sociale huur 50m²",
+            "quantity": 15,
+            "total_m2": 750,
+            "rationale": "Sociale huurwoningen voor Jonge Starters met laag inkomen, passend bij het lokale aandeel lage inkomens"
+          },
+          {
+            "typology_id": "one_bed_55",
+            "typology_name": "1-kamer 55m²",
+            "quantity": 20,
+            "total_m2": 1100,
+            "rationale": "Voor Ambitieuze Singles met gemiddeld inkomen die comfort en kwaliteit zoeken"
+          },
+          {
+            "typology_id": "one_bed_65",
+            "typology_name": "1-kamer 65m²",
+            "quantity": 15,
+            "total_m2": 975,
+            "rationale": "Premium opties voor Ambitieuze Singles met hoger gemiddeld inkomen"
+          },
+          {
+            "typology_id": "social_housing_70",
+            "typology_name": "Sociale huur 70m²",
+            "quantity": 10,
+            "total_m2": 700,
+            "rationale": "Voor De Groeiers (koppels) met laag inkomen die betaalbare 2-persoons woningen zoeken"
+          },
+          {
+            "typology_id": "two_bed_75",
+            "typology_name": "2-kamer 75m²",
+            "quantity": 15,
+            "total_m2": 1125,
+            "rationale": "Voor De Groeiers en startende Actieve Jonge Gezinnen die ruimte voor groei zoeken"
+          },
+          {
+            "typology_id": "two_bed_85",
+            "typology_name": "2-kamer 85m²",
+            "quantity": 10,
+            "total_m2": 850,
+            "rationale": "Voor Actieve Jonge Gezinnen met gemiddeld inkomen die comfort en ruimte waarderen"
+          },
+          {
+            "typology_id": "three_bed_95",
+            "typology_name": "3-kamer 95m²",
+            "quantity": 10,
+            "total_m2": 950,
+            "rationale": "Voor Actieve Jonge Gezinnen met kinderen die voldoende ruimte nodig hebben"
+          }
+        ],
+        "demographics_considerations": "De unit mix weerspiegelt de lokale demografische samenstelling met focus op 25-45 jarigen (44,46%) en alleenstaanden (53,99%). Het aandeel sociale huur (23%) past bij de gemengde inkomensstructuur, terwijl de nadruk op kleinere units aansluit bij de hoge urbanisatiegraad."
+      },
+      "commercial": {
+        "total_m2": 1500,
+        "spaces": [
+          {
+            "type": "Specialty food store",
+            "size_m2": 150,
+            "rationale": "Vult het gat in lokale voedselvoorzieningen, met focus op gezonde producten voor jonge professionals"
+          },
+          {
+            "type": "Coworking/flex kantoor",
+            "size_m2": 400,
+            "rationale": "Bedient de groeiende vraag naar flexibele werkplekken van jonge professionals en freelancers"
+          },
+          {
+            "type": "Fietsenzaak/reparatie",
+            "size_m2": 100,
+            "rationale": "Ondersteunt de fiets-georiënteerde levensstijl van jonge bewoners in stedelijke omgeving"
+          },
+          {
+            "type": "Pop-up retail ruimte",
+            "size_m2": 200,
+            "rationale": "Flexibele ruimte voor startende ondernemers en seizoensgebonden concepten"
+          },
+          {
+            "type": "Kapsalon/beauty services",
+            "size_m2": 120,
+            "rationale": "Persoonlijke verzorging diensten voor jonge professionals met drukke levensstijl"
+          },
+          {
+            "type": "Gezonde fastfood/lunch",
+            "size_m2": 250,
+            "rationale": "Vult het gat in budget restaurants (slechts 4 in de buurt) met focus op gezonde, snelle opties"
+          },
+          {
+            "type": "Pakketpunt/service lounge",
+            "size_m2": 80,
+            "rationale": "Bedient de online shopping behoeften van jonge, digitaal savvy bewoners"
+          },
+          {
+            "type": "Tech/gadget store",
+            "size_m2": 200,
+            "rationale": "Technologie producten en accessoires voor tech-savvy jonge professionals"
+          }
+        ],
+        "local_amenities_analysis": "De locatie heeft uitstekende voorzieningen maar beperkte budget dining opties (4 restaurants). Commerciële ruimtes focussen op dienstverlening en retail die jonge professionals aanspreken en de bestaande voorzieningen aanvullen zonder te concurreren."
+      },
+      "hospitality": {
+        "total_m2": 500,
+        "concept": "Een modern café-restaurant concept met flexibele ruimte voor co-working overdag en sociale bijeenkomsten 's avonds. Focus op gezonde, betaalbare maaltijden en specialty coffee, met ruimte voor community events en networking voor jonge professionals."
+      },
+      "social": {
+        "total_m2": 500,
+        "facilities": [
+          {
+            "type": "Community center/evenementen ruimte",
+            "size_m2": 200,
+            "rationale": "Vergroot sociale cohesie (score 5,6 vs 6,4 landelijk) door ruimte voor buurtactiviteiten"
+          },
+          {
+            "type": "Kinderopvang/crèche",
+            "size_m2": 150,
+            "rationale": "Ondersteunt Actieve Jonge Gezinnen, aanvullend op bestaande voorzieningen (353m afstand)"
+          },
+          {
+            "type": "Studieruimte/bibliotheek",
+            "size_m2": 100,
+            "rationale": "Bedient studenten en jonge professionals die thuis werken of studeren"
+          },
+          {
+            "type": "Gezondheids/wellness centrum",
+            "size_m2": 50,
+            "rationale": "Ondersteunt de hoge sportparticipatie (66,4% vs 51,5% landelijk) en focus op welzijn"
+          }
+        ]
+      },
+      "communal": {
+        "total_m2": 300,
+        "amenities": [
+          {
+            "amenity_id": "coworking_space",
+            "amenity_name": "Coworking Space",
+            "size_m2": 80,
+            "rationale": "Voor jonge professionals en freelancers die flexibele werkruimte zoeken"
+          },
+          {
+            "amenity_id": "gym_fitness",
+            "amenity_name": "Fitness/Gym",
+            "size_m2": 60,
+            "rationale": "Ondersteunt hoge sportparticipatie (66,4%) van jonge bewoners"
+          },
+          {
+            "amenity_id": "community_kitchen",
+            "amenity_name": "Gemeenschappelijke Keuken",
+            "size_m2": 40,
+            "rationale": "Bevordert sociale interactie en is praktisch voor kleine studio's"
+          },
+          {
+            "amenity_id": "rooftop_terrace",
+            "amenity_name": "Dakterras",
+            "size_m2": 50,
+            "rationale": "Buitenruimte voor sociale activiteiten en ontspanning in stedelijke setting"
+          },
+          {
+            "amenity_id": "bike_storage",
+            "amenity_name": "Fietsenstalling",
+            "size_m2": 30,
+            "rationale": "Essentieel voor jonge stedelijke bewoners die fietsen als hoofdvervoermiddel gebruiken"
+          },
+          {
+            "amenity_id": "laundry_room",
+            "amenity_name": "Wasruimte",
+            "size_m2": 25,
+            "rationale": "Praktische voorziening voor bewoners van kleinere wooneenheden"
+          },
+          {
+            "amenity_id": "package_room",
+            "amenity_name": "Pakketkamer",
+            "size_m2": 15,
+            "rationale": "Voor online shopping van tech-savvy jonge bewoners"
+          }
+        ],
+        "persona_needs_analysis": "De geselecteerde voorzieningen bedienen specifiek de behoeften van jonge professionals (coworking, fitness) en starters (gedeelde faciliteiten, fietsopslag). Focus ligt op flexibiliteit, community building en praktische ondersteuning van een actieve stedelijke levensstijl."
+      },
+      "communal_spaces": {
+        "total_m2": 300,
+        "spaces": [],
+        "category_breakdown": {}
+      },
+      "public_spaces": {
+        "total_m2": 0,
+        "spaces": [],
+        "category_breakdown": {}
+      },
+      "offices": {
+        "total_m2": 200,
+        "concept": "Flexibele kantoorruimtes voor startups en kleine bedrijven, met mogelijkheid voor co-working en hot-desking. Bedient de ondernemingsgeest van jonge professionals en biedt werkplekken voor residents die thuis werken."
+      },
+      "key_insights": [
+        "Hoge sportparticipatie (66,4% vs 51,5% landelijk) rechtvaardigt fitness voorzieningen",
+        "Lagere sociale cohesie (5,6 vs 6,4) vereist community-building faciliteiten",
+        "Uitstekende OV verbindingen (binnen 124m) ondersteunen autovrije levensstijl",
+        "Beperkte budget dining (4 restaurants) creëert kans voor betaalbare food concepten",
+        "Hoog aandeel alleenstaanden (53,99%) vraagt om gedeelde faciliteiten en sociale ruimtes"
+      ]
+    },
+    {
+      "scenario_name": "Scenario 2",
+      "scenario_simple_name": "Professional Living",
+      "target_personas": [
+        "Samen Starters",
+        "Jonge Starters",
+        "Ambitieuze Singles",
+        "Carrièrestarter"
+      ],
+      "summary": "Een premium woonproject voor ambitieuze jonge professionals en koppels die kwaliteit, comfort en professionele ontwikkeling waarderen. Focus op hoogwaardige afwerking, professionele voorzieningen en lifestyle amenities.",
+      "residential": {
+        "total_m2": 7000,
+        "total_units": 100,
+        "unit_mix": [
+          {
+            "typology_id": "studio_45",
+            "typology_name": "Studio 45m²",
+            "quantity": 15,
+            "total_m2": 675,
+            "rationale": "Premium studios voor Jonge Starters die kwaliteit boven prijs stellen"
+          },
+          {
+            "typology_id": "one_bed_55",
+            "typology_name": "1-kamer 55m²",
+            "quantity": 20,
+            "total_m2": 1100,
+            "rationale": "Voor Ambitieuze Singles die comfort en functionaliteit zoeken"
+          },
+          {
+            "typology_id": "one_bed_65",
+            "typology_name": "1-kamer 65m²",
+            "quantity": 25,
+            "total_m2": 1625,
+            "rationale": "Premium 1-kamer units voor Carrièrestarters met hoog inkomen"
+          },
+          {
+            "typology_id": "two_bed_75",
+            "typology_name": "2-kamer 75m²",
+            "quantity": 15,
+            "total_m2": 1125,
+            "rationale": "Voor Samen Starters die ruimte voor thuiswerken en gasten waarderen"
+          },
+          {
+            "typology_id": "two_bed_85",
+            "typology_name": "2-kamer 85m²",
+            "quantity": 15,
+            "total_m2": 1275,
+            "rationale": "Premium koppel units met extra ruimte voor home office"
+          },
+          {
+            "typology_id": "three_bed_95",
+            "typology_name": "3-kamer 95m²",
+            "quantity": 8,
+            "total_m2": 760,
+            "rationale": "Voor Samen Starters die plannen voor gezinsuitbreiding"
+          },
+          {
+            "typology_id": "penthouse_150",
+            "typology_name": "Penthouse 150m²",
+            "quantity": 2,
+            "total_m2": 300,
+            "rationale": "Luxe units voor Carrièrestarters met hoog inkomen die exclusiviteit zoeken"
+          },
+          {
+            "typology_id": "social_housing_50",
+            "typology_name": "Sociale huur 50m²",
+            "quantity": 5,
+            "total_m2": 250,
+            "rationale": "Beperkt aandeel sociale huur voor Jonge Starters met laag inkomen"
+          }
+        ],
+        "demographics_considerations": "Mix gericht op jonge professionals (25-45 jaar, 44,46% lokaal) met nadruk op middensegment en premium units. Beperkte sociale huur (5%) past bij het professionele karakter, terwijl flexibiliteit voor carrièreontwikkeling centraal staat."
+      },
+      "commercial": {
+        "total_m2": 1500,
+        "spaces": [
+          {
+            "type": "Premium fitness/wellness",
+            "size_m2": 300,
+            "rationale": "High-end fitness faciliteit voor professionals die kwaliteit waarderen"
+          },
+          {
+            "type": "Business center/meeting rooms",
+            "size_m2": 250,
+            "rationale": "Professionele vergaderruimtes voor freelancers en kleine bedrijven"
+          },
+          {
+            "type": "Specialty coffee/lunch bar",
+            "size_m2": 200,
+            "rationale": "Premium coffee concept voor professionals met hoge kwaliteitseisen"
+          },
+          {
+            "type": "Dry cleaning/services",
+            "size_m2": 80,
+            "rationale": "Convenience services voor drukke professionals"
+          },
+          {
+            "type": "Premium retail/lifestyle",
+            "size_m2": 250,
+            "rationale": "Hoogwaardige retail passend bij de koopkracht van de doelgroep"
+          },
+          {
+            "type": "Financial/insurance services",
+            "size_m2": 150,
+            "rationale": "Financiële dienstverlening voor jonge professionals die vermogen opbouwen"
+          },
+          {
+            "type": "Coworking/private offices",
+            "size_m2": 200,
+            "rationale": "Premium werkruimtes voor entrepreneurs en consultants"
+          },
+          {
+            "type": "Health/medical services",
+            "size_m2": 70,
+            "rationale": "Aanvullende zorgverlening voor drukke professionals"
+          }
+        ],
+        "local_amenities_analysis": "Bouwt voort op de sterke voorzieningen basis met premium dienstverlening. Focus op time-saving en kwaliteit-services die aansluiten bij de levensstijl van ambitieuze professionals."
+      },
+      "hospitality": {
+        "total_m2": 500,
+        "concept": "Een sophisticated restaurant-bar met focus op business dining en networking. Biedt lunch voor professionals, after-work drinks en ruimte voor zakelijke bijeenkomsten. Premium kwaliteit met moderne, professionele atmosfeer."
+      },
+      "social": {
+        "total_m2": 500,
+        "facilities": [
+          {
+            "type": "Networking/event space",
+            "size_m2": 200,
+            "rationale": "Professionele netwerkruimte voor career development en business events"
+          },
+          {
+            "type": "Wellness/spa faciliteit",
+            "size_m2": 150,
+            "rationale": "Stress-reductie voor drukke professionals, ondersteunt mentale gezondheid"
+          },
+          {
+            "type": "Learning center/library",
+            "size_m2": 100,
+            "rationale": "Ruimte voor professionele ontwikkeling en continuous learning"
+          },
+          {
+            "type": "Concierge services",
+            "size_m2": 50,
+            "rationale": "Premium service voor time-poor professionals"
+          }
+        ]
+      },
+      "communal": {
+        "total_m2": 300,
+        "amenities": [
+          {
+            "amenity_id": "coworking_space",
+            "amenity_name": "Premium Coworking",
+            "size_m2": 100,
+            "rationale": "High-end werkruimte met professionele faciliteiten"
+          },
+          {
+            "amenity_id": "gym_fitness",
+            "amenity_name": "Premium Fitness",
+            "size_m2": 80,
+            "rationale": "Boutique fitness faciliteit voor quality-conscious residents"
+          },
+          {
+            "amenity_id": "lounge",
+            "amenity_name": "Residents Lounge",
+            "size_m2": 50,
+            "rationale": "Sophisticated sociale ruimte voor networking en ontspanning"
+          },
+          {
+            "amenity_id": "rooftop_terrace",
+            "amenity_name": "Sky Lounge",
+            "size_m2": 40,
+            "rationale": "Premium buitenruimte voor entertainment en city views"
+          },
+          {
+            "amenity_id": "concierge",
+            "amenity_name": "Concierge Service",
+            "size_m2": 15,
+            "rationale": "Premium service voor busy professionals"
+          },
+          {
+            "amenity_id": "guest_room",
+            "amenity_name": "Guest Suite",
+            "size_m2": 15,
+            "rationale": "Voor zakelijke gasten en bezoekers van residents"
+          }
+        ],
+        "persona_needs_analysis": "Voorzieningen gericht op professionele ontwikkeling, networking en lifestyle kwaliteit. Bedient de behoeften van ambitieuze singles en koppels die investeren in hun carrière en levensstijl."
+      },
+      "communal_spaces": {
+        "total_m2": 300,
+        "spaces": [],
+        "category_breakdown": {}
+      },
+      "public_spaces": {
+        "total_m2": 0,
+        "spaces": [],
+        "category_breakdown": {}
+      },
+      "offices": {
+        "total_m2": 200,
+        "concept": "Premium private offices en executive suites voor etablished professionals en kleine bedrijven. High-end afwerking met professionele ondersteuning en meeting faciliteiten."
+      },
+      "key_insights": [
+        "Hoog lokaal inkomen (€35.400 vs €25.200) ondersteunt premium positionering",
+        "Sterke voorzieningen basis (excellent scores) vraagt om kwaliteitsverbetering ipv kwantiteit",
+        "Hoge stress levels (25,7% vs 20,7% landelijk) rechtvaardigen wellness voorzieningen",
+        "Goede gezondheid (75,4% vs 69% landelijk) ondersteunt actieve lifestyle amenities",
+        "Uitstekende bereikbaarheid (OV binnen 124m) past bij autovrije professional lifestyle"
+      ]
+    },
+    {
+      "scenario_name": "Scenario 3",
+      "scenario_simple_name": "Family Community",
+      "target_personas": [
+        "De Groeigezinnen",
+        "De Groeiers",
+        "Actieve Jonge Gezinnen",
+        "Senioren met Thuiswonende Kinderen"
+      ],
+      "summary": "Een gezinsgericht woonproject dat verschillende levensfasen bedient, van jonge koppels tot multigenerationele gezinnen. Focus op gemeenschapsleven, kindvriendelijke voorzieningen en ondersteuning van verschillende gezinssamenstelling.",
+      "residential": {
+        "total_m2": 7000,
+        "total_units": 85,
+        "unit_mix": [
+          {
+            "typology_id": "social_housing_70",
+            "typology_name": "Sociale huur 70m²",
+            "quantity": 15,
+            "total_m2": 1050,
+            "rationale": "Voor De Groeigezinnen met laag inkomen die betaalbare gezinswoningen zoeken"
+          },
+          {
+            "typology_id": "two_bed_75",
+            "typology_name": "2-kamer 75m²",
+            "quantity": 20,
+            "total_m2": 1500,
+            "rationale": "Voor De Groeiers en startende gezinnen die ruimte voor groei zoeken"
+          },
+          {
+            "typology_id": "two_bed_85",
+            "typology_name": "2-kamer 85m²",
+            "quantity": 15,
+            "total_m2": 1275,
+            "rationale": "Voor Actieve Jonge Gezinnen die comfort en functionaliteit waarderen"
+          },
+          {
+            "typology_id": "three_bed_95",
+            "typology_name": "3-kamer 95m²",
+            "quantity": 20,
+            "total_m2": 1900,
+            "rationale": "Kern van het aanbod voor gezinnen met kinderen die voldoende ruimte nodig hebben"
+          },
+          {
+            "typology_id": "three_bed_110",
+            "typology_name": "3-kamer 110m²",
+            "quantity": 10,
+            "total_m2": 1100,
+            "rationale": "Premium gezinswoningen voor Actieve Jonge Gezinnen met hoger inkomen"
+          },
+          {
+            "typology_id": "four_bed_125",
+            "typology_name": "4-kamer 125m²",
+            "quantity": 3,
+            "total_m2": 375,
+            "rationale": "Voor Senioren met Thuiswonende Kinderen die veel ruimte nodig hebben"
+          },
+          {
+            "typology_id": "accessible_apartment_75",
+            "typology_name": "Toegankelijk 75m²",
+            "quantity": 2,
+            "total_m2": 150,
+            "rationale": "Voor oudere bewoners of gezinnen met toegankelijkheidsbehoeften"
+          }
+        ],
+        "demographics_considerations": "Mix gericht op gezinnen met kinderen (18,97% lokaal vs 32,87% landelijk) met extra focus op betaalbaarheid. Sociale huur component (18%) ondersteunt De Groeigezinnen, terwijl grotere units voorzien in multigenerationele behoeften."
+      },
+      "commercial": {
+        "total_m2": 1500,
+        "spaces": [
+          {
+            "type": "Kinderopvang/crèche",
+            "size_m2": 400,
+            "rationale": "Essentiële voorziening voor werkende ouders, aanvullend op bestaande (353m afstand)"
+          },
+          {
+            "type": "Gezinssupermarkt/boodschappen",
+            "size_m2": 300,
+            "rationale": "Uitbreiding van dagelijkse boodschappen (196m afstand) met gezinsfocus"
+          },
+          {
+            "type": "Speelgoed/kinderwinkel",
+            "size_m2": 150,
+            "rationale": "Gespecialiseerde retail voor gezinnen met kinderen"
+          },
+          {
+            "type": "Huisartsenpraktijk/zorg",
+            "size_m2": 200,
+            "rationale": "Aanvullende zorgverlening voor gezinnen, nabij bestaande zorg (180m)"
+          },
+          {
+            "type": "Naschoolse opvang",
+            "size_m2": 200,
+            "rationale": "Ondersteunt werkende ouders, complementair aan nabije scholen (211m)"
+          },
+          {
+            "type": "Gezinsdiensten/reparatie",
+            "size_m2": 100,
+            "rationale": "Praktische diensten voor drukke gezinnen"
+          },
+          {
+            "type": "Bakkerij/verse producten",
+            "size_m2": 100,
+            "rationale": "Dagverse producten voor gezinnen die kwaliteit waarderen"
+          },
+          {
+            "type": "Apotheek/drogisterij",
+            "size_m2": 50,
+            "rationale": "Aanvullend op bestaande zorg, praktisch voor gezinnen"
+          }
+        ],
+        "local_amenities_analysis": "Focus op gezinsondersteunende diensten die de uitstekende onderwijs- en zorgvoorzieningen aanvullen. Kinderopvang en naschoolse opvang zijn cruciaal voor werkende ouders in deze stedelijke omgeving."
+      },
+      "hospitality": {
+        "total_m2": 500,
+        "concept": "Een gezinsvriendelijk restaurant met speelhoek, gezonde kindermaaltijden en ruimte voor verjaardagsfeestjes. Biedt ook community dining opties en gezinsactiviteiten in de weekenden."
+      },
+      "social": {
+        "total_m2": 500,
+        "facilities": [
+          {
+            "type": "Buurthuis/community center",
+            "size_m2": 200,
+            "rationale": "Vergroot sociale cohesie (5,6 vs 6,4 landelijk) door gezinsgerichte activiteiten"
+          },
+          {
+            "type": "Speelzaal/kinderactiveiten",
+            "size_m2": 150,
+            "rationale": "Indoor speelruimte, belangrijk gezien beperkte speelvoorzieningen (53,5% vs 59,5%)"
+          },
+          {
+            "type": "Ouder-kind centrum",
+            "size_m2": 100,
+            "rationale": "Ondersteuning voor jonge ouders, parenting workshops en social support"
+          },
+          {
+            "type": "Huiswerkbegeleiding/studie",
+            "size_m2": 50,
+            "rationale": "Ondersteunt kinderen uit verschillende socio-economische achtergronden"
+          }
+        ]
+      },
+      "communal": {
+        "total_m2": 300,
+        "amenities": [
+          {
+            "amenity_id": "kids_playroom",
+            "amenity_name": "Kinderspeelruimte",
+            "size_m2": 80,
+            "rationale": "Essentieel voor gezinnen, veilige indoor speelruimte"
+          },
+          {
+            "amenity_id": "outdoor_playground",
+            "amenity_name": "Buitenspeeltuin",
+            "size_m2": 60,
+            "rationale": "Compenseert beperkte lokale speelvoorzieningen (53,5% waardering)"
+          },
+          {
+            "amenity_id": "community_kitchen",
+            "amenity_name": "Gemeenschapskeuken",
+            "size_m2": 50,
+            "rationale": "Voor gezinsfeesten en community dinners"
+          },
+          {
+            "amenity_id": "bbq_area",
+            "amenity_name": "BBQ/picknick area",
+            "size_m2": 40,
+            "rationale": "Buitenruimte voor gezinsactiviteiten en buurtfeesten"
+          },
+          {
+            "amenity_id": "bike_storage",
+            "amenity_name": "Fietsenstalling",
+            "size_m2": 35,
+            "rationale": "Extra ruimte voor gezinsfietsen, kinderfietsen en bakfietsen"
+          },
+          {
+            "amenity_id": "storage_units",
+            "amenity_name": "Bergruimtes",
+            "size_m2": 20,
+            "rationale": "Extra opslag voor gezinnen met veel spullen"
+          },
+          {
+            "amenity_id": "laundry_room",
+            "amenity_name": "Wasruimte",
+            "size_m2": 15,
+            "rationale": "Praktisch voor gezinnen met veel was"
+          }
+        ],
+        "persona_needs_analysis": "Voorzieningen specifiek gericht op gezinsleven en kinderen. Combineert praktische ondersteuning (opslag, was) met sociale en recreatieve faciliteiten die community building bevorderen onder gezinnen."
+      },
+      "communal_spaces": {
+        "total_m2": 300,
+        "spaces": [],
+        "category_breakdown": {}
+      },
+      "public_spaces": {
+        "total_m2": 0,
+        "spaces": [],
+        "category_breakdown": {}
+      },
+      "offices": {
+        "total_m2": 200,
+        "concept": "Flexibele werkruimtes met focus op work-life balance voor werkende ouders. Biedt mogelijkheden voor part-time kantoorgebruik en thuiswerk ondersteuning."
+      },
+      "key_insights": [
+        "Lage waardering speelvoorzieningen (53,5% vs 59,5%) vereist extra kindervoorzieningen",
+        "Beperkt aandeel gezinnen (18,97% vs 32,87% landelijk) vraagt om community building",
+        "Uitstekende scholen nabij (211m) ondersteunt gezinsaantrekkelijkheid",
+        "Lagere sociale cohesie (5,6 vs 6,4) kan verbeterd worden door gezinsgerichte activiteiten",
+        "Goede bereikbaarheid (OV 124m) ondersteunt werkende ouders"
+      ]
+    },
+    {
+      "scenario_name": "Scenario 4",
+      "scenario_simple_name": "Custom Mix",
+      "target_personas": [
+        "Jonge Starters",
+        "De Groeiers",
+        "Actieve Jonge Gezinnen",
+        "Ambitieuze Singles",
+        "De Groeigezinnen"
+      ],
+      "summary": "Een op maat samengesteld scenario gebaseerd op een specifieke selectie van doelgroepen. Deze custom mix combineert kenmerken van meerdere standaard scenario's om optimaal in te spelen op de lokale marktvraag en projectdoelstellingen. De geselecteerde doelgroepen vertegenwoordigen een evenwichtige mix van singles, koppels en gezinnen met diverse inkomens- en leeftijdsprofielen.",
+      "residential": {
+        "total_m2": 7000,
+        "total_units": 95,
+        "unit_mix": [
+          {
+            "typology_id": "studio_35",
+            "typology_name": "Studio 35m²",
+            "quantity": 15,
+            "total_m2": 525,
+            "rationale": "Voor Jonge Starters met beperkt budget"
+          },
+          {
+            "typology_id": "social_housing_50",
+            "typology_name": "Sociale huur 50m²",
+            "quantity": 12,
+            "total_m2": 600,
+            "rationale": "Sociale huurcomponent voor lagere inkomens"
+          },
+          {
+            "typology_id": "one_bed_55",
+            "typology_name": "1-kamer 55m²",
+            "quantity": 18,
+            "total_m2": 990,
+            "rationale": "Voor Ambitieuze Singles en jonge professionals"
+          },
+          {
+            "typology_id": "two_bed_75",
+            "typology_name": "2-kamer 75m²",
+            "quantity": 20,
+            "total_m2": 1500,
+            "rationale": "Voor De Groeiers en startende gezinnen"
+          },
+          {
+            "typology_id": "two_bed_85",
+            "typology_name": "2-kamer 85m²",
+            "quantity": 15,
+            "total_m2": 1275,
+            "rationale": "Voor Actieve Jonge Gezinnen"
+          },
+          {
+            "typology_id": "three_bed_95",
+            "typology_name": "3-kamer 95m²",
+            "quantity": 12,
+            "total_m2": 1140,
+            "rationale": "Voor gezinnen met kinderen"
+          },
+          {
+            "typology_id": "three_bed_110",
+            "typology_name": "3-kamer 110m²",
+            "quantity": 3,
+            "total_m2": 330,
+            "rationale": "Premium gezinswoningen voor De Groeigezinnen"
+          }
+        ],
+        "demographics_considerations": "Deze custom mix balanceert de lokale demografische samenstelling (44,46% 25-45 jaar, 53,99% alleenstaanden) met gezinsvriendelijke opties. Het aandeel sociale huur (20%) past bij de gemengde inkomensstructuur, terwijl de variatie in unitgroottes verschillende levensfasen bedient."
+      },
+      "commercial": {
+        "total_m2": 1500,
+        "spaces": [
+          {
+            "type": "Buurtwinkel/gemak",
+            "size_m2": 200,
+            "rationale": "Dagelijkse boodschappen voor diverse doelgroepen"
+          },
+          {
+            "type": "Coworking space",
+            "size_m2": 300,
+            "rationale": "Flexibele werkplekken voor professionals en thuiswerkers"
+          },
+          {
+            "type": "Kinderopvang",
+            "size_m2": 250,
+            "rationale": "Essentieel voor werkende ouders in alle doelgroepen"
+          },
+          {
+            "type": "Koffiebar/lunchroom",
+            "size_m2": 150,
+            "rationale": "Ontmoetingsplek voor bewoners en professionals"
+          },
+          {
+            "type": "Fitness/yoga studio",
+            "size_m2": 200,
+            "rationale": "Aansluitend op hoge sportparticipatie (66,4%)"
+          },
+          {
+            "type": "Zorgverlening/apotheek",
+            "size_m2": 150,
+            "rationale": "Complementair aan nabije zorgvoorzieningen"
+          },
+          {
+            "type": "Fietsenwinkel/reparatie",
+            "size_m2": 100,
+            "rationale": "Praktische dienst voor stedelijke mobiliteit"
+          },
+          {
+            "type": "Verswinkel/deli",
+            "size_m2": 150,
+            "rationale": "Kwaliteitsproducten voor diverse huishoudens"
+          }
+        ],
+        "local_amenities_analysis": "De commerciële mix combineert praktische voorzieningen voor gezinnen (kinderopvang, buurtwinkel) met lifestyle amenities voor professionals (coworking, fitness). Dit sluit aan bij de diverse samenstelling van de custom doelgroepenmix."
+      },
+      "hospitality": {
+        "total_m2": 500,
+        "concept": "Een veelzijdig restaurant/café concept dat overdag functioneert als werkplek en lunchlocatie, en 's avonds als informeel familierestaurant. Combineert een kindvriendelijke hoek met een rustige werkzone voor professionals."
+      },
+      "social": {
+        "total_m2": 500,
+        "facilities": [
+          {
+            "type": "Multifunctionele buurtruimte",
+            "size_m2": 200,
+            "rationale": "Flexibele ruimte voor community events, workshops en bijeenkomsten"
+          },
+          {
+            "type": "Speelzaal/kinderactiviteiten",
+            "size_m2": 100,
+            "rationale": "Indoor activiteiten voor kinderen uit diverse gezinnen"
+          },
+          {
+            "type": "Studie/werkruimte",
+            "size_m2": 100,
+            "rationale": "Rustige werkplek voor studenten en thuiswerkers"
+          },
+          {
+            "type": "Ouder-kind centrum",
+            "size_m2": 100,
+            "rationale": "Ondersteuning en ontmoeting voor jonge ouders"
+          }
+        ]
+      },
+      "communal": {
+        "total_m2": 300,
+        "amenities": [
+          {
+            "amenity_id": "fitness_room",
+            "amenity_name": "Fitnessruimte",
+            "size_m2": 60,
+            "rationale": "Aanvullend op hoge sportparticipatie onder bewoners"
+          },
+          {
+            "amenity_id": "community_lounge",
+            "amenity_name": "Bewonerslounge",
+            "size_m2": 50,
+            "rationale": "Ontmoetingsruimte voor community building"
+          },
+          {
+            "amenity_id": "kids_playroom",
+            "amenity_name": "Kinderspeelruimte",
+            "size_m2": 40,
+            "rationale": "Indoor spelen voor jonge kinderen"
+          },
+          {
+            "amenity_id": "rooftop_terrace",
+            "amenity_name": "Dakterras",
+            "size_m2": 60,
+            "rationale": "Gedeelde buitenruimte met uitzicht"
+          },
+          {
+            "amenity_id": "bike_storage",
+            "amenity_name": "Fietsenstalling XL",
+            "size_m2": 50,
+            "rationale": "Ruime stalling incl. bakfietsen en e-bikes"
+          },
+          {
+            "amenity_id": "package_room",
+            "amenity_name": "Pakketruimte",
+            "size_m2": 20,
+            "rationale": "Centrale aflevering voor online bestellingen"
+          },
+          {
+            "amenity_id": "guest_parking",
+            "amenity_name": "Bezoekersparkeren",
+            "size_m2": 20,
+            "rationale": "Parkeerplekken voor gasten"
+          }
+        ],
+        "persona_needs_analysis": "De gemeenschappelijke voorzieningen bedienen zowel actieve singles (fitness, lounge) als gezinnen (speelruimte, fietsenstalling). De mix bevordert community building terwijl praktische behoeften van verschillende huishoudtypes worden afgedekt."
+      },
+      "communal_spaces": {
+        "total_m2": 300,
+        "spaces": [],
+        "category_breakdown": {}
+      },
+      "public_spaces": {
+        "total_m2": 0,
+        "spaces": [],
+        "category_breakdown": {}
+      },
+      "offices": {
+        "total_m2": 200,
+        "concept": "Flexibele kantoorruimtes en hotdesks voor thuiswerkers en kleine ondernemers. Combineert individuele werkplekken met kleine vergaderruimtes, geschikt voor zowel jonge professionals als werkende ouders."
+      },
+      "key_insights": [
+        "Custom mix balanceert singles (53,99% lokaal) met gezinsvriendelijke opties",
+        "20% sociale huur sluit aan bij diverse inkomensniveaus van geselecteerde doelgroepen",
+        "Combinatie van lifestyle en praktische voorzieningen bedient brede doelgroepenmix",
+        "Community facilities belangrijk voor sociale cohesie (5,6 vs 6,4 landelijk)",
+        "Flexibele ruimtes ondersteunen diverse woon-werk patronen van doelgroepen"
+      ]
+    }
+  ],
+  "comparative_analysis": "**Scenario Vergelijking & Aanbevelingen:**\n\n**Scenario 1 (Young Urban Hub)** richt zich op de grootste doelgroep met de hoogste scores (0.42), met nadruk op betaalbaarheid en starter faciliteiten. De mix van 23% sociale huur past bij de lokale inkomensstructuur.\n\n**Scenario 2 (Professional Living)** bedient de premium markt met focus op kwaliteit en professionele ontwikkeling. Hoewel dezelfde score (0.42), richt het zich op een kleinere maar financieel sterkere doelgroep die past bij het hoge lokale inkomen (€35.400).\n\n**Scenario 3 (Family Community)** heeft de laagste score (0.41) maar bedient een belangrijke niche. Het lage aandeel gezinnen lokaal (18,97% vs 32,87% landelijk) maakt dit scenario risicovoller maar wel differentiërend.\n\n**Scenario 4 (Custom Mix)** combineert elementen van de drie standaard scenario's in een op maat gemaakte mix. Dit scenario biedt maximale flexibiliteit om in te spelen op specifieke projectvereisten en stakeholder-wensen, met een gebalanceerde benadering van singles, koppels en gezinnen.\n\n**Lokale Context Overwegingen:**\n- Hoge sportparticipatie (66,4%) ondersteunt fitness voorzieningen in alle scenarios\n- Lage sociale cohesie (5,6 vs 6,4) vraagt om community building, vooral in Scenario 3 en 4\n- Uitstekende voorzieningen basis betekent focus op kwaliteitsverbetering ipv kwantiteit\n- Beperkte budget dining (4 restaurants) creëert kansen voor food concepten\n\n**Aanbeveling:** Start met Scenario 1 vanwege beste marktfit, gevolgd door Scenario 2 voor premium segment. Scenario 3 als niche-strategie voor differentiatie in gezinsmarkt. Scenario 4 biedt maatwerk-mogelijkheden wanneer specifieke stakeholder-eisen afwijken van standaard scenario's."
+}

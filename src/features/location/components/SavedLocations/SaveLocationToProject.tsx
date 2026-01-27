@@ -5,6 +5,14 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/shared/components/UI/Button/Button';
 import { AlertDialog } from '@/shared/components/UI/Modal/AlertDialog';
 import type { Locale } from '@/lib/i18n/config';
+import { calculateResidentialScores } from '../../data/scoring/residentialScoring';
+import type { ResidentialData } from '../../data/sources/altum-ai/types';
+import type { WMSGradingData } from '../../types/wms-grading';
+import { pveConfigCache, type PVEFinalState } from '../../data/cache/pveConfigCache';
+import { calculateAllAmenityScores, type AmenityScore } from '../../data/scoring/amenityScoring';
+import type { AmenityMultiCategoryResponse } from '../../data/sources/google-places/types';
+import { validateSnapshotData } from '../../utils/jsonValidation';
+import { CURRENT_SCORING_VERSION } from '../../data/scoring/scoringVersion';
 
 interface Project {
   id: string;
@@ -19,6 +27,7 @@ interface SaveLocationToProjectProps {
   longitude: number;
   locationData?: any;
   amenitiesData?: any;
+  wmsGradingData?: WMSGradingData | null;
   onSaveSuccess?: () => void;
 }
 
@@ -29,6 +38,7 @@ export const SaveLocationToProject: React.FC<SaveLocationToProjectProps> = ({
   longitude,
   locationData,
   amenitiesData,
+  wmsGradingData,
   onSaveSuccess,
 }) => {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -97,6 +107,77 @@ export const SaveLocationToProject: React.FC<SaveLocationToProjectProps> = ({
     setIsSaving(true);
 
     try {
+      // Prepare housing data with pre-computed scores to prevent recalculation issues
+      // when loading from database (referenceHouses array may lose data during serialization)
+      let housingData = locationData?.residential || {};
+      const residential = locationData?.residential as ResidentialData | undefined;
+      if (residential?.hasData && residential?.referenceHouses?.length > 0) {
+        // Compute and store the scores now so they don't need to be recalculated
+        const precomputedScores = calculateResidentialScores(residential.referenceHouses);
+        housingData = {
+          ...residential,
+          precomputedScores, // Store the computed scores for later use
+        };
+      }
+
+      // Get PVE data from localStorage cache
+      const pveData = pveConfigCache.getFinalPVE();
+
+      // Get custom scenario selection from localStorage
+      let customScenarioIds: string[] | undefined;
+      try {
+        const stored = localStorage.getItem('grooshub_doelgroepen_scenario_selection');
+        if (stored) {
+          const { customIds } = JSON.parse(stored);
+          if (customIds && Array.isArray(customIds) && customIds.length > 0) {
+            customScenarioIds = customIds;
+          }
+        }
+      } catch (error) {
+        console.error('Failed to read custom scenario from localStorage:', error);
+      }
+
+      // Combine PVE data with custom scenario
+      const combinedPveData = {
+        ...pveData,
+        customScenarioIds, // Include custom scenario selection
+      };
+
+      // Pre-compute amenity scores to ensure consistency on load
+      // The raw amenities data is saved, but we also save the computed scores
+      let enrichedAmenitiesData = amenitiesData || {};
+      if (amenitiesData?.results && Array.isArray(amenitiesData.results)) {
+        const precomputedAmenityScores = calculateAllAmenityScores(amenitiesData.results);
+
+        // Calculate the overall voorzieningen score (same formula as UI)
+        const rawScore = precomputedAmenityScores.reduce((sum: number, score: AmenityScore) => {
+          return sum + score.countScore + score.proximityBonus;
+        }, 0);
+        const voorzieningenScore = Math.round(((rawScore + 21) / 63) * 90 + 10);
+
+        enrichedAmenitiesData = {
+          ...amenitiesData,
+          precomputedScores: precomputedAmenityScores,
+          voorzieningenScore: Math.max(10, Math.min(100, voorzieningenScore)),
+        };
+      }
+
+      // Validate data before saving (Phase 3.1: JSON round-trip validation)
+      const validationResult = validateSnapshotData({
+        demographicsData: locationData?.demographics,
+        healthData: locationData?.health,
+        safetyData: locationData?.safety,
+        livabilityData: locationData?.livability,
+        amenitiesData: enrichedAmenitiesData,
+        housingData: housingData,
+        wmsGradingData: wmsGradingData || undefined,
+        pveData: pveData || undefined,
+      });
+
+      if (!validationResult.isValid) {
+        console.warn('Snapshot data validation warnings:', validationResult.fieldResults);
+      }
+
       const response = await fetch('/api/location/snapshots', {
         method: 'POST',
         headers: {
@@ -111,8 +192,11 @@ export const SaveLocationToProject: React.FC<SaveLocationToProjectProps> = ({
           health_data: locationData?.health || {},
           safety_data: locationData?.safety || {},
           livability_data: locationData?.livability || {},
-          amenities_data: amenitiesData || [],
-          housing_data: locationData?.residential || {},
+          amenities_data: enrichedAmenitiesData,
+          housing_data: housingData,
+          wms_grading_data: wmsGradingData || null,
+          pve_data: combinedPveData || null,
+          scoring_algorithm_version: CURRENT_SCORING_VERSION,
           notes: null,
           tags: [],
         }),

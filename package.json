@@ -38,6 +38,7 @@
     "dotenv": "^17.2.3",
     "fast-xml-parser": "^5.3.2",
     "gpt-tokenizer": "^3.4.0",
+    "html2canvas": "^1.4.1",
     "jspdf": "^3.0.3",
     "jszip": "^3.10.1",
     "leaflet": "^1.9.4",

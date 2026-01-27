@@ -170,17 +170,38 @@ export function ProjectLocations({ projectId, locale }: ProjectLocationsProps) {
       const { data: snapshotData } = await res.json();
 
       // Store snapshot data in sessionStorage for the location page to retrieve
+      // Structure must match UnifiedLocationData with location.coordinates.wgs84 nesting
+      // Ensure coordinates are numbers (they may come as strings from JSON/database)
+      const latitude = typeof snapshotData.latitude === 'string'
+        ? parseFloat(snapshotData.latitude)
+        : Number(snapshotData.latitude) || 0;
+      const longitude = typeof snapshotData.longitude === 'string'
+        ? parseFloat(snapshotData.longitude)
+        : Number(snapshotData.longitude) || 0;
+
       sessionStorage.setItem('grooshub_load_snapshot', JSON.stringify({
         snapshotId: snapshotData.id, // Include snapshot ID for WMS grading
         projectId: snapshotData.project_id, // Include project ID for AI assistant chats
         address: snapshotData.address,
         locationData: {
-          address: snapshotData.address,
-          latitude: snapshotData.latitude,
-          longitude: snapshotData.longitude,
-          neighborhood: snapshotData.neighborhood_code ? { statcode: snapshotData.neighborhood_code } : null,
-          district: snapshotData.district_code ? { statcode: snapshotData.district_code } : null,
-          municipality: snapshotData.municipality_code ? { statcode: snapshotData.municipality_code } : null,
+          // Location data with proper coordinate nesting
+          location: {
+            address: snapshotData.address,
+            coordinates: {
+              wgs84: {
+                latitude,
+                longitude,
+              },
+              rd: {
+                x: 0,
+                y: 0,
+              }
+            },
+            neighborhood: snapshotData.neighborhood_code ? { statcode: snapshotData.neighborhood_code } : null,
+            district: snapshotData.district_code ? { statcode: snapshotData.district_code } : null,
+            municipality: snapshotData.municipality_code ? { statcode: snapshotData.municipality_code } : null,
+          },
+          // Data sections at root level
           demographics: snapshotData.demographics_data || {},
           health: snapshotData.health_data || {},
           safety: snapshotData.safety_data || {},
