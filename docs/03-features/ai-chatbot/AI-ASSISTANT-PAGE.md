@@ -2248,10 +2248,4 @@ The AI Assistant requires these environment variables to function:
 
 ---
 
-## Related Documentation
-
-- [Memory System](./memory-system.md)
-- [Multimodal Support](./multimodal-support.md)
-- [Model Configuration](./model-config.md)
-- [Database Schema](/docs/07-database/current-schema.md)
-- [API Reference](/docs/04-api-reference/endpoints.md)
+*This document is self-contained and covers all AI Assistant functionality. For codebase-wide guidance, see [CLAUDE.md](/CLAUDE.md).*
