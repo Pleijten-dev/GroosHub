@@ -1,7 +1,7 @@
 # Location Page - Complete Technical Documentation
 
 > **Last Updated**: 2025-01-27
-> **Version**: 2.0.0 (Verified)
+> **Version**: 2.1.0 (Triple-Verified)
 > **Status**: Definitive Reference - Verified Against Codebase
 > **Supersedes**: All previous location-related documentation files
 
@@ -466,7 +466,7 @@ interface ParsedValue {
 
 ### 4.3 Demographics Parser
 
-**File**: `src/features/location/data/parsers/DemographicsParser.ts`
+**File**: `src/features/location/data/parsers/demographicsParser.ts`
 
 **Purpose**: Transforms raw CBS demographics data
 
@@ -1735,15 +1735,15 @@ const coordinates = useMemo<[number, number]>(() => {
 
 | Directory | Components | Count |
 |-----------|------------|-------|
-| `components/AddressAutocomplete/` | Address search | 2 |
-| `components/Amenities/` | Amenity display | 6 |
-| `components/Demographics/` | Demographics | 4 |
-| `components/Doelgroepen/` | Target groups | 5 |
-| `components/DoelgroepenResult/` | Scenario display | 6 |
+| `components/AddressAutocomplete/` | Address search | 1 |
+| `components/Amenities/` | Amenity display | 7 |
+| `components/Demographics/` | Demographics | 2 |
+| `components/Doelgroepen/` | Target groups | 6 |
+| `components/DoelgroepenResult/` | Scenario display | 5 |
 | `components/ExportButton/` | Export buttons | 7 |
 | `components/Maps/` | Map components | 8 |
-| `components/PVE/` | Questionnaire | 4 |
-| `components/Residential/` | Housing market | 3 |
+| `components/PVE/` | Questionnaire | 2 |
+| `components/Residential/` | Housing market | 9 |
 | `components/Safety/` | Safety display | 2 |
 | `components/Health/` | Health display | 2 |
 | `components/Livability/` | Livability display | 2 |
@@ -1992,8 +1992,7 @@ src/app/[locale]/location/
 ```
 src/features/location/components/
 ├── AddressAutocomplete/
-│   ├── AddressAutocomplete.tsx
-│   └── index.ts
+│   └── AddressAutocomplete.tsx
 ├── Amenities/
 │   ├── AmenitiesGrid.tsx
 │   ├── AmenitiesSummary.tsx
@@ -2060,6 +2059,7 @@ src/features/location/components/
 │   └── index.ts
 ├── Maps/
 │   ├── LocationMap.tsx
+│   ├── LocationMap.module.css            # Styles for LocationMap
 │   ├── WMSGradingScoreCard.tsx
 │   ├── WMSLayerControl.tsx
 │   ├── WMSLayerScoreCard.tsx
@@ -2104,7 +2104,7 @@ src/features/location/components/
     └── index.ts
 ```
 
-### A.3 Data Layer Files (Verified - 39 files)
+### A.3 Data Layer Files (Verified - 47 files, includes JSON data files)
 ```
 src/features/location/data/
 ├── aggregator/
@@ -2126,6 +2126,7 @@ src/features/location/data/
 │   ├── livabilityParser.ts
 │   ├── safetyParser.ts
 │   ├── scoring.ts
+│   ├── scoring-config.json               # Scoring overrides
 │   ├── types.ts
 │   └── index.ts
 ├── scoring/
@@ -2137,6 +2138,13 @@ src/features/location/data/
 └── sources/
     ├── WMSSamplingService.ts
     ├── wmsGradingConfig.ts
+    ├── building-amenities.json          # Building amenity definitions
+    ├── communal-spaces.json             # Communal space definitions
+    ├── housing-personas.json            # 27 housing personas data
+    ├── housing-typologies.json          # Housing type definitions
+    ├── property-type-mapping.json       # Property type mappings
+    ├── public-spaces.json               # Public space definitions
+    ├── target-group-scoring-map.json    # Target group scoring weights
     ├── altum-ai/
     │   ├── client.ts                     # Class: AltumAIClient
     │   ├── parser.ts
