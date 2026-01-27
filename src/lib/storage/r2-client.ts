@@ -9,9 +9,16 @@
  * - Presigned URLs with expiration (1 hour default)
  * - Structured file paths: users/{userId}/chats/{chatId}/messages/{messageId}/{timestamp}-{filename}
  * - Support for images and PDFs
- * - Server-side encryption using AES-256-GCM (when ENCRYPTION_MASTER_KEY is set)
+ *
+ * Encryption Strategy:
+ * - Server-routed uploads (uploadFileToR2): Additional AES-256-GCM encryption when
+ *   ENCRYPTION_MASTER_KEY is set. Files are encrypted before upload and decrypted on retrieval.
+ * - Presigned URL uploads: Rely on R2's built-in encryption at rest (AES-256).
+ *   This is necessary for large files (>4.5MB) that exceed Vercel's serverless limit.
+ * - All files in R2 are encrypted at rest by Cloudflare regardless of upload method.
  *
  * Documentation:
+ * - R2 Encryption: https://developers.cloudflare.com/r2/reference/data-security/
  * - Presigned URLs: https://developers.cloudflare.com/r2/api/s3/presigned-urls/
  * - AWS SDK v3: https://developers.cloudflare.com/r2/examples/aws/aws-sdk-js-v3/
  */
@@ -176,6 +183,11 @@ export async function getPresignedUrl(
  *
  * This allows clients to upload files directly to R2 without passing through our API,
  * bypassing Vercel's 4.5MB serverless function body limit.
+ *
+ * Security Note: Files uploaded via presigned URLs are protected by R2's built-in
+ * encryption at rest (AES-256) but do NOT receive additional application-layer
+ * encryption. This is acceptable for shared project files where multiple users
+ * need access, and R2's encryption provides adequate protection.
  *
  * @param key - Storage key where file will be uploaded
  * @param contentType - MIME type of the file
