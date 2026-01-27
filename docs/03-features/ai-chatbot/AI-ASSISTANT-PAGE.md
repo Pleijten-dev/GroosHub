@@ -1883,7 +1883,7 @@ src/features/chat/
 └── tools/taskTools.ts           # Task management tools
 ```
 
-### AI Assistant Feature (15 files)
+### AI Assistant Feature (19 files)
 
 ```
 src/features/ai-assistant/
@@ -1910,10 +1910,10 @@ src/features/ai-assistant/
 ├── utils/
 │   ├── aiToolsPayloadBuilder.ts # Tool payload builder
 │   └── index.ts
-└── index.ts
+└── index.ts                     # Feature exports
 ```
 
-### API Routes (17+ files)
+### API Routes (20+ files)
 
 ```
 src/app/api/
@@ -1949,14 +1949,35 @@ src/app/api/
     └── execute-tool/route.ts    # Tool execution
 ```
 
-### Library Files (8 files)
+### Library Files (22+ files in lib/ai/)
 
 ```
 src/lib/ai/
 ├── chat-store.ts                # Chat persistence (~530 lines)
 ├── models.ts                    # Model configuration
 ├── memory-store.ts              # Memory utilities
-└── memory-analyzer.ts           # Background analysis
+├── memory-analyzer.ts           # Background analysis
+├── memory-prompts.ts            # Memory prompt templates
+├── conversation-analyzer.ts     # Conversation analysis
+├── summary-store.ts             # Summary storage
+├── embeddings/
+│   └── embedder.ts              # Vector embeddings generation
+├── document-processing/
+│   ├── document-processor.ts    # Main document processor
+│   ├── document-metadata-generator.ts
+│   ├── text-chunker.ts          # Text chunking for RAG
+│   ├── text-extractor.ts        # Extract text from files
+│   ├── legal-chunker.ts         # Legal document chunking
+│   ├── legal-enhancer.ts        # Legal text enhancement
+│   ├── llm-table-enricher.ts    # Table extraction with LLM
+│   ├── xml-document-processor.ts
+│   └── xml-table-parser.ts
+└── rag/
+    ├── retriever.ts             # Vector similarity retrieval
+    ├── legal-agent.ts           # Legal document agent
+    ├── legal-agent-v5.ts        # Legal agent v5
+    ├── multi-hop-retriever.ts   # Multi-hop retrieval
+    └── processing-pipeline.ts   # RAG processing pipeline
 
 src/lib/storage/
 ├── r2-client.ts                 # Cloudflare R2 client
@@ -1964,7 +1985,42 @@ src/lib/storage/
 
 src/lib/db/queries/
 ├── chats.ts                     # Chat queries
-└── files.ts                     # File queries
+├── files.ts                     # File queries
+├── project-doc-chunks.ts        # RAG chunk queries
+├── locations.ts                 # Location queries (for tools)
+├── projects.ts                  # Project queries
+└── index.ts                     # Query exports
+```
+
+### Shared Components Used
+
+The AI Assistant uses these shared UI components:
+
+```typescript
+// From @/shared/components/UI/
+import { Button } from '@/shared/components/UI/Button/Button';
+import { Card } from '@/shared/components/UI/Card/Card';
+import { MainLayout } from '@/shared/components/UI/MainLayout';
+import { MessageInput } from '@/shared/components/UI/MessageInput';
+import { MiniCalendar } from '@/shared/components/UI/MiniCalendar';
+
+// From @/shared/components/common/
+import RadialChart from '@/shared/components/common/RadialChart/RadialChart';
+import BarChart from '@/shared/components/common/BarChart/BarChart';
+import DensityChart from '@/shared/components/common/DensityChart/DensityChart';
+import { HorizontalStackedBarChart } from '@/shared/components/common/HorizontalStackedBarChart';
+```
+
+### Additional API Routes (Project Files & Rapport)
+
+```
+src/app/api/projects/[id]/files/
+├── route.ts                     # List/upload project files
+└── [fileId]/
+    └── process/route.ts         # Process uploaded file for RAG
+
+src/app/api/rapport/
+└── upload-pdf/route.ts          # Upload PDF for rapport generation
 ```
 
 ---
