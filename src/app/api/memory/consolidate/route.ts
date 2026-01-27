@@ -4,13 +4,12 @@
  *
  * This endpoint is triggered by cron job daily at 11:00 PM to:
  * 1. FIRST: Summarize all inactive chats (1+ hours inactive)
- * 2. THEN: Consolidate daily summaries into user memory
+ * 2. THEN: Consolidate daily summaries into user memory with confidence scoring
  *
  * Combined into one endpoint due to Vercel Hobby plan limitation (daily crons only).
  * Pro plan users can run /api/summaries/inactivity separately for hourly execution.
  *
- * This provides a holistic daily view of user interactions,
- * improving memory quality vs. per-conversation updates.
+ * Updated to use the 3-tier memory system with confidence-based preferences.
  *
  * Security:
  * - Requires admin role OR valid cron secret
@@ -20,24 +19,38 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getDbConnection } from '@/lib/db/connection';
 import {
-  getUserMemory,
-  updateUserMemory,
-  createUserMemory,
-  formatMemoryForPrompt
-} from '@/lib/ai/memory-store';
+  getPersonalMemory,
+  updatePreference,
+  updateIdentity,
+} from '@/features/ai-assistant/lib/personal-memory-store';
 import { generateText } from 'ai';
 import { getModel } from '@/lib/ai/models';
 
 interface ConsolidationResult {
   userId: number;
   summariesProcessed: number;
+  preferencesExtracted: number;
   memoryUpdated: boolean;
   error?: string;
 }
 
+interface ExtractedPreference {
+  key: string;
+  value: string;
+  isExplicit: boolean;
+}
+
+interface ExtractedData {
+  preferences: ExtractedPreference[];
+  identity: {
+    name?: string;
+    position?: string;
+  } | null;
+}
+
 /**
  * POST /api/memory/consolidate
- * Process daily summaries and update user memories
+ * Process daily summaries and update user memories with confidence scoring
  */
 export async function POST(request: NextRequest) {
   try {
@@ -123,7 +136,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 3. Process each user
+    // 4. Process each user
     const results: ConsolidationResult[] = [];
 
     for (const user of usersWithActivity) {
@@ -136,7 +149,8 @@ export async function POST(request: NextRequest) {
             cs.summary_text,
             cs.key_points,
             cs.created_at,
-            cc.title as chat_title
+            cc.title as chat_title,
+            cc.id as chat_id
           FROM chat_summaries cs
           INNER JOIN chat_conversations cc ON cc.id = cs.chat_id
           WHERE cc.user_id = ${user.user_id}
@@ -151,66 +165,72 @@ export async function POST(request: NextRequest) {
           summary_text: string;
           key_points: unknown;
           chat_title: string | null;
+          chat_id: string;
         }>;
 
         if (todaySummaries.length === 0) {
           results.push({
             userId: user.user_id,
             summariesProcessed: 0,
+            preferencesExtracted: 0,
             memoryUpdated: false,
             error: 'No summaries found'
           });
           continue;
         }
 
-        // Get current user memory
-        const currentMemory = await getUserMemory(user.user_id);
-        const currentMemoryText = formatMemoryForPrompt(currentMemory);
+        // Get current user memory for context
+        const currentMemory = await getPersonalMemory(user.user_id);
 
-        // Generate consolidated memory update
-        const updatedMemoryContent = await consolidateSummariesIntoMemory(
+        // Extract preferences with confidence using LLM
+        const extractedData = await extractPreferencesFromSummaries(
           todaySummaries,
-          currentMemoryText
+          currentMemory
         );
 
-        // Check if memory actually changed
-        if (updatedMemoryContent === currentMemoryText || updatedMemoryContent.trim() === '') {
-          console.log(`[Memory Consolidation] No changes for user ${user.user_id}`);
+        if (!extractedData || (extractedData.preferences.length === 0 && !extractedData.identity)) {
+          console.log(`[Memory Consolidation] No extractable data for user ${user.user_id}`);
           results.push({
             userId: user.user_id,
             summariesProcessed: todaySummaries.length,
+            preferencesExtracted: 0,
             memoryUpdated: false,
-            error: 'No new information to add'
+            error: 'No new preferences found'
           });
           continue;
         }
 
-        // Update memory in database
-        if (currentMemory.memory_content === '') {
-          await createUserMemory({
-            userId: user.user_id,
-            memoryContent: updatedMemoryContent
-          });
-        } else {
-          await updateUserMemory({
-            userId: user.user_id,
-            memoryContent: updatedMemoryContent,
-            changeSummary: `Daily consolidation: ${todaySummaries.length} summaries analyzed`,
-            changeType: 'modification',
-            triggerSource: 'system',
-            metadata: {
-              summariesCount: todaySummaries.length,
-              date: new Date().toISOString().split('T')[0]
-            }
-          });
+        // Update identity if found
+        if (extractedData.identity) {
+          await updateIdentity(user.user_id, extractedData.identity);
+          console.log(`[Memory Consolidation] Updated identity for user ${user.user_id}`);
         }
 
-        console.log(`[Memory Consolidation] ✓ Updated memory for user ${user.user_id}`);
+        // Update preferences with confidence scoring
+        let preferencesUpdated = 0;
+        for (const pref of extractedData.preferences) {
+          try {
+            await updatePreference({
+              userId: user.user_id,
+              key: pref.key,
+              value: pref.value,
+              source: 'system',
+              sourceRef: `daily-consolidation-${new Date().toISOString().split('T')[0]}`,
+              isExplicit: pref.isExplicit,
+            });
+            preferencesUpdated++;
+          } catch (error) {
+            console.warn(`[Memory Consolidation] Failed to update preference ${pref.key}:`, error);
+          }
+        }
+
+        console.log(`[Memory Consolidation] ✓ Updated ${preferencesUpdated} preferences for user ${user.user_id}`);
 
         results.push({
           userId: user.user_id,
           summariesProcessed: todaySummaries.length,
-          memoryUpdated: true
+          preferencesExtracted: preferencesUpdated,
+          memoryUpdated: preferencesUpdated > 0 || !!extractedData.identity
         });
 
       } catch (error) {
@@ -218,27 +238,31 @@ export async function POST(request: NextRequest) {
         results.push({
           userId: user.user_id,
           summariesProcessed: 0,
+          preferencesExtracted: 0,
           memoryUpdated: false,
           error: error instanceof Error ? error.message : 'Unknown error'
         });
       }
     }
 
-    // 4. Return results
+    // 5. Return results
     const successCount = results.filter(r => r.memoryUpdated).length;
     const failureCount = results.filter(r => !r.memoryUpdated).length;
+    const totalPreferences = results.reduce((sum, r) => sum + r.preferencesExtracted, 0);
 
-    console.log(`[Memory Consolidation] Complete - ${successCount} updated, ${failureCount} failed/skipped`);
+    console.log(`[Memory Consolidation] Complete - ${successCount} users updated, ${totalPreferences} preferences extracted, ${failureCount} skipped`);
 
     return NextResponse.json({
       success: true,
       message: `Processed ${usersWithActivity.length} users`,
       processed: usersWithActivity.length,
       memoryUpdates: successCount,
+      preferencesExtracted: totalPreferences,
       skipped: failureCount,
       results: results.map(r => ({
         userId: r.userId,
         summariesProcessed: r.summariesProcessed,
+        preferencesExtracted: r.preferencesExtracted,
         memoryUpdated: r.memoryUpdated,
         error: r.error
       }))
@@ -258,16 +282,18 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Consolidate daily summaries into updated memory
+ * Extract preferences from daily summaries using LLM
+ * Returns preferences with explicit/implicit classification
  */
-async function consolidateSummariesIntoMemory(
+async function extractPreferencesFromSummaries(
   summaries: Array<{
     summary_text: string;
     key_points: unknown;
     chat_title: string | null;
+    chat_id: string;
   }>,
-  currentMemory: string
-): Promise<string> {
+  currentMemory: { preferences: Array<{ key: string; value: string }> }
+): Promise<ExtractedData | null> {
   // Format summaries for LLM
   const formattedSummaries = summaries
     .map((s, index) => {
@@ -279,41 +305,75 @@ async function consolidateSummariesIntoMemory(
     })
     .join('\n\n---\n\n');
 
-  const prompt = `You are analyzing a user's conversations from today to update their personalized memory profile.
+  // Format existing preferences for context
+  const existingPrefs = currentMemory.preferences
+    .map(p => `- ${p.key}: ${p.value}`)
+    .join('\n') || 'None yet';
 
-## Current Memory
-${currentMemory || 'No existing memory yet.'}
+  const prompt = `Analyze these conversation summaries to extract user preferences.
+
+## Existing Preferences
+${existingPrefs}
 
 ## Today's Conversation Summaries
 ${formattedSummaries}
 
 ## Task
+Extract NEW preferences from these summaries. For each preference, determine:
+1. The category (key): writing_style, language, format, topic_interest, workflow, technical_preference, etc.
+2. The value: What the preference actually is
+3. Whether it's EXPLICIT (user directly stated it) or IMPLICIT (inferred from behavior)
 
-Analyze these summaries and update the user memory. Focus on:
+Also extract any identity information if the user mentioned their name or role/position.
 
-1. **User Preferences**: What does the user like/dislike? What are their goals?
-2. **Patterns**: How does the user interact? What topics interest them?
-3. **Context**: Current projects, focus areas, or ongoing work
-4. **Learning**: What have you learned about the user's needs?
+**Important**:
+- Only extract HIGH-CONFIDENCE preferences
+- Don't repeat preferences that already exist unless they've changed
+- Focus on actionable preferences that will help personalize future conversations
 
-**Important Guidelines**:
-- Keep the memory concise (~500 tokens / 2000 characters max)
-- Only include information that will help personalize future conversations
-- Merge new insights with existing memory (don't lose important old information)
-- Remove outdated or irrelevant information
-- Be specific and actionable
-- Use bullet points or short paragraphs
+Return ONLY valid JSON in this exact format:
+{
+  "preferences": [
+    {"key": "category", "value": "the preference", "isExplicit": true/false}
+  ],
+  "identity": {"name": "user's name if mentioned", "position": "user's role if mentioned"} or null
+}`;
 
-Return ONLY the updated memory text (no JSON, no markdown headers):`;
+  try {
+    const model = getModel('claude-haiku-3.5');
+    const result = await generateText({
+      model,
+      prompt,
+      temperature: 0.3,
+    });
 
-  const model = getModel('claude-haiku-3.5');
-  const result = await generateText({
-    model,
-    prompt,
-    temperature: 0.3,
-  });
+    // Parse JSON response
+    const jsonMatch = result.text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.warn('[Memory Consolidation] No JSON found in LLM response');
+      return null;
+    }
 
-  return result.text.trim();
+    const parsed = JSON.parse(jsonMatch[0]);
+
+    return {
+      preferences: Array.isArray(parsed.preferences)
+        ? parsed.preferences.filter(
+            (p: ExtractedPreference) => p.key && p.value && typeof p.isExplicit === 'boolean'
+          )
+        : [],
+      identity: parsed.identity && (parsed.identity.name || parsed.identity.position)
+        ? {
+            name: parsed.identity.name || undefined,
+            position: parsed.identity.position || undefined,
+          }
+        : null,
+    };
+
+  } catch (error) {
+    console.error('[Memory Consolidation] Failed to extract preferences:', error);
+    return null;
+  }
 }
 
 /**

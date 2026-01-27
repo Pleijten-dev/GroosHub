@@ -1,10 +1,12 @@
 /**
- * User Memory API
- * Manages user-specific LLM memory for personalized responses
+ * User Memory API (Legacy Compatibility Layer)
+ *
+ * DEPRECATED: This endpoint provides backwards compatibility.
+ * New code should use /api/memory/personal for personal memory.
  *
  * Endpoints:
- * - GET /api/memory - Get current user memory
- * - POST /api/memory/analyze - Analyze conversation and update memory
+ * - GET /api/memory - Get current user memory (redirects to new system)
+ * - POST /api/memory - Analyze conversation and update memory
  * - PUT /api/memory - Manually update memory
  * - DELETE /api/memory - Delete memory (GDPR compliance)
  */
@@ -12,23 +14,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import {
-  getUserMemory,
-  updateUserMemory,
-  createUserMemory,
-  deleteUserMemory,
-  getMemoryHistory,
-  formatMemoryForPrompt
-} from '@/lib/ai/memory-store';
-import { getMemoryExtractionPrompt } from '@/lib/ai/memory-prompts';
-import { getModel, type ModelId } from '@/lib/ai/models';
-import { generateText, type UIMessage } from 'ai';
+  getPersonalMemory,
+  updateIdentity,
+  addPreferenceManually,
+  clearPersonalMemory,
+  formatPersonalMemoryForPrompt,
+} from '@/features/ai-assistant/lib/personal-memory-store';
+import { queuePreferenceAnalysis } from '@/features/ai-assistant/lib/preference-analyzer';
+import type { UIMessage } from 'ai';
 import { z } from 'zod';
 
 // ============================================
-// GET - Retrieve user memory
+// GET - Retrieve user memory (DEPRECATED)
 // ============================================
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Check authentication
     const session = await auth();
@@ -41,23 +41,38 @@ export async function GET(request: NextRequest) {
 
     const userId = session.user.id;
 
-    // Get memory
-    const memory = await getUserMemory(userId);
+    console.log('[Memory API] ⚠️ DEPRECATED: Use /api/memory/personal instead');
 
+    // Get memory using new system
+    const memory = await getPersonalMemory(userId);
+    const formatted = formatPersonalMemoryForPrompt(memory);
+
+    // Map to legacy response format for backwards compatibility
     return NextResponse.json({
       success: true,
       data: {
-        memory_content: memory.memory_content,
-        user_name: memory.user_name,
-        user_role: memory.user_role,
-        preferences: memory.preferences,
-        interests: memory.interests,
-        patterns: memory.patterns,
-        context: memory.context,
-        token_count: memory.token_count,
-        total_updates: memory.total_updates,
-        last_analysis_at: memory.last_analysis_at,
-        formatted: formatMemoryForPrompt(memory)
+        // Legacy format fields
+        memory_content: formatted,
+        user_name: memory.identity?.name || null,
+        user_role: memory.identity?.position || null,
+        preferences: memory.preferences.reduce((acc, p) => {
+          acc[p.key] = p.value;
+          return acc;
+        }, {} as Record<string, string>),
+        interests: [],
+        patterns: [],
+        context: [],
+        token_count: memory.tokenEstimate,
+        total_updates: memory.preferences.reduce((sum, p) => sum + p.reinforcements, 0),
+        last_analysis_at: memory.lastSynthesizedAt,
+        formatted,
+        // New system fields for reference
+        _newSystem: {
+          identity: memory.identity,
+          preferences: memory.preferences,
+          memoryContent: memory.memoryContent,
+          tokenEstimate: memory.tokenEstimate,
+        }
       }
     });
 
@@ -104,83 +119,34 @@ export async function POST(request: NextRequest) {
 
     const messages = validated.messages as UIMessage[];
     const locale = validated.locale || 'nl';
-    const modelId = (validated.modelId || 'claude-haiku-3.5') as ModelId;
+    const chatId = validated.chatId;
 
-    console.log(`[Memory API] 🧠 Analyzing ${messages.length} messages for user ${userId}`);
+    console.log(`[Memory API] ⚠️ DEPRECATED: Using new preference analyzer for ${messages.length} messages`);
+
+    // Queue preference analysis using new system
+    // This uses the confidence-based 3-tier memory system
+    if (chatId) {
+      queuePreferenceAnalysis({
+        messages,
+        userId,
+        chatId,
+        locale,
+      });
+    }
 
     // Get current memory
-    const currentMemory = await getUserMemory(userId);
-    const currentMemoryText = formatMemoryForPrompt(currentMemory);
-
-    // Generate memory extraction prompt
-    const extractionPrompt = getMemoryExtractionPrompt(
-      messages,
-      currentMemoryText,
-      locale
-    );
-
-    // Use LLM to analyze conversation and extract memory
-    const model = getModel(modelId);
-    const result = await generateText({
-      model,
-      prompt: extractionPrompt,
-      temperature: 0.3, // Lower temperature for more consistent extraction
-    });
-
-    const updatedMemoryContent = result.text.trim();
-
-    console.log(`[Memory API] 📝 Extracted memory (${updatedMemoryContent.length} chars)`);
-
-    // Check if memory actually changed
-    if (updatedMemoryContent === currentMemoryText) {
-      console.log('[Memory API] ℹ️  No changes detected in memory');
-      return NextResponse.json({
-        success: true,
-        updated: false,
-        message: 'No new information to add to memory',
-        data: {
-          memory_content: currentMemoryText,
-          token_count: currentMemory.token_count
-        }
-      });
-    }
-
-    // Update memory in database
-    if (currentMemory.memory_content === '') {
-      // Create initial memory
-      await createUserMemory({
-        userId,
-        memoryContent: updatedMemoryContent
-      });
-      console.log('[Memory API] ✅ Created initial memory');
-    } else {
-      // Update existing memory
-      await updateUserMemory({
-        userId,
-        memoryContent: updatedMemoryContent,
-        changeSummary: 'Updated from conversation analysis',
-        changeType: 'modification',
-        triggerSource: 'chat',
-        triggerId: validated.chatId,
-        metadata: {
-          modelId,
-          messageCount: messages.length
-        }
-      });
-      console.log('[Memory API] ✅ Updated memory');
-    }
-
-    // Get updated memory
-    const newMemory = await getUserMemory(userId);
+    const memory = await getPersonalMemory(userId);
+    const formatted = formatPersonalMemoryForPrompt(memory);
 
     return NextResponse.json({
       success: true,
       updated: true,
+      message: 'Analysis queued using new confidence-based system',
       data: {
-        memory_content: newMemory.memory_content,
-        token_count: newMemory.token_count,
-        total_updates: newMemory.total_updates,
-        last_analysis_at: newMemory.last_analysis_at
+        memory_content: formatted,
+        token_count: memory.tokenEstimate,
+        total_updates: memory.preferences.reduce((sum, p) => sum + p.reinforcements, 0),
+        last_analysis_at: memory.lastSynthesizedAt
       }
     });
 
@@ -210,26 +176,14 @@ export async function POST(request: NextRequest) {
 }
 
 // ============================================
-// PUT - Manually update memory
+// PUT - Manually update memory (DEPRECATED)
 // ============================================
 
 const updateRequestSchema = z.object({
-  memory_content: z.string().min(0).max(2000), // Max ~500 tokens
+  memory_content: z.string().min(0).max(2000).optional(),
   user_name: z.string().optional(),
   user_role: z.string().optional(),
   preferences: z.record(z.string(), z.unknown()).optional(),
-  interests: z.array(z.string()).optional(),
-  patterns: z.array(z.object({
-    type: z.string(),
-    description: z.string(),
-    frequency: z.number().optional(),
-    examples: z.array(z.string()).optional()
-  })).optional(),
-  context: z.array(z.object({
-    key: z.string(),
-    value: z.string(),
-    expires_at: z.string().optional()
-  })).optional()
 });
 
 export async function PUT(request: NextRequest) {
@@ -249,62 +203,38 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const validated = updateRequestSchema.parse(body);
 
-    console.log(`[Memory API] 📝 Manually updating memory for user ${userId}`);
+    console.log(`[Memory API] ⚠️ DEPRECATED: Manually updating memory for user ${userId}`);
 
-    // Get current memory
-    const currentMemory = await getUserMemory(userId);
-
-    // Update memory
-    if (currentMemory.memory_content === '' && validated.memory_content === '') {
-      // No memory exists and no content provided - do nothing
-      return NextResponse.json({
-        success: true,
-        message: 'No memory to update',
-        data: { memory_content: '', token_count: 0 }
+    // Update identity if provided
+    if (validated.user_name || validated.user_role) {
+      await updateIdentity(userId, {
+        name: validated.user_name,
+        position: validated.user_role
       });
     }
 
-    if (currentMemory.memory_content === '') {
-      // Create initial memory
-      await createUserMemory({
-        userId,
-        memoryContent: validated.memory_content,
-        userName: validated.user_name,
-        userRole: validated.user_role,
-        preferences: validated.preferences,
-        interests: validated.interests,
-        patterns: validated.patterns,
-        context: validated.context
-      });
-    } else {
-      // Update existing memory
-      await updateUserMemory({
-        userId,
-        memoryContent: validated.memory_content,
-        changeSummary: 'Manual update via API',
-        changeType: 'manual',
-        triggerSource: 'api',
-        userName: validated.user_name,
-        userRole: validated.user_role,
-        preferences: validated.preferences,
-        interests: validated.interests,
-        patterns: validated.patterns,
-        context: validated.context
-      });
+    // Update preferences if provided
+    if (validated.preferences) {
+      for (const [key, value] of Object.entries(validated.preferences)) {
+        if (typeof value === 'string') {
+          await addPreferenceManually(userId, key, value);
+        }
+      }
     }
 
-    console.log('[Memory API] ✅ Memory updated manually');
+    console.log('[Memory API] ✅ Memory updated via legacy endpoint');
 
     // Get updated memory
-    const newMemory = await getUserMemory(userId);
+    const memory = await getPersonalMemory(userId);
+    const formatted = formatPersonalMemoryForPrompt(memory);
 
     return NextResponse.json({
       success: true,
       data: {
-        memory_content: newMemory.memory_content,
-        token_count: newMemory.token_count,
-        total_updates: newMemory.total_updates,
-        last_analysis_at: newMemory.last_analysis_at
+        memory_content: formatted,
+        token_count: memory.tokenEstimate,
+        total_updates: memory.preferences.reduce((sum, p) => sum + p.reinforcements, 0),
+        last_analysis_at: memory.lastSynthesizedAt
       }
     });
 
@@ -337,7 +267,7 @@ export async function PUT(request: NextRequest) {
 // DELETE - Delete memory (GDPR compliance)
 // ============================================
 
-export async function DELETE(request: NextRequest) {
+export async function DELETE() {
   try {
     // Check authentication
     const session = await auth();
@@ -350,9 +280,10 @@ export async function DELETE(request: NextRequest) {
 
     const userId = session.user.id;
 
-    console.log(`[Memory API] 🗑️  Deleting memory for user ${userId}`);
+    console.log(`[Memory API] 🗑️ Deleting memory for user ${userId}`);
 
-    await deleteUserMemory(userId);
+    // Use new system to clear memory
+    await clearPersonalMemory(userId);
 
     console.log('[Memory API] ✅ Memory deleted');
 

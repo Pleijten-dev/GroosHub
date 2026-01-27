@@ -96,7 +96,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         projectId: memory.projectId,
         hardValues: memory.hardValues,
         softContext: memory.softContext,
-        summary: memory.summary,
+        projectSummary: memory.projectSummary,
         tokenEstimate: memory.tokenEstimate,
         lastSynthesizedAt: memory.lastSynthesizedAt,
         formattedText,
@@ -141,7 +141,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     // Handle hard values update
     if (body.hardValues) {
-      await updateHardValues(projectId, body.hardValues, 'manual' as MemorySource, userId);
+      await updateHardValues(projectId, body.hardValues, 'manual' as MemorySource, `user-${userId}`);
     }
 
     // Handle add soft context
@@ -174,7 +174,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         projectId: memory.projectId,
         hardValues: memory.hardValues,
         softContext: memory.softContext,
-        summary: memory.summary,
+        projectSummary: memory.projectSummary,
         tokenEstimate: memory.tokenEstimate,
       } : null,
     });

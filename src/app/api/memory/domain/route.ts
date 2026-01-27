@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
         explicitKnowledge: memory.explicitKnowledge,
         learnedPatterns: memory.learnedPatterns,
         tokenEstimate: memory.tokenEstimate,
-        lastUpdatedAt: memory.lastUpdatedAt,
+        lastSynthesizedAt: memory.lastSynthesizedAt,
         formattedText,
       },
     });
