@@ -1564,6 +1564,52 @@ WHERE fu.id = ${fileId}
 - **Manual override**: Users can edit/delete preferences
 - **Audit trail**: `memory_updates` table tracks all changes
 
+### Message Encryption (Optional)
+
+**Location**: `src/lib/encryption/messageEncryption.ts`
+
+When `ENCRYPTION_MASTER_KEY` environment variable is set:
+
+- **Algorithm**: AES-256-GCM (Galois/Counter Mode)
+- **Key Derivation**: PBKDF2 with 100,000 iterations
+- **Key Size**: 256 bits (32 bytes)
+- **IV Size**: 128 bits (16 bytes) - randomly generated per message
+- **Organization-scoped**: Per-organization key derivation for data isolation
+
+```typescript
+// Usage in chat-store.ts
+import { encryptMessage, decryptMessage } from '@/lib/encryption/messageEncryption';
+
+// Encrypt before saving
+const encrypted = encryptMessage(content, organizationId);
+
+// Decrypt when loading
+const plaintext = decryptMessage(encrypted, organizationId);
+```
+
+### Audit Logging
+
+**Location**: `src/lib/audit/auditLogger.ts`
+
+Tracks security-relevant actions:
+- Login/logout events
+- Data access attempts
+- Message encryption/decryption
+- API access patterns
+
+### Rate Limiting
+
+**Location**: `src/lib/middleware/rateLimit.ts`
+
+Protects against abuse:
+- Per-user request limits
+- Per-IP request limits
+- Sliding window algorithm
+
+**Google Places rate limiter**: `src/features/location/data/sources/google-places/rate-limiter.ts`
+- 50 requests per second limit
+- Automatic retry with backoff
+
 ### Soft Deletes
 
 Chats use soft deletion with 30-day recovery:
@@ -2039,6 +2085,15 @@ src/lib/db/queries/
 ├── locations.ts                 # Location queries (for tools)
 ├── projects.ts                  # Project queries
 └── index.ts                     # Query exports
+
+src/lib/encryption/
+└── messageEncryption.ts         # AES-256-GCM message encryption
+
+src/lib/audit/
+└── auditLogger.ts               # Security audit logging
+
+src/lib/middleware/
+└── rateLimit.ts                 # API rate limiting
 ```
 
 ### Shared Components Used
@@ -2131,10 +2186,57 @@ Use this checklist to verify documentation accuracy:
 - [x] 11 tab-specific action sets
 - [x] Animation states
 
+### Security & Configuration
+- [x] Message encryption (AES-256-GCM)
+- [x] Audit logging
+- [x] Rate limiting
+- [x] Environment variables documented
+- [x] Security library file locations
+
 ### Incomplete Features
 - [ ] Notes backend (database + API)
 - [ ] Analytics tracking implementation
 - [ ] Report generation (genereer-rapport)
+
+---
+
+## 24. Environment Variables
+
+The AI Assistant requires these environment variables to function:
+
+### Required Variables
+
+| Variable | Description | Used By |
+|----------|-------------|---------|
+| `POSTGRES_URL` | Neon PostgreSQL connection string | All database queries |
+| `OPENAI_API_KEY` | OpenAI API key (required for embeddings) | `lib/ai/embeddings/embedder.ts` |
+| `ANTHROPIC_API_KEY` | Anthropic API key | Claude models |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Google AI API key | Gemini models |
+| `MISTRAL_API_KEY` | Mistral AI API key | Mistral models |
+| `XAI_API_KEY` | xAI API key | Grok models |
+
+### Cloudflare R2 Storage
+
+| Variable | Description | Used By |
+|----------|-------------|---------|
+| `R2_ACCOUNT_ID` | Cloudflare account ID | `lib/storage/r2-client.ts` |
+| `R2_ACCESS_KEY_ID` | R2 access key | `lib/storage/r2-client.ts` |
+| `R2_SECRET_ACCESS_KEY` | R2 secret access key | `lib/storage/r2-client.ts` |
+| `R2_BUCKET_NAME` | R2 bucket name | `lib/storage/r2-client.ts` |
+| `R2_JURISDICTION` | Optional jurisdiction (e.g., "eu") | `lib/storage/r2-client.ts` |
+
+### Optional Security
+
+| Variable | Description | Used By |
+|----------|-------------|---------|
+| `ENCRYPTION_MASTER_KEY` | Master key for message encryption (32+ chars) | `lib/encryption/messageEncryption.ts` |
+
+### Notes
+
+- At least one AI provider key is required for chat functionality
+- `OPENAI_API_KEY` is specifically required for RAG embeddings (uses `text-embedding-3-small`)
+- R2 variables are required for file upload functionality
+- `ENCRYPTION_MASTER_KEY` is optional - if not set, messages are stored unencrypted
 
 ---
 
