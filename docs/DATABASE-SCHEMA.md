@@ -734,6 +734,7 @@ Geographic analysis snapshots.
 | housing_data | jsonb | YES | '{}' | Housing data |
 | wms_grading_data | jsonb | YES | '{}' | WMS grading |
 | pve_data | jsonb | YES | '{}' | PvE data |
+| rapport_data | jsonb | YES | '{}' | LLM-generated rapport texts |
 | overall_score | numeric | YES | - | Overall score |
 | category_scores | jsonb | YES | '{}' | Category scores |
 | data_sources | jsonb | YES | '{}' | Data sources |
@@ -1162,6 +1163,7 @@ The following are database views (read-only aggregations):
 | location_snapshots | idx_location_coords | btree | latitude, longitude | Geographic queries |
 | location_snapshots | idx_location_wms_grading | gin | wms_grading_data | JSONB search |
 | location_snapshots | idx_location_pve_data | gin | pve_data | JSONB search |
+| location_snapshots | idx_location_rapport_data | gin | rapport_data | JSONB search |
 | saved_locations | unique_user_address | UNIQUE | user_id, address | Prevent duplicates |
 | saved_locations | idx_saved_locations_location_data | gin | location_data | JSONB search |
 | location_shares | unique_share | UNIQUE | saved_location_id, shared_with_user_id | Prevent duplicate shares |
