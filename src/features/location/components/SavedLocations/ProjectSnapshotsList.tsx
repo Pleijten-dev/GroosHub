@@ -32,6 +32,7 @@ interface LocationSnapshot {
   housing_data?: Record<string, unknown> | null;
   wms_grading_data?: Record<string, unknown> | null;
   pve_data?: Record<string, unknown> | null;
+  rapport_data?: Record<string, unknown> | null;
 }
 
 // Data completion steps
@@ -49,6 +50,7 @@ const COMPLETION_STEPS: CompletionStep[] = [
   { key: 'amenities', label: { nl: 'Voorzieningen', en: 'Amenities' }, check: (s) => !!s.amenities_data && Object.keys(s.amenities_data).length > 0 },
   { key: 'wms', label: { nl: 'Kaarten', en: 'Maps' }, check: (s) => !!s.wms_grading_data && Object.keys(s.wms_grading_data).length > 0 },
   { key: 'pve', label: { nl: 'PVE', en: 'PVE' }, check: (s) => !!s.pve_data && Object.keys(s.pve_data).length > 0 },
+  { key: 'rapport', label: { nl: 'Rapport', en: 'Report' }, check: (s) => !!s.rapport_data && Object.keys(s.rapport_data).length > 0 },
 ];
 
 // Calculate completion for a snapshot
