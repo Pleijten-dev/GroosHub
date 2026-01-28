@@ -696,7 +696,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
           return undefined;
         };
 
-        return <PVEQuestionnaire locale={locale} addressDensity={getAddressDensity()} />;
+        return <PVEQuestionnaire key={`pve-${loadedSnapshotId || 'new'}`} locale={locale} addressDensity={getAddressDensity()} />;
       }
 
       // For Generate Report tab - show export options
