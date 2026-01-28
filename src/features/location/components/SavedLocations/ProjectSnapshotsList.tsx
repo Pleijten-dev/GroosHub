@@ -387,42 +387,19 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
                         key={snapshot.id}
                         className="p-sm hover:bg-gray-50 transition-colors"
                       >
-                        <div className="flex items-start justify-between gap-xs">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-xs mb-xs">
-                              <p className="text-xs font-medium text-text-primary truncate">
-                                {snapshot.address}
-                              </p>
-                              {snapshot.is_active && (
-                                <span className="px-xs py-xxs text-xxs font-medium bg-green-100 text-green-700 rounded">
-                                  {locale === 'nl' ? 'Actief' : 'Active'}
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-md text-xs text-text-muted">
-                              <span>v{snapshot.version_number}</span>
-                              <span>{formatDate(snapshot.created_at)}</span>
-                            </div>
-
-                            {/* Data completion progress bar */}
-                            <div className="mt-1.5 flex items-center gap-2">
-                              <div className="flex-1 h-1 bg-gray-200 rounded-full overflow-hidden max-w-[100px]">
-                                <div
-                                  className={cn(
-                                    "h-full rounded-full transition-all",
-                                    completion.completed === completion.total ? "bg-green-500" : "bg-green-400"
-                                  )}
-                                  style={{ width: `${(completion.completed / completion.total) * 100}%` }}
-                                />
-                              </div>
-                              <span className="text-xxs text-gray-500">
-                                ({completion.completed}/{completion.total}) {completion.nextStep}
+                        {/* Line 1: Address, badge, buttons */}
+                        <div className="flex items-center justify-between gap-xs mb-1.5">
+                          <div className="flex items-center gap-xs min-w-0 flex-1">
+                            <p className="text-xs font-medium text-text-primary truncate">
+                              {snapshot.address}
+                            </p>
+                            {snapshot.is_active && (
+                              <span className="px-xs py-xxs text-xxs font-medium bg-green-100 text-green-700 rounded flex-shrink-0">
+                                {locale === 'nl' ? 'Actief' : 'Active'}
                               </span>
-                            </div>
+                            )}
                           </div>
-
-                          {/* Action Buttons */}
-                          <div className="flex gap-xs">
+                          <div className="flex gap-xs flex-shrink-0">
                             <Button
                               onClick={() => handleLoadSnapshot(snapshot)}
                               variant="primary"
@@ -442,6 +419,28 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
                               {locale === 'nl' ? 'Verwijderen' : 'Delete'}
                             </Button>
                           </div>
+                        </div>
+
+                        {/* Line 2: Full-width progress bar */}
+                        <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden mb-1.5">
+                          <div
+                            className={cn(
+                              "h-full rounded-full transition-all",
+                              completion.completed === completion.total ? "bg-green-500" : "bg-green-400"
+                            )}
+                            style={{ width: `${(completion.completed / completion.total) * 100}%` }}
+                          />
+                        </div>
+
+                        {/* Line 3: Version/date left, completion right */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-md text-xs text-text-muted">
+                            <span>v{snapshot.version_number}</span>
+                            <span>{formatDate(snapshot.created_at)}</span>
+                          </div>
+                          <span className="text-xs text-gray-500">
+                            ({completion.completed}/{completion.total}) {completion.nextStep}
+                          </span>
                         </div>
                       </div>
                     );
