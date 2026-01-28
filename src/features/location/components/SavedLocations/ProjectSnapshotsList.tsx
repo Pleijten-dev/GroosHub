@@ -23,6 +23,48 @@ interface LocationSnapshot {
   created_at: Date | string;
   updated_at: Date | string;
   user_id: number;
+  // Data fields for completion tracking
+  demographics_data?: Record<string, unknown> | null;
+  health_data?: Record<string, unknown> | null;
+  safety_data?: Record<string, unknown> | null;
+  livability_data?: Record<string, unknown> | null;
+  amenities_data?: Record<string, unknown> | null;
+  housing_data?: Record<string, unknown> | null;
+  wms_grading_data?: Record<string, unknown> | null;
+  pve_data?: Record<string, unknown> | null;
+}
+
+// Data completion steps
+interface CompletionStep {
+  key: string;
+  label: { nl: string; en: string };
+  check: (snapshot: LocationSnapshot) => boolean;
+}
+
+const COMPLETION_STEPS: CompletionStep[] = [
+  { key: 'location', label: { nl: 'Locatie', en: 'Location' }, check: (s) => !!s.address },
+  { key: 'demographics', label: { nl: 'Demografie', en: 'Demographics' }, check: (s) => !!s.demographics_data && Object.keys(s.demographics_data).length > 0 },
+  { key: 'health', label: { nl: 'Gezondheid', en: 'Health' }, check: (s) => !!s.health_data && Object.keys(s.health_data).length > 0 },
+  { key: 'safety', label: { nl: 'Veiligheid', en: 'Safety' }, check: (s) => !!s.safety_data && Object.keys(s.safety_data).length > 0 },
+  { key: 'amenities', label: { nl: 'Voorzieningen', en: 'Amenities' }, check: (s) => !!s.amenities_data && Object.keys(s.amenities_data).length > 0 },
+  { key: 'wms', label: { nl: 'Kaarten', en: 'Maps' }, check: (s) => !!s.wms_grading_data && Object.keys(s.wms_grading_data).length > 0 },
+  { key: 'pve', label: { nl: 'PVE', en: 'PVE' }, check: (s) => !!s.pve_data && Object.keys(s.pve_data).length > 0 },
+];
+
+// Calculate completion for a snapshot
+function getSnapshotCompletion(snapshot: LocationSnapshot, locale: Locale): { completed: number; total: number; nextStep: string } {
+  let completed = 0;
+  let nextStep = '';
+
+  for (const step of COMPLETION_STEPS) {
+    if (step.check(snapshot)) {
+      completed++;
+    } else if (!nextStep) {
+      nextStep = step.label[locale];
+    }
+  }
+
+  return { completed, total: COMPLETION_STEPS.length, nextStep: nextStep || (locale === 'nl' ? 'Voltooid' : 'Complete') };
 }
 
 interface Project {
@@ -56,19 +98,6 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
     message: '',
   });
   const [loadingSnapshotId, setLoadingSnapshotId] = useState<string | null>(null);
-  const [loadingStep, setLoadingStep] = useState<{ current: number; total: number; label: string }>({ current: 0, total: 8, label: '' });
-
-  // Loading steps for progress tracking
-  const LOADING_STEPS = [
-    { label: locale === 'nl' ? 'Ophalen...' : 'Fetching...' },
-    { label: locale === 'nl' ? 'Valideren...' : 'Validating...' },
-    { label: locale === 'nl' ? 'Demografie' : 'Demographics' },
-    { label: locale === 'nl' ? 'Voorzieningen' : 'Amenities' },
-    { label: locale === 'nl' ? 'Kaartlagen' : 'Map layers' },
-    { label: 'PVE' },
-    { label: locale === 'nl' ? 'Doelgroepen' : 'Personas' },
-    { label: locale === 'nl' ? 'Klaar!' : 'Done!' },
-  ];
 
   // Load projects and their snapshots
   useEffect(() => {
@@ -123,13 +152,9 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
 
   const handleLoadSnapshot = async (snapshot: LocationSnapshot) => {
     setLoadingSnapshotId(snapshot.id);
-    setLoadingStep({ current: 1, total: 8, label: LOADING_STEPS[0].label });
-
-    // Longer delay to ensure React renders the progress bar before continuing
-    await new Promise(r => setTimeout(r, 300));
 
     try {
-      // Step 1: Fetch full snapshot data from API
+      // Fetch full snapshot data from API
       const response = await fetch(`/api/location/snapshots/${snapshot.id}`);
 
       if (!response.ok) {
@@ -143,37 +168,19 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
 
       const { data: snapshotData } = await response.json();
 
-      // Step 2: Validate
-      setLoadingStep({ current: 2, total: 8, label: LOADING_STEPS[1].label });
-      await new Promise(r => setTimeout(r, 150));
-
-      // Phase 3.1: Validate loaded snapshot data
+      // Validate loaded snapshot data
       const validationResult = validateLoadedSnapshot(snapshotData);
       if (!validationResult.isValid) {
         console.warn('Loaded snapshot has validation issues:', validationResult.summary);
-        if (validationResult.missingFields.length > 0) {
-          console.warn('Missing fields:', validationResult.missingFields);
-        }
-        if (validationResult.invalidFields.length > 0) {
-          console.warn('Invalid fields:', validationResult.invalidFields);
-        }
       }
 
-      // Phase 3.3: Check scoring version compatibility
+      // Check scoring version compatibility
       const versionCheck = isVersionCompatible(snapshotData.scoring_algorithm_version);
       if (!versionCheck.compatible) {
         console.warn('Scoring version warning:', versionCheck.message);
-      } else if (snapshotData.scoring_algorithm_version !== CURRENT_SCORING_VERSION) {
-        console.info(`Snapshot uses scoring version ${snapshotData.scoring_algorithm_version || 'unknown'}, current is ${CURRENT_SCORING_VERSION}`);
       }
 
-      // Step 3: Demographics
-      setLoadingStep({ current: 3, total: 8, label: LOADING_STEPS[2].label });
-      await new Promise(r => setTimeout(r, 150));
-
-      // Transform to AccessibleLocation format
-      // Structure must match UnifiedLocationData with location.coordinates.wgs84 nesting
-      // Ensure coordinates are numbers (they may come as strings from JSON/database)
+      // Parse coordinates
       const latitude = typeof snapshotData.latitude === 'string'
         ? parseFloat(snapshotData.latitude)
         : Number(snapshotData.latitude) || 0;
@@ -181,12 +188,7 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
         ? parseFloat(snapshotData.longitude)
         : Number(snapshotData.longitude) || 0;
 
-      // Step 4: Amenities
-      setLoadingStep({ current: 4, total: 8, label: LOADING_STEPS[3].label });
-      await new Promise(r => setTimeout(r, 150));
-
-      // Convert raw amenities data to UnifiedDataRow[] format for locationData.amenities
-      // This ensures consistency with fresh data where amenities are converted by the aggregator
+      // Convert amenities data
       const amenitiesDataRaw = snapshotData.amenities_data || null;
       const amenitiesRows = amenitiesDataRaw
         ? convertAmenitiesToRows(
@@ -201,72 +203,40 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
         userId: snapshotData.user_id,
         name: snapshotData.address,
         address: snapshotData.address,
-        coordinates: {
-          lat: latitude,
-          lng: longitude,
-        },
+        coordinates: { lat: latitude, lng: longitude },
         locationData: {
-          // Location data with proper coordinate nesting
           location: {
             address: snapshotData.address,
             coordinates: {
-              wgs84: {
-                latitude,
-                longitude,
-              },
-              rd: {
-                x: 0,
-                y: 0,
-              }
+              wgs84: { latitude, longitude },
+              rd: { x: 0, y: 0 }
             },
             neighborhood: snapshotData.neighborhood_code ? { statcode: snapshotData.neighborhood_code } : null,
             district: snapshotData.district_code ? { statcode: snapshotData.district_code } : null,
             municipality: snapshotData.municipality_code ? { statcode: snapshotData.municipality_code } : null,
           },
-          // Data sections at root level
           demographics: snapshotData.demographics_data || {},
           health: snapshotData.health_data || {},
           safety: snapshotData.safety_data || {},
           livability: snapshotData.livability_data || {},
           residential: snapshotData.housing_data || {},
-          // Amenities as UnifiedDataRow[] (converted from raw data)
           amenities: amenitiesRows,
-        } as any, // Type assertion to bypass strict type checking for now
+        } as any,
         amenitiesData: amenitiesDataRaw,
-        // Include WMS grading data if available (for Kaarten tab)
         wmsGradingData: snapshotData.wms_grading_data || null,
-        // Include PVE data if available (for Programma van Eisen)
         pveData: snapshotData.pve_data || null,
-        // Include scoring algorithm version for compatibility checking
         scoringAlgorithmVersion: snapshotData.scoring_algorithm_version || undefined,
         dataVersion: '1.0.0',
         completionStatus: 'location_only',
         createdAt: new Date(snapshotData.created_at),
         updatedAt: new Date(snapshotData.updated_at),
         ownerId: snapshotData.user_id,
-        ownerName: 'Current User', // Default value
-        ownerEmail: '', // Default value
+        ownerName: 'Current User',
+        ownerEmail: '',
         isShared: false,
         canEdit: true,
       };
 
-      // Step 5: Map layers
-      setLoadingStep({ current: 5, total: 8, label: LOADING_STEPS[4].label });
-      await new Promise(r => setTimeout(r, 150));
-
-      // Step 6: PVE
-      setLoadingStep({ current: 6, total: 8, label: LOADING_STEPS[5].label });
-      await new Promise(r => setTimeout(r, 150));
-
-      // Step 7: Personas
-      setLoadingStep({ current: 7, total: 8, label: LOADING_STEPS[6].label });
-      await new Promise(r => setTimeout(r, 150));
-
-      // Step 8: Done
-      setLoadingStep({ current: 8, total: 8, label: LOADING_STEPS[7].label });
-      await new Promise(r => setTimeout(r, 200));
-
-      // Call the callback with transformed data
       if (onLoadSnapshot) {
         onLoadSnapshot(accessibleLocation);
       }
@@ -278,7 +248,6 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
       });
     } finally {
       setLoadingSnapshotId(null);
-      setLoadingStep({ current: 0, total: 8, label: '' });
     }
   };
 
@@ -411,6 +380,7 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
                 <div className="divide-y divide-gray-100">
                   {project.snapshots.map((snapshot) => {
                     const isLoadingThis = loadingSnapshotId === snapshot.id;
+                    const completion = getSnapshotCompletion(snapshot, locale);
 
                     return (
                       <div
@@ -432,6 +402,22 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
                             <div className="flex items-center gap-md text-xs text-text-muted">
                               <span>v{snapshot.version_number}</span>
                               <span>{formatDate(snapshot.created_at)}</span>
+                            </div>
+
+                            {/* Data completion progress bar */}
+                            <div className="mt-1.5 flex items-center gap-2">
+                              <div className="flex-1 h-1 bg-gray-200 rounded-full overflow-hidden max-w-[100px]">
+                                <div
+                                  className={cn(
+                                    "h-full rounded-full transition-all",
+                                    completion.completed === completion.total ? "bg-green-500" : "bg-green-400"
+                                  )}
+                                  style={{ width: `${(completion.completed / completion.total) * 100}%` }}
+                                />
+                              </div>
+                              <span className="text-xxs text-gray-500">
+                                ({completion.completed}/{completion.total}) {completion.nextStep}
+                              </span>
                             </div>
                           </div>
 
@@ -457,23 +443,6 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
                             </Button>
                           </div>
                         </div>
-
-                        {/* Progress bar - shown below snapshot when loading */}
-                        {isLoadingThis && (
-                          <div className="mt-2 pt-2 border-t border-gray-100">
-                            <div className="flex items-center gap-2">
-                              {/* Thin green progress bar */}
-                              <div className="flex-1 h-1 bg-gray-200 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-green-500 rounded-full transition-all duration-200"
-                                  style={{ width: `${(loadingStep.current / loadingStep.total) * 100}%` }}
-                                />
-                              </div>
-                              <span className="text-xs text-gray-600 whitespace-nowrap">({loadingStep.current}/{loadingStep.total})</span>
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">{loadingStep.label}</p>
-                          </div>
-                        )}
                       </div>
                     );
                   })}
