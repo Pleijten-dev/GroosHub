@@ -3,8 +3,18 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Locale } from '../../../../lib/i18n/config';
-import { pveConfigCache } from '../../data/cache/pveConfigCache';
+import { pveConfigCache, type FSIConfig, type HousingCategoryPercentages } from '../../data/cache/pveConfigCache';
 import { registerPVEBarElement } from '../../utils/pveCapture';
+import {
+  calculateFSI,
+  getFSICategory,
+  getFSICategoryLabel,
+  getHousingTypeLabel,
+  getHousingRecommendation,
+  validateHousingCategories,
+  getUnallocatedPercentage,
+  DEFAULT_HOUSING_CATEGORIES,
+} from '../../utils/fsiCalculations';
 
 interface PVEAllocations {
   apartments: number;
@@ -17,6 +27,8 @@ interface PVEAllocations {
 
 interface PVEQuestionnaireProps {
   locale: Locale;
+  /** Address density from CBS demographics (Omgevingsadressendichtheid) - per km² */
+  addressDensity?: number;
 }
 
 interface Category {
@@ -81,7 +93,7 @@ const PRESETS: Preset[] = [
   }
 ];
 
-export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) => {
+export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale, addressDensity }) => {
   const [selectedPreset, setSelectedPreset] = useState<PresetId>('mixed-residential');
   const [totalM2, setTotalM2] = useState<number>(10000);
   const [percentages, setPercentages] = useState<PVEAllocations>(PRESETS[0].allocations);
@@ -91,6 +103,41 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
   const captureRef = useRef<HTMLDivElement>(null);
+
+  // FSI state
+  const [fsiOverride, setFsiOverride] = useState<number | null>(null);
+  const [showFsiSection, setShowFsiSection] = useState<boolean>(true);
+
+  // Housing categories state
+  const [housingCategories, setHousingCategories] = useState<HousingCategoryPercentages>(DEFAULT_HOUSING_CATEGORIES);
+  const [showHousingSection, setShowHousingSection] = useState<boolean>(true);
+
+  // Calculate FSI from address density
+  const fsiResult = useMemo(() => {
+    if (addressDensity === undefined || addressDensity === null) return null;
+    return calculateFSI(addressDensity);
+  }, [addressDensity]);
+
+  // Final FSI value (use override if set, otherwise calculated)
+  const finalFSI = useMemo(() => {
+    if (fsiOverride !== null) return fsiOverride;
+    return fsiResult?.calculatedFSI ?? 1.5; // Default to medium if no data
+  }, [fsiOverride, fsiResult]);
+
+  // FSI category and recommendation
+  const fsiCategory = useMemo(() => getFSICategory(finalFSI), [finalFSI]);
+  const fsiCategoryLabel = useMemo(() => getFSICategoryLabel(finalFSI, locale), [finalFSI, locale]);
+  const housingTypeLabel = useMemo(() => getHousingTypeLabel(finalFSI, locale), [finalFSI, locale]);
+  const housingRecommendation = useMemo(() => getHousingRecommendation(finalFSI, locale), [finalFSI, locale]);
+
+  // Validate housing categories
+  const housingValidation = useMemo(() => validateHousingCategories(housingCategories), [housingCategories]);
+  const unallocatedPercentage = useMemo(() => getUnallocatedPercentage(housingCategories), [housingCategories]);
+
+  // Calculate residential m² for housing categories display
+  const residentialM2 = useMemo(() => {
+    return Math.round((percentages.apartments / 100) * totalM2);
+  }, [percentages.apartments, totalM2]);
 
   // Get only active (non-disabled) categories
   const activeCategories = useMemo(() =>
@@ -324,32 +371,60 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
       setPercentages(cachedConfig.percentages);
       setDisabledCategories(new Set(cachedConfig.disabledCategories as Array<keyof PVEAllocations>));
       setLockedCategories(new Set(cachedConfig.lockedCategories as Array<keyof PVEAllocations>));
+      // Load FSI override if present
+      if (cachedConfig.fsi?.overriddenFSI !== undefined) {
+        setFsiOverride(cachedConfig.fsi.overriddenFSI);
+      }
+      // Load housing categories if present
+      if (cachedConfig.housingCategories) {
+        setHousingCategories(cachedConfig.housingCategories);
+      }
     }
   }, []); // Only run on mount
 
   // Save custom configuration to cache whenever it changes
   useEffect(() => {
     if (selectedPreset === 'custom') {
+      // Build FSI config
+      const fsiConfig: FSIConfig | undefined = addressDensity !== undefined ? {
+        calculatedFSI: fsiResult?.calculatedFSI ?? 1.5,
+        overriddenFSI: fsiOverride,
+        addressDensity: addressDensity,
+        category: fsiCategory,
+      } : undefined;
+
       pveConfigCache.set({
         totalM2,
         percentages,
         disabledCategories: Array.from(disabledCategories),
-        lockedCategories: Array.from(lockedCategories)
+        lockedCategories: Array.from(lockedCategories),
+        fsi: fsiConfig,
+        housingCategories,
       });
     }
-  }, [selectedPreset, totalM2, percentages, disabledCategories, lockedCategories]);
+  }, [selectedPreset, totalM2, percentages, disabledCategories, lockedCategories, fsiOverride, fsiResult, fsiCategory, addressDensity, housingCategories]);
 
   // Save final PVE state with debounce (for all presets, captures last shown configuration)
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
+      // Build FSI config
+      const fsiConfig: FSIConfig | undefined = addressDensity !== undefined ? {
+        calculatedFSI: fsiResult?.calculatedFSI ?? 1.5,
+        overriddenFSI: fsiOverride,
+        addressDensity: addressDensity,
+        category: fsiCategory,
+      } : undefined;
+
       pveConfigCache.setFinalPVE({
         totalM2,
-        percentages
+        percentages,
+        fsi: fsiConfig,
+        housingCategories,
       });
     }, 500); // Wait 500ms after last change before saving
 
     return () => clearTimeout(debounceTimer);
-  }, [totalM2, percentages]);
+  }, [totalM2, percentages, fsiOverride, fsiResult, fsiCategory, addressDensity, housingCategories]);
 
   // Register the bar element for PDF capture
   useEffect(() => {
@@ -803,7 +878,7 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
         </div>
 
         {/* Preset Selector Buttons */}
-        <div className="flex justify-center">
+        <div className="flex justify-center mb-lg">
           <div className="flex items-center gap-2 p-2 bg-white/80 backdrop-blur-md rounded-full border border-gray-200 shadow-lg">
             {PRESETS.map((preset) => (
               <button
@@ -818,6 +893,333 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale }) =>
                 {preset[locale]}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* FSI and Housing Categories Sections */}
+        <div className="flex justify-center">
+          <div className="w-[1200px] space-y-4">
+
+            {/* FSI Section */}
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+              <button
+                onClick={() => setShowFsiSection(!showFsiSection)}
+                className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
+              >
+                <span className="font-medium text-gray-900">
+                  {locale === 'nl' ? 'Bebouwingsintensiteit (FSI)' : 'Floor Space Index (FSI)'}
+                </span>
+                <svg
+                  className={`w-5 h-5 text-gray-500 transition-transform ${showFsiSection ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {showFsiSection && (
+                <div className="p-4 space-y-4">
+                  {/* FSI Source Info */}
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {addressDensity !== undefined ? (
+                      <span title={`${locale === 'nl' ? 'Omgevingsadressendichtheid' : 'Address density'}: ${Math.round(addressDensity)} ${locale === 'nl' ? 'adressen/km²' : 'addresses/km²'}`}>
+                        {locale === 'nl'
+                          ? `Berekend op basis van omgevingsadressendichtheid (${Math.round(addressDensity)}/km²)`
+                          : `Calculated from address density (${Math.round(addressDensity)}/km²)`}
+                      </span>
+                    ) : (
+                      <span className="text-amber-600">
+                        {locale === 'nl'
+                          ? 'Geen adresdata beschikbaar - standaardwaarde gebruikt'
+                          : 'No address data available - using default value'}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* FSI Input with Slider */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-4">
+                      <label className="text-sm font-medium text-gray-700 w-24">FSI:</label>
+                      <input
+                        type="number"
+                        value={finalFSI.toFixed(1)}
+                        onChange={(e) => {
+                          const value = parseFloat(e.target.value);
+                          if (!isNaN(value) && value >= 0 && value <= 6) {
+                            setFsiOverride(value);
+                          }
+                        }}
+                        className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        min="0"
+                        max="6"
+                        step="0.1"
+                      />
+                      <div className="flex-1">
+                        <input
+                          type="range"
+                          value={finalFSI}
+                          onChange={(e) => setFsiOverride(parseFloat(e.target.value))}
+                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
+                          min="0.2"
+                          max="5"
+                          step="0.1"
+                        />
+                        <div className="flex justify-between text-xs text-gray-500 mt-1">
+                          <span>0.2</span>
+                          <span>1.0</span>
+                          <span>2.0</span>
+                          <span>3.5</span>
+                          <span>5.0</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* FSI Category Indicator */}
+                  <div className="flex items-center gap-4">
+                    <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      fsiCategory === 'low' ? 'bg-green-100 text-green-800' :
+                      fsiCategory === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {fsiCategoryLabel}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {locale === 'nl' ? 'Woningtypologie:' : 'Housing type:'} <span className="font-medium">{housingTypeLabel}</span>
+                    </div>
+                  </div>
+
+                  {/* FSI Recommendation */}
+                  <div className="p-3 bg-gray-50 rounded-lg text-sm text-gray-700">
+                    {housingRecommendation}
+                  </div>
+
+                  {/* Reset FSI Override Button */}
+                  {fsiOverride !== null && fsiResult && (
+                    <button
+                      onClick={() => setFsiOverride(null)}
+                      className="text-sm text-primary hover:text-primary-dark underline"
+                    >
+                      {locale === 'nl'
+                        ? `Terugzetten naar berekende waarde (${fsiResult.calculatedFSI.toFixed(1)})`
+                        : `Reset to calculated value (${fsiResult.calculatedFSI.toFixed(1)})`}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Housing Categories Section */}
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+              <button
+                onClick={() => setShowHousingSection(!showHousingSection)}
+                className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
+              >
+                <span className="font-medium text-gray-900">
+                  {locale === 'nl' ? 'Woningcategorieën (Residentieel)' : 'Housing Categories (Residential)'}
+                </span>
+                <svg
+                  className={`w-5 h-5 text-gray-500 transition-transform ${showHousingSection ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {showHousingSection && (
+                <div className="p-4 space-y-4">
+                  {/* Residential m² info */}
+                  <div className="text-sm text-gray-600">
+                    {locale === 'nl'
+                      ? `Verdeling van het woonprogramma (totaal: ${residentialM2.toLocaleString()} m²)`
+                      : `Distribution of residential program (total: ${residentialM2.toLocaleString()} m²)`}
+                  </div>
+
+                  {/* Housing Category Inputs */}
+                  <div className="space-y-3">
+                    {/* Social Housing */}
+                    <div className="flex items-center gap-4">
+                      <label className="text-sm font-medium text-gray-700 w-32">
+                        {locale === 'nl' ? 'Sociaal' : 'Social'}:
+                      </label>
+                      <input
+                        type="number"
+                        value={housingCategories.social ?? ''}
+                        onChange={(e) => {
+                          const value = e.target.value === '' ? null : Math.max(0, Math.min(100, parseInt(e.target.value) || 0));
+                          setHousingCategories(prev => ({ ...prev, social: value }));
+                        }}
+                        placeholder={locale === 'nl' ? 'Niet verplicht' : 'Not required'}
+                        className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        min="0"
+                        max="100"
+                      />
+                      <span className="text-sm text-gray-500">%</span>
+                      {housingCategories.social !== null && (
+                        <span className="text-sm text-gray-600">
+                          ({Math.round((housingCategories.social / 100) * residentialM2).toLocaleString()} m²)
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Affordable Housing */}
+                    <div className="flex items-center gap-4">
+                      <label className="text-sm font-medium text-gray-700 w-32">
+                        {locale === 'nl' ? 'Betaalbaar' : 'Affordable'}:
+                      </label>
+                      <input
+                        type="number"
+                        value={housingCategories.affordable ?? ''}
+                        onChange={(e) => {
+                          const value = e.target.value === '' ? null : Math.max(0, Math.min(100, parseInt(e.target.value) || 0));
+                          setHousingCategories(prev => ({ ...prev, affordable: value }));
+                        }}
+                        placeholder={locale === 'nl' ? 'Niet verplicht' : 'Not required'}
+                        className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        min="0"
+                        max="100"
+                      />
+                      <span className="text-sm text-gray-500">%</span>
+                      {housingCategories.affordable !== null && (
+                        <span className="text-sm text-gray-600">
+                          ({Math.round((housingCategories.affordable / 100) * residentialM2).toLocaleString()} m²)
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Luxury Housing */}
+                    <div className="flex items-center gap-4">
+                      <label className="text-sm font-medium text-gray-700 w-32">
+                        {locale === 'nl' ? 'Luxe' : 'Luxury'}:
+                      </label>
+                      <input
+                        type="number"
+                        value={housingCategories.luxury ?? ''}
+                        onChange={(e) => {
+                          const value = e.target.value === '' ? null : Math.max(0, Math.min(100, parseInt(e.target.value) || 0));
+                          setHousingCategories(prev => ({ ...prev, luxury: value }));
+                        }}
+                        placeholder={locale === 'nl' ? 'Niet verplicht' : 'Not required'}
+                        className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        min="0"
+                        max="100"
+                      />
+                      <span className="text-sm text-gray-500">%</span>
+                      {housingCategories.luxury !== null && (
+                        <span className="text-sm text-gray-600">
+                          ({Math.round((housingCategories.luxury / 100) * residentialM2).toLocaleString()} m²)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Validation Error */}
+                  {!housingValidation.isValid && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                      {housingValidation.errors.map((error, idx) => (
+                        <p key={idx}>{error}</p>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Visual Bar for Housing Distribution */}
+                  <div className="space-y-2">
+                    <div className="h-6 rounded-full overflow-hidden bg-gray-200 flex">
+                      {housingCategories.social !== null && housingCategories.social > 0 && (
+                        <div
+                          className="bg-blue-500 flex items-center justify-center text-xs text-white font-medium"
+                          style={{ width: `${housingCategories.social}%` }}
+                          title={locale === 'nl' ? `Sociaal: ${housingCategories.social}%` : `Social: ${housingCategories.social}%`}
+                        >
+                          {housingCategories.social >= 10 && `${housingCategories.social}%`}
+                        </div>
+                      )}
+                      {housingCategories.affordable !== null && housingCategories.affordable > 0 && (
+                        <div
+                          className="bg-green-500 flex items-center justify-center text-xs text-white font-medium"
+                          style={{ width: `${housingCategories.affordable}%` }}
+                          title={locale === 'nl' ? `Betaalbaar: ${housingCategories.affordable}%` : `Affordable: ${housingCategories.affordable}%`}
+                        >
+                          {housingCategories.affordable >= 10 && `${housingCategories.affordable}%`}
+                        </div>
+                      )}
+                      {housingCategories.luxury !== null && housingCategories.luxury > 0 && (
+                        <div
+                          className="bg-purple-500 flex items-center justify-center text-xs text-white font-medium"
+                          style={{ width: `${housingCategories.luxury}%` }}
+                          title={locale === 'nl' ? `Luxe: ${housingCategories.luxury}%` : `Luxury: ${housingCategories.luxury}%`}
+                        >
+                          {housingCategories.luxury >= 10 && `${housingCategories.luxury}%`}
+                        </div>
+                      )}
+                      {unallocatedPercentage > 0 && (
+                        <div
+                          className="bg-gray-400 flex items-center justify-center text-xs text-white font-medium"
+                          style={{ width: `${unallocatedPercentage}%` }}
+                          title={locale === 'nl' ? `Vrij: ${unallocatedPercentage}%` : `Free: ${unallocatedPercentage}%`}
+                        >
+                          {unallocatedPercentage >= 10 && `${unallocatedPercentage}%`}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-4 text-xs">
+                      {housingCategories.social !== null && (
+                        <div className="flex items-center gap-1">
+                          <div className="w-3 h-3 rounded bg-blue-500"></div>
+                          <span>{locale === 'nl' ? 'Sociaal' : 'Social'}</span>
+                        </div>
+                      )}
+                      {housingCategories.affordable !== null && (
+                        <div className="flex items-center gap-1">
+                          <div className="w-3 h-3 rounded bg-green-500"></div>
+                          <span>{locale === 'nl' ? 'Betaalbaar' : 'Affordable'}</span>
+                        </div>
+                      )}
+                      {housingCategories.luxury !== null && (
+                        <div className="flex items-center gap-1">
+                          <div className="w-3 h-3 rounded bg-purple-500"></div>
+                          <span>{locale === 'nl' ? 'Luxe' : 'Luxury'}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 rounded bg-gray-400"></div>
+                        <span>{locale === 'nl' ? 'Vrij in te vullen' : 'Free to allocate'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Info Note */}
+                  <div className="p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
+                    <div className="flex items-start gap-2">
+                      <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>
+                        {locale === 'nl'
+                          ? 'Bij de scenariogeneratie wordt per scenario aangegeven of dit aan de gestelde eisen voldoet. Lege velden kunnen vrij worden ingevuld door het systeem.'
+                          : 'During scenario generation, each scenario will indicate whether it meets the specified requirements. Empty fields can be freely filled by the system.'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Reset to Defaults Button */}
+                  <button
+                    onClick={() => setHousingCategories(DEFAULT_HOUSING_CATEGORIES)}
+                    className="text-sm text-primary hover:text-primary-dark underline"
+                  >
+                    {locale === 'nl' ? 'Terugzetten naar standaardwaarden' : 'Reset to default values'}
+                  </button>
+                </div>
+              )}
+            </div>
+
           </div>
         </div>
       </div>
