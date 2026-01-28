@@ -182,7 +182,8 @@ type GenerationStage =
   | 'generating-llm'
   | 'stage1-location'
   | 'stage2-personas'
-  | 'stage3-pve'
+  | 'stage3-constraints'  // Building constraints analysis
+  | 'stage4-pve'          // PVE allocation
   | 'capturing-visuals'
   | 'building-pdf'
   | 'uploading-r2'
@@ -196,9 +197,10 @@ const STAGE_MESSAGES = {
     preparing: 'Voorbereiden...',
     'exporting-json': 'Data exporteren...',
     'generating-llm': 'Rapport ophalen uit cache...',
-    'stage1-location': 'Stap 1/3: Locatie analyseren...',
-    'stage2-personas': 'Stap 2/3: Doelgroepen analyseren...',
-    'stage3-pve': 'Stap 3/3: Bouwprogramma genereren...',
+    'stage1-location': 'Stap 1/4: Locatie analyseren...',
+    'stage2-personas': 'Stap 2/4: Doelgroepen analyseren...',
+    'stage3-constraints': 'Stap 3/4: Bouwkundige randvoorwaarden...',
+    'stage4-pve': 'Stap 4/4: Bouwprogramma genereren...',
     'capturing-visuals': 'Visualisaties vastleggen...',
     'building-pdf': 'PDF samenstellen...',
     'uploading-r2': 'PDF opslaan naar cloud...',
@@ -211,9 +213,10 @@ const STAGE_MESSAGES = {
     preparing: 'Preparing...',
     'exporting-json': 'Exporting data...',
     'generating-llm': 'Loading from cache...',
-    'stage1-location': 'Step 1/3: Analyzing location...',
-    'stage2-personas': 'Step 2/3: Analyzing personas...',
-    'stage3-pve': 'Step 3/3: Generating building program...',
+    'stage1-location': 'Step 1/4: Analyzing location...',
+    'stage2-personas': 'Step 2/4: Analyzing personas...',
+    'stage3-constraints': 'Step 3/4: Building constraints...',
+    'stage4-pve': 'Step 4/4: Generating building program...',
     'capturing-visuals': 'Capturing visualizations...',
     'building-pdf': 'Building PDF...',
     'uploading-r2': 'Saving PDF to cloud...',
@@ -524,7 +527,7 @@ export function GenerateRapportButton({
         compactData = exportData as unknown as CompactExportData;
 
         // Use staged generation for better token efficiency
-        // Stage 1: Location Analysis, Stage 2: Persona Analysis, Stage 3: PVE Allocation
+        // Stage 1: Location Analysis, Stage 2: Persona Analysis, Stage 3: Building Constraints, Stage 4: PVE Allocation
         // Now with caching - if data is cached, skips LLM calls entirely
         const handleStagedProgress = (stagedProgress: StagedGenerationProgress) => {
           // Map staged generation progress to button progress (10-50% range)
@@ -536,8 +539,10 @@ export function GenerateRapportButton({
             setStage('stage1-location');
           } else if (stagedProgress.stage === 'stage2-personas') {
             setStage('stage2-personas');
-          } else if (stagedProgress.stage === 'stage3-pve') {
-            setStage('stage3-pve');
+          } else if (stagedProgress.stage === 'stage3-constraints') {
+            setStage('stage3-constraints');
+          } else if (stagedProgress.stage === 'stage4-pve') {
+            setStage('stage4-pve');
           }
         };
 

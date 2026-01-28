@@ -14,20 +14,21 @@
 import type { CompactLocationExport } from '../../utils/jsonExportCompact';
 import type {
   Stage2Output,
-  Stage3Output,
+  Stage4Output,
   StagedBuildingProgram,
 } from '../../utils/stagedGenerationOrchestrator';
-import type { Stage1Output } from '../../utils/stagedGenerationData';
+import type { Stage1Output, Stage3Output } from '../../utils/stagedGenerationData';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
 export interface CachedRapportData {
-  // Stage outputs
+  // Stage outputs (4-stage pipeline)
   stage1Output: Stage1Output;
   stage2Output: Stage2Output;
-  stage3Output: Stage3Output;
+  stage3Output: Stage3Output;  // Building constraints
+  stage4Output: Stage4Output;  // PVE allocation
   combinedProgram: StagedBuildingProgram;
 
   // Metadata
@@ -368,13 +369,14 @@ export class RapportCache {
   }
 
   /**
-   * Save rapport data to cache
+   * Save rapport data to cache (4-stage pipeline)
    */
   save(
     inputData: CompactLocationExport,
     stage1Output: Stage1Output,
     stage2Output: Stage2Output,
     stage3Output: Stage3Output,
+    stage4Output: Stage4Output,
     combinedProgram: StagedBuildingProgram
   ): boolean {
     const hash = generateInputHash(inputData, this.locale);
@@ -383,6 +385,7 @@ export class RapportCache {
       stage1Output,
       stage2Output,
       stage3Output,
+      stage4Output,
       combinedProgram,
       inputHash: hash,
       timestamp: Date.now(),

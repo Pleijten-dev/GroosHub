@@ -280,7 +280,7 @@ interface Stage4Input {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { stageData, locale = 'nl' } = body as { stageData: Stage3Input; locale: 'nl' | 'en' };
+    const { stageData, locale = 'nl' } = body as { stageData: Stage4Input; locale: 'nl' | 'en' };
 
     if (!stageData || !stageData.stage1Output || !stageData.stage2Output || !stageData.pve) {
       return new Response(
@@ -302,7 +302,7 @@ export async function POST(request: Request) {
     const simplifiedPublicSpaces = simplifySpaces(rawPublicSpaces, locale);
 
     // Get all persona names from scenarios
-    const allPersonaNames = stageData.scenarios.flatMap(s => s.personaNames);
+    const allPersonaNames = stageData.scenarios.flatMap((s: Stage4Input['scenarios'][number]) => s.personaNames);
 
     // Filter spaces by target groups
     const filteredCommunalSpaces = filterSpacesByTargetGroups(simplifiedCommunalSpaces, allPersonaNames);
@@ -329,14 +329,14 @@ ${stageData.buildingConstraints.opportunitiesSummary}
 
 ## Kritieke beperkingen
 ${stageData.buildingConstraints.constraints
-  .filter(c => c.severity === 'critical')
-  .map(c => `- [${c.category}] ${c.constraint} → ${c.designImplication}`)
+  .filter((c: BuildingConstraints['constraints'][number]) => c.severity === 'critical')
+  .map((c: BuildingConstraints['constraints'][number]) => `- [${c.category}] ${c.constraint} → ${c.designImplication}`)
   .join('\n') || 'Geen kritieke beperkingen'}
 
 ## Belangrijke beperkingen
 ${stageData.buildingConstraints.constraints
-  .filter(c => c.severity === 'important')
-  .map(c => `- [${c.category}] ${c.constraint} → ${c.designImplication}`)
+  .filter((c: BuildingConstraints['constraints'][number]) => c.severity === 'important')
+  .map((c: BuildingConstraints['constraints'][number]) => `- [${c.category}] ${c.constraint} → ${c.designImplication}`)
   .join('\n') || 'Geen belangrijke beperkingen'}
 
 ## Ontwerpaanbevelingen
@@ -348,7 +348,7 @@ ${stageData.buildingConstraints.constraints
 
 ## Voorzieningen kansen (gebouw kan lokale gaps vullen)
 ${stageData.buildingConstraints.amenityOpportunities
-  .map(a => `- [${a.priority}] ${a.type}: ${a.rationale} (${a.suggestedSize})`)
+  .map((a: BuildingConstraints['amenityOpportunities'][number]) => `- [${a.priority}] ${a.type}: ${a.rationale} (${a.suggestedSize})`)
   .join('\n') || 'Geen specifieke kansen geïdentificeerd'}
 ` : '';
 
@@ -362,14 +362,14 @@ ${stageData.buildingConstraints.opportunitiesSummary}
 
 ## Critical constraints
 ${stageData.buildingConstraints.constraints
-  .filter(c => c.severity === 'critical')
-  .map(c => `- [${c.category}] ${c.constraint} → ${c.designImplication}`)
+  .filter((c: BuildingConstraints['constraints'][number]) => c.severity === 'critical')
+  .map((c: BuildingConstraints['constraints'][number]) => `- [${c.category}] ${c.constraint} → ${c.designImplication}`)
   .join('\n') || 'No critical constraints'}
 
 ## Important constraints
 ${stageData.buildingConstraints.constraints
-  .filter(c => c.severity === 'important')
-  .map(c => `- [${c.category}] ${c.constraint} → ${c.designImplication}`)
+  .filter((c: BuildingConstraints['constraints'][number]) => c.severity === 'important')
+  .map((c: BuildingConstraints['constraints'][number]) => `- [${c.category}] ${c.constraint} → ${c.designImplication}`)
   .join('\n') || 'No important constraints'}
 
 ## Design recommendations
@@ -381,7 +381,7 @@ ${stageData.buildingConstraints.constraints
 
 ## Amenity opportunities (building can fill local gaps)
 ${stageData.buildingConstraints.amenityOpportunities
-  .map(a => `- [${a.priority}] ${a.type}: ${a.rationale} (${a.suggestedSize})`)
+  .map((a: BuildingConstraints['amenityOpportunities'][number]) => `- [${a.priority}] ${a.type}: ${a.rationale} (${a.suggestedSize})`)
   .join('\n') || 'No specific opportunities identified'}
 ` : '';
 
@@ -410,10 +410,10 @@ ${validPublicSpaceIds.join(', ')}
 ${stageData.stage1Output.location_summary}
 
 Kernpunten:
-${stageData.stage1Output.key_location_insights.map((i, idx) => `${idx + 1}. ${i}`).join('\n')}
+${stageData.stage1Output.key_location_insights.map((i: string, idx: number) => `${idx + 1}. ${i}`).join('\n')}
 
 # SCENARIO ANALYSES (uit eerdere analyse)
-${stageData.stage2Output.scenarios.map(s => `
+${stageData.stage2Output.scenarios.map((s: Stage2Output['scenarios'][number]) => `
 ## ${s.scenario_name}: ${s.scenario_simple_name}
 Doelgroepen: ${s.target_personas.join(', ')}
 
@@ -498,10 +498,10 @@ ${validPublicSpaceIds.join(', ')}
 ${stageData.stage1Output.location_summary}
 
 Key insights:
-${stageData.stage1Output.key_location_insights.map((i, idx) => `${idx + 1}. ${i}`).join('\n')}
+${stageData.stage1Output.key_location_insights.map((i: string, idx: number) => `${idx + 1}. ${i}`).join('\n')}
 
 # SCENARIO ANALYSES (from previous analysis)
-${stageData.stage2Output.scenarios.map(s => `
+${stageData.stage2Output.scenarios.map((s: Stage2Output['scenarios'][number]) => `
 ## ${s.scenario_name}: ${s.scenario_simple_name}
 Target groups: ${s.target_personas.join(', ')}
 

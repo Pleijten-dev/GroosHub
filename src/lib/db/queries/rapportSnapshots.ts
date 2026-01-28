@@ -22,10 +22,11 @@ export interface RapportSnapshot {
   latitude: number | null;
   longitude: number | null;
   locale: 'nl' | 'en';
-  // LLM outputs stored as JSONB
+  // LLM outputs stored as JSONB (4-stage pipeline)
   stage1_output: Record<string, unknown>;
   stage2_output: Record<string, unknown>;
   stage3_output: Record<string, unknown>;
+  stage4_output: Record<string, unknown> | null;  // May be null for old snapshots
   combined_program: Record<string, unknown>;
   // Input data for regeneration/comparison
   input_data: Record<string, unknown>;
@@ -52,6 +53,7 @@ export interface CreateRapportSnapshotParams {
   stage1Output: Record<string, unknown>;
   stage2Output: Record<string, unknown>;
   stage3Output: Record<string, unknown>;
+  stage4Output: Record<string, unknown>;  // PVE allocation output
   combinedProgram: Record<string, unknown>;
   inputData: Record<string, unknown>;
   inputHash: string;
@@ -135,6 +137,7 @@ export async function createRapportSnapshot(
       stage1_output,
       stage2_output,
       stage3_output,
+      stage4_output,
       combined_program,
       input_data,
       input_hash,
@@ -154,6 +157,7 @@ export async function createRapportSnapshot(
       ${JSON.stringify(params.stage1Output)},
       ${JSON.stringify(params.stage2Output)},
       ${JSON.stringify(params.stage3Output)},
+      ${JSON.stringify(params.stage4Output)},
       ${JSON.stringify(params.combinedProgram)},
       ${JSON.stringify(params.inputData)},
       ${params.inputHash},
@@ -421,6 +425,7 @@ export function cachedDataToSnapshotParams(
     stage1Output: cachedData.stage1Output as unknown as Record<string, unknown>,
     stage2Output: cachedData.stage2Output as unknown as Record<string, unknown>,
     stage3Output: cachedData.stage3Output as unknown as Record<string, unknown>,
+    stage4Output: cachedData.stage4Output as unknown as Record<string, unknown>,
     combinedProgram: cachedData.combinedProgram as unknown as Record<string, unknown>,
     inputData: inputData as unknown as Record<string, unknown>,
     inputHash: cachedData.inputHash,
@@ -437,6 +442,7 @@ export function snapshotToCachedData(
     stage1Output: snapshot.stage1_output as unknown as CachedRapportData['stage1Output'],
     stage2Output: snapshot.stage2_output as unknown as CachedRapportData['stage2Output'],
     stage3Output: snapshot.stage3_output as unknown as CachedRapportData['stage3Output'],
+    stage4Output: (snapshot.stage4_output ?? {}) as unknown as CachedRapportData['stage4Output'],
     combinedProgram: snapshot.combined_program as unknown as CachedRapportData['combinedProgram'],
     inputHash: snapshot.input_hash,
     timestamp: snapshot.created_at.getTime(),

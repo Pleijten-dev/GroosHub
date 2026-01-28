@@ -612,16 +612,15 @@ export async function generateBuildingProgramStaged(
 
     const generationTimeMs = Date.now() - startTime;
 
-    // Save to cache (note: cache may need updating to support stage4Output)
+    // Save to cache (full 4-stage pipeline)
     if (shouldSaveToCache) {
       try {
-        // Extended cache save - will need cache structure update
-        const saved = cache.save(data, stage1Output, stage2Output, stage3Output, combinedProgram);
+        const saved = cache.save(data, stage1Output, stage2Output, stage3Output, stage4Output, combinedProgram);
         if (saved) {
-          console.log('[Staged Generation] Saved to cache (partial - stage4 may not be cached)');
+          console.log('[Staged Generation] Saved to cache (all 4 stages)');
         }
       } catch {
-        console.warn('[Staged Generation] Cache save failed - cache structure may need updating');
+        console.warn('[Staged Generation] Cache save failed');
       }
     }
 

@@ -113,19 +113,47 @@ ${stageData.amenities.missingAmenities.length > 0 ? stageData.amenities.missingA
 ${stageData.amenities.amenityGaps.length > 0 ? stageData.amenities.amenityGaps.join('\n') : 'Geen significante knelpunten'}
 `;
 
+    // Helper to format a single metric with comparison
+    const formatMetric = (name: string, metric: { description: string; neighborhood: string; municipality: string; national?: string }) => {
+      const buurtVal = parseFloat(metric.neighborhood) || 0;
+      const gemVal = parseFloat(metric.municipality) || 0;
+      const comparison = buurtVal > gemVal ? '↑ hoger dan gemeente' : buurtVal < gemVal ? '↓ lager dan gemeente' : '= gelijk aan gemeente';
+      return `- ${name}: Buurt ${metric.neighborhood}, Gemeente ${metric.municipality} (${comparison})`;
+    };
+
+    // Helper to format an array of CompactMetric
+    const formatMetricArray = (metrics: Array<{ name: string; description: string; neighborhood: string; municipality: string; national?: string }>) => {
+      return metrics.map(m => {
+        const buurtVal = parseFloat(m.neighborhood) || 0;
+        const gemVal = parseFloat(m.municipality) || 0;
+        const comparison = buurtVal > gemVal ? '↑ hoger dan gemeente' : buurtVal < gemVal ? '↓ lager dan gemeente' : '= gelijk aan gemeente';
+        return `- ${m.name}: Buurt ${m.neighborhood}, Gemeente ${m.municipality} (${comparison})`;
+      }).join('\n');
+    };
+
     // Format health data with context
     const formatHealthData = (health: typeof stageData.health) => {
       const lines: string[] = [];
       lines.push(`Beschrijving: ${health.description}`);
-      if (health.items && health.items.length > 0) {
-        lines.push('## Indicatoren (hoger % = meer rapporteren probleem, referentie is nationaal gemiddelde):');
-        for (const item of health.items) {
-          const buurtVal = parseFloat(item.neighborhood) || 0;
-          const gemVal = parseFloat(item.municipality) || 0;
-          const comparison = buurtVal > gemVal ? '↑ hoger dan gemeente' : buurtVal < gemVal ? '↓ lager dan gemeente' : '= gelijk aan gemeente';
-          lines.push(`- ${item.name}: Buurt ${item.neighborhood}, Gemeente ${item.municipality} (${comparison})`);
-        }
-      }
+      lines.push('## Indicatoren (hoger % = meer rapporteren probleem, referentie is nationaal gemiddelde):');
+
+      // Single value metrics
+      lines.push(formatMetric('Ervaren gezondheid', health.experiencedHealth));
+      lines.push(formatMetric('Wekelijks sporten', health.sports));
+      lines.push(formatMetric('Roker', health.smoker));
+      lines.push(formatMetric('Beperkt door gezondheid', health.limitedHealth));
+      lines.push(formatMetric('Mist emotionele steun', health.emotionalSupport));
+
+      // Array metrics
+      lines.push('### Gewicht');
+      lines.push(formatMetricArray(health.weight));
+      lines.push('### Alcohol');
+      lines.push(formatMetricArray(health.alcohol));
+      lines.push('### Eenzaamheid');
+      lines.push(formatMetricArray(health.loneliness));
+      lines.push('### Psychologische gezondheid');
+      lines.push(formatMetricArray(health.psychologicalHealth));
+
       return lines.join('\n');
     };
 
@@ -133,13 +161,16 @@ ${stageData.amenities.amenityGaps.length > 0 ? stageData.amenities.amenityGaps.j
     const formatSafetyData = (safety: typeof stageData.safety) => {
       const lines: string[] = [];
       lines.push(`Beschrijving: ${safety.description}`);
-      if (safety.items && safety.items.length > 0) {
-        lines.push('## Indicatoren (lagere criminaliteit = beter, hoger veiligheidsgevoel = beter):');
-        for (const item of safety.items) {
-          lines.push(`- ${item.name}: Buurt ${item.neighborhood}, Gemeente ${item.municipality}`);
-          if (item.description) lines.push(`  ${item.description}`);
-        }
-      }
+      lines.push('## Indicatoren (lagere criminaliteit = beter, hoger veiligheidsgevoel = beter):');
+
+      // All safety metrics are single values
+      lines.push(formatMetric('Totaal misdrijven (per 1000 inwoners)', safety.totalCrimes));
+      lines.push(formatMetric('Woninginbraken (per 1000 woningen)', safety.burglary));
+      lines.push(formatMetric('Zakkenrollerij (per 1000 inwoners)', safety.pickpocketing));
+      lines.push(formatMetric('Verkeersongevallen (per 1000 inwoners)', safety.accidents));
+      lines.push(formatMetric('Voelt zich onveilig', safety.feelsUnsafe));
+      lines.push(formatMetric('Straatverlichting (schaal 1-10)', safety.streetLighting));
+
       return lines.join('\n');
     };
 
@@ -147,13 +178,23 @@ ${stageData.amenities.amenityGaps.length > 0 ? stageData.amenities.amenityGaps.j
     const formatLivabilityData = (livability: typeof stageData.livability) => {
       const lines: string[] = [];
       lines.push(`Beschrijving: ${livability.description}`);
-      if (livability.items && livability.items.length > 0) {
-        lines.push('## Indicatoren (hogere scores = betere leefbaarheid):');
-        for (const item of livability.items) {
-          lines.push(`- ${item.name}: Buurt ${item.neighborhood}, Gemeente ${item.municipality}`);
-          if (item.description) lines.push(`  ${item.description}`);
-        }
-      }
+      lines.push('## Indicatoren (hogere scores = betere leefbaarheid):');
+
+      // Array metrics
+      lines.push('### Onderhoud');
+      lines.push(formatMetricArray(livability.maintenance));
+      lines.push('### Jongerenvoorzieningen');
+      lines.push(formatMetricArray(livability.youthFacilities));
+      lines.push('### Sociale contacten');
+      lines.push(formatMetricArray(livability.contact));
+
+      // Single value metrics
+      lines.push('### Overige indicatoren');
+      lines.push(formatMetric('Straatverlichting (schaal 1-10)', livability.streetLighting));
+      lines.push(formatMetric('Vrijwilligerswerk', livability.volunteers));
+      lines.push(formatMetric('Sociale cohesie (schaal 0-100)', livability.socialCohesion));
+      lines.push(formatMetric('Leefbaarheid rapportcijfer (schaal 1-10)', livability.livabilityScore));
+
       return lines.join('\n');
     };
 
