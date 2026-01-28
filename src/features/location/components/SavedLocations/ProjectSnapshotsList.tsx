@@ -55,6 +55,20 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
     isOpen: false,
     message: '',
   });
+  const [loadingSnapshotId, setLoadingSnapshotId] = useState<string | null>(null);
+  const [loadingStep, setLoadingStep] = useState<{ current: number; total: number; label: string }>({ current: 0, total: 8, label: '' });
+
+  // Loading steps for progress tracking
+  const LOADING_STEPS = [
+    { label: locale === 'nl' ? 'Ophalen...' : 'Fetching...' },
+    { label: locale === 'nl' ? 'Valideren...' : 'Validating...' },
+    { label: locale === 'nl' ? 'Demografie' : 'Demographics' },
+    { label: locale === 'nl' ? 'Voorzieningen' : 'Amenities' },
+    { label: locale === 'nl' ? 'Kaartlagen' : 'Map layers' },
+    { label: 'PVE' },
+    { label: locale === 'nl' ? 'Doelgroepen' : 'Personas' },
+    { label: locale === 'nl' ? 'Klaar!' : 'Done!' },
+  ];
 
   // Load projects and their snapshots
   useEffect(() => {
@@ -108,8 +122,11 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
   };
 
   const handleLoadSnapshot = async (snapshot: LocationSnapshot) => {
+    setLoadingSnapshotId(snapshot.id);
+    setLoadingStep({ current: 1, total: 8, label: LOADING_STEPS[0].label });
+
     try {
-      // Fetch full snapshot data from API
+      // Step 1: Fetch full snapshot data from API
       const response = await fetch(`/api/location/snapshots/${snapshot.id}`);
 
       if (!response.ok) {
@@ -122,6 +139,9 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
       }
 
       const { data: snapshotData } = await response.json();
+
+      // Step 2: Validate
+      setLoadingStep({ current: 2, total: 8, label: LOADING_STEPS[1].label });
 
       // Phase 3.1: Validate loaded snapshot data
       const validationResult = validateLoadedSnapshot(snapshotData);
@@ -143,6 +163,9 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
         console.info(`Snapshot uses scoring version ${snapshotData.scoring_algorithm_version || 'unknown'}, current is ${CURRENT_SCORING_VERSION}`);
       }
 
+      // Step 3: Demographics
+      setLoadingStep({ current: 3, total: 8, label: LOADING_STEPS[2].label });
+
       // Transform to AccessibleLocation format
       // Structure must match UnifiedLocationData with location.coordinates.wgs84 nesting
       // Ensure coordinates are numbers (they may come as strings from JSON/database)
@@ -152,6 +175,9 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
       const longitude = typeof snapshotData.longitude === 'string'
         ? parseFloat(snapshotData.longitude)
         : Number(snapshotData.longitude) || 0;
+
+      // Step 4: Amenities
+      setLoadingStep({ current: 4, total: 8, label: LOADING_STEPS[3].label });
 
       // Convert raw amenities data to UnifiedDataRow[] format for locationData.amenities
       // This ensures consistency with fresh data where amenities are converted by the aggregator
@@ -218,6 +244,21 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
         canEdit: true,
       };
 
+      // Step 5: Map layers
+      setLoadingStep({ current: 5, total: 8, label: LOADING_STEPS[4].label });
+      await new Promise(r => setTimeout(r, 50)); // Small delay for visual feedback
+
+      // Step 6: PVE
+      setLoadingStep({ current: 6, total: 8, label: LOADING_STEPS[5].label });
+      await new Promise(r => setTimeout(r, 50));
+
+      // Step 7: Personas
+      setLoadingStep({ current: 7, total: 8, label: LOADING_STEPS[6].label });
+      await new Promise(r => setTimeout(r, 50));
+
+      // Step 8: Done
+      setLoadingStep({ current: 8, total: 8, label: LOADING_STEPS[7].label });
+
       // Call the callback with transformed data
       if (onLoadSnapshot) {
         onLoadSnapshot(accessibleLocation);
@@ -228,6 +269,9 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
         isOpen: true,
         message: err instanceof Error ? err.message : (locale === 'nl' ? 'Snapshot laden mislukt' : 'Failed to load snapshot'),
       });
+    } finally {
+      setLoadingSnapshotId(null);
+      setLoadingStep({ current: 0, total: 8, label: '' });
     }
   };
 
@@ -358,51 +402,69 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
             <div className="bg-white">
               {project.snapshots && project.snapshots.length > 0 ? (
                 <div className="divide-y divide-gray-100">
-                  {project.snapshots.map((snapshot) => (
-                    <div
-                      key={snapshot.id}
-                      className="p-sm hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex items-start justify-between gap-xs">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-xs mb-xs">
-                            <p className="text-xs font-medium text-text-primary truncate">
-                              {snapshot.address}
-                            </p>
-                            {snapshot.is_active && (
-                              <span className="px-xs py-xxs text-xxs font-medium bg-green-100 text-green-700 rounded">
-                                {locale === 'nl' ? 'Actief' : 'Active'}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-md text-xs text-text-muted">
-                            <span>v{snapshot.version_number}</span>
-                            <span>{formatDate(snapshot.created_at)}</span>
-                          </div>
-                        </div>
+                  {project.snapshots.map((snapshot) => {
+                    const isLoadingThis = loadingSnapshotId === snapshot.id;
 
-                        {/* Action Buttons */}
-                        <div className="flex gap-xs">
-                          <Button
-                            onClick={() => handleLoadSnapshot(snapshot)}
-                            variant="primary"
-                            size="sm"
-                            className="text-xs"
-                          >
-                            {locale === 'nl' ? 'Laden' : 'Load'}
-                          </Button>
-                          <Button
-                            onClick={() => setDeleteDialog({ isOpen: true, snapshotId: snapshot.id })}
-                            variant="ghost"
-                            size="sm"
-                            className="text-xs text-red-600 hover:bg-red-50"
-                          >
-                            {locale === 'nl' ? 'Verwijderen' : 'Delete'}
-                          </Button>
+                    return (
+                      <div
+                        key={snapshot.id}
+                        className="p-sm hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-xs">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-xs mb-xs">
+                              <p className="text-xs font-medium text-text-primary truncate">
+                                {snapshot.address}
+                              </p>
+                              {snapshot.is_active && (
+                                <span className="px-xs py-xxs text-xxs font-medium bg-green-100 text-green-700 rounded">
+                                  {locale === 'nl' ? 'Actief' : 'Active'}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-md text-xs text-text-muted">
+                              <span>v{snapshot.version_number}</span>
+                              <span>{formatDate(snapshot.created_at)}</span>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex gap-xs">
+                            {isLoadingThis ? (
+                              <div className="flex flex-col min-w-[100px]">
+                                <div className="flex items-center gap-1 text-xxs text-gray-600 mb-0.5">
+                                  <span className="font-mono">
+                                    {'='.repeat(loadingStep.current)}
+                                    {'-'.repeat(loadingStep.total - loadingStep.current)}
+                                  </span>
+                                  <span>({loadingStep.current}/{loadingStep.total})</span>
+                                </div>
+                                <span className="text-xxs text-gray-500 truncate">{loadingStep.label}</span>
+                              </div>
+                            ) : (
+                              <Button
+                                onClick={() => handleLoadSnapshot(snapshot)}
+                                variant="primary"
+                                size="sm"
+                                className="text-xs"
+                              >
+                                {locale === 'nl' ? 'Laden' : 'Load'}
+                              </Button>
+                            )}
+                            <Button
+                              onClick={() => setDeleteDialog({ isOpen: true, snapshotId: snapshot.id })}
+                              variant="ghost"
+                              size="sm"
+                              className="text-xs text-red-600 hover:bg-red-50"
+                              disabled={isLoadingThis}
+                            >
+                              {locale === 'nl' ? 'Verwijderen' : 'Delete'}
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="p-base text-center text-sm text-gray-500">
