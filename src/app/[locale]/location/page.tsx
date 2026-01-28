@@ -325,6 +325,17 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
       if (location.pveData) {
         console.log('📋 Restoring saved PVE configuration');
         pveConfigCache.setFinalPVE(location.pveData);
+
+        // Also populate the regular PVE config cache so PVEQuestionnaire can read it on mount
+        // This ensures FSI and housing categories are properly restored
+        pveConfigCache.set({
+          totalM2: location.pveData.totalM2,
+          percentages: location.pveData.percentages,
+          disabledCategories: [], // Not stored in PVEFinalState, default to empty
+          lockedCategories: [], // Not stored in PVEFinalState, default to empty
+          fsi: location.pveData.fsi,
+          housingCategories: location.pveData.housingCategories,
+        });
       }
 
       // Restore custom scenario selection if available in PVE data
