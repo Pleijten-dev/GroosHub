@@ -1068,3 +1068,127 @@ The following are database views (read-only aggregations):
 | `task_assignment_summary` | Task assignment overview |
 | `user_accessible_locations` | Locations accessible to users |
 | `user_notification_stats` | Notification statistics |
+
+---
+
+## Indexes
+
+### Index Types Used
+
+| Type | Description |
+|------|-------------|
+| `btree` | Standard B-tree index for equality and range queries |
+| `gin` | Generalized Inverted Index for JSONB and full-text search |
+| `ivfflat` | pgvector index for approximate nearest neighbor search |
+
+### Key Indexes by Table
+
+#### Organizations & Users
+
+| Table | Index | Type | Columns | Notes |
+|-------|-------|------|---------|-------|
+| org_organizations | org_organizations_slug_key | UNIQUE | slug | URL-friendly lookup |
+| org_organizations | idx_org_active | btree | is_active | WHERE deleted_at IS NULL |
+| user_accounts | user_accounts_email_key | UNIQUE | email | Login lookup |
+| user_accounts | idx_user_accounts_org | btree | org_id | Filter by organization |
+
+#### Projects
+
+| Table | Index | Type | Columns | Notes |
+|-------|-------|------|---------|-------|
+| project_projects | idx_project_org | btree | org_id | Filter by organization |
+| project_projects | idx_project_status | btree | status | WHERE deleted_at IS NULL |
+| project_projects | idx_project_last_accessed | btree | last_accessed_at DESC | Recent projects |
+| project_members | project_members_project_id_user_id_key | UNIQUE | project_id, user_id | Prevent duplicates |
+| project_members | idx_project_members_user_pinned | btree | user_id, is_pinned | WHERE is_pinned = true |
+| project_invitations | project_invitations_token_hash_key | UNIQUE | token_hash | Secure lookup |
+
+#### Chat System
+
+| Table | Index | Type | Columns | Notes |
+|-------|-------|------|---------|-------|
+| chat_conversations | idx_chat_user | btree | user_id | User's chats |
+| chat_conversations | idx_chat_project | btree | project_id | Project's chats |
+| chat_conversations | idx_chat_last_message | btree | last_message_at DESC | Recent chats |
+| chat_messages | idx_message_chat | btree | chat_id | Messages in chat |
+| chat_messages | idx_message_created | btree | created_at DESC | Chronological order |
+| chat_messages | idx_chat_messages_encrypted | btree | content_encrypted | WHERE content_encrypted = true |
+
+#### RAG / Document Chunks
+
+| Table | Index | Type | Columns | Notes |
+|-------|-------|------|---------|-------|
+| project_doc_chunks | idx_project_doc_chunks_embedding | ivfflat | embedding vector_cosine_ops | WITH (lists=100) - Vector similarity |
+| project_doc_chunks | idx_project_doc_chunks_text_search | gin | to_tsvector(chunk_text) | Full-text search |
+| project_doc_chunks | idx_project_doc_chunks_project_id | btree | project_id | Filter by project |
+| project_doc_chunks | idx_project_doc_chunks_file_id | btree | file_id | Filter by source file |
+
+#### File Uploads
+
+| Table | Index | Type | Columns | Notes |
+|-------|-------|------|---------|-------|
+| file_uploads | idx_file_user | btree | user_id | User's files |
+| file_uploads | idx_file_project | btree | project_id | Project's files |
+| file_uploads | idx_file_chat | btree | chat_id | Chat attachments |
+| file_uploads | idx_file_uploads_embedding_status | btree | embedding_status, project_id | RAG processing queue |
+| file_uploads | idx_file_deleted | btree | deleted_at | WHERE deleted_at IS NOT NULL |
+
+#### Memory System
+
+| Table | Index | Type | Columns | Notes |
+|-------|-------|------|---------|-------|
+| user_memories | user_memories_pkey | UNIQUE | user_id | One per user |
+| user_memories | idx_user_memories_updated | btree | updated_at DESC | Recently updated |
+| project_memories | project_memories_pkey | UNIQUE | project_id | One per project |
+| domain_memories | domain_memories_org_id_key | UNIQUE | org_id | One per organization |
+| memory_updates | idx_memory_updates_type_id | btree | memory_type, memory_id | Lookup by memory |
+
+#### LCA System
+
+| Table | Index | Type | Columns | Notes |
+|-------|-------|------|---------|-------|
+| lca_materials | lca_materials_oekobaudat_uuid_key | UNIQUE | oekobaudat_uuid | EPD lookup |
+| lca_materials | idx_lca_materials_category | btree | category, subcategory | Material search |
+| lca_materials | idx_lca_materials_dutch | btree | dutch_availability, quality_rating | NL availability |
+| lca_layers | lca_layers_element_id_position_key | UNIQUE | element_id, position | Layer ordering |
+| lca_packages | idx_lca_packages_tags | gin | tags | Tag search |
+| lca_snapshots | idx_lca_snapshots_active_project | UNIQUE | project_id, is_active | WHERE is_active = true |
+
+#### Location System
+
+| Table | Index | Type | Columns | Notes |
+|-------|-------|------|---------|-------|
+| location_snapshots | idx_location_snapshots_active_project | UNIQUE | project_id, is_active | WHERE is_active = true |
+| location_snapshots | idx_location_coords | btree | latitude, longitude | Geographic queries |
+| location_snapshots | idx_location_wms_grading | gin | wms_grading_data | JSONB search |
+| location_snapshots | idx_location_pve_data | gin | pve_data | JSONB search |
+| saved_locations | unique_user_address | UNIQUE | user_id, address | Prevent duplicates |
+| saved_locations | idx_saved_locations_location_data | gin | location_data | JSONB search |
+| location_shares | unique_share | UNIQUE | saved_location_id, shared_with_user_id | Prevent duplicate shares |
+
+#### Tasks
+
+| Table | Index | Type | Columns | Notes |
+|-------|-------|------|---------|-------|
+| tasks | idx_tasks_project_status | btree | project_id, status | WHERE deleted_at IS NULL |
+| tasks | idx_tasks_upcoming_deadlines | btree | deadline | WHERE deadline IS NOT NULL AND status != 'done' |
+| tasks | idx_tasks_parent_task | btree | parent_task_id | Subtask lookup |
+| task_assignments | task_assignments_task_id_user_id_key | UNIQUE | task_id, user_id | One assignment per user |
+
+#### Analytics
+
+| Table | Index | Type | Columns | Notes |
+|-------|-------|------|---------|-------|
+| llm_usage | idx_llm_usage_user_date | btree | user_id, created_at DESC | User usage history |
+| llm_usage | idx_llm_usage_model | btree | model | Model analytics |
+| ai_analytics | idx_ai_analytics_feature | btree | feature, action | Feature usage |
+| audit_logs | idx_audit_entity | btree | entity_type, entity_id | Entity history |
+| audit_logs | idx_audit_metadata | gin | metadata | JSONB search |
+| user_notifications | idx_user_notifications_user_unread | btree | user_id, is_read | WHERE is_read = false |
+
+### Performance Notes
+
+1. **Vector Search**: `project_doc_chunks` uses IVFFlat index with 100 lists for approximate nearest neighbor search on 1536-dim embeddings
+2. **JSONB Indexes**: GIN indexes on JSONB columns enable efficient containment queries (`@>`, `?`, `?|`)
+3. **Partial Indexes**: Many indexes use WHERE clauses to index only relevant rows (active records, non-deleted, etc.)
+4. **Composite Indexes**: Frequently queried column combinations have composite indexes for efficient filtering
