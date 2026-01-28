@@ -278,8 +278,32 @@ export async function POST(request: Request) {
     console.log(`- Communal spaces: ${rawCommunalSpaces.length} → ${filteredCommunalSpaces.length}`);
     console.log(`- Public spaces: ${rawPublicSpaces.length} → ${filteredPublicSpaces.length}`);
 
+    // Extract valid IDs for explicit constraints
+    const validTypologyIds = simplifiedTypologies.map(t => t.id);
+    const validAmenityIds = simplifiedAmenities.map(a => a.id);
+    const validCommunalSpaceIds = filteredCommunalSpaces.map(s => s.id);
+    const validPublicSpaceIds = filteredPublicSpaces.map(s => s.id);
+
     const prompt = locale === 'nl' ? `
 Je bent een expert in vastgoedontwikkeling. Maak een gedetailleerd bouwprogramma voor elk scenario.
+
+## KRITIEKE REGELS - LEES DIT EERST
+Je MOET UITSLUITEND kiezen uit de hieronder opgegeven lijsten. MAAK GEEN eigen items of IDs.
+- Gebruik ALLEEN typology_id's uit de WONINGTYPOLOGIEËN lijst
+- Gebruik ALLEEN amenity_id's uit de GEBOUWVOORZIENINGEN, GEMEENSCHAPPELIJKE of PUBLIEKE RUIMTES lijsten
+- Als een item niet in de lijst staat, MAG je het NIET gebruiken
+
+GELDIGE TYPOLOGY IDs (kies ALLEEN hieruit):
+${validTypologyIds.join(', ')}
+
+GELDIGE AMENITY IDs voor gebouwvoorzieningen (kies ALLEEN hieruit):
+${validAmenityIds.join(', ')}
+
+GELDIGE IDs voor gemeenschappelijke ruimtes (kies ALLEEN hieruit):
+${validCommunalSpaceIds.join(', ')}
+
+GELDIGE IDs voor publieke/commerciële ruimtes (kies ALLEEN hieruit):
+${validPublicSpaceIds.join(', ')}
 
 # LOCATIESAMENVATTING (uit eerdere analyse)
 ${stageData.stage1Output.location_summary}
@@ -308,32 +332,32 @@ Totaal: ${stageData.pve.totalM2} m²
 - Gemeenschappelijk: ${stageData.pve.percentages.communal.percentage}% (${stageData.pve.percentages.communal.m2} m²)
 - Kantoren: ${stageData.pve.percentages.offices.percentage}% (${stageData.pve.percentages.offices.m2} m²)
 
-# BESCHIKBARE WONINGTYPOLOGIEËN
+# WONINGTYPOLOGIEËN (EXCLUSIEVE LIJST - gebruik ALLEEN deze)
 ${JSON.stringify(simplifiedTypologies, null, 2)}
 
 # MAPPING PERSONA WONINGTYPEN → TYPOLOGIEËN
 ${mapping.note}
 ${JSON.stringify(mapping.mappings, null, 2)}
 
-# BESCHIKBARE GEBOUWVOORZIENINGEN
+# GEBOUWVOORZIENINGEN (EXCLUSIEVE LIJST - gebruik ALLEEN deze)
 ${JSON.stringify(simplifiedAmenities, null, 2)}
 
-# BESCHIKBARE GEMEENSCHAPPELIJKE RUIMTES (gefilterd op relevantie)
+# GEMEENSCHAPPELIJKE RUIMTES (EXCLUSIEVE LIJST - gebruik ALLEEN deze)
 ${JSON.stringify(filteredCommunalSpaces, null, 2)}
 
-# BESCHIKBARE PUBLIEKE/COMMERCIËLE RUIMTES (gefilterd op relevantie)
+# PUBLIEKE/COMMERCIËLE RUIMTES (EXCLUSIEVE LIJST - gebruik ALLEEN deze)
 ${JSON.stringify(filteredPublicSpaces, null, 2)}
 
 # OPDRACHT
 Maak voor ELK scenario een gedetailleerd bouwprogramma:
 
-1. WONINGEN: Unit mix met typology_id, aantal, m², en onderbouwing per type
+1. WONINGEN: Unit mix met typology_id (MOET uit bovenstaande lijst komen), aantal, m², en onderbouwing per type
 2. COMMERCIEEL: Winkel/retail concepten met m² en onderbouwing
 3. HORECA: Concept beschrijving
 4. SOCIAAL: Sociale faciliteiten met m² en onderbouwing
-5. GEMEENSCHAPPELIJK: Gebouwvoorzieningen met amenity_id, m², onderbouwing
-6. GEMEENSCHAPPELIJKE RUIMTES: Selecteer uit de gefilterde lijst, groepeer per category
-7. PUBLIEKE RUIMTES: Selecteer uit de gefilterde lijst, groepeer per category
+5. GEMEENSCHAPPELIJK: Gebouwvoorzieningen met amenity_id (MOET uit bovenstaande lijst komen), m², onderbouwing
+6. GEMEENSCHAPPELIJKE RUIMTES: Selecteer ALLEEN uit de gefilterde lijst hierboven, groepeer per category
+7. PUBLIEKE RUIMTES: Selecteer ALLEEN uit de gefilterde lijst hierboven, groepeer per category
 8. KANTOREN: Concept beschrijving
 
 Maak ook:
@@ -341,8 +365,27 @@ Maak ook:
 - Een vergelijkende analyse met aanbevelingen
 
 Gebruik de scenario-analyses als basis en wees specifiek in je onderbouwing.
+HERINNERING: Gebruik UITSLUITEND de opgegeven IDs. Verzin GEEN nieuwe items.
 ` : `
 You are a real estate development expert. Create a detailed building program for each scenario.
+
+## CRITICAL RULES - READ THIS FIRST
+You MUST ONLY choose from the lists provided below. DO NOT create your own items or IDs.
+- Use ONLY typology_id's from the HOUSING TYPOLOGIES list
+- Use ONLY amenity_id's from the BUILDING AMENITIES, COMMUNAL or PUBLIC SPACES lists
+- If an item is not in the list, you MAY NOT use it
+
+VALID TYPOLOGY IDs (choose ONLY from these):
+${validTypologyIds.join(', ')}
+
+VALID AMENITY IDs for building amenities (choose ONLY from these):
+${validAmenityIds.join(', ')}
+
+VALID IDs for communal spaces (choose ONLY from these):
+${validCommunalSpaceIds.join(', ')}
+
+VALID IDs for public/commercial spaces (choose ONLY from these):
+${validPublicSpaceIds.join(', ')}
 
 # LOCATION SUMMARY (from previous analysis)
 ${stageData.stage1Output.location_summary}
@@ -371,32 +414,32 @@ Total: ${stageData.pve.totalM2} m²
 - Communal: ${stageData.pve.percentages.communal.percentage}% (${stageData.pve.percentages.communal.m2} m²)
 - Offices: ${stageData.pve.percentages.offices.percentage}% (${stageData.pve.percentages.offices.m2} m²)
 
-# AVAILABLE HOUSING TYPOLOGIES
+# HOUSING TYPOLOGIES (EXCLUSIVE LIST - use ONLY these)
 ${JSON.stringify(simplifiedTypologies, null, 2)}
 
 # MAPPING PERSONA HOUSING TYPES → TYPOLOGIES
 ${mapping.note}
 ${JSON.stringify(mapping.mappings, null, 2)}
 
-# AVAILABLE BUILDING AMENITIES
+# BUILDING AMENITIES (EXCLUSIVE LIST - use ONLY these)
 ${JSON.stringify(simplifiedAmenities, null, 2)}
 
-# AVAILABLE COMMUNAL SPACES (filtered for relevance)
+# COMMUNAL SPACES (EXCLUSIVE LIST - use ONLY these)
 ${JSON.stringify(filteredCommunalSpaces, null, 2)}
 
-# AVAILABLE PUBLIC/COMMERCIAL SPACES (filtered for relevance)
+# PUBLIC/COMMERCIAL SPACES (EXCLUSIVE LIST - use ONLY these)
 ${JSON.stringify(filteredPublicSpaces, null, 2)}
 
 # TASK
 Create a detailed building program for EACH scenario:
 
-1. RESIDENTIAL: Unit mix with typology_id, quantity, m², and rationale per type
+1. RESIDENTIAL: Unit mix with typology_id (MUST be from the list above), quantity, m², and rationale per type
 2. COMMERCIAL: Retail/shop concepts with m² and rationale
 3. HOSPITALITY: Concept description
 4. SOCIAL: Social facilities with m² and rationale
-5. COMMUNAL: Building amenities with amenity_id, m², rationale
-6. COMMUNAL SPACES: Select from filtered list, group by category
-7. PUBLIC SPACES: Select from filtered list, group by category
+5. COMMUNAL: Building amenities with amenity_id (MUST be from the list above), m², rationale
+6. COMMUNAL SPACES: Select ONLY from the filtered list above, group by category
+7. PUBLIC SPACES: Select ONLY from the filtered list above, group by category
 8. OFFICES: Concept description
 
 Also create:
@@ -404,6 +447,7 @@ Also create:
 - A comparative analysis with recommendations
 
 Use the scenario analyses as foundation and be specific in your rationale.
+REMINDER: Use ONLY the provided IDs. DO NOT invent new items.
 `;
 
     const result = await streamObject({
