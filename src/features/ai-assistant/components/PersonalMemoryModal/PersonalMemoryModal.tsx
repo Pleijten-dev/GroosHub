@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/shared/components/UI/Button/Button';
 import { Input } from '@/shared/components/UI/Input/Input';
 import { cn } from '@/shared/utils/cn';
+import { useSidebar } from '@/shared/hooks/useSidebar';
 
 interface UserIdentity {
   name?: string;
@@ -93,6 +94,10 @@ const translations = {
 
 export function PersonalMemoryModal({ isOpen, onClose, locale }: PersonalMemoryModalProps) {
   const t = translations[locale];
+  const { isCollapsed } = useSidebar();
+
+  // Sidebar dimensions (matching Sidebar component defaults)
+  const sidebarWidth = isCollapsed ? 60 : 320;
 
   const [memory, setMemory] = useState<PersonalMemoryData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -241,15 +246,21 @@ export function PersonalMemoryModal({ isOpen, onClose, locale }: PersonalMemoryM
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
+    <>
+      {/* Backdrop - respects sidebar, greys out main section */}
       <div
-        className="absolute inset-0 bg-black/50"
+        className="fixed top-0 right-0 bottom-0 bg-black/40 z-40"
+        style={{ left: `${sidebarWidth}px` }}
         onClick={onClose}
       />
 
-      {/* Modal */}
-      <div className="relative bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-base max-h-[85vh] flex flex-col">
+      {/* Modal container - respects sidebar */}
+      <div
+        className="fixed top-0 right-0 bottom-0 z-50 flex items-center justify-center p-lg"
+        style={{ left: `${sidebarWidth}px` }}
+      >
+        {/* Modal */}
+        <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-base max-h-[85vh] flex flex-col">
         {/* Header */}
         <div className="flex-shrink-0 px-lg pt-lg pb-base border-b border-gray-200">
           <div className="flex items-center justify-between">
@@ -463,7 +474,8 @@ export function PersonalMemoryModal({ isOpen, onClose, locale }: PersonalMemoryM
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 

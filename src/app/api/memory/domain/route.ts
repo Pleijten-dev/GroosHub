@@ -30,7 +30,7 @@ async function checkAdminAccess(userId: number): Promise<{ isAdmin: boolean; org
 
   // Check if user is admin
   const userResult = await db`
-    SELECT role, organization_id FROM user_accounts WHERE id = ${userId}
+    SELECT role, org_id FROM user_accounts WHERE id = ${userId}
   `;
 
   if (userResult.length === 0) {
@@ -38,7 +38,7 @@ async function checkAdminAccess(userId: number): Promise<{ isAdmin: boolean; org
   }
 
   const isAdmin = userResult[0].role === 'admin';
-  const orgId = userResult[0].organization_id as string | null;
+  const orgId = userResult[0].org_id as string | null;
 
   return { isAdmin, orgId };
 }
