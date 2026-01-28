@@ -21,7 +21,7 @@
       },
       {
         "id": "one_bed_55",
-        "name": "1-Kamer Appartement",
+        "name": "2-Kamer Appartement",
         "size_m2": 55,
         "bedrooms": 1,
         "suitable_for": ["singles", "couples", "young_professionals"],
@@ -30,7 +30,7 @@
       },
       {
         "id": "one_bed_65",
-        "name": "1-Kamer Appartement Plus",
+        "name": "2-Kamer Appartement Plus",
         "size_m2": 65,
         "bedrooms": 1,
         "suitable_for": ["couples", "young_professionals"],
@@ -39,7 +39,7 @@
       },
       {
         "id": "two_bed_75",
-        "name": "2-Kamer Appartement",
+        "name": "3-Kamer Appartement",
         "size_m2": 75,
         "bedrooms": 2,
         "suitable_for": ["couples", "small_families", "young_families"],
@@ -48,7 +48,7 @@
       },
       {
         "id": "two_bed_85",
-        "name": "2-Kamer Appartement Plus",
+        "name": "3-Kamer Appartement Plus",
         "size_m2": 85,
         "bedrooms": 2,
         "suitable_for": ["couples", "small_families"],
@@ -57,7 +57,7 @@
       },
       {
         "id": "three_bed_95",
-        "name": "3-Kamer Appartement",
+        "name": "4-Kamer Appartement",
         "size_m2": 95,
         "bedrooms": 3,
         "suitable_for": ["families", "large_families"],
@@ -66,7 +66,7 @@
       },
       {
         "id": "three_bed_110",
-        "name": "3-Kamer Appartement Plus",
+        "name": "4-Kamer Appartement Plus",
         "size_m2": 110,
         "bedrooms": 3,
         "suitable_for": ["families", "large_families"],
@@ -75,7 +75,7 @@
       },
       {
         "id": "four_bed_125",
-        "name": "4-Kamer Appartement",
+        "name": "5-Kamer Appartement",
         "size_m2": 125,
         "bedrooms": 4,
         "suitable_for": ["large_families"],
@@ -102,7 +102,7 @@
       },
       {
         "id": "social_housing_70",
-        "name": "Sociale Huurwoning 2-Kamer",
+        "name": "Sociale Huurwoning 3-Kamer",
         "size_m2": 70,
         "bedrooms": 2,
         "suitable_for": ["couples", "small_families", "low_income"],
