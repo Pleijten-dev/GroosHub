@@ -554,8 +554,8 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale, addr
   };
 
   return (
-    <div className="flex items-center justify-center h-full bg-gradient-to-br from-gray-50 to-gray-100 p-lg">
-      <div className="w-full max-w-6xl">
+    <div className="overflow-auto h-full bg-gradient-to-br from-gray-50 to-gray-100 p-lg">
+      <div className="w-full max-w-6xl mx-auto">
         {/* Voronoi visualization */}
         <div className="flex justify-center mb-base">
           <div className="border-2 border-gray-300 overflow-hidden shadow-lg bg-white">
@@ -960,22 +960,74 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale, addr
                         step="0.1"
                       />
                       <div className="flex-1">
-                        <input
-                          type="range"
-                          value={finalFSI}
-                          onChange={(e) => setFsiOverride(parseFloat(e.target.value))}
-                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
-                          min="0.2"
-                          max="5"
-                          step="0.1"
-                        />
-                        <div className="flex justify-between text-xs text-gray-500 mt-1">
+                        {/* Custom slider with recommended range indicator */}
+                        <div className="relative">
+                          {/* Slider track background */}
+                          <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 h-2 bg-gray-200 rounded-lg" />
+
+                          {/* Recommended range indicator (±0.5 around calculated FSI) */}
+                          {fsiResult && (
+                            <>
+                              {/* Recommended range band */}
+                              <div
+                                className="absolute top-1/2 -translate-y-1/2 h-2 bg-green-200 rounded-lg"
+                                style={{
+                                  left: `${Math.max(0, ((Math.max(0.2, fsiResult.calculatedFSI - 0.5) - 0.2) / 4.8) * 100)}%`,
+                                  right: `${Math.max(0, 100 - ((Math.min(5, fsiResult.calculatedFSI + 0.5) - 0.2) / 4.8) * 100)}%`,
+                                }}
+                                title={locale === 'nl' ? `Aanbevolen bereik: ${(fsiResult.calculatedFSI - 0.5).toFixed(1)} - ${(fsiResult.calculatedFSI + 0.5).toFixed(1)}` : `Recommended range: ${(fsiResult.calculatedFSI - 0.5).toFixed(1)} - ${(fsiResult.calculatedFSI + 0.5).toFixed(1)}`}
+                              />
+
+                              {/* Calculated FSI marker (triangle pointer) */}
+                              <div
+                                className="absolute -top-2 -translate-x-1/2 flex flex-col items-center pointer-events-none z-10"
+                                style={{
+                                  left: `${((fsiResult.calculatedFSI - 0.2) / 4.8) * 100}%`,
+                                }}
+                              >
+                                <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-green-600" />
+                              </div>
+                            </>
+                          )}
+
+                          {/* Actual range slider */}
+                          <input
+                            type="range"
+                            value={finalFSI}
+                            onChange={(e) => setFsiOverride(parseFloat(e.target.value))}
+                            className="relative w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer z-20 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:cursor-pointer"
+                            min="0.2"
+                            max="5"
+                            step="0.1"
+                          />
+                        </div>
+
+                        {/* Scale labels */}
+                        <div className="flex justify-between text-xs text-gray-500 mt-2">
                           <span>0.2</span>
                           <span>1.0</span>
                           <span>2.0</span>
                           <span>3.5</span>
                           <span>5.0</span>
                         </div>
+
+                        {/* Recommended FSI legend */}
+                        {fsiResult && (
+                          <div className="flex items-center gap-4 mt-2 text-xs">
+                            <div className="flex items-center gap-1">
+                              <div className="w-0 h-0 border-l-[4px] border-r-[4px] border-t-[6px] border-l-transparent border-r-transparent border-t-green-600" />
+                              <span className="text-gray-600">
+                                {locale === 'nl' ? `Berekend: ${fsiResult.calculatedFSI.toFixed(1)}` : `Calculated: ${fsiResult.calculatedFSI.toFixed(1)}`}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <div className="w-4 h-2 bg-green-200 rounded" />
+                              <span className="text-gray-600">
+                                {locale === 'nl' ? 'Aanbevolen bereik' : 'Recommended range'}
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
