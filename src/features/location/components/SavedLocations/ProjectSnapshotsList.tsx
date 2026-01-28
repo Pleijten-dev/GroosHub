@@ -125,6 +125,9 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
     setLoadingSnapshotId(snapshot.id);
     setLoadingStep({ current: 1, total: 8, label: LOADING_STEPS[0].label });
 
+    // Small delay to ensure the progress bar is visible before async operation
+    await new Promise(r => setTimeout(r, 100));
+
     try {
       // Step 1: Fetch full snapshot data from API
       const response = await fetch(`/api/location/snapshots/${snapshot.id}`);
@@ -142,6 +145,7 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
 
       // Step 2: Validate
       setLoadingStep({ current: 2, total: 8, label: LOADING_STEPS[1].label });
+      await new Promise(r => setTimeout(r, 150));
 
       // Phase 3.1: Validate loaded snapshot data
       const validationResult = validateLoadedSnapshot(snapshotData);
@@ -165,6 +169,7 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
 
       // Step 3: Demographics
       setLoadingStep({ current: 3, total: 8, label: LOADING_STEPS[2].label });
+      await new Promise(r => setTimeout(r, 150));
 
       // Transform to AccessibleLocation format
       // Structure must match UnifiedLocationData with location.coordinates.wgs84 nesting
@@ -178,6 +183,7 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
 
       // Step 4: Amenities
       setLoadingStep({ current: 4, total: 8, label: LOADING_STEPS[3].label });
+      await new Promise(r => setTimeout(r, 150));
 
       // Convert raw amenities data to UnifiedDataRow[] format for locationData.amenities
       // This ensures consistency with fresh data where amenities are converted by the aggregator
@@ -246,18 +252,19 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
 
       // Step 5: Map layers
       setLoadingStep({ current: 5, total: 8, label: LOADING_STEPS[4].label });
-      await new Promise(r => setTimeout(r, 50)); // Small delay for visual feedback
+      await new Promise(r => setTimeout(r, 150));
 
       // Step 6: PVE
       setLoadingStep({ current: 6, total: 8, label: LOADING_STEPS[5].label });
-      await new Promise(r => setTimeout(r, 50));
+      await new Promise(r => setTimeout(r, 150));
 
       // Step 7: Personas
       setLoadingStep({ current: 7, total: 8, label: LOADING_STEPS[6].label });
-      await new Promise(r => setTimeout(r, 50));
+      await new Promise(r => setTimeout(r, 150));
 
       // Step 8: Done
       setLoadingStep({ current: 8, total: 8, label: LOADING_STEPS[7].label });
+      await new Promise(r => setTimeout(r, 100));
 
       // Call the callback with transformed data
       if (onLoadSnapshot) {
@@ -431,13 +438,16 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
                           {/* Action Buttons */}
                           <div className="flex gap-xs">
                             {isLoadingThis ? (
-                              <div className="flex flex-col min-w-[100px]">
-                                <div className="flex items-center gap-1 text-xxs text-gray-600 mb-0.5">
-                                  <span className="font-mono">
-                                    {'='.repeat(loadingStep.current)}
-                                    {'-'.repeat(loadingStep.total - loadingStep.current)}
-                                  </span>
-                                  <span>({loadingStep.current}/{loadingStep.total})</span>
+                              <div className="flex flex-col min-w-[80px]">
+                                {/* Visual progress bar */}
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                  <div className="w-12 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full bg-green-500 rounded-full transition-all duration-150"
+                                      style={{ width: `${(loadingStep.current / loadingStep.total) * 100}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-xxs text-gray-600">({loadingStep.current}/{loadingStep.total})</span>
                                 </div>
                                 <span className="text-xxs text-gray-500 truncate">{loadingStep.label}</span>
                               </div>
