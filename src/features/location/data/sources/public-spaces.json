@@ -1263,52 +1263,6 @@
     "description": "Public and commercial spaces for mixed-use development projects",
     "spaces": [
       {
-        "id": "vending_machine",
-        "name": "Food & Beverage Vending Machine",
-        "scale": "small_scale",
-        "category": "food",
-        "area_min_m2": 1,
-        "area_max_m2": 4,
-        "m2_per_resident": 0.28,
-        "min_residents": 36,
-        "max_residents": 144,
-        "spatial_considerations": "operation model, water connection, sanitation, cleaning",
-        "location": "at building",
-        "regulations": "Hospitality legislation / operating license",
-        "parking_impact": false,
-        "references": "",
-        "target_groups": [
-          "Young Starters",
-          "Ambitious Singles",
-          "The Growers",
-          "Self-Assured Soloists",
-          "Modest Couples"
-        ]
-      },
-      {
-        "id": "snack_wall",
-        "name": "Snack Wall Automaat",
-        "scale": "medium_scale",
-        "category": "food",
-        "area_min_m2": 4,
-        "area_max_m2": 50,
-        "m2_per_resident": 0.07,
-        "min_residents": 1800,
-        "max_residents": 7200,
-        "spatial_considerations": "operation model, water connection, sanitation, cleaning",
-        "location": "at building",
-        "regulations": "Hospitality legislation / operating license",
-        "parking_impact": false,
-        "references": "",
-        "target_groups": [
-          "Young Starters",
-          "Ambitious Singles",
-          "Starting Together",
-          "The Growers",
-          "Self-Assured Soloists"
-        ]
-      },
-      {
         "id": "tiny_cafe",
         "name": "Tiny Café Corner / Coffee Bar",
         "scale": "medium_scale",
@@ -1879,29 +1833,6 @@
         ]
       },
       {
-        "id": "veterinary",
-        "name": "Veterinary Clinic / Veterinary Center",
-        "scale": "medium_scale",
-        "category": "practical",
-        "area_min_m2": 80,
-        "area_max_m2": 200,
-        "m2_per_resident": 0.08,
-        "min_residents": 1000,
-        "max_residents": 2500,
-        "spatial_considerations": "waiting room, treatment rooms, hygiene, parking",
-        "location": "ground floor",
-        "regulations": "Animal Welfare Act",
-        "parking_impact": true,
-        "references": "",
-        "target_groups": [
-          "Stable Families",
-          "The Balance Seekers",
-          "Wealthy Families",
-          "Cozy Nesters",
-          "Affluent Bon Vivants"
-        ]
-      },
-      {
         "id": "florist",
         "name": "Florist",
         "scale": "small_scale",
@@ -1971,29 +1902,6 @@
         ]
       },
       {
-        "id": "bank_office",
-        "name": "Bank Office / Financial Services",
-        "scale": "medium_scale",
-        "category": "practical",
-        "area_min_m2": 60,
-        "area_max_m2": 150,
-        "m2_per_resident": 0.1,
-        "min_residents": 600,
-        "max_residents": 1500,
-        "spatial_considerations": "privacy, security, waiting room",
-        "location": "ground floor, central",
-        "regulations": "AFM supervision, Financial Supervision Act",
-        "parking_impact": true,
-        "references": "",
-        "target_groups": [
-          "Career Stampers",
-          "Successful Singles",
-          "Affluent Bon Vivants",
-          "Career Starter",
-          "Stable Families"
-        ]
-      },
-      {
         "id": "photo_studio",
         "name": "Photo Studio",
         "scale": "medium_scale",
@@ -2037,6 +1945,552 @@
           "Limitless Duo",
           "Active Young Families",
           "Cozy Families"
+        ]
+      },
+      {
+        "id": "wijnbar-cocktail-lounge",
+        "name": "Wine Bar / Cocktail Lounge",
+        "scale": "grotere_schaal",
+        "category": "sociaal_en_gastvrij",
+        "target_groups": [
+          "Career Stampers",
+          "Limitless Duo",
+          "The Person of Independent Means",
+          "Career Starter",
+          "Affluent Bon Vivants"
+        ]
+      },
+      {
+        "id": "champagne-bar-proeverij-ruimte",
+        "name": "Champagne Bar / Tasting Room",
+        "scale": "grotere_schaal",
+        "category": "sociaal_en_gastvrij",
+        "target_groups": [
+          "The Comfortable Livers",
+          "The Person of Independent Means",
+          "Career Stampers",
+          "Successful Singles",
+          "Starting Together"
+        ]
+      },
+      {
+        "id": "wellness-center",
+        "name": "Wellness Center",
+        "scale": "grotere_schaal",
+        "category": "ontspanning_en_vrije_tijd",
+        "target_groups": [
+          "The Balance Seekers",
+          "Successful Singles",
+          "Career Stampers",
+          "Limitless Duo",
+          "Late Bloomers"
+        ]
+      },
+      {
+        "id": "slagerij",
+        "name": "Butcher Shop",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "The Life Enjoyers",
+          "Affluent Bon Vivants",
+          "Stable Families",
+          "Cozy Nesters",
+          "Cozy Families"
+        ]
+      },
+      {
+        "id": "viswinkel",
+        "name": "Fish Shop",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "The Life Enjoyers",
+          "Affluent Bon Vivants",
+          "The Comfortable Livers",
+          "The Person of Independent Means",
+          "Stable Families"
+        ]
+      },
+      {
+        "id": "groentewinkel-biowinkel",
+        "name": "Greengrocer / Organic Shop",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "The Balance Seekers",
+          "The Life Enjoyers",
+          "Self-Assured Soloists",
+          "Starting Together",
+          "Cozy Nesters"
+        ]
+      },
+      {
+        "id": "delicatessenzaak-kaaswinkel",
+        "name": "Delicatessen / Cheese Shop",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "The Life Enjoyers",
+          "Affluent Bon Vivants",
+          "The Person of Independent Means",
+          "Career Stampers",
+          "The Comfortable Livers"
+        ]
+      },
+      {
+        "id": "slijterij",
+        "name": "Liquor Store",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "Career Stampers",
+          "Limitless Duo",
+          "Successful Singles",
+          "The Comfortable Livers",
+          "Affluent Bon Vivants"
+        ]
+      },
+      {
+        "id": "ijssalon",
+        "name": "Ice Cream Parlor",
+        "scale": "middenschaal",
+        "category": "food",
+        "target_groups": [
+          "Active Young Families",
+          "Cozy Families",
+          "Young Starters",
+          "Starting Together",
+          "Cozy Nesters"
+        ]
+      },
+      {
+        "id": "snackbar-cafetaria",
+        "name": "Snack Bar / Cafeteria",
+        "scale": "middenschaal",
+        "category": "food",
+        "target_groups": [
+          "Young Starters",
+          "The Growers",
+          "Active Young Families",
+          "Modest Couples",
+          "Stable Families"
+        ]
+      },
+      {
+        "id": "afhaalrestaurant",
+        "name": "Takeaway Restaurant",
+        "scale": "middenschaal",
+        "category": "food",
+        "target_groups": [
+          "Starting Together",
+          "Active Young Families",
+          "Ambitious Singles",
+          "Career Starter",
+          "Stable Families"
+        ]
+      },
+      {
+        "id": "lunchroom-broodjeswinkel",
+        "name": "Lunchroom / Sandwich Shop",
+        "scale": "middenschaal",
+        "category": "food",
+        "target_groups": [
+          "Ambitious Singles",
+          "Starting Together",
+          "Career Starter",
+          "Self-Assured Soloists",
+          "Stable Families"
+        ]
+      },
+      {
+        "id": "fietsenmaker",
+        "name": "Bicycle Repair Shop",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep"
+        ]
+      },
+      {
+        "id": "schoenmaker",
+        "name": "Shoe Repair Shop",
+        "scale": "kleinste_schaal",
+        "category": "praktisch",
+        "target_groups": [
+          "Senior on a Budget",
+          "The Perseverer",
+          "Modest Couples",
+          "Independent Senior",
+          "The Life Enjoyers"
+        ]
+      },
+      {
+        "id": "kringloopwinkel",
+        "name": "Thrift Store",
+        "scale": "grotere_schaal",
+        "category": "praktisch",
+        "target_groups": [
+          "The Perseverer",
+          "Young Starters",
+          "Senior on a Budget",
+          "Modest Couples",
+          "The Growers"
+        ]
+      },
+      {
+        "id": "wasserette",
+        "name": "Laundromat",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "Young Starters",
+          "Ambitious Singles",
+          "The Growers",
+          "Career Starter",
+          "Starting Together"
+        ]
+      },
+      {
+        "id": "stomerij",
+        "name": "Dry Cleaner",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "Successful Singles",
+          "Career Stampers",
+          "Career Starter",
+          "The Balance Seekers",
+          "Ambitious Singles"
+        ]
+      },
+      {
+        "id": "opticien",
+        "name": "Optician",
+        "scale": "middenschaal",
+        "category": "gezondheid",
+        "target_groups": [
+          "Independent Senior",
+          "Senior on a Budget",
+          "The Comfortable Livers",
+          "Stable Families",
+          "Cozy Nesters"
+        ]
+      },
+      {
+        "id": "huisdierenwinkel",
+        "name": "Pet Store",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "Cozy Nesters",
+          "Stable Families",
+          "Self-Assured Soloists",
+          "The Balance Seekers",
+          "Cozy Families"
+        ]
+      },
+      {
+        "id": "postpunt-postnl-punt",
+        "name": "Post Office / Postal Point",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep"
+        ]
+      },
+      {
+        "id": "basisschool",
+        "name": "Primary School",
+        "scale": "grotere_schaal",
+        "category": "cultuur_en_educatie",
+        "target_groups": [
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep"
+        ]
+      },
+      {
+        "id": "peuterspeelzaal-gemeentelijk",
+        "name": "Preschool (Municipal)",
+        "scale": "grotere_schaal",
+        "category": "gezin_en_kindvriendelijk",
+        "target_groups": [
+          "Growing Families",
+          "Active Young Families",
+          "Cozy Families",
+          "Modest Couples",
+          "The Growers"
+        ]
+      },
+      {
+        "id": "muziekschool",
+        "name": "Music School",
+        "scale": "grotere_schaal",
+        "category": "cultuur_en_educatie",
+        "target_groups": [
+          "Active Young Families",
+          "Wealthy Families",
+          "Ambitious Singles",
+          "Late Bloomers",
+          "Stable Families"
+        ]
+      },
+      {
+        "id": "dansschool",
+        "name": "Dance School",
+        "scale": "grotere_schaal",
+        "category": "cultuur_en_educatie",
+        "target_groups": [
+          "Active Young Families",
+          "Young Starters",
+          "Ambitious Singles",
+          "Limitless Duo",
+          "Stable Families"
+        ]
+      },
+      {
+        "id": "taalschool",
+        "name": "Language School",
+        "scale": "grotere_schaal",
+        "category": "cultuur_en_educatie",
+        "target_groups": [
+          "Young Starters",
+          "Ambitious Singles",
+          "Limitless Duo",
+          "Starting Together",
+          "Career Starter"
+        ]
+      },
+      {
+        "id": "huiswerkbegeleiding",
+        "name": "Homework Support Center",
+        "scale": "middenschaal",
+        "category": "gezin_en_kindvriendelijk",
+        "target_groups": [
+          "Growing Families",
+          "Cozy Families",
+          "Active Young Families",
+          "Stable Families",
+          "Modest Couples"
+        ]
+      },
+      {
+        "id": "zwembad",
+        "name": "Swimming Pool",
+        "scale": "grotere_schaal",
+        "category": "gezondheid",
+        "target_groups": [
+          "Active Young Families",
+          "Stable Families",
+          "Wealthy Families",
+          "The Balance Seekers",
+          "Cozy Nesters"
+        ]
+      },
+      {
+        "id": "massagepraktijk",
+        "name": "Massage Practice",
+        "scale": "middenschaal",
+        "category": "ontspanning_en_vrije_tijd",
+        "target_groups": [
+          "The Balance Seekers",
+          "Successful Singles",
+          "Career Stampers",
+          "The Life Enjoyers",
+          "The Comfortable Livers"
+        ]
+      },
+      {
+        "id": "diëtist",
+        "name": "Dietitian",
+        "scale": "middenschaal",
+        "category": "gezondheid",
+        "target_groups": [
+          "The Balance Seekers",
+          "Independent Senior",
+          "Active Young Families",
+          "Stable Families",
+          "Ambitious Singles"
+        ]
+      },
+      {
+        "id": "speelgoedwinkel",
+        "name": "Toy Store",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "Growing Families",
+          "Cozy Families",
+          "Active Young Families",
+          "Wealthy Families",
+          "Cozy Nesters"
+        ]
+      },
+      {
+        "id": "boekwinkel",
+        "name": "Bookstore",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "The Life Enjoyers",
+          "Late Bloomers",
+          "Cozy Nesters",
+          "Ambitious Singles",
+          "Independent Senior"
+        ]
+      },
+      {
+        "id": "board-game-café",
+        "name": "Board Game Café",
+        "scale": "middenschaal",
+        "category": "sociaal_en_gastvrij",
+        "target_groups": [
+          "Young Starters",
+          "Starting Together",
+          "Ambitious Singles",
+          "Limitless Duo",
+          "Cozy Nesters"
+        ]
+      },
+      {
+        "id": "craft-beer-bar-brouwerij",
+        "name": "Craft Beer Bar / Brewery",
+        "scale": "grotere_schaal",
+        "category": "sociaal_en_gastvrij",
+        "target_groups": [
+          "Limitless Duo",
+          "Career Starter",
+          "Starting Together",
+          "Ambitious Singles",
+          "Career Stampers"
+        ]
+      },
+      {
+        "id": "theater-podium",
+        "name": "Theater / Stage",
+        "scale": "grotere_schaal",
+        "category": "cultuur_en_educatie",
+        "target_groups": [
+          "The Life Enjoyers",
+          "The Person of Independent Means",
+          "Late Bloomers",
+          "Successful Singles",
+          "Career Stampers"
+        ]
+      },
+      {
+        "id": "telefoon-computer-reparatie",
+        "name": "Phone / Computer Repair",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "Young Starters",
+          "Ambitious Singles",
+          "Career Starter",
+          "Self-Assured Soloists",
+          "Starting Together"
+        ]
+      },
+      {
+        "id": "voortgezet-onderwijs-middelbare-school",
+        "name": "Secondary School",
+        "scale": "grotere_schaal",
+        "category": "cultuur_en_educatie",
+        "target_groups": [
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep"
+        ]
+      },
+      {
+        "id": "hoger-onderwijs-dependance",
+        "name": "Higher Education Branch",
+        "scale": "grotere_schaal",
+        "category": "cultuur_en_educatie",
+        "target_groups": [
+          "Young Starters",
+          "The Growers",
+          "Ambitious Singles",
+          "Starting Together",
+          "Self-Assured Soloists"
+        ]
+      },
+      {
+        "id": "buurtpark-met-speeltuin",
+        "name": "Neighborhood Park with Playground",
+        "scale": "grotere_schaal",
+        "category": "ontspanning_en_vrije_tijd",
+        "target_groups": [
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep",
+          "geschikt voor elke doelgroep"
+        ]
+      },
+      {
+        "id": "buiten-sportveld-openbaar",
+        "name": "Outdoor Sports Field (Public)",
+        "scale": "middenschaal",
+        "category": "gezondheid",
+        "target_groups": [
+          "Young Starters",
+          "Ambitious Singles",
+          "Starting Together",
+          "Cozy Families",
+          "Stable Families"
+        ]
+      },
+      {
+        "id": "dierenartspraktijk",
+        "name": "Veterinary Practice",
+        "scale": "middenschaal",
+        "category": "praktisch",
+        "target_groups": [
+          "Cozy Nesters",
+          "Stable Families",
+          "Self-Assured Soloists",
+          "The Balance Seekers",
+          "Cozy Families"
+        ]
+      },
+      {
+        "id": "consultatiebureau-baby-peuterzorg",
+        "name": "Child Health Clinic",
+        "scale": "middenschaal",
+        "category": "gezondheid",
+        "target_groups": [
+          "Growing Families",
+          "Active Young Families",
+          "Fast Starters",
+          "Cozy Families",
+          "Stable Families"
+        ]
+      },
+      {
+        "id": "luxe-restaurant-hoog-segment",
+        "name": "Fine Dining Restaurant",
+        "scale": "grotere_schaal",
+        "category": "sociaal_en_gastvrij",
+        "target_groups": [
+          "Career Stampers",
+          "Affluent Bon Vivants",
+          "Successful Singles",
+          "The Person of Independent Means",
+          "Limitless Duo"
         ]
       }
     ]

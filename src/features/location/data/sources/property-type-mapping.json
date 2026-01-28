@@ -9,14 +9,14 @@
         "description": "Studio's en sociale huurwoningen voor alleenstaanden"
       },
       "Goedkoop 2-kamer appartement": {
-        "typology_ids": ["social_housing_70", "one_bed_55"],
+        "typology_ids": ["one_bed_55", "social_housing_50"],
         "match_type": "exact",
-        "description": "Betaalbare 1-2 kamer appartementen en sociale huurwoningen"
+        "description": "Betaalbare 2-kamer appartementen (1 slaapkamer) en sociale huurwoningen"
       },
       "Goedkoop 3-kamer appartement": {
-        "typology_ids": ["two_bed_75"],
+        "typology_ids": ["two_bed_75", "social_housing_70"],
         "match_type": "exact",
-        "description": "Betaalbare 2-kamer appartementen voor gezinnen"
+        "description": "Betaalbare 3-kamer appartementen (2 slaapkamers) voor gezinnen"
       },
       "Goedkope 2-kamer grondgebonden woning": {
         "typology_ids": [],
@@ -33,12 +33,12 @@
       "Middensegment 2-kamer appartement": {
         "typology_ids": ["one_bed_55", "one_bed_65"],
         "match_type": "exact",
-        "description": "Middensegment 1-kamer appartementen"
+        "description": "Middensegment 2-kamer appartementen (1 slaapkamer)"
       },
       "Middensegment 3-kamer appartement": {
         "typology_ids": ["two_bed_75", "two_bed_85"],
         "match_type": "exact",
-        "description": "Middensegment 2-kamer appartementen"
+        "description": "Middensegment 3-kamer appartementen (2 slaapkamers)"
       },
       "Middensegment 2-kamer grondgebonden woning": {
         "typology_ids": ["one_bed_55", "one_bed_65"],
@@ -52,14 +52,14 @@
         "alternative_suggestion": "two_bed_85"
       },
       "Luxe 2-kamer appartement": {
-        "typology_ids": ["one_bed_65", "two_bed_85"],
+        "typology_ids": ["one_bed_65"],
         "match_type": "exact",
-        "description": "Luxe 1-2 kamer appartementen"
+        "description": "Luxe 2-kamer appartementen (1 slaapkamer)"
       },
       "Luxe 3-kamer appartement": {
-        "typology_ids": ["three_bed_95", "three_bed_110", "penthouse_150"],
+        "typology_ids": ["two_bed_85", "three_bed_95"],
         "match_type": "exact",
-        "description": "Luxe 3-kamer appartementen en penthouses"
+        "description": "Luxe 3-kamer appartementen (2 slaapkamers)"
       },
       "Luxe 2-kamer grondgebonden woning": {
         "typology_ids": [],
@@ -85,14 +85,14 @@
         "description": "Studios and social housing for singles"
       },
       "Affordable 2-room apartment": {
-        "typology_ids": ["social_housing_70", "one_bed_55"],
+        "typology_ids": ["one_bed_55", "social_housing_50"],
         "match_type": "exact",
-        "description": "Affordable 1-2 bedroom apartments and social housing"
+        "description": "Affordable 2-room apartments (1 bedroom) and social housing"
       },
       "Affordable 3-room apartment": {
-        "typology_ids": ["two_bed_75"],
+        "typology_ids": ["two_bed_75", "social_housing_70"],
         "match_type": "exact",
-        "description": "Affordable 2-bedroom apartments for families"
+        "description": "Affordable 3-room apartments (2 bedrooms) for families"
       },
       "Affordable 2-room ground-level dwelling": {
         "typology_ids": [],
@@ -109,12 +109,12 @@
       "Mid-range 2-room apartment": {
         "typology_ids": ["one_bed_55", "one_bed_65"],
         "match_type": "exact",
-        "description": "Mid-range 1-bedroom apartments"
+        "description": "Mid-range 2-room apartments (1 bedroom)"
       },
       "Mid-range 3-room apartment": {
         "typology_ids": ["two_bed_75", "two_bed_85"],
         "match_type": "exact",
-        "description": "Mid-range 2-bedroom apartments"
+        "description": "Mid-range 3-room apartments (2 bedrooms)"
       },
       "Mid-range 2-room ground-level dwelling": {
         "typology_ids": ["one_bed_55", "one_bed_65"],
@@ -128,14 +128,14 @@
         "alternative_suggestion": "two_bed_85"
       },
       "Luxury 2-room apartment": {
-        "typology_ids": ["one_bed_65", "two_bed_85"],
+        "typology_ids": ["one_bed_65"],
         "match_type": "exact",
-        "description": "Luxury 1-2 bedroom apartments"
+        "description": "Luxury 2-room apartments (1 bedroom)"
       },
       "Luxury 3-room apartment": {
-        "typology_ids": ["three_bed_95", "three_bed_110", "penthouse_150"],
+        "typology_ids": ["two_bed_85", "three_bed_95"],
         "match_type": "exact",
-        "description": "Luxury 3-bedroom apartments and penthouses"
+        "description": "Luxury 3-room apartments (2 bedrooms)"
       },
       "Luxury 2-room ground-level dwelling": {
         "typology_ids": [],
