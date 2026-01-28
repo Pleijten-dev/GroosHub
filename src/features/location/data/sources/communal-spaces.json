@@ -2668,6 +2668,175 @@
           "Career Stampers",
           "Successful Singles"
         ]
+      },
+      {
+        "id": "gemeenschapsruimte-gezamenlijke-woonkamer",
+        "name": "Community Room / Shared Living Room",
+        "scale": "medium_scale",
+        "category": "recreation_and_leisure",
+        "target_groups": [
+          "The Perseverer",
+          "Senior on a Budget",
+          "Seniors with Children at Home",
+          "Affluent Bon Vivants",
+          "Independent Senior"
+        ]
+      },
+      {
+        "id": "wasruimte-washok",
+        "name": "Laundry Room",
+        "scale": "smallest_scale",
+        "category": "recreation_and_leisure",
+        "target_groups": [
+          "Young Starters",
+          "The Perseverer",
+          "Senior on a Budget",
+          "Modest Couples",
+          "The Growers"
+        ]
+      },
+      {
+        "id": "gamekamer-met-bordspellen",
+        "name": "Game Room with Board Games",
+        "scale": "smallest_scale",
+        "category": "culture_and_education",
+        "target_groups": [
+          "Young Starters",
+          "Growing Families",
+          "Active Young Families",
+          "Modest Couples",
+          "The Growers"
+        ]
+      },
+      {
+        "id": "pakketkamer-pakketpunt",
+        "name": "Package Room / Parcel Point",
+        "scale": "smallest_scale",
+        "category": "recreation_and_leisure",
+        "target_groups": [
+          "Young Starters",
+          "Ambitious Singles",
+          "Successful Singles",
+          "The Growers",
+          "Career Starter"
+        ]
+      },
+      {
+        "id": "hondenuitlaatplaats",
+        "name": "Dog Walking Area",
+        "scale": "medium_scale",
+        "category": "recreation_and_leisure",
+        "target_groups": [
+          "Self-Assured Soloists",
+          "Cozy Nesters",
+          "The Balance Seekers",
+          "Stable Families",
+          "Affluent Bon Vivants"
+        ]
+      },
+      {
+        "id": "gezamenlijke-bbq-plek-terras",
+        "name": "Shared BBQ Area / Terrace",
+        "scale": "medium_scale",
+        "category": "recreation_and_leisure",
+        "target_groups": [
+          "Starting Together",
+          "Active Young Families",
+          "Limitless Duo",
+          "Cozy Nesters",
+          "The Comfortable Livers"
+        ]
+      },
+      {
+        "id": "sauna",
+        "name": "Sauna",
+        "scale": "medium_scale",
+        "category": "recreation_and_leisure",
+        "target_groups": [
+          "The Balance Seekers",
+          "Successful Singles",
+          "The Comfortable Livers",
+          "The Person of Independent Means",
+          "Affluent Bon Vivants"
+        ]
+      },
+      {
+        "id": "teenager-jeugdruimte",
+        "name": "Teen / Youth Room",
+        "scale": "medium_scale",
+        "category": "family_and_child_friendly",
+        "target_groups": [
+          "Growing Families",
+          "Stable Families",
+          "Active Young Families",
+          "Seniors with Children at Home",
+          "Cozy Nesters"
+        ]
+      },
+      {
+        "id": "huiswerkruimte-studieruimte",
+        "name": "Homework / Study Room",
+        "scale": "medium_scale",
+        "category": "family_and_child_friendly",
+        "target_groups": [
+          "Growing Families",
+          "Stable Families",
+          "Active Young Families",
+          "Young Starters",
+          "Ambitious Singles"
+        ]
+      },
+      {
+        "id": "buurtkas-voor-voedsel",
+        "name": "Neighborhood Food Pantry",
+        "scale": "smallest_scale",
+        "category": "recreation_and_leisure",
+        "target_groups": [
+          "The Perseverer",
+          "Senior on a Budget",
+          "The Growers",
+          "Modest Couples",
+          "Young Starters"
+        ]
+      },
+      {
+        "id": "muziekrepetitieruimte-geluiddicht",
+        "name": "Music Rehearsal Room (Soundproof)",
+        "scale": "smallest_scale",
+        "category": "culture_and_education",
+        "target_groups": [
+          "Young Starters",
+          "Ambitious Singles",
+          "Self-Assured Soloists",
+          "Late Bloomers",
+          "Limitless Duo"
+        ]
+      },
+      {
+        "id": "atelier-kunstwerkruimte",
+        "name": "Art Studio / Workshop",
+        "scale": "medium_scale",
+        "category": "culture_and_education",
+        "target_groups": [
+          "Self-Assured Soloists",
+          "Ambitious Singles",
+          "The Life Enjoyers",
+          "Late Bloomers",
+          "The Person of Independent Means"
+        ]
+      },
+      {
+        "id": "filmkamer-met-console-gaming",
+        "name": "Movie Room with Console Gaming",
+        "scale": "medium_scale",
+        "category": "culture_and_education",
+        "target_groups": [
+          "Young Starters",
+          "Ambitious Singles",
+          "Limitless Duo",
+          "Career Starter",
+          "Fast Starters"
+        ]
       }
     ]
   }
