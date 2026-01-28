@@ -4,6 +4,7 @@ import React from 'react';
 import { ProjectsSidebarEnhanced } from '@/features/projects/components/ProjectsSidebarEnhanced';
 import { ProjectOverview } from '@/features/projects/components/ProjectOverview';
 import { useProjectsSidebar } from '@/features/projects/hooks/useProjectsSidebar';
+import { MainLayout } from '@/shared/components/UI/MainLayout';
 
 interface ProjectPageClientProps {
   projectId: string;
@@ -30,25 +31,20 @@ export function ProjectPageClient({
   }
 
   return (
-    <div className="flex overflow-hidden" style={{ height: 'calc(100vh - 64px)' }}>
-      <ProjectsSidebarEnhanced
-        isCollapsed={isCollapsed}
-        onToggle={toggleSidebar}
-        locale={locale}
-        userEmail={userEmail}
-        userName={userName}
-      />
-
-      {/* Main content area - adjust margin based on sidebar state */}
-      <main
-        className="flex-1 min-h-0 overflow-hidden transition-all duration-normal"
-        style={{
-          marginLeft: isCollapsed ? '60px' : '280px'
-        }}
-      >
-        <ProjectOverview projectId={projectId} locale={locale} />
-      </main>
-    </div>
+    <MainLayout
+      isCollapsed={isCollapsed}
+      sidebar={
+        <ProjectsSidebarEnhanced
+          isCollapsed={isCollapsed}
+          onToggle={toggleSidebar}
+          locale={locale}
+          userEmail={userEmail}
+          userName={userName}
+        />
+      }
+    >
+      <ProjectOverview projectId={projectId} locale={locale} />
+    </MainLayout>
   );
 }
 
