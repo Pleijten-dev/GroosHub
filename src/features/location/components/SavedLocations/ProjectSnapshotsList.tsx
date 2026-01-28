@@ -125,8 +125,8 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
     setLoadingSnapshotId(snapshot.id);
     setLoadingStep({ current: 1, total: 8, label: LOADING_STEPS[0].label });
 
-    // Small delay to ensure the progress bar is visible before async operation
-    await new Promise(r => setTimeout(r, 100));
+    // Longer delay to ensure React renders the progress bar before continuing
+    await new Promise(r => setTimeout(r, 300));
 
     try {
       // Step 1: Fetch full snapshot data from API
@@ -264,7 +264,7 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
 
       // Step 8: Done
       setLoadingStep({ current: 8, total: 8, label: LOADING_STEPS[7].label });
-      await new Promise(r => setTimeout(r, 100));
+      await new Promise(r => setTimeout(r, 200));
 
       // Call the callback with transformed data
       if (onLoadSnapshot) {
@@ -438,18 +438,25 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
                           {/* Action Buttons */}
                           <div className="flex gap-xs">
                             {isLoadingThis ? (
-                              <div className="flex flex-col min-w-[80px]">
-                                {/* Visual progress bar */}
-                                <div className="flex items-center gap-1.5 mb-0.5">
-                                  <div className="w-12 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                    <div
-                                      className="h-full bg-green-500 rounded-full transition-all duration-150"
-                                      style={{ width: `${(loadingStep.current / loadingStep.total) * 100}%` }}
-                                    />
+                              <div className="flex items-center gap-2 min-w-[100px] px-2 py-1 bg-gray-50 rounded">
+                                {/* Spinning loader */}
+                                <svg className="animate-spin h-4 w-4 text-green-500 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <div className="flex flex-col">
+                                  {/* Visual progress bar */}
+                                  <div className="flex items-center gap-1.5">
+                                    <div className="w-14 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                      <div
+                                        className="h-full bg-green-500 rounded-full transition-all duration-200"
+                                        style={{ width: `${(loadingStep.current / loadingStep.total) * 100}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-xs text-gray-600 font-medium">{loadingStep.current}/{loadingStep.total}</span>
                                   </div>
-                                  <span className="text-xxs text-gray-600">({loadingStep.current}/{loadingStep.total})</span>
+                                  <span className="text-xxs text-gray-500 truncate max-w-[80px]">{loadingStep.label}</span>
                                 </div>
-                                <span className="text-xxs text-gray-500 truncate">{loadingStep.label}</span>
                               </div>
                             ) : (
                               <Button
