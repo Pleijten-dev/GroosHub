@@ -479,6 +479,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
         return (
           <DoelgroepenResult
+            key={`doelgroepen-${loadedSnapshotId || 'new'}`}
             locale={locale}
             cubeColors={cubeColors}
             allPersonas={personas}
