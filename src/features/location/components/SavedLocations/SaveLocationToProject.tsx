@@ -13,6 +13,7 @@ import { calculateAllAmenityScores, type AmenityScore } from '../../data/scoring
 import type { AmenityMultiCategoryResponse } from '../../data/sources/google-places/types';
 import { validateSnapshotData } from '../../utils/jsonValidation';
 import { CURRENT_SCORING_VERSION } from '../../data/scoring/scoringVersion';
+import { getRapportDataByAddress } from '../../data/cache/rapportCache';
 
 interface Project {
   id: string;
@@ -162,6 +163,9 @@ export const SaveLocationToProject: React.FC<SaveLocationToProjectProps> = ({
         };
       }
 
+      // Get rapport data from local cache (if user has generated a report)
+      const rapportData = getRapportDataByAddress(address);
+
       // Validate data before saving (Phase 3.1: JSON round-trip validation)
       const validationResult = validateSnapshotData({
         demographicsData: locationData?.demographics,
@@ -196,6 +200,7 @@ export const SaveLocationToProject: React.FC<SaveLocationToProjectProps> = ({
           housing_data: housingData,
           wms_grading_data: wmsGradingData || null,
           pve_data: combinedPveData || null,
+          rapport_data: rapportData || null,
           scoring_algorithm_version: CURRENT_SCORING_VERSION,
           notes: null,
           tags: [],

@@ -436,6 +436,42 @@ export class RapportCache {
 }
 
 /**
+ * Get cached rapport data by address (for snapshot saving)
+ * Searches the cache index for an entry matching the address
+ */
+export function getRapportDataByAddress(address: string): CachedRapportData | null {
+  try {
+    const index = getCacheIndex();
+    const entry = index.entries.find(e => e.locationAddress === address);
+
+    if (!entry) {
+      return null;
+    }
+
+    return getFromLocalCache(entry.key);
+  } catch (error) {
+    console.error('[RapportCache] Error getting rapport data by address:', error);
+    return null;
+  }
+}
+
+/**
+ * Restore rapport data to local cache (for snapshot loading)
+ * Used when loading a snapshot that has rapport_data
+ */
+export function restoreRapportDataToCache(
+  rapportData: CachedRapportData,
+  ttl: number = DEFAULT_TTL
+): boolean {
+  if (!rapportData || !rapportData.inputHash) {
+    console.warn('[RapportCache] Invalid rapport data for restoration');
+    return false;
+  }
+
+  return saveToLocalCache(rapportData.inputHash, rapportData, ttl);
+}
+
+/**
  * Default export - singleton instance
  */
 export const rapportCache = {

@@ -11,6 +11,7 @@ import type { AccessibleLocation } from '@/features/location/types/saved-locatio
 import { convertAmenitiesToRows } from '../Amenities/amenityDataConverter';
 import { validateLoadedSnapshot } from '../../utils/jsonValidation';
 import { isVersionCompatible, CURRENT_SCORING_VERSION } from '../../data/scoring/scoringVersion';
+import { restoreRapportDataToCache, type CachedRapportData } from '../../data/cache/rapportCache';
 
 interface LocationSnapshot {
   id: string;
@@ -238,6 +239,12 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
         isShared: false,
         canEdit: true,
       };
+
+      // Restore rapport data to local cache if available
+      if (snapshotData.rapport_data && Object.keys(snapshotData.rapport_data).length > 0) {
+        console.log('📄 Restoring saved rapport data to cache');
+        restoreRapportDataToCache(snapshotData.rapport_data as CachedRapportData);
+      }
 
       if (onLoadSnapshot) {
         onLoadSnapshot(accessibleLocation);
