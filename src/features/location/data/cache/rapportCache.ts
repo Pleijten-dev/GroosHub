@@ -438,17 +438,42 @@ export class RapportCache {
 /**
  * Get cached rapport data by address (for snapshot saving)
  * Searches the cache index for an entry matching the address
+ * Uses flexible matching to handle slight address variations
  */
 export function getRapportDataByAddress(address: string): CachedRapportData | null {
   try {
     const index = getCacheIndex();
-    const entry = index.entries.find(e => e.locationAddress === address);
+
+    // Log for debugging
+    console.log('[RapportCache] Looking for address:', address);
+    console.log('[RapportCache] Cache entries:', index.entries.map(e => e.locationAddress));
+
+    // Try exact match first
+    let entry = index.entries.find(e => e.locationAddress === address);
+
+    // If no exact match, try partial match (address contains or is contained)
+    if (!entry) {
+      const normalizedSearch = address.toLowerCase().trim();
+      entry = index.entries.find(e => {
+        const normalizedEntry = e.locationAddress.toLowerCase().trim();
+        return normalizedEntry.includes(normalizedSearch) || normalizedSearch.includes(normalizedEntry);
+      });
+
+      if (entry) {
+        console.log('[RapportCache] Found partial match:', entry.locationAddress);
+      }
+    }
 
     if (!entry) {
+      console.log('[RapportCache] No matching entry found for address');
       return null;
     }
 
-    return getFromLocalCache(entry.key);
+    const data = getFromLocalCache(entry.key);
+    if (data) {
+      console.log('[RapportCache] Successfully retrieved rapport data for snapshot save');
+    }
+    return data;
   } catch (error) {
     console.error('[RapportCache] Error getting rapport data by address:', error);
     return null;
