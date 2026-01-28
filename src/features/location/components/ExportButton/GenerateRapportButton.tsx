@@ -242,6 +242,7 @@ export function GenerateRapportButton({
   const [error, setError] = useState<string | null>(null);
   const [isCached, setIsCached] = useState(false);
   const [lastGenerationFromCache, setLastGenerationFromCache] = useState(false);
+  const [forceRegenerate, setForceRegenerate] = useState(false);
 
   const messages = STAGE_MESSAGES[locale];
 
@@ -541,23 +542,26 @@ export function GenerateRapportButton({
           }
         };
 
-        // Check if we have cached data first
-        const isCached = isRapportCached(exportData as CompactLocationExport, locale);
+        // Check if we have cached data first (unless force regenerate is enabled)
+        const isCached = !forceRegenerate && isRapportCached(exportData as CompactLocationExport, locale);
         if (isCached) {
           console.log('[GenerateRapport] Using cached rapport data - no LLM calls needed');
           setStage('generating-llm'); // Show generic stage for cache retrieval
           setProgress(15);
         } else {
+          if (forceRegenerate) {
+            console.log('[GenerateRapport] Force regenerate enabled - skipping cache');
+          }
           setStage('stage1-location');
           setProgress(15);
         }
 
-        // Call the staged generation pipeline (checks cache automatically)
+        // Call the staged generation pipeline (checks cache automatically unless skipCache is true)
         const stagedResult = await generateBuildingProgramStaged(
           exportData as CompactLocationExport,
           locale,
           handleStagedProgress,
-          { saveToCache: true } // Always save to cache for future use
+          { saveToCache: true, skipCache: forceRegenerate } // Skip cache if force regenerate
         );
 
         if (stagedResult.fromCache) {
@@ -924,6 +928,7 @@ export function GenerateRapportButton({
       setTimeout(() => {
         setStage('idle');
         setProgress(0);
+        setForceRegenerate(false); // Reset force regenerate checkbox
       }, 2000);
 
     } catch (err) {
@@ -931,12 +936,25 @@ export function GenerateRapportButton({
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
       setStage('error');
     }
-  }, [stage, usePlaceholder, data, amenitiesData, personaScores, pveData, locale, coordinates, wmsGradingData, scenarios, cubeColors, projectId]);
+  }, [stage, usePlaceholder, data, amenitiesData, personaScores, pveData, locale, coordinates, wmsGradingData, scenarios, cubeColors, projectId, forceRegenerate]);
 
   const isGenerating = stage !== 'idle' && stage !== 'error' && stage !== 'complete';
 
   return (
     <div className={className}>
+      {/* Force regenerate checkbox - only show when cached */}
+      {stage === 'idle' && isCached && (
+        <label className="flex items-center gap-2 mb-2 cursor-pointer text-xs text-gray-600 hover:text-gray-800">
+          <input
+            type="checkbox"
+            checked={forceRegenerate}
+            onChange={(e) => setForceRegenerate(e.target.checked)}
+            className="w-3.5 h-3.5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+          />
+          <span>{locale === 'nl' ? 'Rapport opnieuw genereren (nieuwe AI analyse)' : 'Regenerate report (new AI analysis)'}</span>
+        </label>
+      )}
+
       <button
         onClick={handleGenerate}
         disabled={isGenerating}

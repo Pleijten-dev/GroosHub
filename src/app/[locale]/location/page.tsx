@@ -325,6 +325,17 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
       if (location.pveData) {
         console.log('📋 Restoring saved PVE configuration');
         pveConfigCache.setFinalPVE(location.pveData);
+
+        // Also populate the regular PVE config cache so PVEQuestionnaire can read it on mount
+        // This ensures FSI and housing categories are properly restored
+        pveConfigCache.set({
+          totalM2: location.pveData.totalM2,
+          percentages: location.pveData.percentages,
+          disabledCategories: [], // Not stored in PVEFinalState, default to empty
+          lockedCategories: [], // Not stored in PVEFinalState, default to empty
+          fsi: location.pveData.fsi,
+          housingCategories: location.pveData.housingCategories,
+        });
       }
 
       // Restore custom scenario selection if available in PVE data
@@ -468,6 +479,7 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
         return (
           <DoelgroepenResult
+            key={`doelgroepen-${loadedSnapshotId || 'new'}`}
             locale={locale}
             cubeColors={cubeColors}
             allPersonas={personas}
@@ -665,7 +677,26 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
 
       // For PVE (Programma van Eisen) tab - show interactive questionnaire
       if (activeTab === 'pve') {
-        return <PVEQuestionnaire locale={locale} />;
+        // Extract address density from demographics (neighborhood level preferred, then municipality)
+        const getAddressDensity = (): number | undefined => {
+          // Try neighborhood level first
+          const neighborhoodRow = data.demographics.neighborhood.find(
+            row => row.key === 'Omgevingsadressendichtheid_116'
+          );
+          if (neighborhoodRow?.absolute !== null && neighborhoodRow?.absolute !== undefined) {
+            return neighborhoodRow.absolute;
+          }
+          // Fall back to municipality level
+          const municipalityRow = data.demographics.municipality.find(
+            row => row.key === 'Omgevingsadressendichtheid_116'
+          );
+          if (municipalityRow?.absolute !== null && municipalityRow?.absolute !== undefined) {
+            return municipalityRow.absolute;
+          }
+          return undefined;
+        };
+
+        return <PVEQuestionnaire key={`pve-${loadedSnapshotId || 'new'}`} locale={locale} addressDensity={getAddressDensity()} />;
       }
 
       // For Generate Report tab - show export options

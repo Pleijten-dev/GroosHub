@@ -221,6 +221,23 @@ export type Stage3Output = z.infer<typeof Stage3OutputSchema>;
 // INPUT TYPE
 // ============================================================================
 
+interface FSIData {
+  calculatedValue: number;
+  finalValue: number;
+  isOverridden: boolean;
+  addressDensity: number;
+  category: 'low' | 'medium' | 'high';
+  housingRecommendation: string;
+}
+
+interface HousingCategoriesData {
+  residential_m2: number;
+  social: { percentage: number | null; m2: number | null; isRequired: boolean };
+  affordable: { percentage: number | null; m2: number | null; isRequired: boolean };
+  luxury: { percentage: number | null; m2: number | null; isRequired: boolean };
+  unallocated: { percentage: number };
+}
+
 interface PVEData {
   totalM2: number;
   percentages: {
@@ -231,6 +248,8 @@ interface PVEData {
     communal: { percentage: number; m2: number };
     offices: { percentage: number; m2: number };
   };
+  fsi?: FSIData;
+  housingCategories?: HousingCategoriesData;
 }
 
 interface Stage3Input {
@@ -241,6 +260,101 @@ interface Stage3Input {
     name: string;
     personaNames: string[];
   }>;
+}
+
+// Helper to build FSI guidance section for the prompt
+function buildFSIGuidanceSection(fsi: FSIData | undefined, locale: 'nl' | 'en'): string {
+  if (!fsi) return '';
+
+  const categoryLabels = {
+    nl: { low: 'Laag', medium: 'Gemiddeld', high: 'Hoog' },
+    en: { low: 'Low', medium: 'Medium', high: 'High' },
+  };
+
+  if (locale === 'nl') {
+    return `
+# BEBOUWINGSINTENSITEIT (FSI) RICHTLIJNEN
+FSI waarde: ${fsi.finalValue}${fsi.isOverridden ? ' (handmatig aangepast)' : ` (berekend o.b.v. omgevingsadressendichtheid: ${Math.round(fsi.addressDensity)}/km²)`}
+FSI Categorie: ${categoryLabels.nl[fsi.category]}
+
+${fsi.housingRecommendation}
+
+**BELANGRIJK VOOR WONINGTYPOLOGIE:**
+- LAAG FSI (< 0.8): Gebruik ALLEEN grondgebonden woningen (eengezinswoningen, rijtjeshuizen, twee-onder-één-kap). Geen appartementen of hoogbouw.
+- GEMIDDELD FSI (0.8 - 2.0): Mix van grondgebonden woningen (60-70%) en laagbouw appartementen (30-40%, max 4 lagen).
+- HOOG FSI (> 2.0): Gebruik ALLEEN gestapelde bouw (appartementen). Hoogbouw waar stedenbouwkundig passend.
+
+Bij het samenstellen van de unit_mix moet je rekening houden met deze FSI-richtlijn.
+`;
+  } else {
+    return `
+# FLOOR SPACE INDEX (FSI) GUIDELINES
+FSI value: ${fsi.finalValue}${fsi.isOverridden ? ' (manually adjusted)' : ` (calculated from address density: ${Math.round(fsi.addressDensity)}/km²)`}
+FSI Category: ${categoryLabels.en[fsi.category]}
+
+${fsi.housingRecommendation}
+
+**IMPORTANT FOR HOUSING TYPOLOGY:**
+- LOW FSI (< 0.8): Use ONLY ground-bound housing (single-family homes, row houses, semi-detached). No apartments or high-rise.
+- MEDIUM FSI (0.8 - 2.0): Mix of ground-bound housing (60-70%) and low-rise apartments (30-40%, max 4 floors).
+- HIGH FSI (> 2.0): Use ONLY stacked construction (apartments). High-rise where urbanistically appropriate.
+
+When composing the unit_mix, you must adhere to these FSI guidelines.
+`;
+  }
+}
+
+// Helper to build housing categories guidance section
+function buildHousingCategoriesSection(housingCategories: HousingCategoriesData | undefined, locale: 'nl' | 'en'): string {
+  if (!housingCategories) return '';
+
+  const formatPercentage = (val: number | null): string => val !== null ? `${val}%` : (locale === 'nl' ? 'Niet gespecificeerd' : 'Not specified');
+
+  if (locale === 'nl') {
+    return `
+# WONINGCATEGORIE VEREISTEN
+Het woonprogramma (${housingCategories.residential_m2.toLocaleString()} m²) moet voldoen aan de volgende minimumpercentages:
+
+| Categorie | Minimum | m² (bij minimum) | Verplicht |
+|-----------|---------|------------------|-----------|
+| Sociaal | ${formatPercentage(housingCategories.social.percentage)} | ${housingCategories.social.m2?.toLocaleString() ?? '-'} m² | ${housingCategories.social.isRequired ? 'Ja' : 'Nee'} |
+| Betaalbaar | ${formatPercentage(housingCategories.affordable.percentage)} | ${housingCategories.affordable.m2?.toLocaleString() ?? '-'} m² | ${housingCategories.affordable.isRequired ? 'Ja' : 'Nee'} |
+| Luxe | ${formatPercentage(housingCategories.luxury.percentage)} | ${housingCategories.luxury.m2?.toLocaleString() ?? '-'} m² | ${housingCategories.luxury.isRequired ? 'Ja' : 'Nee'} |
+| Vrij in te vullen | ${housingCategories.unallocated.percentage}% | | |
+
+**BELANGRIJKE INSTRUCTIES:**
+- Verplichte categorieën MOETEN minimaal het opgegeven percentage behalen in het scenario.
+- Niet-gespecificeerde categorieën kunnen vrij worden ingevuld afhankelijk van de doelgroepen.
+- Voeg voor ELK scenario een compliance check toe: geef aan of het scenario aan de eisen voldoet.
+- Als een scenario NIET kan voldoen (bv. vanwege FSI-beperkingen), leg dan uit waarom en bied een alternatief.
+
+Voorbeeld compliance notities:
+- "✓ Dit scenario voldoet aan de eis van minimaal 30% sociaal (34% gerealiseerd)."
+- "✗ Dit scenario kan niet voldoen aan 30% sociaal in grondgebonden woningen bij FSI > 2.0. Alternatief: sociale appartementen."
+`;
+  } else {
+    return `
+# HOUSING CATEGORY REQUIREMENTS
+The residential program (${housingCategories.residential_m2.toLocaleString()} m²) must meet the following minimum percentages:
+
+| Category | Minimum | m² (at minimum) | Required |
+|----------|---------|-----------------|----------|
+| Social | ${formatPercentage(housingCategories.social.percentage)} | ${housingCategories.social.m2?.toLocaleString() ?? '-'} m² | ${housingCategories.social.isRequired ? 'Yes' : 'No'} |
+| Affordable | ${formatPercentage(housingCategories.affordable.percentage)} | ${housingCategories.affordable.m2?.toLocaleString() ?? '-'} m² | ${housingCategories.affordable.isRequired ? 'Yes' : 'No'} |
+| Luxury | ${formatPercentage(housingCategories.luxury.percentage)} | ${housingCategories.luxury.m2?.toLocaleString() ?? '-'} m² | ${housingCategories.luxury.isRequired ? 'Yes' : 'No'} |
+| Unallocated | ${housingCategories.unallocated.percentage}% | | |
+
+**IMPORTANT INSTRUCTIONS:**
+- Required categories MUST achieve at least the specified percentage in the scenario.
+- Unspecified categories can be freely filled depending on target groups.
+- Add a compliance check for EACH scenario: indicate whether the scenario meets the requirements.
+- If a scenario CANNOT comply (e.g., due to FSI constraints), explain why and offer an alternative.
+
+Example compliance notes:
+- "✓ This scenario meets the requirement of at least 30% social (34% achieved)."
+- "✗ This scenario cannot meet 30% social in ground-bound housing at FSI > 2.0. Alternative: social apartments."
+`;
+  }
 }
 
 export async function POST(request: Request) {
@@ -278,6 +392,10 @@ export async function POST(request: Request) {
     console.log(`- Communal spaces: ${rawCommunalSpaces.length} → ${filteredCommunalSpaces.length}`);
     console.log(`- Public spaces: ${rawPublicSpaces.length} → ${filteredPublicSpaces.length}`);
 
+    // Build FSI and housing categories sections
+    const fsiSection = buildFSIGuidanceSection(stageData.pve.fsi, locale);
+    const housingCategoriesSection = buildHousingCategoriesSection(stageData.pve.housingCategories, locale);
+
     const prompt = locale === 'nl' ? `
 Je bent een expert in vastgoedontwikkeling. Maak een gedetailleerd bouwprogramma voor elk scenario.
 
@@ -307,6 +425,7 @@ Totaal: ${stageData.pve.totalM2} m²
 - Sociaal: ${stageData.pve.percentages.social.percentage}% (${stageData.pve.percentages.social.m2} m²)
 - Gemeenschappelijk: ${stageData.pve.percentages.communal.percentage}% (${stageData.pve.percentages.communal.m2} m²)
 - Kantoren: ${stageData.pve.percentages.offices.percentage}% (${stageData.pve.percentages.offices.m2} m²)
+${fsiSection}${housingCategoriesSection}
 
 # BESCHIKBARE WONINGTYPOLOGIEËN
 ${JSON.stringify(simplifiedTypologies, null, 2)}
@@ -370,6 +489,7 @@ Total: ${stageData.pve.totalM2} m²
 - Social: ${stageData.pve.percentages.social.percentage}% (${stageData.pve.percentages.social.m2} m²)
 - Communal: ${stageData.pve.percentages.communal.percentage}% (${stageData.pve.percentages.communal.m2} m²)
 - Offices: ${stageData.pve.percentages.offices.percentage}% (${stageData.pve.percentages.offices.m2} m²)
+${fsiSection}${housingCategoriesSection}
 
 # AVAILABLE HOUSING TYPOLOGIES
 ${JSON.stringify(simplifiedTypologies, null, 2)}

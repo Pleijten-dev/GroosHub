@@ -849,7 +849,7 @@ function calculateAmenityScore(
 |-------|------|---------|-----|---------|
 | **Location Data** | `locationDataCache.ts` | LocalStorage | 24h | All fetched location data |
 | **PVE Config** | `pveConfigCache.ts` | LocalStorage | Session | Questionnaire responses |
-| **Rapport** | `rapportCache.ts` | LocalStorage | 7d | Generated LLM reports |
+| **Rapport** | `rapportCache.ts` | LocalStorage + DB | 24h (local) / permanent (DB) | Generated LLM reports - persisted to `rapport_data` column on snapshot save |
 | **LLM Rapport** | `llmRapportCache.ts` | LocalStorage | 7d | Building program results |
 
 ### 6.2 Location Data Cache
@@ -916,20 +916,41 @@ interface PVEConfigCache {
 
 **Stored Data**:
 ```typescript
-interface RapportCacheEntry {
+interface CachedRapportData {
   inputHash: string;              // Hash of input data (for invalidation)
-  stage1Output: LLMStage1Output;  // Location analysis
-  stage2Output: LLMStage2Output;  // Persona analysis
-  stage3Output: LLMStage3Output;  // PVE generation
-  combinedProgram: CombinedProgram;
-  generatedAt: number;
+  stage1Output: Stage1Output;     // Location analysis
+  stage2Output: Stage2Output;     // Persona analysis
+  stage3Output: Stage3Output;     // PVE generation
+  combinedProgram: StagedBuildingProgram;
+  timestamp: number;
+  locale: 'nl' | 'en';
+  locationAddress: string;
+  coordinates?: { lat: number; lon: number };
+  version: number;
 }
 ```
+
+**Cache Flow**:
+1. **Generate rapport** → Saved to localStorage cache
+2. **Save snapshot** → Rapport data from cache is included in `rapport_data` column
+3. **Load snapshot** → Rapport data restored to localStorage cache
+4. **Download rapport again** → Uses cached data (no LLM call needed)
+5. **Force regenerate** → User can check "Rapport opnieuw genereren" to skip cache
+
+**Database Persistence**:
+- Rapport data is saved to `location_snapshots.rapport_data` (jsonb) when saving a snapshot
+- When loading a snapshot, rapport data is restored to localStorage via `restoreRapportDataToCache()`
+- This ensures rapport data survives across sessions and devices
+
+**Utility Functions**:
+- `getRapportDataByAddress(address)` - Get cached data for snapshot saving
+- `restoreRapportDataToCache(rapportData)` - Restore from snapshot to cache
+- `generateInputHash(data, locale)` - Generate cache key hash
 
 **Cache Invalidation**:
 - Hash of input data compared on retrieval
 - If data changed, cache is invalidated
-- Manual clear available
+- Manual clear available via force regenerate checkbox
 
 ---
 
@@ -1376,7 +1397,38 @@ async function generateMapBookletPDF(
 | `SaveSnapshotButton.tsx` | Save to database | Database record |
 | `GenerationProgressModal.tsx` | Progress UI | Modal component |
 
-### 8.7 Cloud Storage (R2)
+### 8.7 Snapshot Completion Tracking
+
+**File**: `src/features/location/components/SavedLocations/ProjectSnapshotsList.tsx`
+
+**Purpose**: Shows data completion progress for each saved snapshot
+
+**8 Completion Steps**:
+| Step | Key | Label (NL) | Label (EN) | Check |
+|------|-----|------------|------------|-------|
+| 1 | `location` | Locatie | Location | Address exists |
+| 2 | `demographics` | Demografie | Demographics | demographics_data has content |
+| 3 | `health` | Gezondheid | Health | health_data has content |
+| 4 | `safety` | Veiligheid | Safety | safety_data has content |
+| 5 | `amenities` | Voorzieningen | Amenities | amenities_data has content |
+| 6 | `wms` | Kaarten | Maps | wms_grading_data has content |
+| 7 | `pve` | PVE | PVE | pve_data has content |
+| 8 | `rapport` | Rapport | Report | rapport_data has content |
+
+**UI Display**:
+```
+Paetststraat 27A...  [Actief]  [Laden]  [Verwijderen]
+[================================]  ← Progress bar (green)
+v8  28 jan 2026                      (7/8) Rapport  ← Next step
+```
+
+**Features**:
+- Visual progress bar showing completion percentage
+- Shows count `(x/8)` and next incomplete step
+- Full bar turns darker green when 8/8 complete
+- Progress is calculated from snapshot data fields
+
+### 8.8 Cloud Storage (R2)
 
 **File**: `src/app/api/rapport/upload-pdf/route.ts`
 
