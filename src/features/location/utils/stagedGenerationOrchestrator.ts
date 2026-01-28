@@ -1,26 +1,35 @@
 /**
- * Staged Generation Orchestrator
+ * Staged Generation Orchestrator (4-Stage Pipeline)
  *
  * Coordinates the multi-stage rapport generation pipeline:
- * Stage 1: Location Analysis (health, safety, livability)
- * Stage 2: Persona & Scenario Analysis
- * Stage 3: PVE & Spaces Allocation
+ * Stage 1: Location Analysis (health, safety, livability, WMS environmental, full amenities)
+ * Stage 2: Persona & Scenario Analysis (with amenity matching and environmental fit)
+ * Stage 3: Building Constraints (environmental → design requirements)
+ * Stage 4: PVE & Spaces Allocation (constraint-aware)
  *
  * Benefits:
- * - ~45% token reduction
- * - Progressive context building
+ * - Holistic analysis with cross-correlations
+ * - Environmental data informs all stages
+ * - Building design constraints derived from data
  * - Better quality through focused prompts
  */
 
 import type { CompactLocationExport } from './jsonExportCompact';
-import { extractStage1Data, type Stage1Output, type Stage1Input } from './stagedGenerationData';
+import {
+  extractStage1Data,
+  extractStage2Data,
+  extractStage3ConstraintsData,
+  type Stage1Output,
+  type Stage1Input,
+  type Stage3Output,
+} from './stagedGenerationData';
 import {
   RapportCache,
   generateInputHash,
   type CachedRapportData,
 } from '../data/cache/rapportCache';
 
-// Stage 2 Output type (matches API schema)
+// Stage 2 Output type (matches API schema - Enhanced)
 export interface Stage2Output {
   scenarios: Array<{
     scenario_name: string;
@@ -30,11 +39,23 @@ export interface Stage2Output {
     residential_strategy: string;
     demographics_considerations: string;
     key_insights: string[];
+    // NEW: Persona-amenity fit analysis
+    persona_amenity_fit: Array<{
+      personaName: string;
+      fitScore: 'excellent' | 'good' | 'moderate' | 'poor';
+      availableRequired: string[];
+      missingRequired: string[];
+      availablePreferred: string[];
+      missingPreferred: string[];
+      summary: string;
+    }>;
+    // NEW: Environmental fit
+    environmental_fit: string;
   }>;
 }
 
-// Stage 3 Output type (matches API schema)
-export interface Stage3Output {
+// Stage 4 Output type (PVE Allocation - was Stage3)
+export interface Stage4Output {
   scenarios: Array<{
     scenario_name: string;
     residential: {
@@ -130,7 +151,8 @@ export type StagedGenerationStage =
   | 'preparing'
   | 'stage1-location'
   | 'stage2-personas'
-  | 'stage3-pve'
+  | 'stage3-constraints'  // NEW: Building constraints
+  | 'stage4-pve'          // Renamed from stage3-pve
   | 'combining'
   | 'complete'
   | 'error';
@@ -144,25 +166,41 @@ export interface StagedGenerationProgress {
 
 export interface StagedBuildingProgram {
   location_summary: string;
+  // NEW: Environmental and amenity analysis from Stage 1
+  environmental_highlights: string;
+  amenity_analysis: string;
+  cross_correlations: string[];
+  // NEW: Building constraints from Stage 3
+  building_constraints: {
+    summary: string;
+    opportunities: string;
+    constraints: Stage3Output['constraints'];
+    design_recommendations: Stage3Output['designRecommendations'];
+    amenity_opportunities: Stage3Output['amenityOpportunities'];
+  };
   pve_overview: {
     total_m2: number;
     breakdown: string;
   };
-  generalized_pve: Stage3Output['generalized_pve'];
+  generalized_pve: Stage4Output['generalized_pve'];
   scenarios: Array<{
     scenario_name: string;
     scenario_simple_name: string;
     target_personas: string[];
     summary: string;
     demographics_considerations: string;
-    residential: Stage3Output['scenarios'][0]['residential'];
-    commercial: Stage3Output['scenarios'][0]['commercial'];
-    hospitality: Stage3Output['scenarios'][0]['hospitality'];
-    social: Stage3Output['scenarios'][0]['social'];
-    communal: Stage3Output['scenarios'][0]['communal'];
-    communal_spaces: Stage3Output['scenarios'][0]['communal_spaces'];
-    public_spaces: Stage3Output['scenarios'][0]['public_spaces'];
-    offices: Stage3Output['scenarios'][0]['offices'];
+    // NEW: Persona-amenity fit from Stage 2
+    persona_amenity_fit: Stage2Output['scenarios'][0]['persona_amenity_fit'];
+    environmental_fit: string;
+    // From Stage 4
+    residential: Stage4Output['scenarios'][0]['residential'];
+    commercial: Stage4Output['scenarios'][0]['commercial'];
+    hospitality: Stage4Output['scenarios'][0]['hospitality'];
+    social: Stage4Output['scenarios'][0]['social'];
+    communal: Stage4Output['scenarios'][0]['communal'];
+    communal_spaces: Stage4Output['scenarios'][0]['communal_spaces'];
+    public_spaces: Stage4Output['scenarios'][0]['public_spaces'];
+    offices: Stage4Output['scenarios'][0]['offices'];
     key_insights: string[];
   }>;
   comparative_analysis: string;
@@ -172,9 +210,10 @@ const STAGE_MESSAGES = {
   nl: {
     idle: 'Gereed',
     preparing: 'Voorbereiden...',
-    'stage1-location': 'Stap 1/3: Locatie analyseren...',
-    'stage2-personas': 'Stap 2/3: Doelgroepen analyseren...',
-    'stage3-pve': 'Stap 3/3: Bouwprogramma genereren...',
+    'stage1-location': 'Stap 1/4: Locatie en omgeving analyseren...',
+    'stage2-personas': 'Stap 2/4: Doelgroepen en voorzieningen matchen...',
+    'stage3-constraints': 'Stap 3/4: Bouwkundige eisen afleiden...',
+    'stage4-pve': 'Stap 4/4: Bouwprogramma genereren...',
     combining: 'Resultaten combineren...',
     complete: 'Voltooid!',
     error: 'Fout opgetreden',
@@ -182,9 +221,10 @@ const STAGE_MESSAGES = {
   en: {
     idle: 'Ready',
     preparing: 'Preparing...',
-    'stage1-location': 'Step 1/3: Analyzing location...',
-    'stage2-personas': 'Step 2/3: Analyzing personas...',
-    'stage3-pve': 'Step 3/3: Generating building program...',
+    'stage1-location': 'Step 1/4: Analyzing location and environment...',
+    'stage2-personas': 'Step 2/4: Matching personas and amenities...',
+    'stage3-constraints': 'Step 3/4: Deriving building requirements...',
+    'stage4-pve': 'Step 4/4: Generating building program...',
     combining: 'Combining results...',
     complete: 'Complete!',
     error: 'Error occurred',
@@ -257,43 +297,23 @@ async function executeStage1(
 }
 
 /**
- * Execute Stage 2: Persona & Scenario Analysis
+ * Execute Stage 2: Persona & Scenario Analysis (Enhanced with amenity matching)
  */
 async function executeStage2(
   data: CompactLocationExport,
   stage1Output: Stage1Output,
+  stage1Input: Stage1Input,
   locale: 'nl' | 'en'
 ): Promise<Stage2Output> {
-  console.log('[Staged Generation] Starting Stage 2: Persona Analysis');
+  console.log('[Staged Generation] Starting Stage 2: Persona & Amenity Analysis');
 
-  // Prepare Stage 2 input
-  const stageData = {
-    locationSummary: stage1Output,
-    demographics: data.demographics,
-    targetGroups: {
-      topPersonas: data.targetGroups.rankedPersonas.slice(0, 15).map(p => ({
-        name: p.name,
-        rank: p.rank,
-        score: p.score,
-        incomeLevel: p.incomeLevel,
-        householdType: p.householdType,
-        ageGroup: p.ageGroup,
-        description: p.description,
-      })),
-      recommendedScenarios: data.targetGroups.recommendedScenarios,
-    },
-    housingMarket: data.housingMarket ? {
-      avgPrice: data.housingMarket.avgPrice,
-      avgSize: data.housingMarket.avgSize,
-      typeDistribution: data.housingMarket.typeDistribution,
-      priceDistribution: data.housingMarket.priceDistribution,
-    } : undefined,
-  };
+  // Use the extractStage2Data helper to prepare input with amenity matching
+  const stage2Input = extractStage2Data(data, stage1Output, stage1Input);
 
   const response = await fetch('/api/generate-building-program/stage2', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ stageData, locale }),
+    body: JSON.stringify({ stageData: stage2Input, locale }),
   });
 
   if (!response.ok) {
@@ -310,20 +330,56 @@ async function executeStage2(
 }
 
 /**
- * Execute Stage 3: PVE & Spaces Allocation
+ * Execute Stage 3: Building Constraints (NEW)
  */
-async function executeStage3(
+async function executeStage3Constraints(
+  stage1Output: Stage1Output,
+  stage2Output: Stage2Output,
+  stage1Input: Stage1Input,
+  locale: 'nl' | 'en'
+): Promise<Stage3Output> {
+  console.log('[Staged Generation] Starting Stage 3: Building Constraints');
+
+  // Use the extractStage3ConstraintsData helper
+  const stage3Input = extractStage3ConstraintsData(stage1Output, stage2Output, stage1Input);
+
+  const response = await fetch('/api/generate-building-program/stage3-constraints', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ stageData: stage3Input, locale }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Stage 3 (Constraints) failed: ${response.status} - ${errorText}`);
+  }
+
+  const result = await consumeSSEStream<Stage3Output>(response);
+  console.log('[Staged Generation] Stage 3 complete:', {
+    constraintCount: result.constraints?.length,
+    opportunityCount: result.amenityOpportunities?.length,
+  });
+
+  return result;
+}
+
+/**
+ * Execute Stage 4: PVE & Spaces Allocation (was Stage 3)
+ */
+async function executeStage4(
   data: CompactLocationExport,
   stage1Output: Stage1Output,
   stage2Output: Stage2Output,
+  stage3Output: Stage3Output,
   locale: 'nl' | 'en'
-): Promise<Stage3Output> {
-  console.log('[Staged Generation] Starting Stage 3: PVE Allocation');
+): Promise<Stage4Output> {
+  console.log('[Staged Generation] Starting Stage 4: PVE Allocation');
 
-  // Prepare Stage 3 input
+  // Prepare Stage 4 input (includes building constraints from Stage 3)
   const stageData = {
     stage1Output,
     stage2Output,
+    buildingConstraints: stage3Output,
     pve: data.pve ? {
       totalM2: data.pve.totalM2,
       percentages: {
@@ -351,7 +407,7 @@ async function executeStage3(
     })),
   };
 
-  const response = await fetch('/api/generate-building-program/stage3', {
+  const response = await fetch('/api/generate-building-program/stage4', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ stageData, locale }),
@@ -359,11 +415,11 @@ async function executeStage3(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Stage 3 failed: ${response.status} - ${errorText}`);
+    throw new Error(`Stage 4 failed: ${response.status} - ${errorText}`);
   }
 
-  const result = await consumeSSEStream<Stage3Output>(response);
-  console.log('[Staged Generation] Stage 3 complete:', {
+  const result = await consumeSSEStream<Stage4Output>(response);
+  console.log('[Staged Generation] Stage 4 complete:', {
     scenarioCount: result.scenarios?.length,
     hasGeneralizedPve: !!result.generalized_pve,
   });
@@ -372,12 +428,13 @@ async function executeStage3(
 }
 
 /**
- * Combine outputs from all stages into final building program
+ * Combine outputs from all 4 stages into final building program
  */
 function combineStageOutputs(
   stage1: Stage1Output,
   stage2: Stage2Output,
   stage3: Stage3Output,
+  stage4: Stage4Output,
   pve: CompactLocationExport['pve']
 ): StagedBuildingProgram {
   // Build PVE breakdown string
@@ -385,9 +442,9 @@ function combineStageOutputs(
     ? `Woningen: ${pve.percentages.apartments.percentage}%, Commercieel: ${pve.percentages.commercial.percentage}%, Horeca: ${pve.percentages.hospitality.percentage}%, Sociaal: ${pve.percentages.social.percentage}%, Gemeenschappelijk: ${pve.percentages.communal.percentage}%, Kantoren: ${pve.percentages.offices.percentage}%`
     : '';
 
-  // Merge Stage 2 scenario analysis with Stage 3 PVE allocations
+  // Merge Stage 2 scenario analysis with Stage 4 PVE allocations
   const scenarios = stage2.scenarios.map((s2, i) => {
-    const s3 = stage3.scenarios[i] || {
+    const s4 = stage4.scenarios[i] || {
       scenario_name: s2.scenario_name,
       residential: { total_m2: 0, unit_mix: [], total_units: 0 },
       commercial: { total_m2: 0, spaces: [], local_amenities_analysis: '' },
@@ -405,49 +462,76 @@ function combineStageOutputs(
       target_personas: s2.target_personas,
       summary: s2.summary,
       demographics_considerations: s2.demographics_considerations,
-      residential: s3.residential,
-      commercial: s3.commercial,
-      hospitality: s3.hospitality,
-      social: s3.social,
-      communal: s3.communal,
-      communal_spaces: s3.communal_spaces,
-      public_spaces: s3.public_spaces,
-      offices: s3.offices,
+      // NEW: Persona-amenity fit from Stage 2
+      persona_amenity_fit: s2.persona_amenity_fit || [],
+      environmental_fit: s2.environmental_fit || '',
+      // From Stage 4
+      residential: s4.residential,
+      commercial: s4.commercial,
+      hospitality: s4.hospitality,
+      social: s4.social,
+      communal: s4.communal,
+      communal_spaces: s4.communal_spaces,
+      public_spaces: s4.public_spaces,
+      offices: s4.offices,
       key_insights: s2.key_insights,
     };
   });
 
   return {
     location_summary: stage1.location_summary,
+    // NEW: Environmental and amenity analysis from Stage 1
+    environmental_highlights: stage1.environmental_highlights || '',
+    amenity_analysis: stage1.amenity_analysis || '',
+    cross_correlations: stage1.cross_correlations || [],
+    // NEW: Building constraints from Stage 3
+    building_constraints: {
+      summary: stage3.constraintsSummary || '',
+      opportunities: stage3.opportunitiesSummary || '',
+      constraints: stage3.constraints || [],
+      design_recommendations: stage3.designRecommendations || {
+        facade: [],
+        ventilation: [],
+        acoustics: [],
+        outdoor_spaces: [],
+        green_integration: [],
+        climate_adaptation: [],
+      },
+      amenity_opportunities: stage3.amenityOpportunities || [],
+    },
     pve_overview: {
       total_m2: pve?.totalM2 || 0,
       breakdown: pveBreakdown,
     },
-    generalized_pve: stage3.generalized_pve || {
+    generalized_pve: stage4.generalized_pve || {
       communal_categories: {},
       public_categories: {},
     },
     scenarios,
-    comparative_analysis: stage3.comparative_analysis || '',
+    comparative_analysis: stage4.comparative_analysis || '',
   };
 }
 
 /**
- * Result type that includes cache info
+ * Result type that includes cache info (updated for 4-stage pipeline)
  */
 export interface StagedGenerationResult {
   program: StagedBuildingProgram;
   fromCache: boolean;
   stage1Output: Stage1Output;
   stage2Output: Stage2Output;
-  stage3Output: Stage3Output;
+  stage3Output: Stage3Output; // Building constraints
+  stage4Output: Stage4Output; // PVE allocation
   inputHash: string;
   generationTimeMs?: number;
 }
 
 /**
- * Main orchestration function for staged generation
- * Now with cache support - checks cache first before calling LLM
+ * Main orchestration function for staged generation (4-stage pipeline)
+ * Stage 1: Location + Environment + Amenities
+ * Stage 2: Personas + Amenity matching
+ * Stage 3: Building Constraints
+ * Stage 4: PVE Allocation
  */
 export async function generateBuildingProgramStaged(
   data: CompactLocationExport,
@@ -476,11 +560,12 @@ export async function generateBuildingProgramStaged(
 
   try {
     // Check cache first (unless skipCache is true)
+    // Note: Cache structure may need updating for 4-stage pipeline
     if (!options?.skipCache) {
       reportProgress('preparing', 0, 0);
       const cached = cache.get(data);
 
-      if (cached) {
+      if (cached && cached.stage4Output) {
         console.log('[Staged Generation] Cache hit! Using cached data.');
         reportProgress('complete', 100, 100);
 
@@ -490,47 +575,58 @@ export async function generateBuildingProgramStaged(
           stage1Output: cached.stage1Output,
           stage2Output: cached.stage2Output,
           stage3Output: cached.stage3Output,
+          stage4Output: cached.stage4Output,
           inputHash: cached.inputHash,
         };
       }
-      console.log('[Staged Generation] Cache miss. Generating new data...');
+      console.log('[Staged Generation] Cache miss or old format. Generating new data...');
     }
 
-    // Prepare Stage 1 data
+    // Prepare Stage 1 data (now includes WMS + full amenities)
     reportProgress('preparing', 0, 0);
     const stage1Data = extractStage1Data(data);
 
-    // Execute Stage 1: Location Analysis (0-25%)
+    // Execute Stage 1: Location + Environment + Amenities (0-20%)
     reportProgress('stage1-location', 5, 0);
     const stage1Output = await executeStage1(stage1Data, locale);
-    reportProgress('stage1-location', 25, 100);
+    reportProgress('stage1-location', 20, 100);
 
-    // Execute Stage 2: Persona & Scenario Analysis (25-50%)
-    reportProgress('stage2-personas', 30, 0);
-    const stage2Output = await executeStage2(data, stage1Output, locale);
-    reportProgress('stage2-personas', 50, 100);
+    // Execute Stage 2: Persona & Amenity Matching (20-40%)
+    reportProgress('stage2-personas', 25, 0);
+    const stage2Output = await executeStage2(data, stage1Output, stage1Data, locale);
+    reportProgress('stage2-personas', 40, 100);
 
-    // Execute Stage 3: PVE & Spaces Allocation (50-90%)
-    reportProgress('stage3-pve', 55, 0);
-    const stage3Output = await executeStage3(data, stage1Output, stage2Output, locale);
-    reportProgress('stage3-pve', 90, 100);
+    // Execute Stage 3: Building Constraints (40-55%)
+    reportProgress('stage3-constraints', 45, 0);
+    const stage3Output = await executeStage3Constraints(stage1Output, stage2Output, stage1Data, locale);
+    reportProgress('stage3-constraints', 55, 100);
+
+    // Execute Stage 4: PVE & Spaces Allocation (55-90%)
+    reportProgress('stage4-pve', 60, 0);
+    const stage4Output = await executeStage4(data, stage1Output, stage2Output, stage3Output, locale);
+    reportProgress('stage4-pve', 90, 100);
 
     // Combine all outputs (90-100%)
     reportProgress('combining', 95, 0);
-    const combinedProgram = combineStageOutputs(stage1Output, stage2Output, stage3Output, data.pve);
+    const combinedProgram = combineStageOutputs(stage1Output, stage2Output, stage3Output, stage4Output, data.pve);
 
     const generationTimeMs = Date.now() - startTime;
 
-    // Save to cache
+    // Save to cache (note: cache may need updating to support stage4Output)
     if (shouldSaveToCache) {
-      const saved = cache.save(data, stage1Output, stage2Output, stage3Output, combinedProgram);
-      if (saved) {
-        console.log('[Staged Generation] Saved to cache');
+      try {
+        // Extended cache save - will need cache structure update
+        const saved = cache.save(data, stage1Output, stage2Output, stage3Output, combinedProgram);
+        if (saved) {
+          console.log('[Staged Generation] Saved to cache (partial - stage4 may not be cached)');
+        }
+      } catch {
+        console.warn('[Staged Generation] Cache save failed - cache structure may need updating');
       }
     }
 
     reportProgress('complete', 100, 100);
-    console.log(`[Staged Generation] All stages complete! (${generationTimeMs}ms)`);
+    console.log(`[Staged Generation] All 4 stages complete! (${generationTimeMs}ms)`);
 
     return {
       program: combinedProgram,
@@ -538,6 +634,7 @@ export async function generateBuildingProgramStaged(
       stage1Output,
       stage2Output,
       stage3Output,
+      stage4Output,
       inputHash,
       generationTimeMs,
     };

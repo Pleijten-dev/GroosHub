@@ -1,39 +1,89 @@
 /**
  * Staged Generation Data Utilities
  *
- * Extracts minimal data required for each stage of the rapport generation pipeline.
- * This reduces token usage by only sending relevant data per stage.
+ * Extracts data required for each stage of the rapport generation pipeline.
+ * Now with 4 stages including environmental analysis and building constraints.
  *
  * PIPELINE STAGES:
- * 1. Location Analysis: health, safety, livability → location_summary
- * 2. Persona & Scenario: summary + personas + demographics → scenario recommendations
- * 3. PVE Allocation: summaries + spaces → detailed building program
+ * 1. Location Analysis: health, safety, livability, WMS, full amenities → location_summary + environmental analysis
+ * 2. Persona & Scenario: summary + personas + demographics + amenity matching → scenario recommendations
+ * 3. Building Constraints: environmental data → design requirements and constraints
+ * 4. PVE Allocation: summaries + constraints + spaces → detailed building program
  */
 
 import type { CompactLocationExport, CompactScenario } from './jsonExportCompact';
 
 // ============================================================================
-// STAGE 1: Location Analysis Data
+// STAGE 1: Location Analysis Data (Enhanced with WMS + Full Amenities)
 // ============================================================================
+
+export interface WMSLayerSummary {
+  id: string;
+  name: string;
+  category: string;
+  pointValue?: number | string | null;
+  averageValue?: number | null;
+  maxValue?: number | null;
+  unit?: string;
+  description: string;
+}
+
+export interface FullAmenityData {
+  name: string;
+  description: string;
+  count: number;
+  countScore: number;
+  proximityCount: number;
+  proximityBonus: number;
+  closestDistance: number | null;
+  averageDistance: number | null;
+}
+
 export interface Stage1Input {
   metadata: {
     location: string;
     municipality?: string;
     district?: string;
     neighborhood?: string;
+    coordinates?: { lat: number; lon: number };
   };
   health: CompactLocationExport['health'];
   safety: CompactLocationExport['safety'];
   livability: CompactLocationExport['livability'];
+  // Full amenities data with distances and scores
   amenities: {
     description: string;
-    summary: string; // Simplified summary instead of full items array
-    topAmenities: Array<{
-      name: string;
-      count: number;
-      closestDistance: number | null;
-    }>;
-    missingAmenities: string[]; // Amenities with 0 count
+    items: FullAmenityData[];
+    summary: string;
+    missingAmenities: string[];
+    amenityGaps: string[]; // Important amenities that are missing or far away
+  };
+  // WMS Environmental data - NEW
+  environmental?: {
+    description: string;
+    airQuality: {
+      no2?: WMSLayerSummary;
+      pm10?: WMSLayerSummary;
+      pm25?: WMSLayerSummary;
+      summary: string;
+    };
+    noise: {
+      roadTraffic?: WMSLayerSummary;
+      summary: string;
+    };
+    greenSpace: {
+      trees?: WMSLayerSummary;
+      grass?: WMSLayerSummary;
+      shrubs?: WMSLayerSummary;
+      treeCanopy?: WMSLayerSummary;
+      summary: string;
+    };
+    climate: {
+      heatStress?: WMSLayerSummary;
+      rainfall?: WMSLayerSummary;
+      summary: string;
+    };
+    overallAssessment: string;
   };
 }
 
@@ -43,29 +93,152 @@ export interface Stage1Output {
   health_highlights: string;
   safety_highlights: string;
   livability_highlights: string;
+  // NEW: Environmental analysis
+  environmental_highlights: string;
+  // NEW: Full amenity analysis with gaps
+  amenity_analysis: string;
+  // NEW: Cross-correlations between datasets
+  cross_correlations: string[];
 }
 
 /**
- * Extract minimal data for Stage 1 (Location Analysis)
- * Focuses on health, safety, livability - no personas, no spaces
+ * Extract data for Stage 1 (Location Analysis)
+ * Now includes WMS environmental data and full amenities for holistic analysis
  */
 export function extractStage1Data(data: CompactLocationExport): Stage1Input {
-  // Summarize amenities instead of sending full list
-  const topAmenities = data.amenities.items
-    .filter(a => a.count > 0)
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10)
-    .map(a => ({
-      name: a.name,
-      count: a.count,
-      closestDistance: a.closestDistance,
-    }));
+  // Full amenities data with distances and scores
+  const fullAmenities: FullAmenityData[] = data.amenities.items.map(a => ({
+    name: a.name,
+    description: a.description,
+    count: a.count,
+    countScore: a.countScore,
+    proximityCount: a.proximityCount,
+    proximityBonus: a.proximityBonus,
+    closestDistance: a.closestDistance,
+    averageDistance: a.averageDistance,
+  }));
 
   const missingAmenities = data.amenities.items
     .filter(a => a.count === 0)
     .map(a => a.name);
 
-  const amenitySummary = `${topAmenities.length} types of amenities found nearby. Top categories: ${topAmenities.slice(0, 5).map(a => `${a.name} (${a.count})`).join(', ')}. ${missingAmenities.length > 0 ? `Missing: ${missingAmenities.join(', ')}` : 'All common amenities available.'}`;
+  // Important amenities that are missing or far away (>1km)
+  const importantAmenities = ['Supermarkt', 'Huisartsen', 'Openbaar vervoer', 'Basisscholen', 'Apotheken'];
+  const amenityGaps = data.amenities.items
+    .filter(a => {
+      const isImportant = importantAmenities.some(imp => a.name.toLowerCase().includes(imp.toLowerCase()));
+      const isMissing = a.count === 0;
+      const isFar = a.closestDistance !== null && a.closestDistance > 1000;
+      return isImportant && (isMissing || isFar);
+    })
+    .map(a => a.count === 0
+      ? `${a.name}: niet aanwezig`
+      : `${a.name}: ${a.closestDistance}m (ver weg)`
+    );
+
+  const presentAmenities = fullAmenities.filter(a => a.count > 0);
+  const amenitySummary = `${presentAmenities.length} types voorzieningen gevonden. ` +
+    `Dichtbij (<250m): ${fullAmenities.filter(a => a.proximityCount > 0).map(a => a.name).join(', ') || 'geen'}. ` +
+    `${missingAmenities.length > 0 ? `Ontbrekend: ${missingAmenities.join(', ')}` : 'Alle gangbare voorzieningen aanwezig.'}`;
+
+  // Process WMS environmental data if available
+  let environmental: Stage1Input['environmental'] = undefined;
+
+  if (data.wmsLayers && data.wmsLayers.layers.length > 0) {
+    const findLayer = (idPattern: string) =>
+      data.wmsLayers?.layers.find(l => l.id.toLowerCase().includes(idPattern.toLowerCase()));
+
+    const no2Layer = findLayer('no2');
+    const pm10Layer = findLayer('pm10');
+    const pm25Layer = findLayer('pm25');
+    const noiseLayer = findLayer('geluid') || findLayer('noise');
+    const treesLayer = findLayer('percbomen') || findLayer('tree');
+    const grassLayer = findLayer('gras');
+    const shrubsLayer = findLayer('struik');
+    const canopyLayer = findLayer('bomenkaart');
+    const heatLayer = findLayer('hitte') || findLayer('heat');
+    const rainLayer = findLayer('regen') || findLayer('rain');
+
+    // Air quality assessment
+    const airQualityValues: number[] = [];
+    if (no2Layer?.pointValue && typeof no2Layer.pointValue === 'number') airQualityValues.push(no2Layer.pointValue);
+    if (pm10Layer?.pointValue && typeof pm10Layer.pointValue === 'number') airQualityValues.push(pm10Layer.pointValue);
+
+    let airQualitySummary = 'Geen luchtkwaliteitsdata beschikbaar';
+    if (airQualityValues.length > 0) {
+      const no2Val = no2Layer?.pointValue as number | undefined;
+      // WHO guideline for NO2 is 25 µg/m³
+      if (no2Val && no2Val < 20) airQualitySummary = 'Goede luchtkwaliteit (NO2 onder WHO-richtlijn)';
+      else if (no2Val && no2Val < 30) airQualitySummary = 'Matige luchtkwaliteit (NO2 rond WHO-richtlijn)';
+      else if (no2Val) airQualitySummary = 'Verhoogde luchtvervuiling (NO2 boven WHO-richtlijn)';
+    }
+
+    // Noise assessment
+    const noiseVal = noiseLayer?.pointValue as number | undefined;
+    let noiseSummary = 'Geen geluidsdata beschikbaar';
+    if (noiseVal) {
+      if (noiseVal < 50) noiseSummary = 'Rustige omgeving (geluid <50dB)';
+      else if (noiseVal < 60) noiseSummary = 'Normaal geluidsniveau (50-60dB)';
+      else if (noiseVal < 70) noiseSummary = 'Verhoogd geluidsniveau (60-70dB) - isolatie aanbevolen';
+      else noiseSummary = 'Hoog geluidsniveau (>70dB) - extra geluidsisolatie vereist';
+    }
+
+    // Green space assessment
+    const treeVal = treesLayer?.pointValue as number | undefined;
+    let greenSummary = 'Geen groendata beschikbaar';
+    if (treeVal !== undefined) {
+      if (treeVal > 30) greenSummary = 'Groene omgeving met veel bomen (>30% boombedekking)';
+      else if (treeVal > 15) greenSummary = 'Gemiddelde hoeveelheid groen (15-30% bomen)';
+      else greenSummary = 'Beperkt groen aanwezig (<15% bomen) - groene daken/tuinen aanbevolen';
+    }
+
+    // Climate assessment
+    const heatVal = heatLayer?.averageValue as number | undefined;
+    let climateSummary = 'Geen klimaatdata beschikbaar';
+    if (heatVal !== undefined) {
+      if (heatVal > 0.7) climateSummary = 'Hoog hittestress risico - schaduw en koeling essentieel';
+      else if (heatVal > 0.4) climateSummary = 'Gemiddeld hittestress risico - schaduwvoorzieningen aanbevolen';
+      else climateSummary = 'Laag hittestress risico';
+    }
+
+    // Overall assessment
+    const concerns: string[] = [];
+    if (airQualitySummary.includes('Verhoogde')) concerns.push('luchtkwaliteit');
+    if (noiseSummary.includes('Verhoogd') || noiseSummary.includes('Hoog')) concerns.push('geluid');
+    if (greenSummary.includes('Beperkt')) concerns.push('groenvoorziening');
+    if (climateSummary.includes('Hoog')) concerns.push('hittestress');
+
+    const overallAssessment = concerns.length === 0
+      ? 'Gunstige omgevingscondities voor woningbouw'
+      : `Aandachtspunten: ${concerns.join(', ')}. Deze factoren vereisen specifieke ontwerpmaatregelen.`;
+
+    environmental = {
+      description: data.wmsLayers.description,
+      airQuality: {
+        no2: no2Layer ? { ...no2Layer } : undefined,
+        pm10: pm10Layer ? { ...pm10Layer } : undefined,
+        pm25: pm25Layer ? { ...pm25Layer } : undefined,
+        summary: airQualitySummary,
+      },
+      noise: {
+        roadTraffic: noiseLayer ? { ...noiseLayer } : undefined,
+        summary: noiseSummary,
+      },
+      greenSpace: {
+        trees: treesLayer ? { ...treesLayer } : undefined,
+        grass: grassLayer ? { ...grassLayer } : undefined,
+        shrubs: shrubsLayer ? { ...shrubsLayer } : undefined,
+        treeCanopy: canopyLayer ? { ...canopyLayer } : undefined,
+        summary: greenSummary,
+      },
+      climate: {
+        heatStress: heatLayer ? { ...heatLayer } : undefined,
+        rainfall: rainLayer ? { ...rainLayer } : undefined,
+        summary: climateSummary,
+      },
+      overallAssessment,
+    };
+  }
 
   return {
     metadata: {
@@ -73,28 +246,67 @@ export function extractStage1Data(data: CompactLocationExport): Stage1Input {
       municipality: data.metadata.municipality,
       district: data.metadata.district,
       neighborhood: data.metadata.neighborhood,
+      coordinates: data.metadata.coordinates,
     },
     health: data.health,
     safety: data.safety,
     livability: data.livability,
     amenities: {
       description: data.amenities.description,
+      items: fullAmenities,
       summary: amenitySummary,
-      topAmenities,
       missingAmenities,
+      amenityGaps,
     },
+    environmental,
   };
 }
 
 // ============================================================================
-// STAGE 2: Persona & Scenario Analysis Data
+// STAGE 2: Persona & Scenario Analysis Data (Enhanced with amenity matching)
 // ============================================================================
+
+// Persona-specific amenity requirements
+export interface PersonaAmenityRequirements {
+  personaType: string; // e.g., 'gezinnen', 'senioren', 'starters'
+  requiredAmenities: string[]; // e.g., ['Basisscholen', 'Kinderdagverblijven']
+  preferredAmenities: string[]; // e.g., ['Parken', 'Sportfaciliteiten']
+}
+
+// Pre-defined persona amenity requirements
+export const PERSONA_AMENITY_REQUIREMENTS: PersonaAmenityRequirements[] = [
+  {
+    personaType: 'gezinnen',
+    requiredAmenities: ['Basisscholen', 'Supermarkt', 'Huisartsen'],
+    preferredAmenities: ['Kinderdagverblijven', 'Parken', 'Sportfaciliteiten', 'Middelbare scholen'],
+  },
+  {
+    personaType: 'senioren',
+    requiredAmenities: ['Huisartsen', 'Apotheken', 'Supermarkt'],
+    preferredAmenities: ['Openbaar vervoer', 'Parken', 'Culturele voorzieningen'],
+  },
+  {
+    personaType: 'starters',
+    requiredAmenities: ['Openbaar vervoer', 'Supermarkt'],
+    preferredAmenities: ['Restaurants', 'Cafés/Bars', 'Sportfaciliteiten'],
+  },
+  {
+    personaType: 'studenten',
+    requiredAmenities: ['Openbaar vervoer'],
+    preferredAmenities: ['Supermarkt', 'Cafés/Bars', 'Bibliotheken'],
+  },
+  {
+    personaType: 'professionals',
+    requiredAmenities: ['Openbaar vervoer', 'Supermarkt'],
+    preferredAmenities: ['Restaurants', 'Sportfaciliteiten', 'Cafés/Bars'],
+  },
+];
+
 export interface Stage2Input {
   locationSummary: Stage1Output; // From Stage 1
   demographics: CompactLocationExport['demographics'];
   targetGroups: {
     description: string;
-    // Only top personas with simplified data
     topPersonas: Array<{
       name: string;
       rank: number;
@@ -112,6 +324,35 @@ export interface Stage2Input {
     typeDistribution: Array<{ type: string; percentage: number }>;
     priceDistribution: Array<{ range: string; percentage: number }>;
   };
+  // NEW: Amenity data for persona-amenity matching
+  amenityAnalysis: {
+    summary: string;
+    availableAmenities: Array<{
+      name: string;
+      count: number;
+      closestDistance: number | null;
+    }>;
+    missingAmenities: string[];
+    amenityGaps: string[];
+  };
+  // NEW: Environmental summary for persona fit
+  environmentalSummary?: {
+    airQuality: string;
+    noise: string;
+    greenSpace: string;
+    climate: string;
+    overall: string;
+  };
+}
+
+export interface PersonaAmenityFit {
+  personaName: string;
+  fitScore: 'excellent' | 'good' | 'moderate' | 'poor';
+  availableRequired: string[];
+  missingRequired: string[];
+  availablePreferred: string[];
+  missingPreferred: string[];
+  summary: string;
 }
 
 export interface Stage2Output {
@@ -123,16 +364,21 @@ export interface Stage2Output {
     residential_strategy: string;
     demographics_considerations: string;
     key_insights: string[];
+    // NEW: Persona-amenity fit analysis
+    persona_amenity_fit: PersonaAmenityFit[];
+    // NEW: Environmental fit for target personas
+    environmental_fit: string;
   }>;
 }
 
 /**
- * Extract minimal data for Stage 2 (Persona & Scenario Analysis)
- * Uses Stage 1 output + demographics + personas (no spaces data)
+ * Extract data for Stage 2 (Persona & Scenario Analysis)
+ * Now includes amenity data for persona-amenity matching and environmental summary
  */
 export function extractStage2Data(
   data: CompactLocationExport,
-  stage1Output: Stage1Output
+  stage1Output: Stage1Output,
+  stage1Input: Stage1Input
 ): Stage2Input {
   // Only include top 15 personas to reduce tokens
   const topPersonas = data.targetGroups.rankedPersonas
@@ -155,6 +401,29 @@ export function extractStage2Data(
     priceDistribution: data.housingMarket.priceDistribution,
   } : undefined;
 
+  // Extract amenity analysis from Stage 1 input
+  const amenityAnalysis = {
+    summary: stage1Input.amenities.summary,
+    availableAmenities: stage1Input.amenities.items
+      .filter(a => a.count > 0)
+      .map(a => ({
+        name: a.name,
+        count: a.count,
+        closestDistance: a.closestDistance,
+      })),
+    missingAmenities: stage1Input.amenities.missingAmenities,
+    amenityGaps: stage1Input.amenities.amenityGaps,
+  };
+
+  // Extract environmental summary if available
+  const environmentalSummary = stage1Input.environmental ? {
+    airQuality: stage1Input.environmental.airQuality.summary,
+    noise: stage1Input.environmental.noise.summary,
+    greenSpace: stage1Input.environmental.greenSpace.summary,
+    climate: stage1Input.environmental.climate.summary,
+    overall: stage1Input.environmental.overallAssessment,
+  } : undefined;
+
   return {
     locationSummary: stage1Output,
     demographics: data.demographics,
@@ -164,11 +433,86 @@ export function extractStage2Data(
       recommendedScenarios: data.targetGroups.recommendedScenarios,
     },
     housingMarket,
+    amenityAnalysis,
+    environmentalSummary,
   };
 }
 
 // ============================================================================
-// STAGE 3: PVE & Spaces Allocation Data
+// STAGE 3: Building Constraints (NEW)
+// Derives design requirements from environmental data
+// ============================================================================
+
+export interface BuildingConstraint {
+  category: 'noise' | 'air_quality' | 'climate' | 'green_space' | 'amenity_gap';
+  severity: 'critical' | 'important' | 'recommended';
+  constraint: string;
+  designImplication: string;
+  affectedAreas: string[]; // e.g., ['facades', 'ventilation', 'outdoor_spaces']
+}
+
+export interface Stage3Input {
+  locationSummary: Stage1Output;
+  scenarioAnalysis: Stage2Output;
+  // Environmental data for constraint derivation
+  environmental?: Stage1Input['environmental'];
+  // Amenity gaps that building could fill
+  amenityGaps: string[];
+  missingAmenities: string[];
+  // Target personas for persona-specific constraints
+  targetPersonas: string[];
+}
+
+export interface Stage3Output {
+  // Building design constraints derived from environment
+  constraints: BuildingConstraint[];
+  // Design recommendations grouped by category
+  designRecommendations: {
+    facade: string[];
+    ventilation: string[];
+    acoustics: string[];
+    outdoor_spaces: string[];
+    green_integration: string[];
+    climate_adaptation: string[];
+  };
+  // Commercial/amenity opportunities based on gaps
+  amenityOpportunities: Array<{
+    type: string;
+    rationale: string;
+    priority: 'high' | 'medium' | 'low';
+    suggestedSize: string;
+  }>;
+  // Summary for inclusion in rapport
+  constraintsSummary: string;
+  opportunitiesSummary: string;
+}
+
+/**
+ * Extract data for Stage 3 (Building Constraints)
+ * Analyzes environmental data to derive design requirements
+ */
+export function extractStage3ConstraintsData(
+  stage1Output: Stage1Output,
+  stage2Output: Stage2Output,
+  stage1Input: Stage1Input
+): Stage3Input {
+  // Get all target personas from scenarios
+  const targetPersonas = stage2Output.scenarios.flatMap(s => s.target_personas);
+  const uniquePersonas = [...new Set(targetPersonas)];
+
+  return {
+    locationSummary: stage1Output,
+    scenarioAnalysis: stage2Output,
+    environmental: stage1Input.environmental,
+    amenityGaps: stage1Input.amenities.amenityGaps,
+    missingAmenities: stage1Input.amenities.missingAmenities,
+    targetPersonas: uniquePersonas,
+  };
+}
+
+// ============================================================================
+// STAGE 4: PVE & Spaces Allocation Data (was Stage 3)
+// Now includes constraint-aware recommendations
 // ============================================================================
 export interface SimplifiedSpace {
   id: string;
@@ -190,9 +534,11 @@ export interface SimplifiedTypology {
   suitable_for: string[];
 }
 
-export interface Stage3Input {
+export interface Stage4Input {
   locationSummary: Stage1Output;
   scenarioAnalysis: Stage2Output;
+  // NEW: Building constraints from Stage 3
+  buildingConstraints: Stage3Output;
   pve: CompactLocationExport['pve'];
   // Only include personas relevant to the scenarios
   scenarioPersonas: Array<{
@@ -207,7 +553,7 @@ export interface Stage3Input {
   typologyMapping: Record<string, string[]>;
 }
 
-export interface Stage3Output {
+export interface Stage4Output {
   scenarios: Array<{
     scenario_name: string;
     residential: {
@@ -282,6 +628,12 @@ export interface Stage3Output {
       total_m2: number;
       concept: string;
     };
+    // NEW: Constraint-aware design notes
+    design_notes: {
+      noise_mitigation: string;
+      climate_adaptation: string;
+      green_integration: string;
+    };
   }>;
   generalized_pve: {
     communal_categories: Record<string, {
@@ -296,6 +648,8 @@ export interface Stage3Output {
     }>;
   };
   comparative_analysis: string;
+  // NEW: How constraints influenced the program
+  constraints_influence: string;
 }
 
 /**
@@ -344,18 +698,20 @@ function filterSpacesByScenarios(
 }
 
 /**
- * Extract minimal data for Stage 3 (PVE & Spaces Allocation)
- * Uses Stage 1+2 outputs + PVE + filtered spaces
+ * Extract data for Stage 4 (PVE & Spaces Allocation)
+ * Uses Stage 1+2+3 outputs + PVE + filtered spaces
+ * Now constraint-aware based on Stage 3 building constraints
  */
-export function extractStage3Data(
+export function extractStage4Data(
   data: CompactLocationExport,
   stage1Output: Stage1Output,
   stage2Output: Stage2Output,
+  stage3Output: Stage3Output,
   communalSpaces: SimplifiedSpace[],
   publicSpaces: SimplifiedSpace[],
   typologies: SimplifiedTypology[],
   typologyMapping: Record<string, string[]>
-): Stage3Input {
+): Stage4Input {
   // Get personas relevant to scenarios
   const scenarioPersonaNames = new Set<string>();
   data.targetGroups.recommendedScenarios.forEach(s => {
@@ -376,6 +732,7 @@ export function extractStage3Data(
   return {
     locationSummary: stage1Output,
     scenarioAnalysis: stage2Output,
+    buildingConstraints: stage3Output,
     pve: data.pve,
     scenarioPersonas,
     communalSpaces: filteredCommunal,
@@ -386,15 +743,27 @@ export function extractStage3Data(
 }
 
 // ============================================================================
-// COMBINED OUTPUT
+// COMBINED OUTPUT (Updated for 4-stage pipeline)
 // ============================================================================
 export interface StagedBuildingProgram {
   location_summary: string;
+  // NEW: Environmental analysis from Stage 1
+  environmental_highlights: string;
+  amenity_analysis: string;
+  cross_correlations: string[];
+  // NEW: Building constraints from Stage 3
+  building_constraints: {
+    summary: string;
+    opportunities: string;
+    constraints: Stage3Output['constraints'];
+    design_recommendations: Stage3Output['designRecommendations'];
+    amenity_opportunities: Stage3Output['amenityOpportunities'];
+  };
   pve_overview: {
     total_m2: number;
     breakdown: string;
   };
-  generalized_pve: Stage3Output['generalized_pve'];
+  generalized_pve: Stage4Output['generalized_pve'];
   scenarios: Array<{
     scenario_name: string;
     scenario_simple_name: string;
@@ -402,74 +771,86 @@ export interface StagedBuildingProgram {
     summary: string;
     // From Stage 2
     demographics_considerations: string;
-    // From Stage 3
-    residential: Stage3Output['scenarios'][0]['residential'];
-    commercial: Stage3Output['scenarios'][0]['commercial'];
-    hospitality: Stage3Output['scenarios'][0]['hospitality'];
-    social: Stage3Output['scenarios'][0]['social'];
-    communal: Stage3Output['scenarios'][0]['communal'];
-    communal_spaces: Stage3Output['scenarios'][0]['communal_spaces'];
-    public_spaces: Stage3Output['scenarios'][0]['public_spaces'];
-    offices: Stage3Output['scenarios'][0]['offices'];
+    persona_amenity_fit: Stage2Output['scenarios'][0]['persona_amenity_fit'];
+    environmental_fit: string;
+    // From Stage 4
+    residential: Stage4Output['scenarios'][0]['residential'];
+    commercial: Stage4Output['scenarios'][0]['commercial'];
+    hospitality: Stage4Output['scenarios'][0]['hospitality'];
+    social: Stage4Output['scenarios'][0]['social'];
+    communal: Stage4Output['scenarios'][0]['communal'];
+    communal_spaces: Stage4Output['scenarios'][0]['communal_spaces'];
+    public_spaces: Stage4Output['scenarios'][0]['public_spaces'];
+    offices: Stage4Output['scenarios'][0]['offices'];
+    design_notes: Stage4Output['scenarios'][0]['design_notes'];
     key_insights: string[];
   }>;
   comparative_analysis: string;
+  constraints_influence: string;
 }
 
 /**
- * Combine outputs from all stages into final building program
+ * Combine outputs from all 4 stages into final building program
  */
 export function combineStagedOutputs(
   stage1: Stage1Output,
   stage2: Stage2Output,
   stage3: Stage3Output,
+  stage4: Stage4Output,
   pve: CompactLocationExport['pve']
 ): StagedBuildingProgram {
-  // Combine scenarios from stage 2 and stage 3
+  // Combine scenarios from stage 2 and stage 4
   const scenarios = stage2.scenarios.map((s2, i) => {
-    const s3 = stage3.scenarios[i];
+    const s4 = stage4.scenarios[i];
     return {
       scenario_name: s2.scenario_name,
       scenario_simple_name: s2.scenario_simple_name,
       target_personas: s2.target_personas,
       summary: s2.summary,
       demographics_considerations: s2.demographics_considerations,
-      residential: s3?.residential || {
+      persona_amenity_fit: s2.persona_amenity_fit || [],
+      environmental_fit: s2.environmental_fit || '',
+      residential: s4?.residential || {
         total_m2: 0,
         unit_mix: [],
         total_units: 0,
       },
-      commercial: s3?.commercial || {
+      commercial: s4?.commercial || {
         total_m2: 0,
         spaces: [],
         local_amenities_analysis: '',
       },
-      hospitality: s3?.hospitality || {
+      hospitality: s4?.hospitality || {
         total_m2: 0,
         concept: '',
       },
-      social: s3?.social || {
+      social: s4?.social || {
         total_m2: 0,
         facilities: [],
       },
-      communal: s3?.communal || {
+      communal: s4?.communal || {
         total_m2: 0,
         amenities: [],
         persona_needs_analysis: '',
       },
-      communal_spaces: s3?.communal_spaces || {
+      communal_spaces: s4?.communal_spaces || {
         total_m2: 0,
         spaces: [],
         category_breakdown: {},
       },
-      public_spaces: s3?.public_spaces || {
+      public_spaces: s4?.public_spaces || {
         total_m2: 0,
         spaces: [],
         category_breakdown: {},
       },
-      offices: s3?.offices || {
+      offices: s4?.offices || {
         total_m2: 0,
         concept: '',
+      },
+      design_notes: s4?.design_notes || {
+        noise_mitigation: '',
+        climate_adaptation: '',
+        green_integration: '',
       },
       key_insights: s2.key_insights,
     };
@@ -479,13 +860,36 @@ export function combineStagedOutputs(
 
   return {
     location_summary: stage1.location_summary,
+    // NEW: Environmental analysis from Stage 1
+    environmental_highlights: stage1.environmental_highlights || '',
+    amenity_analysis: stage1.amenity_analysis || '',
+    cross_correlations: stage1.cross_correlations || [],
+    // NEW: Building constraints from Stage 3
+    building_constraints: {
+      summary: stage3.constraintsSummary || '',
+      opportunities: stage3.opportunitiesSummary || '',
+      constraints: stage3.constraints || [],
+      design_recommendations: stage3.designRecommendations || {
+        facade: [],
+        ventilation: [],
+        acoustics: [],
+        outdoor_spaces: [],
+        green_integration: [],
+        climate_adaptation: [],
+      },
+      amenity_opportunities: stage3.amenityOpportunities || [],
+    },
     pve_overview: {
       total_m2: pve?.totalM2 || 0,
       breakdown: pveBreakdown,
     },
-    generalized_pve: stage3.generalized_pve,
+    generalized_pve: stage4.generalized_pve || {
+      communal_categories: {},
+      public_categories: {},
+    },
     scenarios,
-    comparative_analysis: stage3.comparative_analysis,
+    comparative_analysis: stage4.comparative_analysis || '',
+    constraints_influence: stage4.constraints_influence || '',
   };
 }
 

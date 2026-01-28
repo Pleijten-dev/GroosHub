@@ -1,11 +1,11 @@
 /**
- * Stage 2: Persona & Scenario Analysis
+ * Stage 2: Persona & Scenario Analysis (Enhanced)
  *
- * Input: Stage 1 output + demographics + personas + housing market
- * Output: scenario recommendations, target personas, residential strategy
+ * Input: Stage 1 output + demographics + personas + housing market + amenity analysis + environmental summary
+ * Output: scenario recommendations, target personas, residential strategy, persona-amenity fit, environmental fit
  *
- * Token usage: ~8KB input + 500 token summary → ~2KB output
- * Purpose: Generate persona-specific analysis and scenario text
+ * Token usage: ~12KB input → ~3KB output
+ * Purpose: Generate persona-specific analysis with amenity matching and environmental fit
  */
 
 import { anthropic } from '@ai-sdk/anthropic';
@@ -13,9 +13,9 @@ import { streamObject } from 'ai';
 import { z } from 'zod';
 import type { Stage1Output } from '../stage1/route';
 
-export const maxDuration = 120; // Stage 2 needs more time for multiple scenarios
+export const maxDuration = 150; // Increased for persona-amenity matching
 
-// Input type for Stage 2
+// Input type for Stage 2 (Enhanced)
 interface Stage2Input {
   locationSummary: Stage1Output;
   demographics: {
@@ -48,9 +48,39 @@ interface Stage2Input {
     typeDistribution: Array<{ type: string; percentage: number }>;
     priceDistribution: Array<{ range: string; percentage: number }>;
   };
+  // NEW: Amenity analysis for persona-amenity matching
+  amenityAnalysis: {
+    summary: string;
+    availableAmenities: Array<{
+      name: string;
+      count: number;
+      closestDistance: number | null;
+    }>;
+    missingAmenities: string[];
+    amenityGaps: string[];
+  };
+  // NEW: Environmental summary for persona fit
+  environmentalSummary?: {
+    airQuality: string;
+    noise: string;
+    greenSpace: string;
+    climate: string;
+    overall: string;
+  };
 }
 
-// Output schema for Stage 2
+// Persona-amenity fit schema
+const PersonaAmenityFitSchema = z.object({
+  personaName: z.string().describe('Name of the persona'),
+  fitScore: z.enum(['excellent', 'good', 'moderate', 'poor']).describe('Overall fit score based on amenity availability'),
+  availableRequired: z.array(z.string()).describe('Required amenities that ARE available nearby'),
+  missingRequired: z.array(z.string()).describe('Required amenities that are MISSING or far away'),
+  availablePreferred: z.array(z.string()).describe('Preferred amenities that are available'),
+  missingPreferred: z.array(z.string()).describe('Preferred amenities that are missing'),
+  summary: z.string().describe('Brief summary of amenity fit for this persona'),
+});
+
+// Output schema for Stage 2 (Enhanced)
 const ScenarioAnalysisSchema = z.object({
   scenario_name: z.string().describe('Name of the scenario (Scenario 1, Scenario 2, etc.)'),
   scenario_simple_name: z.string().describe('Short, catchy name based on target personas (e.g., "Young Starters Hub", "Family Focus")'),
@@ -59,6 +89,10 @@ const ScenarioAnalysisSchema = z.object({
   residential_strategy: z.string().describe('Strategy for residential units: what types of housing, what sizes, what price ranges based on the target personas'),
   demographics_considerations: z.string().describe('How local demographics (age distribution, family types, income levels) influence the housing choices'),
   key_insights: z.array(z.string()).describe('3-5 key insights about how the location data influenced this scenario'),
+  // NEW: Persona-amenity fit analysis
+  persona_amenity_fit: z.array(PersonaAmenityFitSchema).describe('Amenity fit analysis for each persona in this scenario'),
+  // NEW: Environmental fit assessment
+  environmental_fit: z.string().describe('How environmental factors (air quality, noise, green space, climate) affect the suitability for target personas. E.g., "Low noise suitable for seniors, but limited green space is a concern for families"'),
 });
 
 const Stage2OutputSchema = z.object({
@@ -79,8 +113,53 @@ export async function POST(request: Request) {
       );
     }
 
+    // Build amenity analysis section
+    const amenitySection = stageData.amenityAnalysis ? `
+# VOORZIENINGEN ANALYSE
+${stageData.amenityAnalysis.summary}
+
+## Beschikbare voorzieningen:
+${stageData.amenityAnalysis.availableAmenities.map(a =>
+  `- ${a.name}: ${a.count} aanwezig${a.closestDistance ? ` (dichtstbij ${a.closestDistance}m)` : ''}`
+).join('\n')}
+
+## Ontbrekende voorzieningen:
+${stageData.amenityAnalysis.missingAmenities.length > 0 ? stageData.amenityAnalysis.missingAmenities.join(', ') : 'Geen'}
+
+## Belangrijke knelpunten:
+${stageData.amenityAnalysis.amenityGaps.length > 0 ? stageData.amenityAnalysis.amenityGaps.join('\n') : 'Geen significante knelpunten'}
+
+## VOORZIENINGEN BEHOEFTEN PER DOELGROEP
+- Gezinnen: basisscholen, kinderdagverblijven, parken, supermarkt, huisarts (VEREIST), sportfaciliteiten (GEWENST)
+- Senioren: huisarts, apotheek, supermarkt (VEREIST), openbaar vervoer, parken, culturele voorzieningen (GEWENST)
+- Starters: openbaar vervoer, supermarkt (VEREIST), restaurants, cafés, sportfaciliteiten (GEWENST)
+- Studenten: openbaar vervoer (VEREIST), supermarkt, cafés, bibliotheken (GEWENST)
+- Professionals: openbaar vervoer, supermarkt (VEREIST), restaurants, sportfaciliteiten (GEWENST)
+` : '';
+
+    // Build environmental summary section
+    const envSection = stageData.environmentalSummary ? `
+# OMGEVINGSFACTOREN
+- Luchtkwaliteit: ${stageData.environmentalSummary.airQuality}
+- Geluid: ${stageData.environmentalSummary.noise}
+- Groen: ${stageData.environmentalSummary.greenSpace}
+- Klimaat: ${stageData.environmentalSummary.climate}
+- Algemeen: ${stageData.environmentalSummary.overall}
+
+## OMGEVING EN DOELGROEPEN
+- Gezinnen: gevoelig voor luchtkwaliteit (kinderen), hebben groen nodig voor spelen
+- Senioren: gevoelig voor hittestress, hebben rustige omgeving nodig (laag geluid)
+- Starters: minder gevoelig voor omgevingsfactoren, prioriteit is bereikbaarheid
+- Studenten: minder gevoelig voor omgevingsfactoren
+` : '';
+
     const prompt = locale === 'nl' ? `
-Je bent een expert in vastgoedontwikkeling en doelgroepanalyse. Op basis van de locatieanalyse en demografische gegevens, ontwikkel je gedetailleerde scenario's voor een nieuw woongebouw.
+Je bent een expert in vastgoedontwikkeling en doelgroepanalyse. Op basis van de locatieanalyse, demografische gegevens en voorzieningenanalyse, ontwikkel je gedetailleerde scenario's voor een nieuw woongebouw.
+
+BELANGRIJK: Analyseer voor elke doelgroep:
+1. Of de VEREISTE voorzieningen aanwezig zijn (en op welke afstand)
+2. Welke GEWENSTE voorzieningen beschikbaar zijn
+3. Hoe de omgevingsfactoren (geluid, lucht, groen) passen bij de doelgroep
 
 # LOCATIEANALYSE (uit eerdere analyse)
 ${stageData.locationSummary.location_summary}
@@ -96,6 +175,19 @@ ${stageData.locationSummary.safety_highlights}
 
 ## Leefbaarheid
 ${stageData.locationSummary.livability_highlights}
+
+## Omgeving
+${stageData.locationSummary.environmental_highlights || 'Geen omgevingsdata beschikbaar'}
+
+## Voorzieningen
+${stageData.locationSummary.amenity_analysis || 'Geen voorzieningenanalyse beschikbaar'}
+
+## Cross-correlaties
+${stageData.locationSummary.cross_correlations?.join('\n') || 'Geen cross-correlaties beschikbaar'}
+
+${amenitySection}
+
+${envSection}
 
 # DEMOGRAFISCHE GEGEVENS
 ${stageData.demographics.description}
@@ -140,10 +232,21 @@ Voor ELK scenario, ontwikkel:
 3. Een woonstrategie: welke woningtypen, groottes, prijsklassen passen bij de doelgroepen
 4. Demografische overwegingen: hoe beïnvloeden lokale demografie de keuzes
 5. 3-5 kernpunten over hoe de locatiegegevens dit scenario beïnvloeden
+6. Persona-voorzieningen fit: voor ELKE persona in het scenario, analyseer:
+   - Welke vereiste voorzieningen aanwezig zijn (en op welke afstand)
+   - Welke vereiste voorzieningen ontbreken
+   - Welke gewenste voorzieningen aanwezig zijn
+   - Een fit score: excellent/good/moderate/poor
+7. Omgevingsfit: hoe passen de omgevingsfactoren (lucht, geluid, groen, klimaat) bij deze doelgroepen
 
 Wees specifiek en data-gedreven. Verwijs naar de locatieanalyse en persona-kenmerken.
 ` : `
-You are an expert in real estate development and target group analysis. Based on the location analysis and demographic data, develop detailed scenarios for a new residential building.
+You are an expert in real estate development and target group analysis. Based on the location analysis, demographic data, and amenity analysis, develop detailed scenarios for a new residential building.
+
+IMPORTANT: For each target group, analyze:
+1. Whether REQUIRED amenities are present (and at what distance)
+2. Which PREFERRED amenities are available
+3. How environmental factors (noise, air, green) suit the target group
 
 # LOCATION ANALYSIS (from previous analysis)
 ${stageData.locationSummary.location_summary}
@@ -159,6 +262,19 @@ ${stageData.locationSummary.safety_highlights}
 
 ## Livability
 ${stageData.locationSummary.livability_highlights}
+
+## Environment
+${stageData.locationSummary.environmental_highlights || 'No environmental data available'}
+
+## Amenities
+${stageData.locationSummary.amenity_analysis || 'No amenity analysis available'}
+
+## Cross-correlations
+${stageData.locationSummary.cross_correlations?.join('\n') || 'No cross-correlations available'}
+
+${amenitySection}
+
+${envSection}
 
 # DEMOGRAPHIC DATA
 ${stageData.demographics.description}
@@ -203,6 +319,12 @@ For EACH scenario, develop:
 3. A residential strategy: what housing types, sizes, price ranges fit the target groups
 4. Demographic considerations: how local demographics influence choices
 5. 3-5 key insights about how location data influences this scenario
+6. Persona-amenity fit: for EACH persona in the scenario, analyze:
+   - Which required amenities are available (and at what distance)
+   - Which required amenities are missing
+   - Which preferred amenities are available
+   - A fit score: excellent/good/moderate/poor
+7. Environmental fit: how do environmental factors (air, noise, green, climate) suit these target groups
 
 Be specific and data-driven. Reference the location analysis and persona characteristics.
 `;
