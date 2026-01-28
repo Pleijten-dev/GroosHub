@@ -199,7 +199,35 @@ ${stageData.amenities.amenityGaps.length > 0 ? stageData.amenities.amenityGaps.j
     };
 
     const prompt = locale === 'nl' ? `
-Je bent een expert in stedelijke analyse en vastgoedontwikkeling. Analyseer de volgende locatiegegevens en maak een uitgebreide samenvatting.
+Je bent een ervaren stedenbouwkundige adviseur die een collega-ontwikkelaar informeert over een locatie. Schrijf alsof je de locatie zelf hebt bezocht en je bevindingen deelt.
+
+# SCHRIJFSTIJL - KRITISCH
+Schrijf natuurlijk en direct, zoals een professional tegen een collega praat. Vermijd typisch AI-taalgebruik:
+
+VERBODEN WOORDEN (gebruik deze NOOIT):
+- "Cruciaal", "essentieel", "van vitaal belang", "onmisbaar"
+- "Bovendien", "daarnaast", "tevens", "voorts"
+- "Een rijke tapijt", "een bruisend", "levendig"
+- "Verkennen", "duiken in", "ontdekken"
+- "Landschap" (als metafoor), "domein", "rijk"
+- "Robuust", "uitgebreid", "alomvattend"
+- "Optimaliseren", "faciliteren", "implementeren"
+- "Het is belangrijk op te merken dat..."
+- "In de context van...", "met betrekking tot..."
+
+GEWENSTE STIJL:
+- Kort en bondig. Geen omhaal, direct ter zake.
+- Wissel korte zinnen af met langere. "Geluidsniveau: 62dB. Dat is fors. Bewoners aan de straatzijde zullen dit merken, vooral 's nachts."
+- Gebruik concrete getallen, geen vage termen als "aanzienlijk" of "substantieel"
+- Geef je mening waar relevant: "Dit vind ik zorgelijk" of "Hier zie ik kansen"
+- Schrijf alsof je het aan iemand uitlegt bij de koffieautomaat
+
+VOORBEELDEN GOEDE STIJL:
+✓ "De luchtkwaliteit valt tegen. NO2 zit op 28 µg/m³, ruim boven de WHO-norm van 25."
+✓ "Supermarkt op 180 meter, huisarts op 400 meter - prima voor dagelijkse boodschappen."
+✓ "Let op: 38% alleenstaanden in de buurt. Dat vraagt om compactere woningen."
+✗ "Het is cruciaal om op te merken dat de luchtkwaliteit aanzienlijke uitdagingen met zich meebrengt."
+✗ "De buurt biedt een rijke tapijt van voorzieningen die de leefbaarheid faciliteren."
 
 BELANGRIJK: Zoek naar verbanden tussen de datasets. Bijvoorbeeld:
 - Hoge NO2-waarden kunnen samenhangen met gezondheidsklachten
@@ -229,29 +257,57 @@ ${amenitiesSection}
 
 # OPDRACHT
 Analyseer deze gegevens en lever:
-1. Een uitgebreide locatiesamenvatting (2-3 paragrafen) die de belangrijkste kenmerken van de locatie beschrijft, inclusief omgevingsfactoren
-2. 5-7 kernpunten die relevant zijn voor vastgoedontwikkeling
-3. Gezondheids-highlights: wat valt op, positief én zorgelijk
+1. Een locatiesamenvatting (2-3 alinea's) - beschrijf de plek alsof je er net bent geweest
+2. 5-7 kernpunten voor vastgoedontwikkeling - concreet en actionable
+3. Gezondheids-highlights: wat valt op, goed én slecht
 4. Veiligheids-highlights: criminaliteit, veiligheidsgevoel, straatverlichting
-5. Leefbaarheids-highlights: sociale cohesie, onderhoud, voorzieningen voor jongeren
-6. Omgevings-highlights: luchtkwaliteit, geluid, groen, klimaatrisico's - noem specifieke waarden
-7. Voorzieningen-analyse: wat is goed bereikbaar, wat ontbreekt of is ver weg, implicaties voor bewoners
-8. 3-5 cross-correlaties: verbanden tussen datasets die inzicht geven
+5. Leefbaarheids-highlights: sociale cohesie, onderhoud, voorzieningen
+6. Omgevings-highlights: lucht, geluid, groen, klimaat - noem de getallen
+7. Voorzieningen-analyse: wat is dichtbij, wat ontbreekt, wat betekent dat voor bewoners
+8. 3-5 cross-correlaties: verbanden die iets opleveren
 
-## VOORBEELD CROSS-CORRELATIES (formaat om te volgen):
-- "Stress 12% (↑ gemeente) + geluid 58dB + groen 8% → omgevingsfactoren versterken gezondheidsklachten, prioriteit: groene binnentuin en geluidsisolatie"
-- "Ontbrekende huisarts + 15% ouderen → gebouw moet medische ruimte op begane grond overwegen"
-- "Hoge veiligheid 7.8 + goede bereikbaarheid → geschikt voor jonge gezinnen en starters"
+## VOORBEELD CROSS-CORRELATIES:
+- "Stress 12% (↑ gemeente) + geluid 58dB + groen 8% → de omgeving werkt niet mee aan de gezondheid. Prioriteit: groene binnentuin en goede geluidsisolatie"
+- "Geen huisarts binnen 1km + 15% ouderen → overweeg medische ruimte op de begane grond"
+- "Veiligheid 7.8 + OV op 200m → prima voor jonge gezinnen en starters"
 
 ## KWALITEITSCRITERIA
-✓ Alle highlights bevatten specifieke waarden waar beschikbaar
-✓ Vergelijkingen met gemeente/nationaal gemiddelde
-✓ Elke cross-correlatie combineert minimaal 2 datasets
-✓ Conclusies zijn actionable (wat moet het gebouw doen?)
+✓ Concrete getallen, geen vage bewoordingen
+✓ Vergelijk met gemeente/landelijk waar relevant
+✓ Cross-correlaties combineren minimaal 2 bronnen
+✓ Eindig met wat het gebouw moet doen
 
-Focus op aspecten die relevant zijn voor het ontwerp van een nieuw woongebouw. Wees objectief en noem zowel positieve als negatieve aspecten.
+Wees eerlijk over zowel pluspunten als minpunten. Een te positief verhaal is niet geloofwaardig.
 ` : `
-You are an expert in urban analysis and real estate development. Analyze the following location data and create a comprehensive summary.
+You are an experienced urban planning advisor briefing a fellow developer about a location. Write as if you've visited the site yourself and are sharing your findings.
+
+# WRITING STYLE - CRITICAL
+Write naturally and directly, like a professional talking to a colleague. Avoid typical AI language:
+
+BANNED WORDS (NEVER use these):
+- "Crucial", "essential", "vital", "paramount"
+- "Furthermore", "moreover", "additionally"
+- "Rich tapestry", "vibrant", "bustling"
+- "Delve", "dive into", "explore", "unpack"
+- "Landscape" (as metaphor), "realm", "sphere"
+- "Robust", "comprehensive", "holistic"
+- "Optimize", "facilitate", "leverage", "utilize"
+- "It's important to note that..."
+- "In the context of...", "with regards to..."
+
+DESIRED STYLE:
+- Short and punchy. No fluff, get to the point.
+- Mix short sentences with longer ones. "Noise level: 62dB. That's high. Street-side residents will notice, especially at night."
+- Use concrete numbers, not vague terms like "significant" or "substantial"
+- Share your opinion where relevant: "I find this concerning" or "I see opportunity here"
+- Write as if explaining to someone at the coffee machine
+
+GOOD STYLE EXAMPLES:
+✓ "Air quality is disappointing. NO2 at 28 µg/m³, well above WHO guideline of 25."
+✓ "Supermarket 180m away, GP at 400m - fine for daily needs."
+✓ "Note: 38% single-person households nearby. That calls for more compact units."
+✗ "It is crucial to note that air quality presents significant challenges."
+✗ "The neighborhood offers a rich tapestry of amenities that facilitate livability."
 
 IMPORTANT: Look for connections between datasets. For example:
 - High NO2 levels may correlate with health complaints
@@ -281,27 +337,27 @@ ${amenitiesSection}
 
 # TASK
 Analyze this data and provide:
-1. A comprehensive location summary (2-3 paragraphs) describing the key characteristics, including environmental factors
-2. 5-7 key insights relevant for real estate development
-3. Health highlights: notable aspects, both positive and concerning
-4. Safety highlights: crime rates, feeling of safety, street lighting
-5. Livability highlights: social cohesion, maintenance, youth facilities
-6. Environmental highlights: air quality, noise, green space, climate risks - mention specific values
-7. Amenities analysis: what is well accessible, what is missing or far away, implications for residents
-8. 3-5 cross-correlations: connections between datasets that provide insight
+1. A location summary (2-3 paragraphs) - describe the place as if you've just been there
+2. 5-7 key points for real estate development - concrete and actionable
+3. Health highlights: what stands out, good and bad
+4. Safety highlights: crime, sense of safety, street lighting
+5. Livability highlights: social cohesion, maintenance, facilities
+6. Environmental highlights: air, noise, green, climate - include the numbers
+7. Amenities analysis: what's nearby, what's missing, what that means for residents
+8. 3-5 cross-correlations: connections that matter
 
-## EXAMPLE CROSS-CORRELATIONS (format to follow):
-- "Stress 12% (↑ municipality) + noise 58dB + green 8% → environmental factors compound health issues, priority: green courtyard and sound insulation"
-- "Missing GP + 15% seniors → building should consider medical space on ground floor"
-- "High safety 7.8 + good accessibility → suitable for young families and starters"
+## EXAMPLE CROSS-CORRELATIONS:
+- "Stress 12% (↑ municipality) + noise 58dB + green 8% → environment doesn't help health. Priority: green courtyard and sound insulation"
+- "No GP within 1km + 15% seniors → consider medical space on ground floor"
+- "Safety 7.8 + transit at 200m → works well for young families and starters"
 
 ## QUALITY CRITERIA
-✓ All highlights include specific values where available
-✓ Comparisons to municipality/national averages
-✓ Each cross-correlation combines at least 2 datasets
-✓ Conclusions are actionable (what should the building do?)
+✓ Concrete numbers, no vague wording
+✓ Compare to municipal/national averages where relevant
+✓ Cross-correlations combine at least 2 sources
+✓ End with what the building should do
 
-Focus on aspects relevant for designing a new residential building. Be objective and mention both positive and negative aspects.
+Be honest about both pros and cons. An overly positive story isn't credible.
 `;
 
     const result = await streamObject({

@@ -173,9 +173,32 @@ ${stageData.amenityAnalysis.amenityGaps.length > 0 ? stageData.amenityAnalysis.a
 ` : '';
 
     const prompt = locale === 'nl' ? `
-Je bent een expert in vastgoedontwikkeling en doelgroepanalyse. Op basis van de locatieanalyse, demografische gegevens en voorzieningenanalyse, ontwikkel je gedetailleerde scenario's voor een nieuw woongebouw.
+Je bent een ontwikkelingsadviseur die scenario's uitwerkt voor een nieuw woonproject. Schrijf alsof je in een brainstormsessie zit met het projectteam.
 
-BELANGRIJK: Analyseer voor elke doelgroep:
+# SCHRIJFSTIJL - KRITISCH
+Schrijf menselijk en direct. Vermijd typisch AI-taalgebruik:
+
+VERBODEN WOORDEN (gebruik deze NOOIT):
+- "Cruciaal", "essentieel", "van vitaal belang"
+- "Bovendien", "daarnaast", "tevens"
+- "Een rijke mix", "een bruisend", "divers palet"
+- "Optimaal", "ideaal", "perfect"
+- "Faciliteren", "implementeren", "realiseren"
+- "In het kader van...", "met het oog op..."
+
+GEWENSTE STIJL:
+- Schrijf alsof je het uitlegt aan een collega
+- Wees concreet: "40% van de woningen 45-60 m²" i.p.v. "een substantieel deel compacte woningen"
+- Geef je visie: "Dit scenario werkt hier goed omdat..." of "Aandachtspunt: de huisarts is ver"
+- Varieer zinslengte. Korte zinnen voor impact. Langere voor uitleg.
+
+VOORBEELDEN:
+✓ "Starters Hub - gericht op 25-35 jaar. OV op 200m is een plus, huisarts op 800m minder. Focus: compacte 2-kamers, gedeelde werkplekken."
+✓ "De hoge NO2 maakt dit minder geschikt voor gezinnen met jonge kinderen. Senioren zijn ook gevoelig."
+✗ "Dit scenario faciliteert een optimale woonbeleving voor diverse doelgroepen."
+✗ "De locatie biedt een rijk palet aan mogelijkheden die de leefbaarheid essentieel versterken."
+
+ANALYSEER voor elke doelgroep:
 1. Of de VEREISTE voorzieningen aanwezig zijn (en op welke afstand)
 2. Welke GEWENSTE voorzieningen beschikbaar zijn
 3. Hoe de omgevingsfactoren (geluid, lucht, groen) passen bij de doelgroep
@@ -268,11 +291,34 @@ Voor ELK scenario, ontwikkel:
 ✓ Key insights verbinden data aan concrete ontwerpbeslissingen
 ✓ Omgevingsfit noemt specifieke waarden (dB, µg/m³, %)
 
-Wees specifiek en data-gedreven. Verwijs naar de locatieanalyse en persona-kenmerken.
+Be specific and data-driven. Reference the location analysis and persona characteristics.
 ` : `
-You are an expert in real estate development and target group analysis. Based on the location analysis, demographic data, and amenity analysis, develop detailed scenarios for a new residential building.
+You are a development advisor working out scenarios for a new residential project. Write as if you're in a brainstorming session with the project team.
 
-IMPORTANT: For each target group, analyze:
+# WRITING STYLE - CRITICAL
+Write naturally and directly. Avoid typical AI language:
+
+BANNED WORDS (NEVER use these):
+- "Crucial", "essential", "vital", "paramount"
+- "Furthermore", "moreover", "additionally"
+- "Rich mix", "vibrant", "diverse palette"
+- "Optimal", "ideal", "perfect"
+- "Facilitate", "implement", "leverage"
+- "In the context of...", "with a view to..."
+
+DESIRED STYLE:
+- Write as if explaining to a colleague
+- Be concrete: "40% of units 45-60 m²" not "a substantial portion of compact units"
+- Share your view: "This scenario works here because..." or "Watch out: GP is far"
+- Vary sentence length. Short for impact. Longer for explanation.
+
+EXAMPLES:
+✓ "Starter Hub - targeting 25-35 year olds. Transit at 200m is a plus, GP at 800m less so. Focus: compact 2-beds, shared workspaces."
+✓ "High NO2 makes this less suitable for families with young children. Seniors are also sensitive."
+✗ "This scenario facilitates an optimal living experience for diverse target groups."
+✗ "The location offers a rich palette of opportunities that essentially enhance livability."
+
+ANALYZE for each target group:
 1. Whether REQUIRED amenities are present (and at what distance)
 2. Which PREFERRED amenities are available
 3. How environmental factors (noise, air, green) suit the target group

@@ -99,7 +99,13 @@ ${stageData.environmental.overallAssessment}
 ` : '# OMGEVINGSDATA\nGeen WMS data beschikbaar - baseer aanbevelingen op locatieanalyse.';
 
     const prompt = locale === 'nl' ? `
-Je bent een bouwkundig adviseur gespecialiseerd in duurzaam en klimaatadaptief ontwerp. Analyseer de omgevingsdata en voorzieningengaps om ontwerpbeperkingen en kansen te identificeren.
+Je bent een bouwkundig adviseur die een collega-architect brieft over de randvoorwaarden van een project.
+
+# SCHRIJFSTIJL
+Schrijf technisch maar toegankelijk. Geen AI-taal.
+
+VERBODEN: "cruciaal", "essentieel", "optimaal", "bovendien", "derhalve", "ten behoeve van"
+GEWENST: Direct, concreet, met getallen. "NO2 van 32 µg/m³ vraagt om mechanische ventilatie met F7 filter" i.p.v. "de luchtkwaliteit vereist essentiële maatregelen".
 
 # LOCATIESAMENVATTING
 ${stageData.locationSummary.location_summary}
@@ -165,7 +171,13 @@ Lever:
 
 4. SAMENVATTINGEN: Korte samenvattingen (2-3 zinnen) voor het rapport
 ` : `
-You are a building consultant specialized in sustainable and climate-adaptive design. Analyze the environmental data and amenity gaps to identify design constraints and opportunities.
+You are a building consultant briefing a fellow architect on project constraints.
+
+# WRITING STYLE
+Write technically but accessibly. No AI language.
+
+BANNED: "crucial", "essential", "optimal", "furthermore", "therefore", "in order to"
+DESIRED: Direct, concrete, with numbers. "NO2 at 32 µg/m³ requires mechanical ventilation with F7 filter" not "air quality necessitates essential measures".
 
 # LOCATION SUMMARY
 ${stageData.locationSummary.location_summary}

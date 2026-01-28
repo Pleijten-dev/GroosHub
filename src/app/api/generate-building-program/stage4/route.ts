@@ -386,9 +386,23 @@ ${stageData.buildingConstraints.amenityOpportunities
 ` : '';
 
     const prompt = locale === 'nl' ? `
-Je bent een expert in vastgoedontwikkeling. Maak een gedetailleerd bouwprogramma voor elk scenario.
+Je bent een programma-adviseur die het bouwprogramma uitwerkt voor een projectteam.
 
-## KRITIEKE REGELS - LEES DIT EERST
+# SCHRIJFSTIJL
+Schrijf praktisch en concreet. Dit is een werkdocument, geen essay.
+
+VERBODEN WOORDEN:
+- "Cruciaal", "essentieel", "optimaal", "ideaal"
+- "Bovendien", "daarnaast", "tevens"
+- "Een rijke mix", "divers aanbod", "breed scala"
+- "Faciliteren", "realiseren", "implementeren"
+
+GEWENST:
+- Directe taal: "25 appartementen van 55m², geschikt voor starters" niet "een substantieel aanbod van compacte wooneenheden"
+- Getallen: "8 2-kamerwoningen (45m²), 12 3-kamerwoningen (65m²)" niet "diverse woningtypes"
+- Onderbouwing in 1 zin: "Fitness op BG omdat OV goed bereikbaar is en starters dit verwachten"
+
+## KRITIEKE REGELS - ID BEPERKINGEN
 Je MOET UITSLUITEND kiezen uit de hieronder opgegeven lijsten. MAAK GEEN eigen items of IDs.
 - Gebruik ALLEEN typology_id's uit de WONINGTYPOLOGIEËN lijst
 - Gebruik ALLEEN amenity_id's uit de GEBOUWVOORZIENINGEN, GEMEENSCHAPPELIJKE of PUBLIEKE RUIMTES lijsten
@@ -472,11 +486,25 @@ Maak ook:
 - Een vergelijkende analyse met aanbevelingen
 
 Gebruik de scenario-analyses EN bouwkundige beperkingen als basis. Wees specifiek in je onderbouwing.
-HERINNERING: Gebruik UITSLUITEND de opgegeven IDs. Verzin GEEN nieuwe items.
+REMINDER: Use ONLY the provided IDs. DO NOT invent new items.
 ` : `
-You are a real estate development expert. Create a detailed building program for each scenario.
+You are a program advisor working out the building program for a project team.
 
-## CRITICAL RULES - READ THIS FIRST
+# WRITING STYLE
+Write practically and concretely. This is a working document, not an essay.
+
+BANNED WORDS:
+- "Crucial", "essential", "optimal", "ideal"
+- "Furthermore", "moreover", "additionally"
+- "Rich mix", "diverse offering", "wide range"
+- "Facilitate", "realize", "implement"
+
+DESIRED:
+- Direct language: "25 apartments of 55m², suitable for starters" not "a substantial offering of compact residential units"
+- Numbers: "8 2-bed units (45m²), 12 3-bed units (65m²)" not "various unit types"
+- Rationale in 1 sentence: "Fitness on GF because transit is nearby and starters expect this"
+
+## CRITICAL RULES - ID CONSTRAINTS
 You MUST ONLY choose from the lists provided below. DO NOT create your own items or IDs.
 - Use ONLY typology_id's from the HOUSING TYPOLOGIES list
 - Use ONLY amenity_id's from the BUILDING AMENITIES, COMMUNAL or PUBLIC SPACES lists
