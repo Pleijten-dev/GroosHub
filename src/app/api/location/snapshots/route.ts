@@ -12,7 +12,6 @@ import {
   createLocationSnapshot,
 } from '@/lib/db/queries/locations';
 import { isProjectMember } from '@/lib/db/queries/projects';
-import { ensureAllMigrations } from '@/lib/db/migrations/migrationHelper';
 
 /**
  * GET /api/location/snapshots
@@ -25,9 +24,6 @@ export async function GET(request: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    // Auto-run migrations if needed (WMS grading, PVE data)
-    await ensureAllMigrations();
 
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('project_id');
