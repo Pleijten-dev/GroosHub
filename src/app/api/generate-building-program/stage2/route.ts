@@ -189,14 +189,24 @@ VERBODEN WOORDEN (gebruik deze NOOIT):
 GEWENSTE STIJL:
 - Schrijf alsof je het uitlegt aan een collega
 - Wees concreet: "40% van de woningen 45-60 m²" i.p.v. "een substantieel deel compacte woningen"
-- Geef je visie: "Dit scenario werkt hier goed omdat..." of "Aandachtspunt: de huisarts is ver"
+- Schrijf vanuit het bureau (wij-perspectief): "Wij zien dit scenario als kansrijk omdat..." of "Aandachtspunt: de huisarts is ver"
 - Varieer zinslengte. Korte zinnen voor impact. Langere voor uitleg.
+- Elke zin moet ergens toe leiden. Geen filler, geen vage inleidingen.
+
+ANTI-VAAGHEID REGEL:
+Elke zin moet een punt maken of informatie toevoegen. Schrap alles dat je kunt missen.
+✗ "Dit scenario kent diverse mogelijkheden" (welke dan?)
+✗ "Er zijn meerdere overwegingen bij deze doelgroep" (noem ze)
+✗ "De mix van functies biedt kansen" (welke mix, welke kansen?)
+✓ "60% starters, 40% jonge gezinnen. De starters vullen doordeweeks, gezinnen in het weekend." (concreet, logisch)
 
 VOORBEELDEN:
 ✓ "Starters Hub - gericht op 25-35 jaar. OV op 200m is een plus, huisarts op 800m minder. Focus: compacte 2-kamers, gedeelde werkplekken."
 ✓ "De hoge NO2 maakt dit minder geschikt voor gezinnen met jonge kinderen. Senioren zijn ook gevoelig."
+✓ "Wij adviseren hier 70% compact. Reden: 45% alleenstaanden in de buurt, bovengemiddeld inkomen, OV dichtbij."
 ✗ "Dit scenario faciliteert een optimale woonbeleving voor diverse doelgroepen."
 ✗ "De locatie biedt een rijk palet aan mogelijkheden die de leefbaarheid essentieel versterken."
+✗ "Er zijn verschillende aspecten die dit scenario kenmerken."
 
 ANALYSEER voor elke doelgroep:
 1. Of de VEREISTE voorzieningen aanwezig zijn (en op welke afstand)
@@ -309,14 +319,24 @@ BANNED WORDS (NEVER use these):
 DESIRED STYLE:
 - Write as if explaining to a colleague
 - Be concrete: "40% of units 45-60 m²" not "a substantial portion of compact units"
-- Share your view: "This scenario works here because..." or "Watch out: GP is far"
+- Write from the firm's perspective (we-perspective): "We see this scenario as promising because..." or "Watch out: GP is far"
 - Vary sentence length. Short for impact. Longer for explanation.
+- Every sentence must lead somewhere. No filler, no vague introductions.
+
+ANTI-VAGUENESS RULE:
+Every sentence must make a point or add information. Delete anything you can do without.
+✗ "This scenario has various possibilities" (which ones?)
+✗ "There are multiple considerations for this target group" (name them)
+✗ "The mix of functions offers opportunities" (which mix, which opportunities?)
+✓ "60% starters, 40% young families. Starters fill weekdays, families fill weekends." (concrete, logical)
 
 EXAMPLES:
 ✓ "Starter Hub - targeting 25-35 year olds. Transit at 200m is a plus, GP at 800m less so. Focus: compact 2-beds, shared workspaces."
 ✓ "High NO2 makes this less suitable for families with young children. Seniors are also sensitive."
+✓ "We recommend 70% compact here. Reason: 45% singles in the area, above-average income, transit nearby."
 ✗ "This scenario facilitates an optimal living experience for diverse target groups."
 ✗ "The location offers a rich palette of opportunities that essentially enhance livability."
+✗ "There are various aspects that characterize this scenario."
 
 ANALYZE for each target group:
 1. Whether REQUIRED amenities are present (and at what distance)
