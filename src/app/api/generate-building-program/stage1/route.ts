@@ -15,19 +15,45 @@ import type { Stage1Input } from '@/features/location/utils/stagedGenerationData
 
 export const maxDuration = 90; // Increased for more comprehensive analysis
 
-// Output schema for Stage 1 (Enhanced)
+// Output schema for Stage 1 (Enhanced with detailed descriptions per Anthropic best practices)
 const Stage1OutputSchema = z.object({
-  location_summary: z.string().describe('Comprehensive summary of the location based on all available data including environmental factors. Should be 2-3 paragraphs covering the key characteristics.'),
-  key_location_insights: z.array(z.string()).describe('5-7 key insights about the location that should inform building program decisions'),
-  health_highlights: z.string().describe('Summary of notable health indicators - both positive and concerning aspects'),
-  safety_highlights: z.string().describe('Summary of safety situation - crime rates, feeling of safety, street lighting'),
-  livability_highlights: z.string().describe('Summary of livability factors - social cohesion, maintenance, youth facilities'),
-  // NEW: Environmental analysis
-  environmental_highlights: z.string().describe('Summary of environmental conditions - air quality, noise levels, green space, climate risks. Include specific measurements where available.'),
-  // NEW: Full amenity analysis
-  amenity_analysis: z.string().describe('Comprehensive analysis of amenities - what is available and close by, what is missing or far away, and implications for residents. Mention specific distances.'),
-  // NEW: Cross-correlations between datasets
-  cross_correlations: z.array(z.string()).describe('3-5 insights that connect multiple datasets. E.g., "High noise levels (58dB) combined with limited green space may explain elevated stress levels" or "Strong amenity access validates high livability score"'),
+  location_summary: z.string().describe(
+    'Comprehensive 2-3 paragraph summary of the location. Start with the overall character (urban/suburban, residential/mixed). ' +
+    'Include key strengths (e.g., "excellent transit access", "low crime"). Address concerns (e.g., "elevated noise from nearby highway"). ' +
+    'End with implications for residential development. Be specific - cite actual values when available.'
+  ),
+  key_location_insights: z.array(z.string()).describe(
+    '5-7 actionable insights for building program decisions. Each insight should be specific and data-backed. ' +
+    'Good: "NO2 at 32µg/m³ exceeds WHO guideline (25µg/m³) - recommend mechanical ventilation with filtration". ' +
+    'Bad: "Air quality could be better". Format: "[Category] Specific finding - implication".'
+  ),
+  health_highlights: z.string().describe(
+    '2-3 sentences on health indicators. Compare neighborhood to municipality averages. ' +
+    'Flag any values significantly above average. Note implications for target demographics (e.g., "elevated asthma reports suggest families with children may need air filtration").'
+  ),
+  safety_highlights: z.string().describe(
+    '2-3 sentences on safety. Include crime rates if available, feeling of safety score, street lighting quality. ' +
+    'Compare to municipality. Note which demographics this affects most (seniors sensitive to safety).'
+  ),
+  livability_highlights: z.string().describe(
+    '2-3 sentences on livability factors: social cohesion, public space maintenance, youth/senior facilities. ' +
+    'Note strong points and gaps. Mention implications for building amenities (e.g., "low youth facilities score suggests building could include community spaces").'
+  ),
+  environmental_highlights: z.string().describe(
+    '3-4 sentences covering: air quality (NO2, PM10 vs WHO guidelines), noise (dB vs Bouwbesluit thresholds), ' +
+    'green coverage (% trees vs 15% minimum), heat stress index. ALWAYS include specific measurements when available. ' +
+    'End with design implications (e.g., "noise of 62dB requires enhanced sound insulation (GA 30-35dB)").'
+  ),
+  amenity_analysis: z.string().describe(
+    '3-4 sentences on amenities. List what is well-served (<500m): supermarket, transit, etc. ' +
+    'List critical gaps: what essential amenities are missing or far (>1km). ' +
+    'End with what the building should provide to fill gaps (e.g., "missing pharmacy within 1km suggests ground-floor healthcare space").'
+  ),
+  cross_correlations: z.array(z.string()).describe(
+    '3-5 insights connecting multiple datasets. Pattern: "[Data A] + [Data B] → [Conclusion/Implication]". ' +
+    'Example: "High stress reports (12%) + noise 58dB + low green (8%) → environmental factors may compound health issues, prioritize green courtyard and sound insulation". ' +
+    'Look for: health+environment correlations, safety+livability patterns, amenity+demographic mismatches.'
+  ),
 });
 
 export type Stage1Output = z.infer<typeof Stage1OutputSchema>;
@@ -169,7 +195,18 @@ Analyseer deze gegevens en lever:
 5. Leefbaarheids-highlights: sociale cohesie, onderhoud, voorzieningen voor jongeren
 6. Omgevings-highlights: luchtkwaliteit, geluid, groen, klimaatrisico's - noem specifieke waarden
 7. Voorzieningen-analyse: wat is goed bereikbaar, wat ontbreekt of is ver weg, implicaties voor bewoners
-8. 3-5 cross-correlaties: verbanden tussen datasets die inzicht geven (bijv. "hoog NO2 + laag groen = gezondheidsrisico")
+8. 3-5 cross-correlaties: verbanden tussen datasets die inzicht geven
+
+## VOORBEELD CROSS-CORRELATIES (formaat om te volgen):
+- "Stress 12% (↑ gemeente) + geluid 58dB + groen 8% → omgevingsfactoren versterken gezondheidsklachten, prioriteit: groene binnentuin en geluidsisolatie"
+- "Ontbrekende huisarts + 15% ouderen → gebouw moet medische ruimte op begane grond overwegen"
+- "Hoge veiligheid 7.8 + goede bereikbaarheid → geschikt voor jonge gezinnen en starters"
+
+## KWALITEITSCRITERIA
+✓ Alle highlights bevatten specifieke waarden waar beschikbaar
+✓ Vergelijkingen met gemeente/nationaal gemiddelde
+✓ Elke cross-correlatie combineert minimaal 2 datasets
+✓ Conclusies zijn actionable (wat moet het gebouw doen?)
 
 Focus op aspecten die relevant zijn voor het ontwerp van een nieuw woongebouw. Wees objectief en noem zowel positieve als negatieve aspecten.
 ` : `
@@ -210,7 +247,18 @@ Analyze this data and provide:
 5. Livability highlights: social cohesion, maintenance, youth facilities
 6. Environmental highlights: air quality, noise, green space, climate risks - mention specific values
 7. Amenities analysis: what is well accessible, what is missing or far away, implications for residents
-8. 3-5 cross-correlations: connections between datasets that provide insight (e.g., "high NO2 + low green = health risk")
+8. 3-5 cross-correlations: connections between datasets that provide insight
+
+## EXAMPLE CROSS-CORRELATIONS (format to follow):
+- "Stress 12% (↑ municipality) + noise 58dB + green 8% → environmental factors compound health issues, priority: green courtyard and sound insulation"
+- "Missing GP + 15% seniors → building should consider medical space on ground floor"
+- "High safety 7.8 + good accessibility → suitable for young families and starters"
+
+## QUALITY CRITERIA
+✓ All highlights include specific values where available
+✓ Comparisons to municipality/national averages
+✓ Each cross-correlation combines at least 2 datasets
+✓ Conclusions are actionable (what should the building do?)
 
 Focus on aspects relevant for designing a new residential building. Be objective and mention both positive and negative aspects.
 `;
