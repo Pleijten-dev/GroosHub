@@ -87,6 +87,50 @@ ${stageData.amenities.missingAmenities.length > 0 ? stageData.amenities.missingA
 ${stageData.amenities.amenityGaps.length > 0 ? stageData.amenities.amenityGaps.join('\n') : 'Geen significante knelpunten'}
 `;
 
+    // Format health data with context
+    const formatHealthData = (health: typeof stageData.health) => {
+      const lines: string[] = [];
+      lines.push(`Beschrijving: ${health.description}`);
+      if (health.items && health.items.length > 0) {
+        lines.push('## Indicatoren (hoger % = meer rapporteren probleem, referentie is nationaal gemiddelde):');
+        for (const item of health.items) {
+          const buurtVal = parseFloat(item.neighborhood) || 0;
+          const gemVal = parseFloat(item.municipality) || 0;
+          const comparison = buurtVal > gemVal ? '↑ hoger dan gemeente' : buurtVal < gemVal ? '↓ lager dan gemeente' : '= gelijk aan gemeente';
+          lines.push(`- ${item.name}: Buurt ${item.neighborhood}, Gemeente ${item.municipality} (${comparison})`);
+        }
+      }
+      return lines.join('\n');
+    };
+
+    // Format safety data with context
+    const formatSafetyData = (safety: typeof stageData.safety) => {
+      const lines: string[] = [];
+      lines.push(`Beschrijving: ${safety.description}`);
+      if (safety.items && safety.items.length > 0) {
+        lines.push('## Indicatoren (lagere criminaliteit = beter, hoger veiligheidsgevoel = beter):');
+        for (const item of safety.items) {
+          lines.push(`- ${item.name}: Buurt ${item.neighborhood}, Gemeente ${item.municipality}`);
+          if (item.description) lines.push(`  ${item.description}`);
+        }
+      }
+      return lines.join('\n');
+    };
+
+    // Format livability data with context
+    const formatLivabilityData = (livability: typeof stageData.livability) => {
+      const lines: string[] = [];
+      lines.push(`Beschrijving: ${livability.description}`);
+      if (livability.items && livability.items.length > 0) {
+        lines.push('## Indicatoren (hogere scores = betere leefbaarheid):');
+        for (const item of livability.items) {
+          lines.push(`- ${item.name}: Buurt ${item.neighborhood}, Gemeente ${item.municipality}`);
+          if (item.description) lines.push(`  ${item.description}`);
+        }
+      }
+      return lines.join('\n');
+    };
+
     const prompt = locale === 'nl' ? `
 Je bent een expert in stedelijke analyse en vastgoedontwikkeling. Analyseer de volgende locatiegegevens en maak een uitgebreide samenvatting.
 
@@ -103,14 +147,14 @@ Wijk: ${stageData.metadata.district || 'Onbekend'}
 Buurt: ${stageData.metadata.neighborhood || 'Onbekend'}
 ${stageData.metadata.coordinates ? `Coördinaten: ${stageData.metadata.coordinates.lat}, ${stageData.metadata.coordinates.lon}` : ''}
 
-# GEZONDHEIDSGEGEVENS
-${JSON.stringify(stageData.health, null, 2)}
+# GEZONDHEIDSGEGEVENS (CBS data - percentage dat problemen rapporteert)
+${formatHealthData(stageData.health)}
 
-# VEILIGHEIDSGEGEVENS
-${JSON.stringify(stageData.safety, null, 2)}
+# VEILIGHEIDSGEGEVENS (CBS/Politie data)
+${formatSafetyData(stageData.safety)}
 
-# LEEFBAARHEIDSGEGEVENS
-${JSON.stringify(stageData.livability, null, 2)}
+# LEEFBAARHEIDSGEGEVENS (Leefbaarometer scores)
+${formatLivabilityData(stageData.livability)}
 
 ${envSection}
 
@@ -144,14 +188,14 @@ District: ${stageData.metadata.district || 'Unknown'}
 Neighborhood: ${stageData.metadata.neighborhood || 'Unknown'}
 ${stageData.metadata.coordinates ? `Coordinates: ${stageData.metadata.coordinates.lat}, ${stageData.metadata.coordinates.lon}` : ''}
 
-# HEALTH DATA
-${JSON.stringify(stageData.health, null, 2)}
+# HEALTH DATA (CBS data - percentage reporting issues)
+${formatHealthData(stageData.health)}
 
-# SAFETY DATA
-${JSON.stringify(stageData.safety, null, 2)}
+# SAFETY DATA (CBS/Police data)
+${formatSafetyData(stageData.safety)}
 
-# LIVABILITY DATA
-${JSON.stringify(stageData.livability, null, 2)}
+# LIVABILITY DATA (Leefbaarometer scores)
+${formatLivabilityData(stageData.livability)}
 
 ${envSection}
 
