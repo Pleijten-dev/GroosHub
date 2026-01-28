@@ -1186,8 +1186,8 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale, addr
                     <div className="h-6 rounded-full overflow-hidden bg-gray-200 flex">
                       {housingCategories.social !== null && housingCategories.social > 0 && (
                         <div
-                          className="bg-blue-500 flex items-center justify-center text-xs text-white font-medium"
-                          style={{ width: `${housingCategories.social}%` }}
+                          className="flex items-center justify-center text-xs text-white font-medium"
+                          style={{ width: `${housingCategories.social}%`, backgroundColor: '#8a976b' }}
                           title={locale === 'nl' ? `Sociaal: ${housingCategories.social}%` : `Social: ${housingCategories.social}%`}
                         >
                           {housingCategories.social >= 10 && `${housingCategories.social}%`}
@@ -1195,8 +1195,8 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale, addr
                       )}
                       {housingCategories.affordable !== null && housingCategories.affordable > 0 && (
                         <div
-                          className="bg-green-500 flex items-center justify-center text-xs text-white font-medium"
-                          style={{ width: `${housingCategories.affordable}%` }}
+                          className="flex items-center justify-center text-xs text-white font-medium"
+                          style={{ width: `${housingCategories.affordable}%`, backgroundColor: '#63834c' }}
                           title={locale === 'nl' ? `Betaalbaar: ${housingCategories.affordable}%` : `Affordable: ${housingCategories.affordable}%`}
                         >
                           {housingCategories.affordable >= 10 && `${housingCategories.affordable}%`}
@@ -1204,8 +1204,8 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale, addr
                       )}
                       {housingCategories.luxury !== null && housingCategories.luxury > 0 && (
                         <div
-                          className="bg-purple-500 flex items-center justify-center text-xs text-white font-medium"
-                          style={{ width: `${housingCategories.luxury}%` }}
+                          className="flex items-center justify-center text-xs text-white font-medium"
+                          style={{ width: `${housingCategories.luxury}%`, backgroundColor: '#477638' }}
                           title={locale === 'nl' ? `Luxe: ${housingCategories.luxury}%` : `Luxury: ${housingCategories.luxury}%`}
                         >
                           {housingCategories.luxury >= 10 && `${housingCategories.luxury}%`}
@@ -1224,19 +1224,19 @@ export const PVEQuestionnaire: React.FC<PVEQuestionnaireProps> = ({ locale, addr
                     <div className="flex flex-wrap gap-4 text-xs">
                       {housingCategories.social !== null && (
                         <div className="flex items-center gap-1">
-                          <div className="w-3 h-3 rounded bg-blue-500"></div>
+                          <div className="w-3 h-3 rounded" style={{ backgroundColor: '#8a976b' }}></div>
                           <span>{locale === 'nl' ? 'Sociaal' : 'Social'}</span>
                         </div>
                       )}
                       {housingCategories.affordable !== null && (
                         <div className="flex items-center gap-1">
-                          <div className="w-3 h-3 rounded bg-green-500"></div>
+                          <div className="w-3 h-3 rounded" style={{ backgroundColor: '#63834c' }}></div>
                           <span>{locale === 'nl' ? 'Betaalbaar' : 'Affordable'}</span>
                         </div>
                       )}
                       {housingCategories.luxury !== null && (
                         <div className="flex items-center gap-1">
-                          <div className="w-3 h-3 rounded bg-purple-500"></div>
+                          <div className="w-3 h-3 rounded" style={{ backgroundColor: '#477638' }}></div>
                           <span>{locale === 'nl' ? 'Luxe' : 'Luxury'}</span>
                         </div>
                       )}
