@@ -159,7 +159,7 @@ async function saveDomainMemory(memory: DomainMemory, updatedBy?: number): Promi
  */
 export async function addExplicitKnowledge(
   orgId: string,
-  knowledge: Omit<DomainKnowledge, 'id' | 'addedAt'>,
+  knowledge: Omit<DomainKnowledge, 'id' | 'addedAt' | 'addedBy'>,
   adminUserId: number
 ): Promise<DomainKnowledge> {
   const memory = await getOrCreateDomainMemory(orgId);

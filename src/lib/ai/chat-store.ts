@@ -3,11 +3,19 @@
  * Handles database operations for chats and messages
  *
  * Week 2: Persistence & Multiple Chats
+ * Week 4: Message Encryption (AES-256-GCM)
  */
 
 import { getDbConnection } from '@/lib/db/connection';
 import type { UIMessage } from 'ai';
 import { randomUUID } from 'crypto';
+import {
+  encryptForStorage,
+  decryptFromStorage,
+  encryptJSONForStorage,
+  decryptJSONFromStorage,
+  isEncryptionEnabled
+} from '@/lib/encryption';
 
 // ============================================
 // Types
@@ -238,6 +246,7 @@ interface DbMessageRow {
   role: string;
   content: string | null; // Legacy text content field
   content_json: unknown;
+  content_encrypted: boolean; // Encryption flag
   model_id: string | null;
   input_tokens: number | null;
   output_tokens: number | null;
@@ -248,13 +257,14 @@ interface DbMessageRow {
 /**
  * Load chat messages
  * Converts database format back to UIMessage[] format
+ * Automatically decrypts content if it was encrypted
  */
 export async function loadChatMessages(chatId: string): Promise<UIMessage[]> {
   const db = getDbConnection();
 
   const messages = await db`
     SELECT
-      id, chat_id, role, content, content_json, model_id, input_tokens, output_tokens, metadata, created_at
+      id, chat_id, role, content, content_json, content_encrypted, model_id, input_tokens, output_tokens, metadata, created_at
     FROM chat_messages
     WHERE chat_id = ${chatId}
     ORDER BY created_at ASC
@@ -263,6 +273,12 @@ export async function loadChatMessages(chatId: string): Promise<UIMessage[]> {
   console.log(`[ChatStore] 🔍 Loaded ${messages.length} messages from database for chat ${chatId}`);
   console.log(`[ChatStore] 📋 Message IDs:`, (messages as unknown as DbMessageRow[]).map(m => m.id));
   console.log(`[ChatStore] 👥 Message roles:`, (messages as unknown as DbMessageRow[]).map(m => m.role));
+
+  // Count encrypted messages
+  const encryptedCount = (messages as unknown as DbMessageRow[]).filter(m => m.content_encrypted).length;
+  if (encryptedCount > 0) {
+    console.log(`[ChatStore] 🔐 ${encryptedCount}/${messages.length} messages are encrypted`);
+  }
 
   // Convert database format to UIMessage format
   const result = (messages as unknown as DbMessageRow[]).map((msg) => {
@@ -273,31 +289,56 @@ export async function loadChatMessages(chatId: string): Promise<UIMessage[]> {
       metadata: msg.metadata || undefined // Include metadata if present
     };
 
+    // Decrypt content_json if encrypted
+    let contentJson: unknown = msg.content_json;
+    let content: string | null = msg.content;
+
+    if (msg.content_encrypted) {
+      try {
+        // Decrypt content_json (stored as encrypted string)
+        if (msg.content_json && typeof msg.content_json === 'string') {
+          contentJson = decryptJSONFromStorage(msg.content_json, true);
+        }
+        // Decrypt content (stored as encrypted string)
+        if (msg.content) {
+          content = decryptFromStorage(msg.content, true);
+        }
+      } catch (error) {
+        console.error(`[ChatStore] ❌ Failed to decrypt message ${msg.id}:`, error);
+        // Return empty parts if decryption fails
+        uiMessage.parts = [{
+          type: 'text',
+          text: '[Message encrypted - decryption failed]'
+        }];
+        return uiMessage;
+      }
+    }
+
     // Parse content_json to get parts
-    if (msg.content_json) {
-      if (Array.isArray(msg.content_json)) {
+    if (contentJson) {
+      if (Array.isArray(contentJson)) {
         // Already in parts array format
-        uiMessage.parts = msg.content_json;
+        uiMessage.parts = contentJson;
       } else if (
-        typeof msg.content_json === 'object' &&
-        msg.content_json !== null &&
-        'type' in msg.content_json &&
-        (msg.content_json as Record<string, unknown>).type === 'text'
+        typeof contentJson === 'object' &&
+        contentJson !== null &&
+        'type' in contentJson &&
+        (contentJson as Record<string, unknown>).type === 'text'
       ) {
         // Old format: {type: 'text', text: '...'}
-        uiMessage.parts = [msg.content_json as { type: 'text'; text: string }];
+        uiMessage.parts = [contentJson as { type: 'text'; text: string }];
       } else {
         // Fallback: treat as text
         uiMessage.parts = [{
           type: 'text',
-          text: typeof msg.content_json === 'string' ? msg.content_json : JSON.stringify(msg.content_json)
+          text: typeof contentJson === 'string' ? contentJson : JSON.stringify(contentJson)
         }];
       }
-    } else if (msg.content) {
+    } else if (content) {
       // Fallback: use legacy content field (for migrated messages)
       uiMessage.parts = [{
         type: 'text',
-        text: msg.content
+        text: content
       }];
     }
 
@@ -322,6 +363,7 @@ export async function loadChatMessages(chatId: string): Promise<UIMessage[]> {
 
 /**
  * Save a single message
+ * Automatically encrypts content if ENCRYPTION_MASTER_KEY is configured
  */
 export async function saveChatMessage(
   chatId: string,
@@ -345,22 +387,31 @@ export async function saveChatMessage(
     .map((part) => ('text' in part ? part.text : ''))
     .join('\n');
 
+  // Encrypt content and content_json for storage
+  const { encrypted: encryptedContent, isEncrypted: contentEncrypted } = encryptForStorage(contentText);
+  const { encrypted: encryptedContentJson, isEncrypted: jsonEncrypted } = encryptJSONForStorage(message.parts);
+
+  // Both should have same encryption status (they use same key availability check)
+  const isEncrypted = contentEncrypted && jsonEncrypted;
+
   const textPreview = contentText.substring(0, 50).replace(/\n/g, ' ');
   console.log(`[ChatStore] 💾 Saving message to chat ${chatId}:`);
   console.log(`[ChatStore]    - Role: ${message.role}`);
   console.log(`[ChatStore]    - Client ID: ${message.id}`);
   console.log(`[ChatStore]    - DB ID (new): ${messageId}`);
   console.log(`[ChatStore]    - Text preview: "${textPreview}..."`);
+  console.log(`[ChatStore]    - Encrypted: ${isEncrypted ? '🔐 Yes' : '⚠️ No (ENCRYPTION_MASTER_KEY not set)'}`);
 
   await db`
     INSERT INTO chat_messages (
-      id, chat_id, role, content, content_json, model_id, input_tokens, output_tokens, metadata, created_at
+      id, chat_id, role, content, content_json, content_encrypted, model_id, input_tokens, output_tokens, metadata, created_at
     ) VALUES (
       ${messageId},
       ${chatId},
       ${message.role},
-      ${contentText},
-      ${JSON.stringify(message.parts)},
+      ${encryptedContent},
+      ${encryptedContentJson},
+      ${isEncrypted},
       ${options?.modelId || null},
       ${options?.inputTokens || 0},
       ${options?.outputTokens || 0},
@@ -371,6 +422,7 @@ export async function saveChatMessage(
     SET
       content = EXCLUDED.content,
       content_json = EXCLUDED.content_json,
+      content_encrypted = EXCLUDED.content_encrypted,
       model_id = EXCLUDED.model_id,
       input_tokens = EXCLUDED.input_tokens,
       output_tokens = EXCLUDED.output_tokens,

@@ -19,6 +19,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   title,
   subtitle,
   withNavbar = true,
+  footerContent,
 }) => {
   const { classBuilders } = useDesignSystem();
 
@@ -195,9 +196,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {sections.length === 0 && (
             <div className="p-lg text-center">
               <div className="text-text-muted">
-                <svg 
-                  className="w-12 h-12 mx-auto mb-md opacity-50" 
-                  viewBox="0 0 24 24" 
+                <svg
+                  className="w-12 h-12 mx-auto mb-md opacity-50"
+                  viewBox="0 0 24 24"
                   fill="currentColor"
                 >
                   <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
@@ -208,6 +209,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Sidebar Footer - Only show when not collapsed */}
+      {!isCollapsed && footerContent && (
+        <div className="flex-shrink-0 border-t border-gray-200/30 p-base bg-white/30">
+          {footerContent}
         </div>
       )}
 

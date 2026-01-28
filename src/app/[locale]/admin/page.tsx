@@ -25,5 +25,5 @@ export default async function AdminPage({ params }: AdminPageProps) {
 
   const t = await getTranslations(locale as 'nl' | 'en');
 
-  return <AdminPanel translations={t.admin} common={t.common} />;
+  return <AdminPanel translations={t.admin} common={t.common} locale={locale} />;
 }

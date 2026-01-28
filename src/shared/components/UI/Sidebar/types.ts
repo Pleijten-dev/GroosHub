@@ -42,4 +42,7 @@ export interface SidebarProps {
 
   /** Whether the sidebar should account for a navbar at the top (defaults to true) */
   withNavbar?: boolean;
+
+  /** Footer content displayed at the bottom of the sidebar */
+  footerContent?: ReactNode;
 }
