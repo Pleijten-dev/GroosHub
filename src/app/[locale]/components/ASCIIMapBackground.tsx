@@ -1,399 +1,232 @@
 // src/app/[locale]/components/ASCIIMapBackground.tsx
 'use client';
 
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 
 // ASCII characters from dark to light
 const ASCII_CHARS = '@%#*+=-:. ';
 
-// Dutch cities with WIDE bounding boxes for panning
-// The bbox is extended east-west to provide enough map data for panning
-// We fetch a wide strip and pan across it
-const DUTCH_CITIES = [
-  {
-    name: 'Rotterdam',
-    // Wide bbox: ~0.8 degrees east-west for smooth panning
-    bbox: { south: 51.87, west: 4.15, north: 51.97, east: 4.95 },
-  },
-  {
-    name: 'Amsterdam',
-    bbox: { south: 52.32, west: 4.65, north: 52.42, east: 5.15 },
-  },
-  {
-    name: 'Utrecht',
-    bbox: { south: 52.05, west: 4.95, north: 52.15, east: 5.35 },
-  },
-  {
-    name: 'Den Haag',
-    bbox: { south: 52.03, west: 4.15, north: 52.13, east: 4.55 },
-  },
-  {
-    name: 'Eindhoven',
-    bbox: { south: 51.42, west: 5.30, north: 51.52, east: 5.70 },
-  },
-  {
-    name: 'Groningen',
-    bbox: { south: 53.18, west: 6.45, north: 53.28, east: 6.75 },
-  },
+// 4 Dutch city tiles to pan across
+const TILES = [
+  { name: 'Rotterdam', bbox: '51.85,4.35,51.95,4.55' },
+  { name: 'Den Haag', bbox: '52.03,4.25,52.13,4.45' },
+  { name: 'Amsterdam', bbox: '52.32,4.82,52.42,5.02' },
+  { name: 'Utrecht', bbox: '52.05,5.05,52.15,5.25' },
 ];
 
-// WMS configuration for Stedelijk hitte eiland effect
-const WMS_CONFIG = {
-  baseUrl: 'https://data.rivm.nl/geo/ank/wms',
-  layer: 'Stedelijk_hitte_eiland_effect_01062022_v2',
-  version: '1.3.0',
-  format: 'image/png',
-  crs: 'EPSG:4326',
-};
+// WMS configuration
+const WMS_BASE = 'https://data.rivm.nl/geo/ank/wms';
+const WMS_LAYER = 'Stedelijk_hitte_eiland_effect_01062022_v2';
 
-// Animation settings
-const PAN_DURATION = 30000; // 30 seconds per city
-const TRANSITION_DURATION = 1000; // 1 second fade transition
+function buildWMSUrl(bbox: string, size: number): string {
+  return `${WMS_BASE}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=${WMS_LAYER}&CRS=EPSG:4326&BBOX=${bbox}&WIDTH=${size}&HEIGHT=${size}&FORMAT=image/png&TRANSPARENT=true`;
+}
 
-// Character dimensions for monospace font at 8px
-const CHAR_WIDTH = 4.8;
-const CHAR_HEIGHT = 8;
-
-// Latitude correction for Netherlands (~52°N)
-// 1 degree longitude = cos(52°) * 1 degree latitude in actual distance
-const LAT_CORRECTION = Math.cos(52 * Math.PI / 180); // ≈ 0.616
-
-interface BBox {
-  south: number;
-  west: number;
-  north: number;
-  east: number;
+function brightnessToASCII(brightness: number): string {
+  const index = Math.floor((1 - brightness / 255) * (ASCII_CHARS.length - 1));
+  return ASCII_CHARS[Math.min(index, ASCII_CHARS.length - 1)];
 }
 
 interface ASCIIMapBackgroundProps {
   className?: string;
   opacity?: number;
-  cols?: number;
   debugShowImage?: boolean;
-}
-
-function buildWMSUrl(bbox: BBox, width: number, height: number): string {
-  const params = new URLSearchParams({
-    SERVICE: 'WMS',
-    VERSION: WMS_CONFIG.version,
-    REQUEST: 'GetMap',
-    LAYERS: WMS_CONFIG.layer,
-    CRS: WMS_CONFIG.crs,
-    BBOX: `${bbox.south},${bbox.west},${bbox.north},${bbox.east}`,
-    WIDTH: width.toString(),
-    HEIGHT: height.toString(),
-    FORMAT: WMS_CONFIG.format,
-    TRANSPARENT: 'true',
-  });
-
-  return `${WMS_CONFIG.baseUrl}?${params.toString()}`;
-}
-
-function brightnessToASCII(brightness: number): string {
-  // brightness is 0-255, map to ASCII_CHARS index
-  // Invert so dark areas get dense characters
-  const index = Math.floor((1 - brightness / 255) * (ASCII_CHARS.length - 1));
-  return ASCII_CHARS[Math.min(index, ASCII_CHARS.length - 1)];
 }
 
 export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
   className = '',
   opacity = 0.15,
-  cols: propCols,
   debugShowImage = false,
 }) => {
-  const [asciiLines, setAsciiLines] = useState<string[]>([]);
+  const [asciiTiles, setAsciiTiles] = useState<string[][]>([]);
+  const [tileImages, setTileImages] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [screenDimensions, setScreenDimensions] = useState({ cols: propCols || 200, rows: 100 });
-  const [asciiWidth, setAsciiWidth] = useState(0); // Actual width of generated ASCII (may be wider than screen)
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [currentCityIndex, setCurrentCityIndex] = useState(0);
-  const [panProgress, setPanProgress] = useState(0); // 0 to 1, west to east
-  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [panX, setPanX] = useState(0);
+  const [rows, setRows] = useState(100);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
   const animationRef = useRef<number | null>(null);
-  const startTimeRef = useRef<number>(0);
 
-  const currentCity = DUTCH_CITIES[currentCityIndex];
-
-  // Calculate screen dimensions based on viewport (how many chars fit on screen)
+  // Calculate rows based on viewport height
   useEffect(() => {
-    const updateDimensions = () => {
-      const width = window.innerWidth;
-      const height = window.innerHeight;
+    const updateRows = () => {
+      // 8px per character height
+      setRows(Math.ceil(window.innerHeight / 8) + 5);
+    };
+    updateRows();
+    window.addEventListener('resize', updateRows);
+    return () => window.removeEventListener('resize', updateRows);
+  }, []);
 
-      // Add a small buffer to ensure we fill the screen
-      const calculatedCols = propCols || Math.ceil(width / CHAR_WIDTH) + 5;
-      const calculatedRows = Math.ceil(height / CHAR_HEIGHT) + 5;
+  // Load and convert all 4 tiles
+  useEffect(() => {
+    const loadTiles = async () => {
+      setIsLoading(true);
 
-      setScreenDimensions({ cols: calculatedCols, rows: calculatedRows });
+      if (!canvasRef.current) {
+        canvasRef.current = document.createElement('canvas');
+      }
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      // Each tile is square, scaled to fill viewport height
+      const tileSize = rows; // ASCII chars = pixels in our conversion
+      canvas.width = tileSize;
+      canvas.height = tileSize;
+
+      const allTiles: string[][] = [];
+      const allImages: string[] = [];
+
+      for (const tile of TILES) {
+        try {
+          const wmsUrl = buildWMSUrl(tile.bbox, 512); // Fetch at 512px for quality
+          const proxyUrl = `/api/proxy-wms?url=${encodeURIComponent(wmsUrl)}`;
+
+          const response = await fetch(proxyUrl);
+          if (!response.ok) throw new Error('Failed to fetch');
+
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
+
+          if (debugShowImage) {
+            allImages.push(blobUrl);
+          }
+
+          // Load image and convert to ASCII
+          const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+            const image = new Image();
+            image.onload = () => resolve(image);
+            image.onerror = reject;
+            image.src = blobUrl;
+          });
+
+          // Draw scaled to tile size
+          ctx.clearRect(0, 0, tileSize, tileSize);
+          ctx.drawImage(img, 0, 0, tileSize, tileSize);
+
+          // Convert to ASCII
+          const lines: string[] = [];
+          for (let y = 0; y < tileSize; y++) {
+            let line = '';
+            for (let x = 0; x < tileSize; x++) {
+              const pixel = ctx.getImageData(x, y, 1, 1).data;
+              if (pixel[3] < 128) {
+                line += ' ';
+              } else {
+                const brightness = (pixel[0] + pixel[1] + pixel[2]) / 3;
+                line += brightnessToASCII(brightness);
+              }
+            }
+            lines.push(line);
+          }
+          allTiles.push(lines);
+
+          if (!debugShowImage) {
+            URL.revokeObjectURL(blobUrl);
+          }
+        } catch (err) {
+          console.error(`Failed to load tile ${tile.name}:`, err);
+          // Generate placeholder
+          const lines: string[] = [];
+          for (let y = 0; y < tileSize; y++) {
+            let line = '';
+            for (let x = 0; x < tileSize; x++) {
+              const val = Math.sin(y * 0.1 + x * 0.1) * 0.5 + 0.5;
+              line += ASCII_CHARS[Math.floor(val * (ASCII_CHARS.length - 1))];
+            }
+            lines.push(line);
+          }
+          allTiles.push(lines);
+        }
+      }
+
+      setAsciiTiles(allTiles);
+      setTileImages(allImages);
+      setIsLoading(false);
     };
 
-    updateDimensions();
-    window.addEventListener('resize', updateDimensions);
-    return () => window.removeEventListener('resize', updateDimensions);
-  }, [propCols]);
+    if (rows > 0) {
+      loadTiles();
+    }
+  }, [rows, debugShowImage]);
 
-  // Animation loop for panning
+  // Smooth panning animation
   useEffect(() => {
-    startTimeRef.current = performance.now();
+    if (isLoading || asciiTiles.length === 0) return;
 
-    const animate = (currentTime: number) => {
-      const elapsed = currentTime - startTimeRef.current;
-      const progress = Math.min(elapsed / PAN_DURATION, 1);
+    const totalWidth = asciiTiles.length * rows * 4.8; // 4 tiles * tileSize * char width
+    const screenWidth = window.innerWidth;
+    const maxPan = totalWidth - screenWidth;
 
-      setPanProgress(progress);
+    const duration = 60000; // 60 seconds for full pan
+    let startTime: number | null = null;
 
-      if (progress >= 1) {
-        // Start transition to next city
-        setIsTransitioning(true);
-        setTimeout(() => {
-          setCurrentCityIndex((prev) => (prev + 1) % DUTCH_CITIES.length);
-          setPanProgress(0);
-          startTimeRef.current = performance.now();
-          setIsTransitioning(false);
-        }, TRANSITION_DURATION);
-      } else {
-        animationRef.current = requestAnimationFrame(animate);
-      }
+    const animate = (time: number) => {
+      if (!startTime) startTime = time;
+      const elapsed = time - startTime;
+      const progress = (elapsed % (duration * 2)) / duration; // 0 to 2
+
+      // Ping-pong: 0->1 then 1->0
+      const easedProgress = progress <= 1 ? progress : 2 - progress;
+
+      setPanX(easedProgress * maxPan);
+      animationRef.current = requestAnimationFrame(animate);
     };
 
     animationRef.current = requestAnimationFrame(animate);
-
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
-  }, [currentCityIndex]);
+  }, [isLoading, asciiTiles, rows]);
 
-  // Convert image to ASCII, maintaining aspect ratio
-  // Scales to fill target rows (screen height), width determined by image aspect ratio
-  // Returns { lines, actualCols } where actualCols is the width of the generated ASCII
-  const convertImageToASCII = useCallback((img: HTMLImageElement, targetRows: number): { lines: string[], actualCols: number } => {
-    if (!canvasRef.current) {
-      canvasRef.current = document.createElement('canvas');
-    }
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return { lines: [], actualCols: 0 };
-
-    // Maintain aspect ratio: scale to fill height, width follows
-    const imgAspect = img.width / img.height;
-    const actualCols = Math.round(targetRows * imgAspect);
-
-    canvas.width = actualCols;
-    canvas.height = targetRows;
-
-    // Draw the full image scaled to maintain aspect ratio
-    ctx.drawImage(img, 0, 0, actualCols, targetRows);
-
-    const lines: string[] = [];
-
-    for (let y = 0; y < targetRows; y++) {
+  // Combine tiles into single ASCII block
+  const combinedLines: string[] = [];
+  if (asciiTiles.length > 0) {
+    const tileHeight = asciiTiles[0].length;
+    for (let y = 0; y < tileHeight; y++) {
       let line = '';
-      for (let x = 0; x < actualCols; x++) {
-        const pixel = ctx.getImageData(x, y, 1, 1).data;
-
-        if (pixel[3] < 128) {
-          line += ' ';
-          continue;
-        }
-
-        const brightness = (pixel[0] + pixel[1] + pixel[2]) / 3;
-        line += brightnessToASCII(brightness);
+      for (const tile of asciiTiles) {
+        line += tile[y] || '';
       }
-      lines.push(line);
+      combinedLines.push(line);
     }
+  }
 
-    return { lines, actualCols };
-  }, []);
-
-  // Fetch and convert image for current city
-  useEffect(() => {
-    const fetchAndConvert = async () => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        // Calculate bbox aspect ratio with latitude correction for proper proportions
-        const bboxLonWidth = currentCity.bbox.east - currentCity.bbox.west;
-        const bboxLatHeight = currentCity.bbox.north - currentCity.bbox.south;
-        // Real-world aspect ratio accounts for longitude compression at this latitude
-        const realWorldAspect = (bboxLonWidth * LAT_CORRECTION) / bboxLatHeight;
-
-        // We want the ASCII to be wider than the screen for panning
-        // Target: at least 2x screen width, but respecting the natural aspect ratio
-        const minWidthMultiplier = 2.5; // ASCII should be at least 2.5x screen width
-        const targetAspect = Math.max(realWorldAspect, (screenDimensions.cols * minWidthMultiplier) / screenDimensions.rows);
-
-        // WMS dimensions: use high resolution, matching the target aspect ratio
-        const wmsHeight = 1024;
-        const wmsWidth = Math.round(wmsHeight * targetAspect);
-
-        const wmsUrl = buildWMSUrl(currentCity.bbox, wmsWidth, wmsHeight);
-
-        const response = await fetch(`/api/proxy-wms?url=${encodeURIComponent(wmsUrl)}`);
-
-        if (!response.ok) {
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-
-          await new Promise<void>((resolve, reject) => {
-            img.onload = () => {
-              if (debugShowImage) {
-                setImageUrl(wmsUrl);
-              }
-              const { lines, actualCols } = convertImageToASCII(img, screenDimensions.rows);
-              setAsciiLines(lines);
-              setAsciiWidth(actualCols);
-              resolve();
-            };
-            img.onerror = () => reject(new Error('Failed to load WMS image'));
-            img.src = wmsUrl;
-          });
-        } else {
-          const blob = await response.blob();
-          const blobUrl = URL.createObjectURL(blob);
-          const img = new Image();
-
-          await new Promise<void>((resolve, reject) => {
-            img.onload = () => {
-              if (debugShowImage) {
-                setImageUrl(blobUrl);
-              } else {
-                URL.revokeObjectURL(blobUrl);
-              }
-              const { lines, actualCols } = convertImageToASCII(img, screenDimensions.rows);
-              setAsciiLines(lines);
-              setAsciiWidth(actualCols);
-              resolve();
-            };
-            img.onerror = () => reject(new Error('Failed to load WMS image'));
-            img.src = blobUrl;
-          });
-        }
-      } catch (err) {
-        console.error('ASCII map error:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load map');
-
-        // Generate placeholder pattern
-        const placeholderCols = screenDimensions.cols * 2;
-        const placeholderLines: string[] = [];
-        for (let i = 0; i < screenDimensions.rows; i++) {
-          let line = '';
-          for (let j = 0; j < placeholderCols; j++) {
-            const val = Math.sin(i * 0.3 + j * 0.1) * 0.5 + 0.5;
-            const idx = Math.floor(val * (ASCII_CHARS.length - 1));
-            line += ASCII_CHARS[idx];
-          }
-          placeholderLines.push(line);
-        }
-        setAsciiLines(placeholderLines);
-        setAsciiWidth(placeholderCols);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchAndConvert();
-  }, [screenDimensions, convertImageToASCII, debugShowImage, currentCity]);
-
-  // Calculate pan offset in pixels based on actual ASCII width
-  // We pan from showing the left edge to showing the right edge
-  const excessChars = Math.max(0, asciiWidth - screenDimensions.cols);
-  const panOffsetPixels = panProgress * excessChars * CHAR_WIDTH;
-
-  // Debug mode: show raw WMS image with panning
-  if (debugShowImage) {
-    // For debug, calculate how wide the image should be to match ASCII width
-    const debugImageWidth = asciiWidth * CHAR_WIDTH;
+  // Debug mode: show actual images
+  if (debugShowImage && tileImages.length > 0) {
     return (
-      <div
-        ref={containerRef}
-        className={`fixed inset-0 overflow-hidden pointer-events-none ${className}`}
-        style={{
-          opacity: isTransitioning ? 0 : 0.5,
-          zIndex: 0,
-          transition: `opacity ${TRANSITION_DURATION}ms ease-in-out`,
-        }}
-      >
-        {imageUrl && (
-          <img
-            src={imageUrl}
-            alt="WMS Debug"
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: -panOffsetPixels,
-              width: debugImageWidth,
-              height: '100vh',
-              objectFit: 'fill', // Fill the calculated dimensions
-            }}
-          />
-        )}
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center text-gray-500">
-            Loading WMS image...
-          </div>
-        )}
-        {/* Debug info */}
-        <div className="absolute top-2 left-2 text-xs text-gray-700 bg-white/80 px-2 py-1 rounded z-10">
-          City: {currentCity.name} | Progress: {Math.round(panProgress * 100)}% | ASCII: {asciiWidth}x{screenDimensions.rows} | Screen: {screenDimensions.cols}x{screenDimensions.rows} | Offset: {Math.round(panOffsetPixels)}px
+      <div className={`fixed inset-0 overflow-hidden pointer-events-none ${className}`} style={{ opacity: 0.5, zIndex: 0 }}>
+        <div style={{ display: 'flex', position: 'absolute', left: -panX, height: '100vh' }}>
+          {tileImages.map((src, i) => (
+            <img key={i} src={src} alt={TILES[i].name} style={{ height: '100vh', width: 'auto' }} />
+          ))}
         </div>
-        {error && (
-          <div className="absolute bottom-2 left-2 text-xs text-red-500 bg-white/80 px-2 py-1 rounded">
-            {error}
-          </div>
-        )}
+        <div className="absolute top-2 left-2 text-xs text-gray-700 bg-white/80 px-2 py-1 rounded z-10">
+          Pan: {Math.round(panX)}px | Tiles: {tileImages.length}
+        </div>
       </div>
     );
   }
 
-  // Calculate actual width of ASCII content in pixels
-  const asciiWidthPixels = asciiWidth * CHAR_WIDTH;
-
   return (
     <div
-      ref={containerRef}
       className={`fixed inset-0 overflow-hidden pointer-events-none ${className}`}
-      style={{
-        opacity: isTransitioning ? 0 : opacity,
-        zIndex: 0,
-        transition: `opacity ${TRANSITION_DURATION}ms ease-in-out`,
-      }}
+      style={{ opacity, zIndex: 0 }}
     >
       <pre
         className="font-mono text-[8px] leading-[8px] text-gray-700 whitespace-pre select-none"
         style={{
-          fontFamily: 'monospace',
-          letterSpacing: '0px',
           position: 'absolute',
           top: 0,
-          left: -panOffsetPixels,
-          width: asciiWidthPixels || '100vw',
-          height: '100vh',
-          overflow: 'hidden',
+          left: -panX,
         }}
       >
         {isLoading ? (
-          Array(screenDimensions.rows).fill(0).map((_, i) => (
-            <div key={i}>{'. '.repeat(Math.ceil(screenDimensions.cols / 2))}</div>
-          ))
+          <div className="text-gray-400">Loading...</div>
         ) : (
-          asciiLines.map((line, i) => (
-            <div key={i}>{line}</div>
-          ))
+          combinedLines.map((line, i) => <div key={i}>{line}</div>)
         )}
       </pre>
-
-      {error && (
-        <div className="absolute bottom-2 left-2 text-xs text-red-500 bg-white/80 px-2 py-1 rounded">
-          {error}
-        </div>
-      )}
     </div>
   );
 };
