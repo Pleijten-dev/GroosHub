@@ -33,7 +33,8 @@ interface FeatureCard {
   textColor: string;
   icon: React.ReactNode;
   comingSoon: boolean;
-  large?: boolean;
+  colSpan?: number;
+  rowSpan?: number;
 }
 
 // Feature cards configuration
@@ -58,6 +59,7 @@ const FEATURE_CARDS: FeatureCard[] = [
       </svg>
     ),
     comingSoon: false,
+    colSpan: 2,
   },
   {
     id: 'urban-analysis',
@@ -79,7 +81,8 @@ const FEATURE_CARDS: FeatureCard[] = [
       </svg>
     ),
     comingSoon: false,
-    large: true,
+    colSpan: 2,
+    rowSpan: 2,
   },
   {
     id: 'lca-calculator',
@@ -101,6 +104,7 @@ const FEATURE_CARDS: FeatureCard[] = [
       </svg>
     ),
     comingSoon: true,
+    rowSpan: 2,
   },
   {
     id: 'project-analysis',
@@ -164,6 +168,7 @@ const FEATURE_CARDS: FeatureCard[] = [
       </svg>
     ),
     comingSoon: true,
+    rowSpan: 2,
   },
 ];
 
@@ -188,14 +193,17 @@ const FeatureCardComponent: React.FC<FeatureCardComponentProps> = ({ card, local
   // Glass effect for all cards
   const isActive = !card.comingSoon;
 
+  const isLarge = (card.colSpan && card.colSpan > 1) || (card.rowSpan && card.rowSpan > 1);
+
   return (
     <div
       className={`
         relative overflow-hidden rounded-2xl transition-all duration-300 ease-out
-        ${card.large ? 'col-span-2 row-span-2' : ''}
         ${card.comingSoon ? 'cursor-not-allowed' : 'cursor-pointer'}
       `}
       style={{
+        gridColumn: card.colSpan ? `span ${card.colSpan}` : undefined,
+        gridRow: card.rowSpan ? `span ${card.rowSpan}` : undefined,
         backgroundColor: 'rgba(255, 255, 255, 0.03)',
         transform: isHovered && isActive ? 'scale(1.02)' : 'scale(1)',
         boxShadow: isHovered && isActive
@@ -209,7 +217,7 @@ const FeatureCardComponent: React.FC<FeatureCardComponentProps> = ({ card, local
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleClick}
     >
-      <div className={`h-full p-6 flex flex-col ${card.large ? 'p-8' : ''}`}>
+      <div className={`h-full p-6 flex flex-col ${isLarge ? 'p-8' : ''}`}>
         {/* Icon */}
         <div
           className="mb-4"
@@ -220,7 +228,7 @@ const FeatureCardComponent: React.FC<FeatureCardComponentProps> = ({ card, local
 
         {/* Title */}
         <h2
-          className={`font-bold mb-2 ${card.large ? 'text-3xl' : 'text-xl'}`}
+          className={`font-bold mb-2 ${isLarge ? 'text-3xl' : 'text-xl'}`}
           style={{ color: '#374151' }}
         >
           {title}
@@ -247,7 +255,7 @@ const FeatureCardComponent: React.FC<FeatureCardComponentProps> = ({ card, local
           `}
         >
           <p
-            className={`${card.large ? 'text-base' : 'text-sm'} leading-relaxed`}
+            className={`${isLarge ? 'text-base' : 'text-sm'} leading-relaxed`}
             style={{ color: '#6b7280', opacity: 0.9 }}
           >
             {description}
@@ -333,36 +341,45 @@ const HomePage: React.FC = () => {
                 gridTemplateRows: 'repeat(3, 1fr)',
               }}
             >
-              {/* Row 1: AI Assistant | Doelgroepen (large, spans 2 cols) | LCA */}
+              {/*
+                Layout:
+                Row 1: AI (2 cols) | Project Analyse | LCA (2 rows)
+                Row 2: Project Overzicht (2 rows) | Doelgroep (2x2) | [LCA cont]
+                Row 3: [Overzicht cont] | [Doelgroep cont] | Project Ontwerp
+              */}
+              {/* AI Assistant - spans 2 cols */}
               <FeatureCardComponent
                 card={FEATURE_CARDS[0]}
                 locale={locale}
                 onNavigate={handleNavigate}
               />
-              <FeatureCardComponent
-                card={FEATURE_CARDS[1]}
-                locale={locale}
-                onNavigate={handleNavigate}
-              />
-              <FeatureCardComponent
-                card={FEATURE_CARDS[2]}
-                locale={locale}
-                onNavigate={handleNavigate}
-              />
-
-              {/* Row 2: Project Analysis | (Doelgroepen continues) | Project Design | Project Overview */}
+              {/* Project Analyse */}
               <FeatureCardComponent
                 card={FEATURE_CARDS[3]}
                 locale={locale}
                 onNavigate={handleNavigate}
               />
+              {/* LCA - spans 2 rows */}
               <FeatureCardComponent
-                card={FEATURE_CARDS[4]}
+                card={FEATURE_CARDS[2]}
                 locale={locale}
                 onNavigate={handleNavigate}
               />
+              {/* Project Overzicht - spans 2 rows */}
               <FeatureCardComponent
                 card={FEATURE_CARDS[5]}
+                locale={locale}
+                onNavigate={handleNavigate}
+              />
+              {/* Doelgroep - spans 2 cols, 2 rows */}
+              <FeatureCardComponent
+                card={FEATURE_CARDS[1]}
+                locale={locale}
+                onNavigate={handleNavigate}
+              />
+              {/* Project Ontwerp */}
+              <FeatureCardComponent
+                card={FEATURE_CARDS[4]}
                 locale={locale}
                 onNavigate={handleNavigate}
               />
