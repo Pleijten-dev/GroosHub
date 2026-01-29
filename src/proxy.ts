@@ -33,9 +33,9 @@ export const proxy = auth((req) => {
 export default proxy;
 
 export const config = {
-  // Match all paths except static files, _next, and public assets
-  // Note: /api/auth/* routes are included so NextAuth can handle CSRF tokens
+  // Match all paths except API routes, static files, _next, and public assets
+  // API routes handle their own auth and should NOT go through the proxy
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
