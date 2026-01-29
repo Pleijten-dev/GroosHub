@@ -6,6 +6,7 @@ interface TranslationData {
   nav: {
     aiAssistant: string;
     urbanAnalysis: string;
+    lcaCalculator: string;
     projectAnalysis: string;
     projectDesign: string;
     projectOverview: string;
@@ -74,6 +75,7 @@ export function useTranslation(locale: Locale) {
       nav: {
         aiAssistant: 'AI Assistent',
         urbanAnalysis: 'Doelgroepen & Programma',
+        lcaCalculator: 'LCA berekening',
         projectAnalysis: 'Project Analyse',
         projectDesign: 'Project Ontwerp',
         projectOverview: 'Project Overzicht',
@@ -124,6 +126,7 @@ export function useTranslation(locale: Locale) {
       nav: {
         aiAssistant: 'AI Assistant',
         urbanAnalysis: 'Target Groups & Program',
+        lcaCalculator: 'LCA calculation',
         projectAnalysis: 'Project Analysis',
         projectDesign: 'Project Design',
         projectOverview: 'Project Overview',
