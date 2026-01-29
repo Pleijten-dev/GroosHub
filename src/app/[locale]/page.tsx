@@ -196,14 +196,14 @@ const FeatureCardComponent: React.FC<FeatureCardComponentProps> = ({ card, local
         ${card.comingSoon ? 'cursor-not-allowed' : 'cursor-pointer'}
       `}
       style={{
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: 'rgba(255, 255, 255, 0.03)',
         transform: isHovered && isActive ? 'scale(1.02)' : 'scale(1)',
         boxShadow: isHovered && isActive
-          ? 'inset 0 0 0 1px rgba(255, 255, 255, 0.15), 0 20px 40px rgba(0, 0, 0, 0.1)'
-          : 'inset 0 0 0 1px rgba(255, 255, 255, 0.1), 0 4px 16px rgba(0, 0, 0, 0.05)',
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
-        border: '1px solid rgba(255, 255, 255, 0.15)',
+          ? 'inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 20px 40px rgba(0, 0, 0, 0.08)'
+          : 'inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 4px 16px rgba(0, 0, 0, 0.03)',
+        backdropFilter: 'blur(2px)',
+        WebkitBackdropFilter: 'blur(2px)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
