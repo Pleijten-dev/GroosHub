@@ -1533,37 +1533,55 @@ async function* generateStream(input: GenerationInput) {
 
 ### 9.3 AI Context Sync
 
-**File**: `src/features/chat/components/AIContextSync.tsx`
+**File**: `src/app/[locale]/location/page.tsx` (defined at module scope)
 
 **Purpose**: Sync location data with AI assistant for contextual chat
 
-**Context Provided**:
+**Important**: The `AIContextSync` component must be defined **outside** the parent component to ensure stable React component identity. Defining it inline causes hook instability and data loss.
+
+**Props Interface**:
 ```typescript
-interface LocationAIContext {
-  feature: 'location';
-  projectId?: string;
-  currentView: string;           // Active tab
-  address: string;
-  locationExport: CompactLocationExport;  // Full context
-  wmsGrading?: WMSGradingData;
-  pveConfig?: PVEConfigCache;
+interface AIContextSyncProps {
+  locationExport: CompactLocationExport | undefined;
+  currentAddress: string | null;
+  hasData: boolean;
+  activeTab: string;
 }
 ```
 
 **Usage**:
 ```tsx
-<AIAssistantProvider>
+// Component defined at module scope (NOT inside LocationPage)
+function AIContextSync({ locationExport, currentAddress, hasData, activeTab }: AIContextSyncProps) {
+  const ai = useAIAssistantOptional();
+
+  React.useEffect(() => {
+    if (ai) {
+      ai.setContext({
+        locationExport,
+        currentView: {
+          location: {
+            address: currentAddress || undefined,
+            hasCompletedAnalysis: hasData,
+            activeTab,
+          },
+        },
+      });
+    }
+  }, [ai, activeTab, currentAddress, hasData, locationExport]);
+
+  return null;
+}
+
+// Inside LocationPage render:
+<AIAssistantProvider feature="location" projectId={loadedProjectId}>
   <AIContextSync
-    feature="location"
-    projectId={loadedProjectId}
-    context={{
-      currentView: activeTab,
-      address: currentAddress,
-      locationExport: exportCompactForLLM(data, amenities, locale),
-      wmsGrading: wmsGradingData
-    }}
+    locationExport={locationExport}
+    currentAddress={currentAddress}
+    hasData={!!data}
+    activeTab={activeTab}
   />
-  <LocationContent />
+  <MainLayout>...</MainLayout>
 </AIAssistantProvider>
 ```
 
