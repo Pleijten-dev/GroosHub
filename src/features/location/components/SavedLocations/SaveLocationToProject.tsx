@@ -55,6 +55,11 @@ export const SaveLocationToProject: React.FC<SaveLocationToProjectProps> = ({
     message: '',
   });
 
+  // Create project state
+  const [showCreateProject, setShowCreateProject] = useState(false);
+  const [newProjectName, setNewProjectName] = useState('');
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
+
   // Load user's projects
   useEffect(() => {
     loadProjects();
@@ -85,6 +90,59 @@ export const SaveLocationToProject: React.FC<SaveLocationToProjectProps> = ({
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCreateProject = async () => {
+    const trimmedName = newProjectName.trim();
+    if (!trimmedName) {
+      setErrorDialog({
+        isOpen: true,
+        message: locale === 'nl' ? 'Voer een projectnaam in' : 'Please enter a project name',
+      });
+      return;
+    }
+
+    setIsCreatingProject(true);
+    try {
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: trimmedName }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Reload projects list
+        await loadProjects();
+        // Auto-select the newly created project
+        setSelectedProjectId(result.data.id);
+        // Reset the create project form
+        setNewProjectName('');
+        setShowCreateProject(false);
+        // Show success message
+        setSuccessDialog({
+          isOpen: true,
+          message: locale === 'nl'
+            ? `Project "${trimmedName}" succesvol aangemaakt!`
+            : `Project "${trimmedName}" created successfully!`,
+        });
+      } else {
+        setErrorDialog({
+          isOpen: true,
+          message: result.error || (locale === 'nl' ? 'Project aanmaken mislukt' : 'Failed to create project'),
+        });
+      }
+    } catch (err) {
+      setErrorDialog({
+        isOpen: true,
+        message: err instanceof Error ? err.message : (locale === 'nl' ? 'Project aanmaken mislukt' : 'Failed to create project'),
+      });
+    } finally {
+      setIsCreatingProject(false);
     }
   };
 
@@ -241,17 +299,75 @@ export const SaveLocationToProject: React.FC<SaveLocationToProjectProps> = ({
 
   if (projects.length === 0) {
     return (
-      <div className="p-base">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-sm mb-sm">
-          <p className="text-sm font-medium text-yellow-800 mb-xs">
-            {locale === 'nl' ? '⚠️ Geen projecten beschikbaar' : '⚠️ No projects available'}
+      <div className="p-base space-y-sm">
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-sm">
+          <p className="text-sm font-medium text-blue-800 mb-xs">
+            {locale === 'nl' ? 'Nieuw project aanmaken' : 'Create a new project'}
           </p>
-          <p className="text-xs text-yellow-700">
+          <p className="text-xs text-blue-700 mb-sm">
             {locale === 'nl'
-              ? 'Maak eerst een project aan om locaties op te slaan.'
-              : 'Please create a project first to save locations.'}
+              ? 'Maak een project aan om deze locatie op te slaan.'
+              : 'Create a project to save this location.'}
           </p>
+          <div className="space-y-xs">
+            <input
+              type="text"
+              value={newProjectName}
+              onChange={(e) => setNewProjectName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !isCreatingProject) {
+                  handleCreateProject();
+                }
+              }}
+              placeholder={locale === 'nl' ? 'Projectnaam' : 'Project name'}
+              className="w-full px-sm py-xs text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              disabled={isCreatingProject}
+            />
+            <Button
+              onClick={handleCreateProject}
+              variant="primary"
+              size="base"
+              className="w-full"
+              disabled={isCreatingProject || !newProjectName.trim()}
+            >
+              {isCreatingProject
+                ? (locale === 'nl' ? 'Aanmaken...' : 'Creating...')
+                : (locale === 'nl' ? 'Project Aanmaken' : 'Create Project')}
+            </Button>
+          </div>
         </div>
+
+        {/* Show location info if available */}
+        {address && (
+          <div className="bg-gray-50 rounded-md p-sm">
+            <p className="text-xs font-medium text-gray-700 mb-xs">
+              {locale === 'nl' ? 'Te bewaren locatie' : 'Location to save'}
+            </p>
+            <p className="text-xs text-gray-600">{address}</p>
+          </div>
+        )}
+
+        {/* Error Alert Dialog */}
+        <AlertDialog
+          isOpen={errorDialog.isOpen}
+          onClose={() => setErrorDialog({ isOpen: false, message: '' })}
+          title={locale === 'nl' ? 'Fout' : 'Error'}
+          message={errorDialog.message}
+          closeText={locale === 'nl' ? 'Sluiten' : 'Close'}
+          variant="error"
+        />
+
+        {/* Success Alert Dialog */}
+        <AlertDialog
+          isOpen={successDialog.isOpen}
+          onClose={() => {
+            setSuccessDialog({ isOpen: false, message: '' });
+          }}
+          title={locale === 'nl' ? 'Gelukt!' : 'Success!'}
+          message={successDialog.message}
+          closeText={locale === 'nl' ? 'Sluiten' : 'Close'}
+          variant="success"
+        />
       </div>
     );
   }
@@ -291,6 +407,61 @@ export const SaveLocationToProject: React.FC<SaveLocationToProjectProps> = ({
             </option>
           ))}
         </select>
+
+        {/* Create New Project Toggle */}
+        {!showCreateProject ? (
+          <button
+            type="button"
+            onClick={() => setShowCreateProject(true)}
+            className="mt-xs text-xs text-primary hover:text-primary-dark underline"
+          >
+            {locale === 'nl' ? '+ Nieuw project aanmaken' : '+ Create new project'}
+          </button>
+        ) : (
+          <div className="mt-sm p-sm bg-gray-50 rounded-md border border-gray-200">
+            <div className="flex items-center justify-between mb-xs">
+              <span className="text-xs font-medium text-gray-700">
+                {locale === 'nl' ? 'Nieuw project' : 'New project'}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCreateProject(false);
+                  setNewProjectName('');
+                }}
+                className="text-xs text-gray-500 hover:text-gray-700"
+              >
+                {locale === 'nl' ? 'Annuleren' : 'Cancel'}
+              </button>
+            </div>
+            <div className="flex gap-xs">
+              <input
+                type="text"
+                value={newProjectName}
+                onChange={(e) => setNewProjectName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !isCreatingProject) {
+                    handleCreateProject();
+                  }
+                }}
+                placeholder={locale === 'nl' ? 'Projectnaam' : 'Project name'}
+                className="flex-1 px-sm py-xs text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                disabled={isCreatingProject}
+                autoFocus
+              />
+              <Button
+                onClick={handleCreateProject}
+                variant="primary"
+                size="sm"
+                disabled={isCreatingProject || !newProjectName.trim()}
+              >
+                {isCreatingProject
+                  ? (locale === 'nl' ? '...' : '...')
+                  : (locale === 'nl' ? 'Aanmaken' : 'Create')}
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Location Info */}
