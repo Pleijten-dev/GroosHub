@@ -6,18 +6,18 @@ import React, { useEffect, useState, useRef } from 'react';
 // ASCII characters from dark to light
 const ASCII_CHARS = '@%#*+=-:. ';
 
-// Rotterdam area - 4 adjacent tiles spanning west to east
+// Rotterdam area - 6 adjacent tiles spanning west to east
 // Each tile is 0.1° lat x 0.1° lon (square-ish at this latitude)
 const CITY = {
   name: 'Rotterdam',
   south: 51.88,
   north: 51.98,
-  westStart: 4.35, // Starting longitude
+  westStart: 4.20, // Starting longitude (moved west)
   tileWidth: 0.12, // Longitude width per tile
 };
 
-// Generate 4 adjacent tiles
-const TILES = Array.from({ length: 4 }, (_, i) => ({
+// Generate 6 adjacent tiles for wider screens
+const TILES = Array.from({ length: 6 }, (_, i) => ({
   name: `${CITY.name}-${i + 1}`,
   bbox: `${CITY.south},${CITY.westStart + i * CITY.tileWidth},${CITY.north},${CITY.westStart + (i + 1) * CITY.tileWidth}`,
 }));
