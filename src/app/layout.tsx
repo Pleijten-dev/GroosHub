@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GroosHub - Urban Development Platform",
+  title: "GroosHub",
   description: "Comprehensive urban development and project analysis platform",
 };
 
