@@ -256,8 +256,9 @@ function formatRawTableStructures(text: string): string {
   // followed by data rows
 
   // Look for the article/table header pattern
+  // Using [\s\S] instead of . with /s flag for compatibility
   const articleMatch = text.match(
-    /Artikel\s+(\d+\.\d+)\s*\([^)]+\)\s*(?:\d\s+)?(.+?)(?=Tabel|$)/s
+    /Artikel\s+(\d+\.\d+)\s*\([^)]+\)\s*(?:\d\s+)?([\s\S]+?)(?=Tabel|$)/
   );
 
   if (articleMatch) {
