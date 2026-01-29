@@ -3,16 +3,24 @@
  *
  * A collection of example prompts shown on the AI assistant overview page.
  * Prompts are categorized and randomly selected to show variety.
+ *
+ * Context types:
+ * - 'project': Only shown in project chat (ProjectOverviewPage)
+ * - 'personal': Only shown in personal chat (OverviewPage)
+ * - 'both': Shown in both contexts (default)
  */
 
 // ============================================================================
 // Types
 // ============================================================================
 
+export type PromptContext = 'project' | 'personal' | 'both';
+
 export interface SamplePrompt {
   id: string;
-  category: 'location' | 'tasks' | 'documents' | 'general';
-  icon: 'MapPin' | 'CheckSquare' | 'FileText' | 'Sparkles' | 'BarChart' | 'Building' | 'Users' | 'Calendar';
+  category: 'location' | 'tasks' | 'documents' | 'general' | 'notes';
+  icon: 'MapPin' | 'CheckSquare' | 'FileText' | 'Sparkles' | 'BarChart' | 'Building' | 'Users' | 'Calendar' | 'Search' | 'StickyNote';
+  context?: PromptContext; // Default: 'both'
   text: {
     nl: string;
     en: string;
@@ -24,54 +32,117 @@ export interface SamplePrompt {
 // ============================================================================
 
 export const SAMPLE_PROMPTS: SamplePrompt[] = [
-  // Location Analysis
+  // ============================================================================
+  // Location Analysis - Project Context (uses project's saved location data)
+  // ============================================================================
   {
-    id: 'loc-1',
+    id: 'loc-proj-1',
     category: 'location',
     icon: 'MapPin',
+    context: 'project',
     text: {
-      nl: 'Analyseer de demografische gegevens van Amsterdam Centrum',
-      en: 'Analyze the demographic data of Amsterdam Centre',
+      nl: 'Analyseer de demografische gegevens van deze locatie',
+      en: 'Analyze the demographic data of this location',
     },
   },
   {
-    id: 'loc-2',
+    id: 'loc-proj-2',
     category: 'location',
     icon: 'BarChart',
+    context: 'project',
     text: {
-      nl: 'Vergelijk de veiligheidsscores van Utrecht en Rotterdam',
-      en: 'Compare the safety scores of Utrecht and Rotterdam',
+      nl: 'Wat zijn de veiligheidsscores voor deze projectlocatie?',
+      en: 'What are the safety scores for this project location?',
     },
   },
   {
-    id: 'loc-3',
+    id: 'loc-proj-3',
     category: 'location',
     icon: 'MapPin',
+    context: 'project',
     text: {
-      nl: 'Welke voorzieningen zijn beschikbaar binnen 1km van Centraal Station?',
-      en: 'What amenities are available within 1km of Central Station?',
+      nl: 'Welke voorzieningen zijn er in de buurt van de projectlocatie?',
+      en: 'What amenities are available near the project location?',
     },
   },
   {
-    id: 'loc-4',
+    id: 'loc-proj-4',
     category: 'location',
     icon: 'Building',
+    context: 'project',
     text: {
-      nl: 'Wat zijn de woningprijzen in de buurt van Zuidas?',
-      en: 'What are the housing prices near Zuidas?',
+      nl: 'Wat zijn de woningprijzen in dit gebied?',
+      en: 'What are the housing prices in this area?',
     },
   },
   {
-    id: 'loc-5',
+    id: 'loc-proj-5',
     category: 'location',
     icon: 'MapPin',
+    context: 'project',
     text: {
-      nl: 'Geef een overzicht van de leefbaarheid in Den Haag Centrum',
-      en: 'Give an overview of livability in The Hague Centre',
+      nl: 'Geef een overzicht van de leefbaarheid op deze locatie',
+      en: 'Give an overview of livability at this location',
+    },
+  },
+  {
+    id: 'loc-proj-6',
+    category: 'location',
+    icon: 'Users',
+    context: 'project',
+    text: {
+      nl: 'Welke doelgroepen passen het beste bij deze locatie?',
+      en: 'Which target groups best fit this location?',
     },
   },
 
-  // Task Management
+  // ============================================================================
+  // Location Analysis - Personal Context (CBS database search for any location)
+  // ============================================================================
+  {
+    id: 'loc-search-1',
+    category: 'location',
+    icon: 'Search',
+    context: 'personal',
+    text: {
+      nl: 'Zoek CBS gegevens voor Amsterdam Centrum',
+      en: 'Search CBS data for Amsterdam Centre',
+    },
+  },
+  {
+    id: 'loc-search-2',
+    category: 'location',
+    icon: 'Search',
+    context: 'personal',
+    text: {
+      nl: 'Wat zijn de bevolkingscijfers van Utrecht Overvecht?',
+      en: 'What are the population statistics for Utrecht Overvecht?',
+    },
+  },
+  {
+    id: 'loc-search-3',
+    category: 'location',
+    icon: 'Search',
+    context: 'personal',
+    text: {
+      nl: 'Zoek veiligheidscijfers voor Rotterdam Zuid',
+      en: 'Search safety statistics for Rotterdam South',
+    },
+  },
+  {
+    id: 'loc-search-4',
+    category: 'location',
+    icon: 'Search',
+    context: 'personal',
+    text: {
+      nl: 'Toon de leefbaarheidsscores van Den Haag Centrum',
+      en: 'Show livability scores for The Hague Centre',
+    },
+  },
+
+  // ============================================================================
+  // Task Management (works in both contexts)
+  // ============================================================================
   {
     id: 'task-1',
     category: 'tasks',
@@ -108,12 +179,24 @@ export const SAMPLE_PROMPTS: SamplePrompt[] = [
       en: 'Who has the most tasks assigned?',
     },
   },
+  {
+    id: 'task-5',
+    category: 'tasks',
+    icon: 'Calendar',
+    text: {
+      nl: 'Welke taken zijn achterstallig?',
+      en: 'Which tasks are overdue?',
+    },
+  },
 
-  // Documents / RAG
+  // ============================================================================
+  // Documents / RAG (project context only - requires uploaded documents)
+  // ============================================================================
   {
     id: 'doc-1',
     category: 'documents',
     icon: 'FileText',
+    context: 'project',
     text: {
       nl: 'Zoek informatie over duurzaamheid in de projectdocumenten',
       en: 'Search for sustainability information in project documents',
@@ -123,31 +206,58 @@ export const SAMPLE_PROMPTS: SamplePrompt[] = [
     id: 'doc-2',
     category: 'documents',
     icon: 'FileText',
-    text: {
-      nl: 'Vat het laatste projectrapport samen',
-      en: 'Summarize the latest project report',
-    },
-  },
-  {
-    id: 'doc-3',
-    category: 'documents',
-    icon: 'FileText',
+    context: 'project',
     text: {
       nl: 'Wat staat er in de bestemmingsplannen over maximale bouwhoogte?',
       en: 'What do the zoning plans say about maximum building height?',
     },
   },
   {
-    id: 'doc-4',
+    id: 'doc-3',
     category: 'documents',
     icon: 'FileText',
+    context: 'project',
     text: {
-      nl: 'Welke milieuvoorwaarden worden genoemd in het rapport?',
-      en: 'What environmental requirements are mentioned in the report?',
+      nl: 'Welke milieuvoorwaarden worden genoemd in de documenten?',
+      en: 'What environmental requirements are mentioned in the documents?',
     },
   },
 
-  // General Assistance
+  // ============================================================================
+  // Notes (works in both contexts)
+  // ============================================================================
+  {
+    id: 'note-1',
+    category: 'notes',
+    icon: 'StickyNote',
+    text: {
+      nl: 'Vat mijn laatste notities samen',
+      en: 'Summarize my latest notes',
+    },
+  },
+  {
+    id: 'note-2',
+    category: 'notes',
+    icon: 'StickyNote',
+    text: {
+      nl: 'Maak een notitie over de voortgang van vandaag',
+      en: 'Create a note about today\'s progress',
+    },
+  },
+  {
+    id: 'note-3',
+    category: 'notes',
+    icon: 'StickyNote',
+    context: 'project',
+    text: {
+      nl: 'Wat zijn de belangrijkste punten uit mijn projectnotities?',
+      en: 'What are the key points from my project notes?',
+    },
+  },
+
+  // ============================================================================
+  // General Assistance (works in both contexts)
+  // ============================================================================
   {
     id: 'gen-1',
     category: 'general',
@@ -179,9 +289,10 @@ export const SAMPLE_PROMPTS: SamplePrompt[] = [
     id: 'gen-4',
     category: 'general',
     icon: 'BarChart',
+    context: 'project',
     text: {
-      nl: 'Maak een SWOT-analyse voor dit project',
-      en: 'Create a SWOT analysis for this project',
+      nl: 'Maak een SWOT-analyse voor deze projectlocatie',
+      en: 'Create a SWOT analysis for this project location',
     },
   },
   {
@@ -200,16 +311,43 @@ export const SAMPLE_PROMPTS: SamplePrompt[] = [
 // ============================================================================
 
 /**
+ * Filter prompts by context.
+ * - 'project': Include prompts with context 'project' or 'both' (or undefined)
+ * - 'personal': Include prompts with context 'personal' or 'both' (or undefined)
+ */
+function filterByContext(prompts: SamplePrompt[], context: PromptContext): SamplePrompt[] {
+  return prompts.filter((p) => {
+    const promptContext = p.context || 'both';
+    return promptContext === 'both' || promptContext === context;
+  });
+}
+
+/**
  * Get a random selection of prompts, ensuring variety across categories.
  * Tries to include one prompt from each category if possible.
+ *
+ * @param locale - Language for prompt text ('nl' or 'en')
+ * @param count - Number of prompts to return (default: 4)
+ * @param context - Context for filtering prompts ('project' or 'personal', default: 'personal')
  */
-export function getRandomPrompts(locale: 'nl' | 'en', count: number = 4): Array<{
+export function getRandomPrompts(
+  locale: 'nl' | 'en',
+  count: number = 4,
+  context: 'project' | 'personal' = 'personal'
+): Array<{
   id: string;
   category: string;
   icon: string;
   text: string;
 }> {
-  const categories = ['location', 'tasks', 'documents', 'general'] as const;
+  // Filter prompts by context first
+  const availablePrompts = filterByContext(SAMPLE_PROMPTS, context);
+
+  // Determine which categories to use based on context
+  const categories = context === 'project'
+    ? ['location', 'tasks', 'documents', 'notes', 'general'] as const
+    : ['location', 'tasks', 'notes', 'general'] as const;
+
   const selected: SamplePrompt[] = [];
   const usedIds = new Set<string>();
 
@@ -217,7 +355,7 @@ export function getRandomPrompts(locale: 'nl' | 'en', count: number = 4): Array<
   for (const category of categories) {
     if (selected.length >= count) break;
 
-    const categoryPrompts = SAMPLE_PROMPTS.filter(
+    const categoryPrompts = availablePrompts.filter(
       (p) => p.category === category && !usedIds.has(p.id)
     );
 
@@ -231,7 +369,7 @@ export function getRandomPrompts(locale: 'nl' | 'en', count: number = 4): Array<
 
   // If we need more, fill with random prompts
   while (selected.length < count) {
-    const remaining = SAMPLE_PROMPTS.filter((p) => !usedIds.has(p.id));
+    const remaining = availablePrompts.filter((p) => !usedIds.has(p.id));
     if (remaining.length === 0) break;
 
     const randomIndex = Math.floor(Math.random() * remaining.length);
@@ -256,18 +394,28 @@ export function getRandomPrompts(locale: 'nl' | 'en', count: number = 4): Array<
 
 /**
  * Get all prompts for a specific category.
+ *
+ * @param category - The category to filter by
+ * @param locale - Language for prompt text
+ * @param context - Optional context filter ('project' or 'personal')
  */
 export function getPromptsByCategory(
   category: SamplePrompt['category'],
-  locale: 'nl' | 'en'
+  locale: 'nl' | 'en',
+  context?: 'project' | 'personal'
 ): Array<{ id: string; icon: string; text: string }> {
-  return SAMPLE_PROMPTS
-    .filter((p) => p.category === category)
-    .map((p) => ({
-      id: p.id,
-      icon: p.icon,
-      text: p.text[locale],
-    }));
+  let prompts = SAMPLE_PROMPTS.filter((p) => p.category === category);
+
+  // Apply context filter if provided
+  if (context) {
+    prompts = filterByContext(prompts, context);
+  }
+
+  return prompts.map((p) => ({
+    id: p.id,
+    icon: p.icon,
+    text: p.text[locale],
+  }));
 }
 
 /**
@@ -285,6 +433,10 @@ export const CATEGORY_META = {
   documents: {
     nl: { label: 'Documenten', description: 'Zoek in je projectdocumenten' },
     en: { label: 'Documents', description: 'Search your project documents' },
+  },
+  notes: {
+    nl: { label: 'Notities', description: 'Beheer je notities' },
+    en: { label: 'Notes', description: 'Manage your notes' },
   },
   general: {
     nl: { label: 'Algemeen', description: 'Algemene hulp en ondersteuning' },

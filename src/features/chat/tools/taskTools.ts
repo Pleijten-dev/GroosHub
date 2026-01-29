@@ -81,8 +81,20 @@ export function createTaskTools(userId: number, locale: string = 'en') {
         Can filter by status, priority, and time-based criteria.`,
 
       inputSchema: z.object({
-        filter: z.enum(['all', 'overdue', 'today', 'this-week', 'no-deadline']).optional()
-          .describe('Filter tasks by time: all, overdue, today, this-week, or no-deadline'),
+        filter: z.enum([
+          'all',
+          'overdue',
+          'today',
+          'tomorrow',
+          'this-week',
+          'next-week',
+          'next-2-weeks',
+          'this-month',
+          'next-month',
+          'this-quarter',
+          'no-deadline'
+        ]).optional()
+          .describe('Filter tasks by time period: all, overdue, today, tomorrow, this-week, next-week, next-2-weeks, this-month, next-month, this-quarter, or no-deadline'),
         status: z.enum(['todo', 'doing', 'done']).optional()
           .describe('Filter by task status'),
         priority: z.enum(['urgent', 'high', 'normal', 'low']).optional()
@@ -92,7 +104,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
       }),
 
       async execute({ filter = 'all', status, priority, limit = 20 }: {
-        filter?: 'all' | 'overdue' | 'today' | 'this-week' | 'no-deadline';
+        filter?: 'all' | 'overdue' | 'today' | 'tomorrow' | 'this-week' | 'next-week' | 'next-2-weeks' | 'this-month' | 'next-month' | 'this-quarter' | 'no-deadline';
         status?: 'todo' | 'doing' | 'done';
         priority?: 'urgent' | 'high' | 'normal' | 'low';
         limit?: number;
@@ -136,7 +148,13 @@ export function createTaskTools(userId: number, locale: string = 'en') {
               ${priority ? db`AND t.priority = ${priority}` : db``}
               ${filter === 'overdue' ? db`AND t.deadline < CURRENT_TIMESTAMP AND t.status != 'done'` : db``}
               ${filter === 'today' ? db`AND DATE(t.deadline) = CURRENT_DATE` : db``}
+              ${filter === 'tomorrow' ? db`AND DATE(t.deadline) = CURRENT_DATE + INTERVAL '1 day'` : db``}
               ${filter === 'this-week' ? db`AND t.deadline BETWEEN CURRENT_TIMESTAMP AND CURRENT_TIMESTAMP + INTERVAL '7 days'` : db``}
+              ${filter === 'next-week' ? db`AND t.deadline BETWEEN CURRENT_TIMESTAMP + INTERVAL '7 days' AND CURRENT_TIMESTAMP + INTERVAL '14 days'` : db``}
+              ${filter === 'next-2-weeks' ? db`AND t.deadline BETWEEN CURRENT_TIMESTAMP AND CURRENT_TIMESTAMP + INTERVAL '14 days'` : db``}
+              ${filter === 'this-month' ? db`AND t.deadline BETWEEN CURRENT_TIMESTAMP AND CURRENT_TIMESTAMP + INTERVAL '1 month'` : db``}
+              ${filter === 'next-month' ? db`AND t.deadline BETWEEN CURRENT_TIMESTAMP + INTERVAL '1 month' AND CURRENT_TIMESTAMP + INTERVAL '2 months'` : db``}
+              ${filter === 'this-quarter' ? db`AND t.deadline BETWEEN CURRENT_TIMESTAMP AND CURRENT_TIMESTAMP + INTERVAL '3 months'` : db``}
               ${filter === 'no-deadline' ? db`AND t.deadline IS NULL` : db``}
             GROUP BY t.id, pp.id, pp.name, tg.name, tg.color
             ORDER BY
@@ -210,8 +228,20 @@ export function createTaskTools(userId: number, locale: string = 'en') {
           .describe('Filter by assignment: all (all tasks), unassigned (no assignee), assigned_to_me (my tasks), assigned_to_others (other team members), assigned_to_user (specific user)'),
         assigned_user_name: z.string().optional()
           .describe('Name of user to filter by (required when assignment_filter is assigned_to_user)'),
-        filter: z.enum(['all', 'overdue', 'today', 'this-week', 'no-deadline']).optional()
-          .describe('Filter tasks by time: all, overdue, today, this-week, or no-deadline'),
+        filter: z.enum([
+          'all',
+          'overdue',
+          'today',
+          'tomorrow',
+          'this-week',
+          'next-week',
+          'next-2-weeks',
+          'this-month',
+          'next-month',
+          'this-quarter',
+          'no-deadline'
+        ]).optional()
+          .describe('Filter tasks by time period: all, overdue, today, tomorrow, this-week, next-week, next-2-weeks, this-month, next-month, this-quarter, or no-deadline'),
         status: z.enum(['todo', 'doing', 'done']).optional()
           .describe('Filter by task status'),
         priority: z.enum(['urgent', 'high', 'normal', 'low']).optional()
@@ -224,7 +254,7 @@ export function createTaskTools(userId: number, locale: string = 'en') {
         project_id: string;
         assignment_filter?: 'all' | 'unassigned' | 'assigned_to_me' | 'assigned_to_others' | 'assigned_to_user';
         assigned_user_name?: string;
-        filter?: 'all' | 'overdue' | 'today' | 'this-week' | 'no-deadline';
+        filter?: 'all' | 'overdue' | 'today' | 'tomorrow' | 'this-week' | 'next-week' | 'next-2-weeks' | 'this-month' | 'next-month' | 'this-quarter' | 'no-deadline';
         status?: 'todo' | 'doing' | 'done';
         priority?: 'urgent' | 'high' | 'normal' | 'low';
         limit?: number;
@@ -351,7 +381,13 @@ export function createTaskTools(userId: number, locale: string = 'en') {
               ${priority ? db`AND t.priority = ${priority}` : db``}
               ${filter === 'overdue' ? db`AND t.deadline < CURRENT_TIMESTAMP AND t.status != 'done'` : db``}
               ${filter === 'today' ? db`AND DATE(t.deadline) = CURRENT_DATE` : db``}
+              ${filter === 'tomorrow' ? db`AND DATE(t.deadline) = CURRENT_DATE + INTERVAL '1 day'` : db``}
               ${filter === 'this-week' ? db`AND t.deadline BETWEEN CURRENT_TIMESTAMP AND CURRENT_TIMESTAMP + INTERVAL '7 days'` : db``}
+              ${filter === 'next-week' ? db`AND t.deadline BETWEEN CURRENT_TIMESTAMP + INTERVAL '7 days' AND CURRENT_TIMESTAMP + INTERVAL '14 days'` : db``}
+              ${filter === 'next-2-weeks' ? db`AND t.deadline BETWEEN CURRENT_TIMESTAMP AND CURRENT_TIMESTAMP + INTERVAL '14 days'` : db``}
+              ${filter === 'this-month' ? db`AND t.deadline BETWEEN CURRENT_TIMESTAMP AND CURRENT_TIMESTAMP + INTERVAL '1 month'` : db``}
+              ${filter === 'next-month' ? db`AND t.deadline BETWEEN CURRENT_TIMESTAMP + INTERVAL '1 month' AND CURRENT_TIMESTAMP + INTERVAL '2 months'` : db``}
+              ${filter === 'this-quarter' ? db`AND t.deadline BETWEEN CURRENT_TIMESTAMP AND CURRENT_TIMESTAMP + INTERVAL '3 months'` : db``}
               ${filter === 'no-deadline' ? db`AND t.deadline IS NULL` : db``}
             GROUP BY t.id, tg.name, tg.color
             ORDER BY
