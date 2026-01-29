@@ -17,9 +17,10 @@ export const proxy = auth((req) => {
   // Log all requests passing through the proxy
   console.log(`🔄 [Proxy] ${method} ${pathname} - auth: ${req.auth?.user?.email || 'none'}`);
 
-  // Handle OPTIONS requests (CORS preflight) - let them through
-  if (method === 'OPTIONS') {
-    console.log(`🔄 [Proxy] OPTIONS request - allowing through`);
+  // Handle non-GET/POST requests (OPTIONS, HEAD, etc.) - let them through
+  // These don't need auth redirects and can cause 400 errors if processed
+  if (method !== 'GET' && method !== 'POST') {
+    console.log(`🔄 [Proxy] ${method} request - allowing through`);
     return NextResponse.next();
   }
 
