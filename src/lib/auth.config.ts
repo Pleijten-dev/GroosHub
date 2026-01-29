@@ -6,6 +6,12 @@ import type { NextAuthConfig } from 'next-auth';
  */
 export const authConfig: NextAuthConfig = {
   trustHost: true,
+  secret: process.env.NEXTAUTH_SECRET,
+  debug: true,
+  session: {
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
   pages: {
     signIn: '/nl/login',
   },
