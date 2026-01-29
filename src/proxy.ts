@@ -20,6 +20,11 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Skip API routes (including locale-prefixed ones like /nl/api/...)
+  if (pathname.includes('/api/')) {
+    return NextResponse.next();
+  }
+
   // Determine locale from path
   const locale = pathname.startsWith('/en') ? 'en' : 'nl';
 
