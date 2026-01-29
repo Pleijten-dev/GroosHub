@@ -33,6 +33,8 @@ export interface SamplePromptsProps {
   className?: string;
   /** Refresh prompts when this key changes */
   refreshKey?: number;
+  /** Context for filtering prompts - 'project' for project chats, 'personal' for personal chats */
+  context?: 'project' | 'personal';
 }
 
 interface PromptItem {
@@ -88,6 +90,16 @@ const Icons: Record<string, React.FC<{ className?: string }>> = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
     </svg>
   ),
+  Search: ({ className }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+    </svg>
+  ),
+  StickyNote: ({ className }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+    </svg>
+  ),
 };
 
 // ============================================================================
@@ -102,6 +114,8 @@ function getCategoryColor(category: string): { bg: string; text: string; border:
       return { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' };
     case 'documents':
       return { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' };
+    case 'notes':
+      return { bg: 'bg-teal-50', text: 'text-teal-700', border: 'border-teal-200' };
     case 'general':
       return { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' };
     default:
@@ -119,21 +133,22 @@ export function SamplePrompts({
   count = 4,
   className,
   refreshKey,
+  context = 'personal',
 }: SamplePromptsProps) {
   const [prompts, setPrompts] = useState<PromptItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Generate random prompts on mount and when refreshKey changes
+  // Generate random prompts on mount and when refreshKey or context changes
   useEffect(() => {
     setIsLoading(true);
     // Small delay to show loading state for smoother transitions
     const timer = setTimeout(() => {
-      setPrompts(getRandomPrompts(locale, count));
+      setPrompts(getRandomPrompts(locale, count, context));
       setIsLoading(false);
     }, 100);
 
     return () => clearTimeout(timer);
-  }, [locale, count, refreshKey]);
+  }, [locale, count, refreshKey, context]);
 
   if (isLoading) {
     return (

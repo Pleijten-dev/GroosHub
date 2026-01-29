@@ -1,7 +1,7 @@
 # AI Assistant Page - Complete Documentation
 
 > **Last Updated**: 2026-01-29
-> **Version**: 3.1.0 (Complete Documentation with 4 Verification Passes)
+> **Version**: 3.2.0 (Added CBS Location Search, Project Notes, Extended Task Filters)
 > **Location**: `/src/app/[locale]/ai-assistant/`
 > **Total Sections**: 24 | **Lines**: ~2,250
 
@@ -44,9 +44,10 @@ The AI Assistant page is the central hub for AI-powered interactions in GroosHub
 - **Three-Tier Memory System**: Personal, project, and domain-level memory
 - **Multimodal Input**: Image and file attachments with vision models
 - **RAG (Retrieval Augmented Generation)**: Search project documents
-- **Location Analysis Tools**: Access saved locations and data via AI
+- **Location Analysis Tools**: Access saved locations and CBS data via AI
+- **CBS Location Search**: Search any Dutch address via free public APIs
 - **Task Management**: Create and manage tasks through conversation
-- **Quick Notes**: Local persistent note-taking
+- **Project Notes**: Database-backed note-taking with AI integration
 - **Project Integration**: Project-specific chats with document context
 
 ### Technology Stack
@@ -835,6 +836,28 @@ The AI has access to tools for querying saved locations:
 }
 ```
 
+### CBS Location Search Tools
+
+Tools for searching public CBS/PDOK/RIVM/Politie databases for any Dutch address (no saved location required):
+
+| Tool | Description |
+|------|-------------|
+| `searchCBSLocation` | Search CBS data for any Dutch address or neighborhood |
+| `explainCBSDataSources` | Explain available data sources and their contents |
+
+**`searchCBSLocation` Process**:
+1. Geocodes address via PDOK (free API)
+2. Gets buurtcode/wijkcode/gemeentecode
+3. Fetches data from CBS, RIVM, Politie APIs
+4. Returns demographics, health, safety, livability data
+
+**Available Data Categories**:
+- `demographics` - CBS 84583NED (population, age, income, housing)
+- `health` - RIVM 50120NED (life expectancy, chronic conditions)
+- `safety` - Politie 47018NED (crime statistics)
+- `livability` - CBS 85146NED (quality of life indicators)
+- `all` - All categories combined
+
 ### Task Management Tools
 
 | Tool | Description |
@@ -846,12 +869,27 @@ The AI has access to tools for querying saved locations:
 | `completeTask` | Mark task as done |
 | `deleteTask` | Soft delete task |
 
+**Time Filters** (for `listUserTasks` and `listProjectTasks`):
+- `all`, `overdue`, `today`, `tomorrow`
+- `this-week`, `next-week`, `next-2-weeks`
+- `this-month`, `next-month`, `this-quarter`
+- `no-deadline`
+
 **`listProjectTasks` Assignment Filters**:
 - `all` - All tasks in the project
 - `unassigned` - Tasks with no assignee
 - `assigned_to_me` - Tasks assigned to current user
 - `assigned_to_others` - Tasks assigned to other team members
 - `assigned_to_user` - Tasks assigned to a specific user (by name)
+
+### Project Notes Tools
+
+| Tool | Description |
+|------|-------------|
+| `listProjectNotes` | Get notes from a project with pagination |
+| `createProjectNote` | Create a new note in a project |
+| `getLatestNotes` | Get recent notes for summarization |
+| `deleteProjectNote` | Soft delete a note (author only) |
 
 ### Tool Implementation
 
@@ -1364,48 +1402,83 @@ From AI Assistant to other pages:
 
 ### Overview
 
-Simple, localStorage-based note-taking in the OverviewPage sidebar.
+Database-backed note-taking for projects, accessible via the OverviewPage sidebar and AI tools.
+
+### Database Schema
+
+```sql
+CREATE TABLE project_notes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL REFERENCES project_projects(id),
+  user_id INTEGER NOT NULL REFERENCES user_accounts(id),
+  content TEXT NOT NULL,
+  is_pinned BOOLEAN DEFAULT false,
+  deleted_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/projects/[projectId]/notes` | List project notes |
+| POST | `/api/projects/[projectId]/notes` | Create a note |
+| PATCH | `/api/projects/[projectId]/notes` | Update a note |
+| DELETE | `/api/projects/[projectId]/notes` | Soft delete a note |
 
 ### Implementation
 
 ```typescript
-interface QuickNote {
+interface ProjectNote {
   id: string;
-  text: string;
+  content: string;
+  isPinned: boolean;
   createdAt: Date;
+  updatedAt: Date;
+  user: { id: number; name: string };
 }
 
-const [notes, setNotes] = useState<QuickNote[]>([]);
-
-// Load from localStorage on mount
+// Fetch notes from database
 useEffect(() => {
-  const saved = localStorage.getItem('quickNotes');
-  if (saved) setNotes(JSON.parse(saved));
-}, []);
-
-// Save to localStorage on change
-useEffect(() => {
-  if (notes.length > 0) {
-    localStorage.setItem('quickNotes', JSON.stringify(notes));
+  async function fetchNotes() {
+    const response = await fetch(`/api/projects/${projectId}/notes`);
+    const data = await response.json();
+    if (data.success) setNotes(data.notes);
   }
-}, [notes]);
+  fetchNotes();
+}, [projectId]);
+
+// Create note via API
+const handleAddNote = async () => {
+  const response = await fetch(`/api/projects/${projectId}/notes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content: noteInput.trim() }),
+  });
+  // ... handle response
+};
 ```
+
+### AI Tools for Notes
+
+| Tool | Description |
+|------|-------------|
+| `listProjectNotes` | Get notes from a project with pagination |
+| `createProjectNote` | Create a new note in a project |
+| `getLatestNotes` | Get recent notes for summarization |
+| `deleteProjectNote` | Soft delete a note (author only) |
 
 ### Features
 
 - Add notes with Enter key or button click
 - Delete notes with hover reveal X button
 - Maximum 5 notes displayed (scrollable)
-- Persists across sessions (localStorage)
-- No database storage (client-only)
-
-### Future Enhancements (TODO)
-
-- Database storage for sync across devices
-- Rich text editing
-- Note categories/tags
-- Search functionality
-- Share notes with projects
+- **Database persistence** - syncs across devices
+- Pinned notes appear at top
+- Loading states while fetching/saving
+- Soft delete (recoverable)
 
 ---
 

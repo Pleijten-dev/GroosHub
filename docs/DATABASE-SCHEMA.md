@@ -63,7 +63,8 @@ org_organizations
 │   ├── tasks (project_id)
 │   │   ├── task_assignments (task_id, user_id)
 │   │   └── task_notes (task_id, user_id)
-│   └── task_groups (project_id)
+│   ├── task_groups (project_id)
+│   └── project_notes (project_id, user_id)
 ├── domain_memories (org_id)
 └── ai_analytics (org_id, user_id, project_id)
 
@@ -852,6 +853,20 @@ Comments/notes on tasks.
 | content | text | NO | - | Note content |
 | is_edited | boolean | YES | false | Has been edited |
 | edited_at | timestamp | YES | - | Edit time |
+| deleted_at | timestamp | YES | - | Soft delete time |
+| created_at | timestamp | YES | CURRENT_TIMESTAMP | Creation time |
+| updated_at | timestamp | YES | CURRENT_TIMESTAMP | Last update time |
+
+#### `project_notes`
+Project notes (database-backed, replaces localStorage).
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| id | uuid | NO | gen_random_uuid() | Primary key |
+| project_id | uuid | NO | - | FK → project_projects.id |
+| user_id | integer | NO | - | FK → user_accounts.id |
+| content | text | NO | - | Note content |
+| is_pinned | boolean | YES | false | Pinned notes appear at top |
 | deleted_at | timestamp | YES | - | Soft delete time |
 | created_at | timestamp | YES | CURRENT_TIMESTAMP | Creation time |
 | updated_at | timestamp | YES | CURRENT_TIMESTAMP | Last update time |

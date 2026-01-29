@@ -169,58 +169,94 @@ export function ProjectOverviewPage({
   // Generate chatId upfront so files can be uploaded to R2 before chat is created
   const [pendingChatId] = useState(() => crypto.randomUUID());
 
-  // Notes state (project-specific storage key)
-  const [notes, setNotes] = useState<Array<{ id: string; text: string; createdAt: Date }>>([]);
+  // Notes state (database-backed)
+  const [notes, setNotes] = useState<Array<{
+    id: string;
+    content: string;
+    isPinned: boolean;
+    createdAt: Date;
+    user: { id: number; name: string };
+  }>>([]);
   const [noteInput, setNoteInput] = useState('');
-  const notesStorageKey = `projectNotes_${projectId}`;
+  const [isLoadingNotes, setIsLoadingNotes] = useState(true);
+  const [isSavingNote, setIsSavingNote] = useState(false);
 
-  // Load notes from localStorage on mount
+  // Load notes from database on mount
   useEffect(() => {
-    const savedNotes = localStorage.getItem(notesStorageKey);
-    if (savedNotes) {
+    async function fetchNotes() {
       try {
-        const parsed = JSON.parse(savedNotes);
-        setNotes(parsed.map((n: { id: string; text: string; createdAt: string }) => ({
-          ...n,
-          createdAt: new Date(n.createdAt)
-        })));
+        setIsLoadingNotes(true);
+        const response = await fetch(`/api/projects/${projectId}/notes`);
+        const data = await response.json();
+
+        if (data.success && data.notes) {
+          setNotes(data.notes.map((n: {
+            id: string;
+            content: string;
+            isPinned: boolean;
+            createdAt: string;
+            user: { id: number; name: string };
+          }) => ({
+            ...n,
+            createdAt: new Date(n.createdAt),
+          })));
+        }
       } catch (e) {
-        console.error('[ProjectOverviewPage] Error parsing saved notes:', e);
+        console.error('[ProjectOverviewPage] Error fetching notes:', e);
+      } finally {
+        setIsLoadingNotes(false);
       }
     }
-  }, [notesStorageKey]);
 
-  // Save notes to localStorage when they change
-  useEffect(() => {
-    if (notes.length > 0) {
-      localStorage.setItem(notesStorageKey, JSON.stringify(notes));
-    }
-  }, [notes, notesStorageKey]);
+    fetchNotes();
+  }, [projectId]);
 
-  // Add a new note
-  const handleAddNote = useCallback(() => {
-    if (!noteInput.trim()) return;
+  // Add a new note (save to database)
+  const handleAddNote = useCallback(async () => {
+    if (!noteInput.trim() || isSavingNote) return;
 
-    const newNote = {
-      id: crypto.randomUUID(),
-      text: noteInput.trim(),
-      createdAt: new Date(),
-    };
+    try {
+      setIsSavingNote(true);
+      const response = await fetch(`/api/projects/${projectId}/notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: noteInput.trim() }),
+      });
 
-    setNotes((prev) => [newNote, ...prev]);
-    setNoteInput('');
-  }, [noteInput]);
+      const data = await response.json();
 
-  // Delete a note
-  const handleDeleteNote = useCallback((noteId: string) => {
-    setNotes((prev) => {
-      const updated = prev.filter((n) => n.id !== noteId);
-      if (updated.length === 0) {
-        localStorage.removeItem(notesStorageKey);
+      if (data.success && data.note) {
+        setNotes((prev) => [{
+          ...data.note,
+          createdAt: new Date(data.note.createdAt),
+        }, ...prev]);
+        setNoteInput('');
       }
-      return updated;
-    });
-  }, [notesStorageKey]);
+    } catch (e) {
+      console.error('[ProjectOverviewPage] Error creating note:', e);
+    } finally {
+      setIsSavingNote(false);
+    }
+  }, [noteInput, projectId, isSavingNote]);
+
+  // Delete a note (from database)
+  const handleDeleteNote = useCallback(async (noteId: string) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}/notes`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ noteId }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setNotes((prev) => prev.filter((n) => n.id !== noteId));
+      }
+    } catch (e) {
+      console.error('[ProjectOverviewPage] Error deleting note:', e);
+    }
+  }, [projectId]);
 
   // Fetch project tasks and stats
   useEffect(() => {
@@ -451,6 +487,7 @@ export function ProjectOverviewPage({
                 locale={locale}
                 count={4}
                 refreshKey={promptRefreshKey}
+                context="project"
                 className="mb-xl"
               />
             </div>
@@ -567,30 +604,45 @@ export function ProjectOverviewPage({
                   type="text"
                   value={noteInput}
                   onChange={(e) => setNoteInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddNote()}
+                  onKeyDown={(e) => e.key === 'Enter' && !isSavingNote && handleAddNote()}
                   placeholder={t.notesPlaceholder}
-                  className="flex-1 px-sm py-xs text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400"
+                  disabled={isSavingNote}
+                  className="flex-1 px-sm py-xs text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400 disabled:bg-gray-50"
                 />
                 <button
                   type="button"
                   onClick={handleAddNote}
-                  disabled={!noteInput.trim()}
+                  disabled={!noteInput.trim() || isSavingNote}
                   className={cn(
                     'px-sm py-xs rounded-md text-sm transition-colors',
-                    noteInput.trim()
+                    noteInput.trim() && !isSavingNote
                       ? 'bg-gray-800 text-white hover:bg-gray-700'
                       : 'bg-gray-100 text-gray-400'
                   )}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                  </svg>
+                  {isSavingNote ? (
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                  )}
                 </button>
               </div>
 
               {/* Notes list */}
               <div className="space-y-xs max-h-40 overflow-y-auto">
-                {notes.length === 0 ? (
+                {isLoadingNotes ? (
+                  <div className="flex justify-center py-sm">
+                    <svg className="w-4 h-4 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  </div>
+                ) : notes.length === 0 ? (
                   <p className="text-xs text-gray-400 text-center py-sm">{t.noNotes}</p>
                 ) : (
                   notes.slice(0, 5).map((note) => (
@@ -598,7 +650,7 @@ export function ProjectOverviewPage({
                       key={note.id}
                       className="flex items-start gap-xs p-xs bg-gray-50 rounded group"
                     >
-                      <p className="flex-1 text-xs text-gray-700 break-words">{note.text}</p>
+                      <p className="flex-1 text-xs text-gray-700 break-words">{note.content}</p>
                       <button
                         type="button"
                         onClick={() => handleDeleteNote(note.id)}
