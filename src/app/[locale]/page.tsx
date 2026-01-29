@@ -295,6 +295,30 @@ const HomePage: React.FC = () => {
 
       {/* Content container */}
       <div className="relative min-h-screen flex flex-col p-6">
+        {/* Language switcher - top right */}
+        <div className="absolute top-4 right-4 flex items-center gap-2 text-sm z-10">
+          <button
+            onClick={() => router.push(`/nl`)}
+            className={`px-3 py-1.5 rounded-lg transition-colors ${
+              locale === 'nl'
+                ? 'bg-gray-800 text-white'
+                : 'bg-white/20 backdrop-blur-sm text-gray-700 hover:bg-white/40'
+            }`}
+          >
+            NL
+          </button>
+          <button
+            onClick={() => router.push(`/en`)}
+            className={`px-3 py-1.5 rounded-lg transition-colors ${
+              locale === 'en'
+                ? 'bg-gray-800 text-white'
+                : 'bg-white/20 backdrop-blur-sm text-gray-700 hover:bg-white/40'
+            }`}
+          >
+            EN
+          </button>
+        </div>
+
         {/* Bento Grid - fills screen */}
         <main className="flex-1 flex flex-col">
           <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col">
