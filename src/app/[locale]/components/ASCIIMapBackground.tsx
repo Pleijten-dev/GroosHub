@@ -6,32 +6,34 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 // ASCII characters from dark to light
 const ASCII_CHARS = '@%#*+=-:. ';
 
-// Dutch cities with extended bounding boxes for panning (wider west-east range)
-// Each city has a wide bbox to allow for smooth panning
+// Dutch cities with WIDE bounding boxes for panning
+// The bbox is extended east-west to provide enough map data for panning
+// We fetch a wide strip and pan across it
 const DUTCH_CITIES = [
   {
     name: 'Rotterdam',
-    bbox: { south: 51.85, west: 4.20, north: 52.00, east: 4.75 }, // Extended east-west
+    // Wide bbox: ~0.8 degrees east-west for smooth panning
+    bbox: { south: 51.87, west: 4.15, north: 51.97, east: 4.95 },
   },
   {
     name: 'Amsterdam',
-    bbox: { south: 52.30, west: 4.70, north: 52.45, east: 5.10 },
+    bbox: { south: 52.32, west: 4.65, north: 52.42, east: 5.15 },
   },
   {
     name: 'Utrecht',
-    bbox: { south: 52.03, west: 5.00, north: 52.15, east: 5.25 },
+    bbox: { south: 52.05, west: 4.95, north: 52.15, east: 5.35 },
   },
   {
     name: 'Den Haag',
-    bbox: { south: 52.02, west: 4.20, north: 52.14, east: 4.45 },
+    bbox: { south: 52.03, west: 4.15, north: 52.13, east: 4.55 },
   },
   {
     name: 'Eindhoven',
-    bbox: { south: 51.40, west: 5.35, north: 51.50, east: 5.55 },
+    bbox: { south: 51.42, west: 5.30, north: 51.52, east: 5.70 },
   },
   {
     name: 'Groningen',
-    bbox: { south: 53.18, west: 6.50, north: 53.26, east: 6.65 },
+    bbox: { south: 53.18, west: 6.45, north: 53.28, east: 6.75 },
   },
 ];
 
@@ -206,7 +208,9 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
       setError(null);
 
       try {
-        const wmsUrl = buildWMSUrl(currentCity.bbox, 1024, 1024);
+        // Fetch a wide image (3:1 aspect ratio) to have enough map data for panning
+        // The wide bbox + wide image means we have actual map data to pan across
+        const wmsUrl = buildWMSUrl(currentCity.bbox, 2048, 768);
 
         const response = await fetch(`/api/proxy-wms?url=${encodeURIComponent(wmsUrl)}`);
 
@@ -269,8 +273,9 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
     fetchAndConvert();
   }, [dimensions, convertImageToASCII, debugShowImage, currentCity]);
 
-  // Calculate pan offset (pan from showing right side to showing left side = west to east movement)
-  const panOffset = panProgress * 50; // Pan 50% of width
+  // The image is ~3x wider than needed, so we can pan across ~66% of it
+  // Pan from 0% to 66% of image width (showing different 33% portions)
+  const panOffset = panProgress * 66; // Pan across 66% of the extra width
 
   // Debug mode: show raw WMS image with panning
   if (debugShowImage) {
@@ -290,12 +295,13 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
             alt="WMS Debug"
             style={{
               position: 'absolute',
-              top: 0,
-              left: `-${panOffset}%`,
-              width: '150vw', // Wider image for panning
-              height: '100vh',
+              top: '50%',
+              left: `${-panOffset}%`,
+              transform: 'translateY(-50%)',
+              width: '200vw', // Image is 2x viewport width
+              height: 'auto', // Maintain aspect ratio
+              minHeight: '100vh', // But at least fill viewport height
               objectFit: 'cover',
-              transition: 'left 0.1s linear',
             }}
           />
         )}
@@ -305,8 +311,8 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
           </div>
         )}
         {/* Debug info */}
-        <div className="absolute top-2 left-2 text-xs text-gray-700 bg-white/80 px-2 py-1 rounded">
-          City: {currentCity.name} | Progress: {Math.round(panProgress * 100)}%
+        <div className="absolute top-2 left-2 text-xs text-gray-700 bg-white/80 px-2 py-1 rounded z-10">
+          City: {currentCity.name} | Progress: {Math.round(panProgress * 100)}% | Offset: {Math.round(panOffset)}%
         </div>
         {error && (
           <div className="absolute bottom-2 left-2 text-xs text-red-500 bg-white/80 px-2 py-1 rounded">
@@ -334,11 +340,10 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
           letterSpacing: '0px',
           position: 'absolute',
           top: 0,
-          left: `-${panOffset}%`,
-          width: '150vw', // Wider for panning
+          left: `${-panOffset}%`,
+          width: '200vw', // Wider for panning
           height: '100vh',
           overflow: 'hidden',
-          transition: 'left 0.1s linear',
         }}
       >
         {isLoading ? (
