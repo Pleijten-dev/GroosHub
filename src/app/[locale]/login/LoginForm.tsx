@@ -34,8 +34,6 @@ export function LoginForm({ translations, locale }: LoginFormProps) {
     setError('');
     setLoading(true);
 
-    console.log('🔐 Login attempt:', { email, callbackUrl });
-
     try {
       const result = await signIn('credentials', {
         email,
@@ -44,24 +42,18 @@ export function LoginForm({ translations, locale }: LoginFormProps) {
         callbackUrl,
       });
 
-      console.log('📊 SignIn result:', result);
-
       if (result?.error) {
-        console.error('❌ Login error:', result.error);
         setError(translations.invalidCredentials);
         setLoading(false);
       } else if (result?.ok) {
-        console.log('✅ Login successful, redirecting to:', callbackUrl);
-        // Keep loading state during navigation - don't set loading to false
+        // Keep loading state during navigation
         router.push(callbackUrl);
         router.refresh();
       } else {
-        console.error('❌ Unexpected result:', result);
         setError(translations.error);
         setLoading(false);
       }
-    } catch (err) {
-      console.error('❌ Login exception:', err);
+    } catch {
       setError(translations.error);
       setLoading(false);
     }
