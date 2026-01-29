@@ -30,23 +30,95 @@ export interface ParsedTable {
  * Handles both multi-line tables and flattened single-line tables
  */
 function parsePipeTable(tableContent: string): ParsedTable | null {
-  let content = tableContent;
+  let content = tableContent.trim();
 
-  // Detect if this is a flattened single-line table
-  // Pattern: "| col1 | col2 | | val1 | val2 |" where "| |" indicates row boundary
-  // Also handle: "| --- | --- | |" separator pattern
-  if (!content.includes('\n') || content.split('\n').filter(l => l.trim()).length <= 1) {
-    // Try to unflatten by detecting row boundaries
-    // Row boundary pattern: "| |" or "| | ---" (end of row, start of separator or next row)
-    content = content
-      // First, normalize separator rows: "| --- | --- |" should stay together
-      .replace(/\|\s*---\s*\|/g, '|---|')
-      // Split on "| |" pattern (row boundaries)
-      .replace(/\|\s*\|/g, '|\n|')
-      // Restore separator formatting
-      .replace(/\|---\|/g, '| --- |');
+  if (!content) return null;
+
+  // Check if content has newlines (proper multi-line format)
+  const hasNewlines = content.includes('\n') && content.split('\n').filter(l => l.trim()).length > 1;
+
+  if (hasNewlines) {
+    // Standard multi-line table parsing
+    return parseMultiLineTable(content);
   }
 
+  // Single-line flattened table - need smarter parsing
+  // Look for the separator pattern to determine column structure
+  const separatorMatch = content.match(/\|\s*---[\s|:-]*---\s*\|/);
+
+  if (separatorMatch) {
+    // Count columns from separator (number of --- segments)
+    const sepPart = separatorMatch[0];
+    const colCount = (sepPart.match(/---/g) || []).length;
+
+    if (colCount > 0) {
+      return parseFlattenedTableWithColumnCount(content, colCount);
+    }
+  }
+
+  // Fallback: try to parse as-is
+  return parseMultiLineTable(content);
+}
+
+/**
+ * Parse a flattened single-line table knowing the column count
+ */
+function parseFlattenedTableWithColumnCount(content: string, colCount: number): ParsedTable | null {
+  // Split by | and filter out empty strings from start/end
+  const allCells = content.split('|').map(c => c.trim());
+
+  // Remove empty first/last elements (from leading/trailing pipes)
+  if (allCells[0] === '') allCells.shift();
+  if (allCells[allCells.length - 1] === '') allCells.pop();
+
+  // Find the separator row (all --- cells)
+  let separatorIndex = -1;
+  for (let i = 0; i < allCells.length; i++) {
+    if (allCells[i].match(/^-+$/)) {
+      // Check if this starts a separator row (next colCount-1 cells are also ---)
+      let isSeparator = true;
+      for (let j = 0; j < colCount - 1 && i + j + 1 < allCells.length; j++) {
+        if (!allCells[i + j + 1].match(/^-+$/)) {
+          isSeparator = false;
+          break;
+        }
+      }
+      if (isSeparator) {
+        separatorIndex = i;
+        break;
+      }
+    }
+  }
+
+  if (separatorIndex === -1 || separatorIndex < colCount) {
+    // No valid separator found, can't parse
+    return parseMultiLineTable(content);
+  }
+
+  // Header is cells before separator
+  const headers = allCells.slice(separatorIndex - colCount, separatorIndex);
+
+  // Data cells are after separator
+  const dataCells = allCells.slice(separatorIndex + colCount);
+
+  // Group data cells into rows
+  const rows: string[][] = [];
+  for (let i = 0; i < dataCells.length; i += colCount) {
+    const row = dataCells.slice(i, i + colCount);
+    if (row.length === colCount && row.some(c => c.length > 0)) {
+      rows.push(row);
+    }
+  }
+
+  if (headers.length === 0) return null;
+
+  return { headers, rows };
+}
+
+/**
+ * Parse standard multi-line table
+ */
+function parseMultiLineTable(content: string): ParsedTable | null {
   const lines = content.split('\n').filter(line => line.trim());
 
   if (lines.length === 0) return null;
