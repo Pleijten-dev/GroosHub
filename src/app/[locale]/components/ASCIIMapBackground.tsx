@@ -42,8 +42,29 @@ function buildWMSUrl(bbox: string, size: number): string {
   return `${WMS_BASE}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=${WMS_LAYER}&CRS=EPSG:4326&BBOX=${bbox}&WIDTH=${size}&HEIGHT=${size}&FORMAT=image/png&TRANSPARENT=true`;
 }
 
-function brightnessToASCII(brightness: number): string {
-  const index = Math.floor((1 - brightness / 255) * (ASCII_CHARS.length - 1));
+// Convert heat map color to heat value (0 = cold/blue, 1 = hot/red)
+// Color scale: dark blue → light blue → yellow → orange → dark red
+function colorToHeat(r: number, g: number, b: number): number {
+  // Handle grayscale/neutral colors (transparent areas)
+  if (Math.abs(r - g) < 15 && Math.abs(g - b) < 15) return 0;
+
+  const total = r + g + b || 1;
+
+  // Red channel = hot, Blue channel = cold
+  const redHeat = r / total;
+  const blueHeat = b / total;
+
+  // Heat: 0 (blue) to 1 (red), yellow/orange in between
+  // Blue (0,0,255): heat = (0 - 1 + 1) / 2 = 0
+  // Yellow (255,255,0): heat = (0.5 - 0 + 1) / 2 = 0.75
+  // Red (255,0,0): heat = (1 - 0 + 1) / 2 = 1
+  const heat = (redHeat - blueHeat + 1) / 2;
+  return Math.max(0, Math.min(1, heat));
+}
+
+function heatToASCII(heat: number): string {
+  // heat 0 = sparse (cold/blue), heat 1 = dense (hot/red)
+  const index = Math.floor(heat * (ASCII_CHARS.length - 1));
   return ASCII_CHARS[Math.min(index, ASCII_CHARS.length - 1)];
 }
 
@@ -132,7 +153,7 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
           ctx.clearRect(0, 0, tileSize, tileSize);
           ctx.drawImage(img, 0, 0, tileSize, tileSize);
 
-          // Convert to ASCII
+          // Convert to ASCII using heat map color scale
           const lines: string[] = [];
           for (let y = 0; y < tileSize; y++) {
             let line = '';
@@ -141,8 +162,8 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
               if (pixel[3] < 128) {
                 line += ' ';
               } else {
-                const brightness = (pixel[0] + pixel[1] + pixel[2]) / 3;
-                line += brightnessToASCII(brightness);
+                const heat = colorToHeat(pixel[0], pixel[1], pixel[2]);
+                line += heatToASCII(heat);
               }
             }
             lines.push(line);
