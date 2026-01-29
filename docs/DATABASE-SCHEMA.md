@@ -2,7 +2,7 @@
 
 This document provides a comprehensive reference for all database tables, columns, relationships, and storage systems used in GroosHub.
 
-**Last Updated**: 2026-01-28
+**Last Updated**: 2026-01-29
 
 ---
 
@@ -121,6 +121,7 @@ User authentication and profile data.
 | avatar_url | text | YES | - | Profile picture URL |
 | role | varchar | NO | 'user' | User role (user/admin/owner) |
 | is_active | boolean | YES | true | Account active status |
+| must_change_password | boolean | YES | false | Force password change on next login |
 | email_verified_at | timestamp | YES | - | Email verification time |
 | last_login_at | timestamp | YES | - | Last login timestamp |
 | created_at | timestamp | YES | CURRENT_TIMESTAMP | Account creation time |

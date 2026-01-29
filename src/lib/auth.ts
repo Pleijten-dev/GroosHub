@@ -14,6 +14,7 @@ export interface User {
   role: string;
   org_id: string; // UUID from org_organizations
   is_active: boolean;
+  must_change_password: boolean;
 }
 
 /**
@@ -25,6 +26,7 @@ declare module 'next-auth' {
       id: number;
       role: string;
       org_id: string;
+      must_change_password: boolean;
     } & DefaultSession['user'];
   }
 
@@ -33,6 +35,7 @@ declare module 'next-auth' {
     role: string;
     org_id: string;
     is_active: boolean;
+    must_change_password: boolean;
   }
 }
 
@@ -65,7 +68,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           // Query user from user_accounts table with case-insensitive email match
           const result = await db`
-            SELECT id, name, email, role, password, org_id, is_active
+            SELECT id, name, email, role, password, org_id, is_active, must_change_password
             FROM user_accounts
             WHERE LOWER(email) = LOWER(${email})
           `;
@@ -106,6 +109,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             role: user.role,
             org_id: user.org_id,
             is_active: user.is_active,
+            must_change_password: user.must_change_password ?? false,
           };
         } catch (error) {
           console.error('❌ Auth error:', error);
@@ -123,6 +127,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: user.id,
           role: user.role,
           org_id: user.org_id,
+          must_change_password: user.must_change_password,
         };
       }
       return token;
@@ -136,6 +141,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: token.id as number,
           role: token.role as string,
           org_id: token.org_id as string,
+          must_change_password: token.must_change_password as boolean,
         },
       };
     },

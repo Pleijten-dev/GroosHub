@@ -116,11 +116,11 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
+    // Create user with must_change_password = true (admin-created users must change password on first login)
     const result = await db`
-      INSERT INTO user_accounts (name, email, password, role, org_id)
-      VALUES (${name}, ${email}, ${hashedPassword}, ${role}, ${targetOrgId})
-      RETURNING id, name, email, role, org_id, created_at
+      INSERT INTO user_accounts (name, email, password, role, org_id, must_change_password)
+      VALUES (${name}, ${email}, ${hashedPassword}, ${role}, ${targetOrgId}, true)
+      RETURNING id, name, email, role, org_id, created_at, must_change_password
     `;
 
     return NextResponse.json(
@@ -203,14 +203,16 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update user with or without password
+    // If password is being reset by admin, set must_change_password = true
     let result;
     if (password) {
       const hashedPassword = await bcrypt.hash(password, 10);
       result = await db`
         UPDATE user_accounts
-        SET name = ${name}, email = ${email}, password = ${hashedPassword}, role = ${role}, updated_at = CURRENT_TIMESTAMP
+        SET name = ${name}, email = ${email}, password = ${hashedPassword}, role = ${role},
+            must_change_password = true, updated_at = CURRENT_TIMESTAMP
         WHERE id = ${id}
-        RETURNING id, name, email, role, org_id, updated_at
+        RETURNING id, name, email, role, org_id, updated_at, must_change_password
       `;
     } else {
       result = await db`
