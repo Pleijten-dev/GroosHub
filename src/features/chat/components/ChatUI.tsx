@@ -155,10 +155,13 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
   } = useChat();
 
   // Set initial messages after loading from API
+  // Also clear any browser-restored input to prevent accidental re-submission
   useEffect(() => {
     if (initialMessages.length > 0 && messages.length === 0) {
       console.log(`[ChatUI] Setting ${initialMessages.length} initial messages`);
       setMessages(initialMessages);
+      // Clear input to prevent browser form restoration from causing duplicate submissions
+      setInput('');
     }
   }, [initialMessages, setMessages]);
 
@@ -297,6 +300,22 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
     if (!input.trim() || isLoading || isRagLoading) return;
 
     const queryText = input;
+
+    // Prevent duplicate submissions (e.g., from browser form restoration on page reload)
+    // Check if the last user message already contains this exact text
+    const lastUserMessage = [...messages].reverse().find(m => m.role === 'user');
+    if (lastUserMessage) {
+      const lastUserText = lastUserMessage.parts
+        .filter(p => p.type === 'text')
+        .map(p => ('text' in p ? p.text : ''))
+        .join('');
+      if (lastUserText === queryText.trim()) {
+        console.log('[ChatUI] ⚠️ Duplicate message detected, ignoring submission');
+        setInput(''); // Clear the duplicate input
+        return;
+      }
+    }
+
     setInput(''); // Clear input immediately
     const currentFiles = [...uploadedFiles];
 
@@ -998,6 +1017,7 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={t.inputPlaceholder}
                 disabled={isLoading}
+                autoComplete="off"
                 className={cn(
                   'flex-1 px-base py-sm bg-white border border-gray-300 rounded-lg',
                   'text-sm focus:outline-none focus:ring-2 focus:ring-blue-500',
