@@ -3,11 +3,10 @@
 
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 
-// ASCII characters from dark to light
-const ASCII_CHARS = '@%#*+=-:. ';
+// ASCII characters from sparse to dense (cold to hot)
+const ASCII_CHARS = ' .:-=+*#%@';
 
 // Dutch cities with center coordinates and tile configuration
-// centerLon is the city center longitude - tiles will be centered around it
 const TILE_WIDTH = 0.12; // Longitude width per tile
 const NUM_TILES = 6;
 
@@ -22,10 +21,7 @@ const CITIES = [
 
 // Generate 6 adjacent tiles centered on the city
 function generateTiles(city: typeof CITIES[0]) {
-  // Calculate westStart so city center is in the middle of 6 tiles
-  // With 6 tiles, center is between tile 3 and 4, so offset by 3 tile widths
   const westStart = city.centerLon - (NUM_TILES / 2) * TILE_WIDTH;
-
   return Array.from({ length: NUM_TILES }, (_, i) => ({
     name: `${city.name}-${i + 1}`,
     bbox: `${city.south},${westStart + i * TILE_WIDTH},${city.north},${westStart + (i + 1) * TILE_WIDTH}`,
@@ -51,27 +47,16 @@ function buildWMSUrl(bbox: string, size: number): string {
 }
 
 // Convert heat map color to heat value (0 = cold/blue, 1 = hot/red)
-// Color scale: dark blue → light blue → yellow → orange → dark red
 function colorToHeat(r: number, g: number, b: number): number {
-  // Handle grayscale/neutral colors (transparent areas)
   if (Math.abs(r - g) < 15 && Math.abs(g - b) < 15) return 0;
-
   const total = r + g + b || 1;
-
-  // Red channel = hot, Blue channel = cold
   const redHeat = r / total;
   const blueHeat = b / total;
-
-  // Heat: 0 (blue) to 1 (red), yellow/orange in between
-  // Blue (0,0,255): heat = (0 - 1 + 1) / 2 = 0
-  // Yellow (255,255,0): heat = (0.5 - 0 + 1) / 2 = 0.75
-  // Red (255,0,0): heat = (1 - 0 + 1) / 2 = 1
   const heat = (redHeat - blueHeat + 1) / 2;
   return Math.max(0, Math.min(1, heat));
 }
 
 function heatToASCII(heat: number): string {
-  // heat 0 = sparse (cold/blue), heat 1 = dense (hot/red)
   const index = Math.floor(heat * (ASCII_CHARS.length - 1));
   return ASCII_CHARS[Math.min(index, ASCII_CHARS.length - 1)];
 }
@@ -87,34 +72,34 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
   opacity = 0.15,
   debugShowImage = false,
 }) => {
-  // Randomize city order once on mount
   const shuffledCities = useMemo(() => shuffleArray(CITIES), []);
 
   const [cityIndex, setCityIndex] = useState(0);
-  const [asciiTiles, setAsciiTiles] = useState<string[][]>([]);
+  const [combinedAscii, setCombinedAscii] = useState<string[]>([]);
   const [tileImages, setTileImages] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFading, setIsFading] = useState(false);
-  const [panX, setPanX] = useState(0);
-  const [rows, setRows] = useState(100);
+  const [panOffset, setPanOffset] = useState(0); // Pan offset in characters
+  const [screenCols, setScreenCols] = useState(200);
+  const [screenRows, setScreenRows] = useState(100);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationRef = useRef<number | null>(null);
 
   const currentCity = shuffledCities[cityIndex];
   const tiles = useMemo(() => generateTiles(currentCity), [currentCity]);
 
-  // Calculate rows based on viewport height
+  // Calculate screen dimensions in characters
   useEffect(() => {
-    const updateRows = () => {
-      // 8px per character height
-      setRows(Math.ceil(window.innerHeight / 8) + 5);
+    const updateDimensions = () => {
+      setScreenCols(Math.ceil(window.innerWidth / 4.8) + 5);
+      setScreenRows(Math.ceil(window.innerHeight / 8) + 5);
     };
-    updateRows();
-    window.addEventListener('resize', updateRows);
-    return () => window.removeEventListener('resize', updateRows);
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+    return () => window.removeEventListener('resize', updateDimensions);
   }, []);
 
-  // Load and convert all 6 tiles for current city
+  // Load all tiles and create combined ASCII data
   useEffect(() => {
     const loadTiles = async () => {
       setIsLoading(true);
@@ -126,17 +111,16 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      // Each tile is square, scaled to fill viewport height
-      const tileSize = rows; // ASCII chars = pixels in our conversion
+      const tileSize = screenRows;
       canvas.width = tileSize;
       canvas.height = tileSize;
 
-      const allTiles: string[][] = [];
+      const allTileAscii: string[][] = [];
       const allImages: string[] = [];
 
       for (const tile of tiles) {
         try {
-          const wmsUrl = buildWMSUrl(tile.bbox, 512); // Fetch at 512px for quality
+          const wmsUrl = buildWMSUrl(tile.bbox, 512);
           const proxyUrl = `/api/proxy-wms?url=${encodeURIComponent(wmsUrl)}`;
 
           const response = await fetch(proxyUrl);
@@ -149,7 +133,6 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
             allImages.push(blobUrl);
           }
 
-          // Load image and convert to ASCII
           const img = await new Promise<HTMLImageElement>((resolve, reject) => {
             const image = new Image();
             image.onload = () => resolve(image);
@@ -157,11 +140,9 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
             image.src = blobUrl;
           });
 
-          // Draw scaled to tile size
           ctx.clearRect(0, 0, tileSize, tileSize);
           ctx.drawImage(img, 0, 0, tileSize, tileSize);
 
-          // Convert to ASCII using heat map color scale
           const lines: string[] = [];
           for (let y = 0; y < tileSize; y++) {
             let line = '';
@@ -176,81 +157,71 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
             }
             lines.push(line);
           }
-          allTiles.push(lines);
+          allTileAscii.push(lines);
 
           if (!debugShowImage) {
             URL.revokeObjectURL(blobUrl);
           }
         } catch (err) {
           console.error(`Failed to load tile ${tile.name}:`, err);
-          // Generate placeholder
           const lines: string[] = [];
           for (let y = 0; y < tileSize; y++) {
-            let line = '';
-            for (let x = 0; x < tileSize; x++) {
-              const val = Math.sin(y * 0.1 + x * 0.1) * 0.5 + 0.5;
-              line += ASCII_CHARS[Math.floor(val * (ASCII_CHARS.length - 1))];
-            }
-            lines.push(line);
+            lines.push(' '.repeat(tileSize));
           }
-          allTiles.push(lines);
+          allTileAscii.push(lines);
         }
       }
 
-      setAsciiTiles(allTiles);
+      // Combine all tiles horizontally
+      const combined: string[] = [];
+      if (allTileAscii.length > 0) {
+        const height = allTileAscii[0].length;
+        for (let y = 0; y < height; y++) {
+          let line = '';
+          for (const tile of allTileAscii) {
+            line += tile[y] || '';
+          }
+          combined.push(line);
+        }
+      }
+
+      setCombinedAscii(combined);
       setTileImages(allImages);
       setIsLoading(false);
     };
 
-    if (rows > 0) {
+    if (screenRows > 0) {
       loadTiles();
     }
-  }, [rows, tiles, debugShowImage]);
+  }, [screenRows, tiles, debugShowImage]);
 
-  // Combine tiles into single ASCII block
-  const combinedLines: string[] = [];
-  if (asciiTiles.length > 0) {
-    const tileHeight = asciiTiles[0].length;
-    for (let y = 0; y < tileHeight; y++) {
-      let line = '';
-      for (const tile of asciiTiles) {
-        line += tile[y] || '';
-      }
-      combinedLines.push(line);
-    }
-  }
+  // Calculate max pan offset
+  const totalWidth = combinedAscii.length > 0 ? combinedAscii[0].length : 0;
+  const maxPanOffset = Math.max(0, totalWidth - screenCols);
 
-  // Get actual content width in pixels
-  const contentWidthChars = combinedLines.length > 0 ? combinedLines[0].length : 0;
-  const contentWidthPx = contentWidthChars * 4.8;
-
-  // Smooth panning animation - pan left to right in 30s, then fade and switch city
+  // Animation: update pan offset over time
   useEffect(() => {
-    if (isLoading || contentWidthPx === 0 || isFading) return;
+    if (isLoading || totalWidth === 0 || isFading) return;
 
-    const screenWidth = window.innerWidth;
-    const maxPan = Math.max(0, contentWidthPx - screenWidth);
-
-    const duration = 30000; // 30 seconds to pan across
+    const duration = 30000; // 30 seconds
     let startTime: number | null = null;
     let completed = false;
 
     const animate = (time: number) => {
       if (!startTime) startTime = time;
       const elapsed = time - startTime;
-      const progress = Math.min(elapsed / duration, 1); // 0 to 1, stop at 1
+      const progress = Math.min(elapsed / duration, 1);
 
-      setPanX(progress * maxPan);
+      setPanOffset(Math.floor(progress * maxPanOffset));
 
       if (progress >= 1 && !completed) {
         completed = true;
-        // Start fade transition to next city
         setIsFading(true);
         setTimeout(() => {
-          setPanX(0);
+          setPanOffset(0);
           setCityIndex((prev) => (prev + 1) % shuffledCities.length);
-          setTimeout(() => setIsFading(false), 100); // Small delay before fade in
-        }, 1000); // 1s fade out
+          setTimeout(() => setIsFading(false), 100);
+        }, 1000);
       } else if (!completed) {
         animationRef.current = requestAnimationFrame(animate);
       }
@@ -260,26 +231,31 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
     return () => {
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
-  }, [isLoading, contentWidthPx, isFading, shuffledCities.length]);
+  }, [isLoading, totalWidth, maxPanOffset, isFading, shuffledCities.length]);
 
-  // Debug mode: show actual images
+  // Get visible ASCII slice based on pan offset (fixed grid, changing characters)
+  const visibleLines = useMemo(() => {
+    if (combinedAscii.length === 0) return [];
+    return combinedAscii.map(line =>
+      line.slice(panOffset, panOffset + screenCols).padEnd(screenCols, ' ')
+    );
+  }, [combinedAscii, panOffset, screenCols]);
+
+  // Debug mode
   if (debugShowImage && tileImages.length > 0) {
+    const panPx = panOffset * 4.8;
     return (
       <div
         className={`fixed inset-0 overflow-hidden pointer-events-none ${className}`}
-        style={{
-          opacity: isFading ? 0 : 0.5,
-          zIndex: 0,
-          transition: 'opacity 1s ease-in-out',
-        }}
+        style={{ opacity: isFading ? 0 : 0.5, zIndex: 0, transition: 'opacity 1s ease-in-out' }}
       >
-        <div style={{ display: 'flex', position: 'absolute', left: -panX, height: '100vh' }}>
+        <div style={{ display: 'flex', position: 'absolute', left: -panPx, height: '100vh' }}>
           {tileImages.map((src, i) => (
             <img key={i} src={src} alt={tiles[i]?.name} style={{ height: '100vh', width: 'auto' }} />
           ))}
         </div>
         <div className="absolute top-2 left-2 text-xs text-gray-700 bg-white/80 px-2 py-1 rounded z-10">
-          City: {currentCity.name} | Pan: {Math.round(panX)}px | MaxPan: {Math.round(Math.max(0, contentWidthPx - window.innerWidth))}px
+          City: {currentCity.name} | Offset: {panOffset} chars
         </div>
       </div>
     );
@@ -288,24 +264,16 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
   return (
     <div
       className={`fixed inset-0 overflow-hidden pointer-events-none ${className}`}
-      style={{
-        opacity: isFading ? 0 : opacity,
-        zIndex: 0,
-        transition: 'opacity 1s ease-in-out',
-      }}
+      style={{ opacity: isFading ? 0 : opacity, zIndex: 0, transition: 'opacity 1s ease-in-out' }}
     >
       <pre
         className="font-mono text-[8px] leading-[8px] text-gray-700 whitespace-pre select-none"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: -panX,
-        }}
+        style={{ position: 'absolute', top: 0, left: 0 }}
       >
         {isLoading ? (
           <div className="text-gray-400">Loading...</div>
         ) : (
-          combinedLines.map((line, i) => <div key={i}>{line}</div>)
+          visibleLines.map((line, i) => <div key={i}>{line}</div>)
         )}
       </pre>
     </div>
