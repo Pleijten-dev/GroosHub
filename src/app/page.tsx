@@ -8,6 +8,6 @@ export default function RootPage() {
 
 // Add metadata for SEO
 export const metadata = {
-  title: 'GroosHub - Redirecting...',
+  title: 'GroosHub',
   description: 'Redirecting to Dutch version',
 };

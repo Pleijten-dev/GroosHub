@@ -59,14 +59,14 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   
   if (!isValidLocale(locale)) {
     return {
-      title: 'GroosHub - Urban Development Platform',
+      title: 'GroosHub',
       description: 'Comprehensive urban development and project analysis platform',
     };
   }
 
   const titles = {
-    nl: 'GroosHub - Stedelijke Ontwikkeling Platform',
-    en: 'GroosHub - Urban Development Platform'
+    nl: 'GroosHub',
+    en: 'GroosHub'
   };
   
   const descriptions = {
