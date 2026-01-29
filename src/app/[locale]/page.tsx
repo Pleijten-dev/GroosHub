@@ -239,11 +239,11 @@ const FeatureCardComponent: React.FC<FeatureCardComponentProps> = ({ card, local
           </span>
         )}
 
-        {/* Description - shown on hover or always for large cards */}
+        {/* Description - shown on hover only */}
         <div
           className={`
             mt-auto transition-all duration-300 ease-out
-            ${card.large ? 'opacity-100' : isHovered ? 'opacity-100' : 'opacity-0'}
+            ${isHovered ? 'opacity-100' : 'opacity-0'}
           `}
         >
           <p
