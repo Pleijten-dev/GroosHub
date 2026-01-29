@@ -235,7 +235,7 @@ function parseMultiLineTable(content: string): ParsedTable | null {
  */
 function filterEmptyColumns(table: ParsedTable): ParsedTable {
   const allRows = [table.headers, ...table.rows];
-  const numCols = table.headers.length;
+  const numCols = Math.max(table.headers.length, ...table.rows.map(r => r.length));
 
   // Find columns that have at least one non-empty cell
   const nonEmptyColIndices: number[] = [];
@@ -259,11 +259,87 @@ function filterEmptyColumns(table: ParsedTable): ParsedTable {
 }
 
 /**
+ * Condense table rows to match header column count
+ * Merges adjacent cells that appear to be parts of the same value (e.g., "a" + "woonwagen")
+ */
+function condenseToHeaderCount(table: ParsedTable): ParsedTable {
+  const headerCount = table.headers.filter(h => h.trim().length > 0).length;
+  if (headerCount === 0) return table;
+
+  // First, filter empty columns
+  const filtered = filterEmptyColumns(table);
+
+  // If we already have the right number of columns or fewer, return as-is
+  if (filtered.headers.length <= headerCount) {
+    // Pad headers if needed
+    const paddedHeaders = [...filtered.headers];
+    while (paddedHeaders.length < headerCount) {
+      paddedHeaders.push('');
+    }
+    return {
+      headers: paddedHeaders,
+      rows: filtered.rows.map(row => {
+        const paddedRow = [...row];
+        while (paddedRow.length < headerCount) {
+          paddedRow.push('');
+        }
+        return paddedRow;
+      })
+    };
+  }
+
+  // We have more data columns than headers - need to condense
+  // Strategy: merge adjacent columns from the left until we reach headerCount
+  const condensedRows = filtered.rows.map(row => {
+    if (row.length <= headerCount) {
+      const padded = [...row];
+      while (padded.length < headerCount) padded.push('');
+      return padded;
+    }
+
+    // Merge columns from the left to form the first column
+    // Keep the last column as the last data column (usually "waarden")
+    const colsToMerge = row.length - headerCount + 1;
+    const firstColParts = row.slice(0, colsToMerge).filter(c => c.trim().length > 0);
+    const firstCol = firstColParts.join(' ');
+
+    // Middle columns (if any)
+    const middleCols = row.slice(colsToMerge, row.length - 1);
+
+    // Last column
+    const lastCol = row[row.length - 1] || '';
+
+    // Build condensed row
+    const condensedRow = [firstCol, ...middleCols, lastCol];
+
+    // Ensure we have exactly headerCount columns
+    while (condensedRow.length < headerCount) {
+      condensedRow.splice(1, 0, ''); // Insert empty in middle
+    }
+    while (condensedRow.length > headerCount) {
+      // Merge middle columns if still too many
+      if (condensedRow.length > 2) {
+        condensedRow.splice(1, 2, (condensedRow[1] + ' ' + condensedRow[2]).trim());
+      } else {
+        break;
+      }
+    }
+
+    return condensedRow.slice(0, headerCount);
+  });
+
+  return {
+    headers: filtered.headers.slice(0, headerCount),
+    rows: condensedRows
+  };
+}
+
+/**
  * Convert parsed table to HTML table element with inline styles
  */
 function tableToHTML(table: ParsedTable): string {
-  // Filter out completely empty columns
-  const filteredTable = filterEmptyColumns(table);
+  // Condense table to match header column count (filters empty columns + merges adjacent cells)
+  const filteredTable = condenseToHeaderCount(table);
 
   const escapeHTML = (str: string) =>
     str
@@ -395,12 +471,16 @@ function extractSummaries(text: string): { summaries: string[]; cleanedText: str
 
 /**
  * Extract table details section
+ * Note: The lookahead must avoid matching `---` inside table separator rows like `| --- | --- |`
+ * We look for `--- ` followed by a word (section marker) or end of string
  */
 function extractTableDetails(text: string): { table: ParsedTable | null; cleanedText: string } {
   let cleanedText = text;
 
+  // Match from "--- Tabel Details ---" until "--- Tabel Samenvatting" or "--- [other section]" or end
+  // The key is: section markers have "--- " followed by a letter, not by pipe or dash
   const tableDetailsMatch = text.match(
-    /---\s*Tabel Details\s*---\s*([\s\S]*?)(?=---\s*Tabel Samenvatting|---|$)/i
+    /---\s*Tabel Details\s*---\s*([\s\S]*?)(?=---\s*Tabel Samenvatting|---\s+[A-Za-z]|$)/i
   );
 
   if (tableDetailsMatch) {
