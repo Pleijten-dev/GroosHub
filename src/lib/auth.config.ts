@@ -46,6 +46,15 @@ export const authConfig: NextAuthConfig = {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const mustChangePassword = (auth?.user as any)?.must_change_password;
 
+      // Debug logging
+      console.log('🔒 Middleware auth check:', {
+        pathname,
+        isLoggedIn,
+        userId: (auth?.user as any)?.id,
+        mustChangePassword,
+        authUser: auth?.user,
+      });
+
       // If user must change password, only allow access to change-password page and API
       if (mustChangePassword) {
         if (isChangePasswordRoute || isChangePasswordApi) {
