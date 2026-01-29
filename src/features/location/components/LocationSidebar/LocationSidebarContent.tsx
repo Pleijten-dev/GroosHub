@@ -25,14 +25,14 @@ const MAIN_SECTIONS = [
 ] as const;
 
 const OMGEVING_SUBSECTIONS = [
-  { id: 'score', nl: 'Score', en: 'Score' },
-  { id: 'demografie', nl: 'Demografie', en: 'Demographics' },
-  { id: 'woningmarkt', nl: 'Woningmarkt', en: 'Housing Market' },
-  { id: 'veiligheid', nl: 'Veiligheid', en: 'Safety' },
-  { id: 'gezondheid', nl: 'Gezondheid', en: 'Health' },
-  { id: 'leefbaarheid', nl: 'Leefbaarheid', en: 'Livability' },
-  { id: 'voorzieningen', nl: 'Voorzieningen', en: 'Amenities' },
-  { id: 'kaarten', nl: 'Kaarten', en: 'Maps' }
+  { id: 'score', nl: 'Score', en: 'Score', disabled: true },
+  { id: 'demografie', nl: 'Demografie', en: 'Demographics', disabled: false },
+  { id: 'woningmarkt', nl: 'Woningmarkt', en: 'Housing Market', disabled: false },
+  { id: 'veiligheid', nl: 'Veiligheid', en: 'Safety', disabled: false },
+  { id: 'gezondheid', nl: 'Gezondheid', en: 'Health', disabled: false },
+  { id: 'leefbaarheid', nl: 'Leefbaarheid', en: 'Livability', disabled: false },
+  { id: 'voorzieningen', nl: 'Voorzieningen', en: 'Amenities', disabled: false },
+  { id: 'kaarten', nl: 'Kaarten', en: 'Maps', disabled: false }
 ] as const;
 
 const RAPPORT_SUBSECTIONS = [
@@ -128,7 +128,8 @@ export const useLocationSidebarSections = ({
   const handleOmgevingToggle = (): void => {
     setIsOmgevingExpanded(!isOmgevingExpanded);
     if (!isOmgevingExpanded) {
-      onTabChange('score');
+      // Default to demografie since score is disabled
+      onTabChange('demografie');
     }
   };
 
@@ -257,16 +258,22 @@ export const useLocationSidebarSections = ({
               {OMGEVING_SUBSECTIONS.map((subsection) => (
                 <Button
                   key={subsection.id}
-                  onClick={() => onTabChange(subsection.id)}
+                  onClick={() => !subsection.disabled && onTabChange(subsection.id)}
                   variant="ghost"
+                  disabled={subsection.disabled}
                   className={cn(
                     'w-full justify-start text-left p-sm rounded-md text-sm',
-                    activeTab === subsection.id
-                      ? 'bg-primary-light text-primary border border-primary'
-                      : 'text-text-muted hover:bg-gray-50 hover:text-text-secondary'
+                    subsection.disabled
+                      ? 'text-gray-400 cursor-not-allowed opacity-50'
+                      : activeTab === subsection.id
+                        ? 'bg-primary-light text-primary border border-primary'
+                        : 'text-text-muted hover:bg-gray-50 hover:text-text-secondary'
                   )}
                 >
                   {getSectionText(subsection)}
+                  {subsection.disabled && (
+                    <span className="ml-2 text-xs text-gray-400">(coming soon)</span>
+                  )}
                 </Button>
               ))}
             </div>
