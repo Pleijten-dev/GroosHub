@@ -1,26 +1,38 @@
 // src/app/[locale]/components/ASCIIMapBackground.tsx
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 
 // ASCII characters from dark to light
 const ASCII_CHARS = '@%#*+=-:. ';
 
-// Rotterdam area - 6 adjacent tiles spanning west to east
-// Each tile is 0.1° lat x 0.1° lon (square-ish at this latitude)
-const CITY = {
-  name: 'Rotterdam',
-  south: 51.88,
-  north: 51.98,
-  westStart: 4.20, // Starting longitude (moved west)
-  tileWidth: 0.12, // Longitude width per tile
-};
+// Dutch cities with their bounding boxes for 6 adjacent tiles
+const CITIES = [
+  { name: 'Rotterdam', south: 51.88, north: 51.98, westStart: 4.20, tileWidth: 0.12 },
+  { name: 'Amsterdam', south: 52.34, north: 52.44, westStart: 4.75, tileWidth: 0.12 },
+  { name: 'Den Haag', south: 52.03, north: 52.13, westStart: 4.15, tileWidth: 0.12 },
+  { name: 'Utrecht', south: 52.04, north: 52.14, westStart: 5.00, tileWidth: 0.12 },
+  { name: 'Eindhoven', south: 51.40, north: 51.50, westStart: 5.35, tileWidth: 0.12 },
+  { name: 'Groningen', south: 53.18, north: 53.28, westStart: 6.45, tileWidth: 0.12 },
+];
 
-// Generate 6 adjacent tiles for wider screens
-const TILES = Array.from({ length: 6 }, (_, i) => ({
-  name: `${CITY.name}-${i + 1}`,
-  bbox: `${CITY.south},${CITY.westStart + i * CITY.tileWidth},${CITY.north},${CITY.westStart + (i + 1) * CITY.tileWidth}`,
-}));
+// Generate 6 adjacent tiles for a city
+function generateTiles(city: typeof CITIES[0]) {
+  return Array.from({ length: 6 }, (_, i) => ({
+    name: `${city.name}-${i + 1}`,
+    bbox: `${city.south},${city.westStart + i * city.tileWidth},${city.north},${city.westStart + (i + 1) * city.tileWidth}`,
+  }));
+}
+
+// Shuffle array (Fisher-Yates)
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
 
 // WMS configuration
 const WMS_BASE = 'https://data.rivm.nl/geo/ank/wms';
@@ -46,13 +58,21 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
   opacity = 0.15,
   debugShowImage = false,
 }) => {
+  // Randomize city order once on mount
+  const shuffledCities = useMemo(() => shuffleArray(CITIES), []);
+
+  const [cityIndex, setCityIndex] = useState(0);
   const [asciiTiles, setAsciiTiles] = useState<string[][]>([]);
   const [tileImages, setTileImages] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFading, setIsFading] = useState(false);
   const [panX, setPanX] = useState(0);
   const [rows, setRows] = useState(100);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationRef = useRef<number | null>(null);
+
+  const currentCity = shuffledCities[cityIndex];
+  const tiles = useMemo(() => generateTiles(currentCity), [currentCity]);
 
   // Calculate rows based on viewport height
   useEffect(() => {
@@ -65,7 +85,7 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
     return () => window.removeEventListener('resize', updateRows);
   }, []);
 
-  // Load and convert all 4 tiles
+  // Load and convert all 6 tiles for current city
   useEffect(() => {
     const loadTiles = async () => {
       setIsLoading(true);
@@ -85,7 +105,7 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
       const allTiles: string[][] = [];
       const allImages: string[] = [];
 
-      for (const tile of TILES) {
+      for (const tile of tiles) {
         try {
           const wmsUrl = buildWMSUrl(tile.bbox, 512); // Fetch at 512px for quality
           const proxyUrl = `/api/proxy-wms?url=${encodeURIComponent(wmsUrl)}`;
@@ -156,7 +176,7 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
     if (rows > 0) {
       loadTiles();
     }
-  }, [rows, debugShowImage]);
+  }, [rows, tiles, debugShowImage]);
 
   // Combine tiles into single ASCII block
   const combinedLines: string[] = [];
@@ -175,44 +195,62 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
   const contentWidthChars = combinedLines.length > 0 ? combinedLines[0].length : 0;
   const contentWidthPx = contentWidthChars * 4.8;
 
-  // Smooth panning animation - pan left to right, then reset
+  // Smooth panning animation - pan left to right in 30s, then fade and switch city
   useEffect(() => {
-    if (isLoading || contentWidthPx === 0) return;
+    if (isLoading || contentWidthPx === 0 || isFading) return;
 
     const screenWidth = window.innerWidth;
     const maxPan = Math.max(0, contentWidthPx - screenWidth);
 
-    if (maxPan === 0) return; // Nothing to pan
-
-    const duration = 45000; // 45 seconds to pan across
+    const duration = 30000; // 30 seconds to pan across
     let startTime: number | null = null;
+    let completed = false;
 
     const animate = (time: number) => {
       if (!startTime) startTime = time;
       const elapsed = time - startTime;
-      const progress = (elapsed % duration) / duration; // 0 to 1, then resets
+      const progress = Math.min(elapsed / duration, 1); // 0 to 1, stop at 1
 
       setPanX(progress * maxPan);
-      animationRef.current = requestAnimationFrame(animate);
+
+      if (progress >= 1 && !completed) {
+        completed = true;
+        // Start fade transition to next city
+        setIsFading(true);
+        setTimeout(() => {
+          setPanX(0);
+          setCityIndex((prev) => (prev + 1) % shuffledCities.length);
+          setTimeout(() => setIsFading(false), 100); // Small delay before fade in
+        }, 1000); // 1s fade out
+      } else if (!completed) {
+        animationRef.current = requestAnimationFrame(animate);
+      }
     };
 
     animationRef.current = requestAnimationFrame(animate);
     return () => {
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
-  }, [isLoading, contentWidthPx]);
+  }, [isLoading, contentWidthPx, isFading, shuffledCities.length]);
 
   // Debug mode: show actual images
   if (debugShowImage && tileImages.length > 0) {
     return (
-      <div className={`fixed inset-0 overflow-hidden pointer-events-none ${className}`} style={{ opacity: 0.5, zIndex: 0 }}>
+      <div
+        className={`fixed inset-0 overflow-hidden pointer-events-none ${className}`}
+        style={{
+          opacity: isFading ? 0 : 0.5,
+          zIndex: 0,
+          transition: 'opacity 1s ease-in-out',
+        }}
+      >
         <div style={{ display: 'flex', position: 'absolute', left: -panX, height: '100vh' }}>
           {tileImages.map((src, i) => (
-            <img key={i} src={src} alt={TILES[i].name} style={{ height: '100vh', width: 'auto' }} />
+            <img key={i} src={src} alt={tiles[i]?.name} style={{ height: '100vh', width: 'auto' }} />
           ))}
         </div>
         <div className="absolute top-2 left-2 text-xs text-gray-700 bg-white/80 px-2 py-1 rounded z-10">
-          Pan: {Math.round(panX)}px | Width: {Math.round(contentWidthPx)}px | MaxPan: {Math.round(Math.max(0, contentWidthPx - window.innerWidth))}px
+          City: {currentCity.name} | Pan: {Math.round(panX)}px | MaxPan: {Math.round(Math.max(0, contentWidthPx - window.innerWidth))}px
         </div>
       </div>
     );
@@ -221,7 +259,11 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
   return (
     <div
       className={`fixed inset-0 overflow-hidden pointer-events-none ${className}`}
-      style={{ opacity, zIndex: 0 }}
+      style={{
+        opacity: isFading ? 0 : opacity,
+        zIndex: 0,
+        transition: 'opacity 1s ease-in-out',
+      }}
     >
       <pre
         className="font-mono text-[8px] leading-[8px] text-gray-700 whitespace-pre select-none"
