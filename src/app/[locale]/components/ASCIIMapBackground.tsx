@@ -54,6 +54,10 @@ const TRANSITION_DURATION = 1000; // 1 second fade transition
 const CHAR_WIDTH = 4.8;
 const CHAR_HEIGHT = 8;
 
+// Latitude correction for Netherlands (~52°N)
+// 1 degree longitude = cos(52°) * 1 degree latitude in actual distance
+const LAT_CORRECTION = Math.cos(52 * Math.PI / 180); // ≈ 0.616
+
 interface BBox {
   south: number;
   west: number;
@@ -101,7 +105,8 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
   const [asciiLines, setAsciiLines] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dimensions, setDimensions] = useState({ cols: propCols || 200, rows: 100 });
+  const [screenDimensions, setScreenDimensions] = useState({ cols: propCols || 200, rows: 100 });
+  const [asciiWidth, setAsciiWidth] = useState(0); // Actual width of generated ASCII (may be wider than screen)
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [currentCityIndex, setCurrentCityIndex] = useState(0);
   const [panProgress, setPanProgress] = useState(0); // 0 to 1, west to east
@@ -113,16 +118,17 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
 
   const currentCity = DUTCH_CITIES[currentCityIndex];
 
-  // Calculate dimensions based on viewport
+  // Calculate screen dimensions based on viewport (how many chars fit on screen)
   useEffect(() => {
     const updateDimensions = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
 
-      const calculatedCols = propCols || Math.ceil(width / CHAR_WIDTH) + 20;
-      const calculatedRows = Math.ceil(height / CHAR_HEIGHT) + 20;
+      // Add a small buffer to ensure we fill the screen
+      const calculatedCols = propCols || Math.ceil(width / CHAR_WIDTH) + 5;
+      const calculatedRows = Math.ceil(height / CHAR_HEIGHT) + 5;
 
-      setDimensions({ cols: calculatedCols, rows: calculatedRows });
+      setScreenDimensions({ cols: calculatedCols, rows: calculatedRows });
     };
 
     updateDimensions();
@@ -163,28 +169,32 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
     };
   }, [currentCityIndex]);
 
-  // Convert image to ASCII, scaling to fill the target dimensions
-  const convertImageToASCII = useCallback((img: HTMLImageElement, targetCols: number, targetRows: number): string[] => {
+  // Convert image to ASCII, maintaining aspect ratio
+  // Scales to fill target rows (screen height), width determined by image aspect ratio
+  // Returns { lines, actualCols } where actualCols is the width of the generated ASCII
+  const convertImageToASCII = useCallback((img: HTMLImageElement, targetRows: number): { lines: string[], actualCols: number } => {
     if (!canvasRef.current) {
       canvasRef.current = document.createElement('canvas');
     }
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return [];
+    if (!ctx) return { lines: [], actualCols: 0 };
 
-    const canvasWidth = targetCols;
-    const canvasHeight = targetRows;
+    // Maintain aspect ratio: scale to fill height, width follows
+    const imgAspect = img.width / img.height;
+    const actualCols = Math.round(targetRows * imgAspect);
 
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
+    canvas.width = actualCols;
+    canvas.height = targetRows;
 
-    ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
+    // Draw the full image scaled to maintain aspect ratio
+    ctx.drawImage(img, 0, 0, actualCols, targetRows);
 
     const lines: string[] = [];
 
     for (let y = 0; y < targetRows; y++) {
       let line = '';
-      for (let x = 0; x < targetCols; x++) {
+      for (let x = 0; x < actualCols; x++) {
         const pixel = ctx.getImageData(x, y, 1, 1).data;
 
         if (pixel[3] < 128) {
@@ -198,7 +208,7 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
       lines.push(line);
     }
 
-    return lines;
+    return { lines, actualCols };
   }, []);
 
   // Fetch and convert image for current city
@@ -208,9 +218,22 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
       setError(null);
 
       try {
-        // Fetch a wide image (3:1 aspect ratio) to have enough map data for panning
-        // The wide bbox + wide image means we have actual map data to pan across
-        const wmsUrl = buildWMSUrl(currentCity.bbox, 2048, 768);
+        // Calculate bbox aspect ratio with latitude correction for proper proportions
+        const bboxLonWidth = currentCity.bbox.east - currentCity.bbox.west;
+        const bboxLatHeight = currentCity.bbox.north - currentCity.bbox.south;
+        // Real-world aspect ratio accounts for longitude compression at this latitude
+        const realWorldAspect = (bboxLonWidth * LAT_CORRECTION) / bboxLatHeight;
+
+        // We want the ASCII to be wider than the screen for panning
+        // Target: at least 2x screen width, but respecting the natural aspect ratio
+        const minWidthMultiplier = 2.5; // ASCII should be at least 2.5x screen width
+        const targetAspect = Math.max(realWorldAspect, (screenDimensions.cols * minWidthMultiplier) / screenDimensions.rows);
+
+        // WMS dimensions: use high resolution, matching the target aspect ratio
+        const wmsHeight = 1024;
+        const wmsWidth = Math.round(wmsHeight * targetAspect);
+
+        const wmsUrl = buildWMSUrl(currentCity.bbox, wmsWidth, wmsHeight);
 
         const response = await fetch(`/api/proxy-wms?url=${encodeURIComponent(wmsUrl)}`);
 
@@ -223,8 +246,9 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
               if (debugShowImage) {
                 setImageUrl(wmsUrl);
               }
-              const ascii = convertImageToASCII(img, dimensions.cols, dimensions.rows);
-              setAsciiLines(ascii);
+              const { lines, actualCols } = convertImageToASCII(img, screenDimensions.rows);
+              setAsciiLines(lines);
+              setAsciiWidth(actualCols);
               resolve();
             };
             img.onerror = () => reject(new Error('Failed to load WMS image'));
@@ -242,8 +266,9 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
               } else {
                 URL.revokeObjectURL(blobUrl);
               }
-              const ascii = convertImageToASCII(img, dimensions.cols, dimensions.rows);
-              setAsciiLines(ascii);
+              const { lines, actualCols } = convertImageToASCII(img, screenDimensions.rows);
+              setAsciiLines(lines);
+              setAsciiWidth(actualCols);
               resolve();
             };
             img.onerror = () => reject(new Error('Failed to load WMS image'));
@@ -254,10 +279,12 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
         console.error('ASCII map error:', err);
         setError(err instanceof Error ? err.message : 'Failed to load map');
 
+        // Generate placeholder pattern
+        const placeholderCols = screenDimensions.cols * 2;
         const placeholderLines: string[] = [];
-        for (let i = 0; i < dimensions.rows; i++) {
+        for (let i = 0; i < screenDimensions.rows; i++) {
           let line = '';
-          for (let j = 0; j < dimensions.cols; j++) {
+          for (let j = 0; j < placeholderCols; j++) {
             const val = Math.sin(i * 0.3 + j * 0.1) * 0.5 + 0.5;
             const idx = Math.floor(val * (ASCII_CHARS.length - 1));
             line += ASCII_CHARS[idx];
@@ -265,20 +292,24 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
           placeholderLines.push(line);
         }
         setAsciiLines(placeholderLines);
+        setAsciiWidth(placeholderCols);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchAndConvert();
-  }, [dimensions, convertImageToASCII, debugShowImage, currentCity]);
+  }, [screenDimensions, convertImageToASCII, debugShowImage, currentCity]);
 
-  // The image is ~3x wider than needed, so we can pan across ~66% of it
-  // Pan from 0% to 66% of image width (showing different 33% portions)
-  const panOffset = panProgress * 66; // Pan across 66% of the extra width
+  // Calculate pan offset in pixels based on actual ASCII width
+  // We pan from showing the left edge to showing the right edge
+  const excessChars = Math.max(0, asciiWidth - screenDimensions.cols);
+  const panOffsetPixels = panProgress * excessChars * CHAR_WIDTH;
 
   // Debug mode: show raw WMS image with panning
   if (debugShowImage) {
+    // For debug, calculate how wide the image should be to match ASCII width
+    const debugImageWidth = asciiWidth * CHAR_WIDTH;
     return (
       <div
         ref={containerRef}
@@ -295,13 +326,11 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
             alt="WMS Debug"
             style={{
               position: 'absolute',
-              top: '50%',
-              left: `${-panOffset}%`,
-              transform: 'translateY(-50%)',
-              width: '200vw', // Image is 2x viewport width
-              height: 'auto', // Maintain aspect ratio
-              minHeight: '100vh', // But at least fill viewport height
-              objectFit: 'cover',
+              top: 0,
+              left: -panOffsetPixels,
+              width: debugImageWidth,
+              height: '100vh',
+              objectFit: 'fill', // Fill the calculated dimensions
             }}
           />
         )}
@@ -312,7 +341,7 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
         )}
         {/* Debug info */}
         <div className="absolute top-2 left-2 text-xs text-gray-700 bg-white/80 px-2 py-1 rounded z-10">
-          City: {currentCity.name} | Progress: {Math.round(panProgress * 100)}% | Offset: {Math.round(panOffset)}%
+          City: {currentCity.name} | Progress: {Math.round(panProgress * 100)}% | ASCII: {asciiWidth}x{screenDimensions.rows} | Screen: {screenDimensions.cols}x{screenDimensions.rows} | Offset: {Math.round(panOffsetPixels)}px
         </div>
         {error && (
           <div className="absolute bottom-2 left-2 text-xs text-red-500 bg-white/80 px-2 py-1 rounded">
@@ -322,6 +351,9 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
       </div>
     );
   }
+
+  // Calculate actual width of ASCII content in pixels
+  const asciiWidthPixels = asciiWidth * CHAR_WIDTH;
 
   return (
     <div
@@ -340,15 +372,15 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
           letterSpacing: '0px',
           position: 'absolute',
           top: 0,
-          left: `${-panOffset}%`,
-          width: '200vw', // Wider for panning
+          left: -panOffsetPixels,
+          width: asciiWidthPixels || '100vw',
           height: '100vh',
           overflow: 'hidden',
         }}
       >
         {isLoading ? (
-          Array(dimensions.rows).fill(0).map((_, i) => (
-            <div key={i}>{'. '.repeat(Math.ceil(dimensions.cols / 2))}</div>
+          Array(screenDimensions.rows).fill(0).map((_, i) => (
+            <div key={i}>{'. '.repeat(Math.ceil(screenDimensions.cols / 2))}</div>
           ))
         ) : (
           asciiLines.map((line, i) => (
