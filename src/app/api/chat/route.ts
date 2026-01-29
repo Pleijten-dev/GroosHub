@@ -38,6 +38,7 @@ import { randomUUID } from 'crypto';
 // RAG System imports
 import { findRelevantContent, type RetrievedChunk } from '@/lib/ai/rag/retriever';
 import { getChunkCountByProjectId } from '@/lib/db/queries/project-doc-chunks';
+import { formatRAGTableContent } from '@/lib/ai/rag/format-rag-tables';
 import { createTaskTools } from '@/features/chat/tools/taskTools';
 
 // Request schema validation
@@ -491,7 +492,9 @@ export async function POST(request: NextRequest) {
 
       agentRagContext.sources.forEach((source: any, i: number) => {
         ragContext += `[Source ${i + 1}: ${source.file}]\n`;
-        ragContext += `${source.text}\n\n`;
+        // Format table content for better readability
+        const { formattedText } = formatRAGTableContent(source.text);
+        ragContext += `${formattedText}\n\n`;
       });
 
       ragContext += '---\n\n';
@@ -558,7 +561,9 @@ export async function POST(request: NextRequest) {
                   ragContext += `[Source ${i + 1}: ${chunk.sourceFile}`;
                   if (chunk.pageNumber) ragContext += `, Page ${chunk.pageNumber}`;
                   ragContext += ` - Relevance: ${(chunk.similarity * 100).toFixed(0)}%]\n`;
-                  ragContext += `${chunk.chunkText}\n\n`;
+                  // Format table content for better readability
+                  const { formattedText } = formatRAGTableContent(chunk.chunkText);
+                  ragContext += `${formattedText}\n\n`;
                 });
 
                 ragContext += '---\n\n';

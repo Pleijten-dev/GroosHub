@@ -1,6 +1,6 @@
 # AI Assistant Page - Complete Documentation
 
-> **Last Updated**: 2026-01-27
+> **Last Updated**: 2026-01-29
 > **Version**: 3.1.0 (Complete Documentation with 4 Verification Passes)
 > **Location**: `/src/app/[locale]/ai-assistant/`
 > **Total Sections**: 24 | **Lines**: ~2,250
@@ -839,11 +839,19 @@ The AI has access to tools for querying saved locations:
 
 | Tool | Description |
 |------|-------------|
-| `listUserTasks` | Filter by status, priority, deadline |
+| `listUserTasks` | Get user's assigned tasks across all projects with filtering |
+| `listProjectTasks` | Get all tasks in a project (unassigned, others, specific user) |
 | `createTask` | Create with dependencies and tags |
 | `updateTask` | Update status, priority, deadline |
 | `completeTask` | Mark task as done |
 | `deleteTask` | Soft delete task |
+
+**`listProjectTasks` Assignment Filters**:
+- `all` - All tasks in the project
+- `unassigned` - Tasks with no assignee
+- `assigned_to_me` - Tasks assigned to current user
+- `assigned_to_others` - Tasks assigned to other team members
+- `assigned_to_user` - Tasks assigned to a specific user (by name)
 
 ### Tool Implementation
 

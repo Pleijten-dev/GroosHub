@@ -11,6 +11,15 @@ import type { AmenityMultiCategoryResponse } from '../data/sources/google-places
 import type { WMSGradingData, WMSLayerGrading } from '../types/wms-grading';
 import housingPersonasData from '../data/sources/housing-personas.json';
 import { pveConfigCache } from '../data/cache/pveConfigCache';
+import {
+  getFSICategory,
+  getHousingRecommendation,
+  getUnallocatedPercentage,
+  getHousingCategoryDescriptions,
+  DEFAULT_HOUSING_CATEGORIES,
+  type FSICategory,
+  type HousingCategoryPercentages,
+} from './fsiCalculations';
 
 interface CompactMetric {
   name: string;
@@ -88,6 +97,41 @@ export interface CompactLocationExport {
       offices: { percentage: number; m2: number; description: string };
     };
     timestamp: string;
+    // FSI (Floor Space Index) configuration
+    fsi?: {
+      calculatedValue: number;
+      finalValue: number;  // Either calculated or overridden
+      isOverridden: boolean;
+      addressDensity: number;
+      category: FSICategory;
+      housingRecommendation: string;  // Description for LLM
+    };
+    // Housing category requirements for residential
+    housingCategories?: {
+      residential_m2: number;  // Total residential m² available
+      social: {
+        percentage: number | null;
+        m2: number | null;
+        description: string;
+        isRequired: boolean;
+      };
+      affordable: {
+        percentage: number | null;
+        m2: number | null;
+        description: string;
+        isRequired: boolean;
+      };
+      luxury: {
+        percentage: number | null;
+        m2: number | null;
+        description: string;
+        isRequired: boolean;
+      };
+      unallocated: {
+        percentage: number;
+        description: string;  // "Vrij in te vullen" / "Free to allocate"
+      };
+    };
   };
 
   // All personas with their full information
@@ -261,57 +305,112 @@ export function exportCompactForLLM(
 
   // Get PVE final state from cache
   const pveFinalState = pveConfigCache.getFinalPVE();
-  const pveData = pveFinalState ? {
-    description: locale === 'nl'
-      ? 'Program van Eisen (PvE) - De definitieve verdeling van het te ontwikkelen programma. Alle waarden zijn uitgedrukt in percentages van het totaal en vierkante meters (m²).'
-      : 'Program of Requirements (PvE) - The final distribution of the development program. All values are expressed as percentages of the total and square meters (m²).',
-    totalM2: pveFinalState.totalM2,
-    percentages: {
-      apartments: {
-        percentage: pveFinalState.percentages.apartments,
-        m2: Math.round((pveFinalState.percentages.apartments / 100) * pveFinalState.totalM2),
-        description: locale === 'nl'
-          ? 'Woningen/appartementen - Het percentage en m² toegewezen aan residentiële wooneenheden'
-          : 'Residential apartments - The percentage and m² allocated to residential housing units'
+
+  // Build PVE data with FSI and housing categories
+  let pveData: CompactLocationExport['pve'] = undefined;
+  if (pveFinalState) {
+    const residentialM2 = Math.round((pveFinalState.percentages.apartments / 100) * pveFinalState.totalM2);
+    const housingCategories = pveFinalState.housingCategories ?? DEFAULT_HOUSING_CATEGORIES;
+    const categoryDescriptions = getHousingCategoryDescriptions(locale);
+
+    pveData = {
+      description: locale === 'nl'
+        ? 'Program van Eisen (PvE) - De definitieve verdeling van het te ontwikkelen programma. Alle waarden zijn uitgedrukt in percentages van het totaal en vierkante meters (m²).'
+        : 'Program of Requirements (PvE) - The final distribution of the development program. All values are expressed as percentages of the total and square meters (m²).',
+      totalM2: pveFinalState.totalM2,
+      percentages: {
+        apartments: {
+          percentage: pveFinalState.percentages.apartments,
+          m2: residentialM2,
+          description: locale === 'nl'
+            ? 'Woningen/appartementen - Het percentage en m² toegewezen aan residentiële wooneenheden'
+            : 'Residential apartments - The percentage and m² allocated to residential housing units'
+        },
+        commercial: {
+          percentage: pveFinalState.percentages.commercial,
+          m2: Math.round((pveFinalState.percentages.commercial / 100) * pveFinalState.totalM2),
+          description: locale === 'nl'
+            ? 'Commercieel - Het percentage en m² voor winkels, retail en commerciële activiteiten'
+            : 'Commercial - The percentage and m² for shops, retail and commercial activities'
+        },
+        hospitality: {
+          percentage: pveFinalState.percentages.hospitality,
+          m2: Math.round((pveFinalState.percentages.hospitality / 100) * pveFinalState.totalM2),
+          description: locale === 'nl'
+            ? 'Horeca - Het percentage en m² voor restaurants, cafés en horecagelegenheden'
+            : 'Hospitality - The percentage and m² for restaurants, cafés and hospitality venues'
+        },
+        social: {
+          percentage: pveFinalState.percentages.social,
+          m2: Math.round((pveFinalState.percentages.social / 100) * pveFinalState.totalM2),
+          description: locale === 'nl'
+            ? 'Sociaal - Het percentage en m² voor sociale voorzieningen zoals zorg, onderwijs en welzijn'
+            : 'Social - The percentage and m² for social facilities such as healthcare, education and welfare'
+        },
+        communal: {
+          percentage: pveFinalState.percentages.communal,
+          m2: Math.round((pveFinalState.percentages.communal / 100) * pveFinalState.totalM2),
+          description: locale === 'nl'
+            ? 'Gemeenschappelijk - Het percentage en m² voor gedeelde ruimtes en gemeenschappelijke voorzieningen'
+            : 'Communal - The percentage and m² for shared spaces and communal facilities'
+        },
+        offices: {
+          percentage: pveFinalState.percentages.offices,
+          m2: Math.round((pveFinalState.percentages.offices / 100) * pveFinalState.totalM2),
+          description: locale === 'nl'
+            ? 'Kantoren - Het percentage en m² voor kantoorruimtes en werkplekken'
+            : 'Offices - The percentage and m² for office spaces and workplaces'
+        }
       },
-      commercial: {
-        percentage: pveFinalState.percentages.commercial,
-        m2: Math.round((pveFinalState.percentages.commercial / 100) * pveFinalState.totalM2),
-        description: locale === 'nl'
-          ? 'Commercieel - Het percentage en m² voor winkels, retail en commerciële activiteiten'
-          : 'Commercial - The percentage and m² for shops, retail and commercial activities'
+      timestamp: new Date(pveFinalState.timestamp).toISOString(),
+      // Add FSI data if available
+      fsi: pveFinalState.fsi ? {
+        calculatedValue: pveFinalState.fsi.calculatedFSI,
+        finalValue: pveFinalState.fsi.overriddenFSI ?? pveFinalState.fsi.calculatedFSI,
+        isOverridden: pveFinalState.fsi.overriddenFSI !== null,
+        addressDensity: pveFinalState.fsi.addressDensity,
+        category: pveFinalState.fsi.category,
+        housingRecommendation: getHousingRecommendation(
+          pveFinalState.fsi.overriddenFSI ?? pveFinalState.fsi.calculatedFSI,
+          locale
+        ),
+      } : undefined,
+      // Add housing categories data
+      housingCategories: {
+        residential_m2: residentialM2,
+        social: {
+          percentage: housingCategories.social,
+          m2: housingCategories.social !== null
+            ? Math.round((housingCategories.social / 100) * residentialM2)
+            : null,
+          description: categoryDescriptions.social,
+          isRequired: housingCategories.social !== null,
+        },
+        affordable: {
+          percentage: housingCategories.affordable,
+          m2: housingCategories.affordable !== null
+            ? Math.round((housingCategories.affordable / 100) * residentialM2)
+            : null,
+          description: categoryDescriptions.affordable,
+          isRequired: housingCategories.affordable !== null,
+        },
+        luxury: {
+          percentage: housingCategories.luxury,
+          m2: housingCategories.luxury !== null
+            ? Math.round((housingCategories.luxury / 100) * residentialM2)
+            : null,
+          description: categoryDescriptions.luxury,
+          isRequired: housingCategories.luxury !== null,
+        },
+        unallocated: {
+          percentage: getUnallocatedPercentage(housingCategories),
+          description: locale === 'nl'
+            ? 'Vrij in te vullen - Dit percentage kan vrij worden toegewezen aan sociale, betaalbare of luxe woningen afhankelijk van het scenario.'
+            : 'Free to allocate - This percentage can be freely assigned to social, affordable or luxury housing depending on the scenario.',
+        },
       },
-      hospitality: {
-        percentage: pveFinalState.percentages.hospitality,
-        m2: Math.round((pveFinalState.percentages.hospitality / 100) * pveFinalState.totalM2),
-        description: locale === 'nl'
-          ? 'Horeca - Het percentage en m² voor restaurants, cafés en horecagelegenheden'
-          : 'Hospitality - The percentage and m² for restaurants, cafés and hospitality venues'
-      },
-      social: {
-        percentage: pveFinalState.percentages.social,
-        m2: Math.round((pveFinalState.percentages.social / 100) * pveFinalState.totalM2),
-        description: locale === 'nl'
-          ? 'Sociaal - Het percentage en m² voor sociale voorzieningen zoals zorg, onderwijs en welzijn'
-          : 'Social - The percentage and m² for social facilities such as healthcare, education and welfare'
-      },
-      communal: {
-        percentage: pveFinalState.percentages.communal,
-        m2: Math.round((pveFinalState.percentages.communal / 100) * pveFinalState.totalM2),
-        description: locale === 'nl'
-          ? 'Gemeenschappelijk - Het percentage en m² voor gedeelde ruimtes en gemeenschappelijke voorzieningen'
-          : 'Communal - The percentage and m² for shared spaces and communal facilities'
-      },
-      offices: {
-        percentage: pveFinalState.percentages.offices,
-        m2: Math.round((pveFinalState.percentages.offices / 100) * pveFinalState.totalM2),
-        description: locale === 'nl'
-          ? 'Kantoren - Het percentage en m² voor kantoorruimtes en werkplekken'
-          : 'Offices - The percentage and m² for office spaces and workplaces'
-      }
-    },
-    timestamp: new Date(pveFinalState.timestamp).toISOString()
-  } : undefined;
+    };
+  }
 
   // Get all personas from the source data
   const allPersonasSource = housingPersonasData[locale].housing_personas;

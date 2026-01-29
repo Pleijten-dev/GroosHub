@@ -295,11 +295,19 @@ export async function loadChatMessages(chatId: string): Promise<UIMessage[]> {
 
     if (msg.content_encrypted) {
       try {
-        // Decrypt content_json (stored as encrypted string)
-        if (msg.content_json && typeof msg.content_json === 'string') {
-          contentJson = decryptJSONFromStorage(msg.content_json, true);
+        // Decrypt content_json
+        // Format: stored as {"_encrypted": "salt:iv:encrypted:tag"} in JSONB column
+        if (msg.content_json) {
+          const jsonObj = msg.content_json as Record<string, unknown>;
+          if (jsonObj._encrypted && typeof jsonObj._encrypted === 'string') {
+            // New format: wrapped encrypted string
+            contentJson = decryptJSONFromStorage(jsonObj._encrypted, true);
+          } else if (typeof msg.content_json === 'string') {
+            // Legacy format: direct encrypted string (shouldn't happen with JSONB, but handle it)
+            contentJson = decryptJSONFromStorage(msg.content_json, true);
+          }
         }
-        // Decrypt content (stored as encrypted string)
+        // Decrypt content (stored as encrypted string in TEXT column)
         if (msg.content) {
           content = decryptFromStorage(msg.content, true);
         }
@@ -394,6 +402,12 @@ export async function saveChatMessage(
   // Both should have same encryption status (they use same key availability check)
   const isEncrypted = contentEncrypted && jsonEncrypted;
 
+  // When encrypted, wrap the encrypted string in a JSON object for JSONB column compatibility
+  // This ensures the column always contains valid JSON
+  const contentJsonValue = jsonEncrypted
+    ? JSON.stringify({ _encrypted: encryptedContentJson })
+    : encryptedContentJson;
+
   const textPreview = contentText.substring(0, 50).replace(/\n/g, ' ');
   console.log(`[ChatStore] 💾 Saving message to chat ${chatId}:`);
   console.log(`[ChatStore]    - Role: ${message.role}`);
@@ -410,7 +424,7 @@ export async function saveChatMessage(
       ${chatId},
       ${message.role},
       ${encryptedContent},
-      ${encryptedContentJson},
+      ${contentJsonValue},
       ${isEncrypted},
       ${options?.modelId || null},
       ${options?.inputTokens || 0},

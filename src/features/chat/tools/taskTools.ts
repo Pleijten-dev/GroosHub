@@ -188,6 +188,233 @@ export function createTaskTools(userId: number, locale: string = 'en') {
     }),
 
     /**
+     * List tasks in a project with assignment filtering
+     */
+    listProjectTasks: tool({
+      description: `Get tasks from a project with flexible assignment filtering. Use this when user asks:
+        - "Show me all tasks in project X"
+        - "What tasks are unassigned?"
+        - "Show me tasks assigned to [person name]"
+        - "What is everyone working on?"
+        - "What tasks need to be assigned?"
+        - "Show me the project backlog"
+        - "What tasks does [person] have?"
+
+        This tool shows tasks from projects the user is a member of, including unassigned tasks
+        and tasks assigned to other team members. Use this for project-wide task visibility.`,
+
+      inputSchema: z.object({
+        project_id: z.string().uuid()
+          .describe('UUID of the project to get tasks from'),
+        assignment_filter: z.enum(['all', 'unassigned', 'assigned_to_me', 'assigned_to_others', 'assigned_to_user']).default('all')
+          .describe('Filter by assignment: all (all tasks), unassigned (no assignee), assigned_to_me (my tasks), assigned_to_others (other team members), assigned_to_user (specific user)'),
+        assigned_user_name: z.string().optional()
+          .describe('Name of user to filter by (required when assignment_filter is assigned_to_user)'),
+        filter: z.enum(['all', 'overdue', 'today', 'this-week', 'no-deadline']).optional()
+          .describe('Filter tasks by time: all, overdue, today, this-week, or no-deadline'),
+        status: z.enum(['todo', 'doing', 'done']).optional()
+          .describe('Filter by task status'),
+        priority: z.enum(['urgent', 'high', 'normal', 'low']).optional()
+          .describe('Filter by priority level'),
+        limit: z.number().min(1).max(100).optional()
+          .describe('Maximum number of tasks to return (default: 30)')
+      }),
+
+      async execute({ project_id, assignment_filter = 'all', assigned_user_name, filter = 'all', status, priority, limit = 30 }: {
+        project_id: string;
+        assignment_filter?: 'all' | 'unassigned' | 'assigned_to_me' | 'assigned_to_others' | 'assigned_to_user';
+        assigned_user_name?: string;
+        filter?: 'all' | 'overdue' | 'today' | 'this-week' | 'no-deadline';
+        status?: 'todo' | 'doing' | 'done';
+        priority?: 'urgent' | 'high' | 'normal' | 'low';
+        limit?: number;
+      }) {
+        try {
+          // Verify project access
+          const projectAccess = await db`
+            SELECT pp.id, pp.name, pp.description
+            FROM project_projects pp
+            JOIN project_members pm ON pm.project_id = pp.id
+            WHERE pp.id = ${project_id}
+              AND pm.user_id = ${userId}
+              AND pp.deleted_at IS NULL
+            LIMIT 1
+          `;
+
+          if (projectAccess.length === 0) {
+            return {
+              success: false,
+              error: 'Project not found or access denied'
+            };
+          }
+
+          // If filtering by user name, resolve the user ID
+          let targetUserId: number | null = null;
+          if (assignment_filter === 'assigned_to_user' && assigned_user_name) {
+            const userResult = await db`
+              SELECT ua.id, ua.name
+              FROM user_accounts ua
+              JOIN project_members pm ON pm.user_id = ua.id
+              WHERE pm.project_id = ${project_id}
+                AND ua.name ILIKE ${'%' + assigned_user_name + '%'}
+              LIMIT 5
+            `;
+
+            if (userResult.length === 0) {
+              return {
+                success: false,
+                error: `User "${assigned_user_name}" not found in this project`
+              };
+            }
+
+            if (userResult.length > 1) {
+              return {
+                success: false,
+                error: `Multiple users match "${assigned_user_name}". Please be more specific.`,
+                matches: userResult.map((u: any) => u.name)
+              };
+            }
+
+            targetUserId = userResult[0].id;
+          }
+
+          // Build the assignment filter condition
+          let assignmentCondition;
+          if (assignment_filter === 'unassigned') {
+            assignmentCondition = db`
+              AND NOT EXISTS (
+                SELECT 1 FROM task_assignments ta_check
+                WHERE ta_check.task_id = t.id
+              )
+            `;
+          } else if (assignment_filter === 'assigned_to_me') {
+            assignmentCondition = db`
+              AND EXISTS (
+                SELECT 1 FROM task_assignments ta_check
+                WHERE ta_check.task_id = t.id AND ta_check.user_id = ${userId}
+              )
+            `;
+          } else if (assignment_filter === 'assigned_to_others') {
+            assignmentCondition = db`
+              AND EXISTS (
+                SELECT 1 FROM task_assignments ta_check
+                WHERE ta_check.task_id = t.id AND ta_check.user_id != ${userId}
+              )
+              AND NOT EXISTS (
+                SELECT 1 FROM task_assignments ta_check2
+                WHERE ta_check2.task_id = t.id AND ta_check2.user_id = ${userId}
+              )
+            `;
+          } else if (assignment_filter === 'assigned_to_user' && targetUserId) {
+            assignmentCondition = db`
+              AND EXISTS (
+                SELECT 1 FROM task_assignments ta_check
+                WHERE ta_check.task_id = t.id AND ta_check.user_id = ${targetUserId}
+              )
+            `;
+          } else {
+            // 'all' - no assignment filter
+            assignmentCondition = db``;
+          }
+
+          const tasks = await db`
+            SELECT
+              t.id,
+              t.title,
+              t.description,
+              t.status,
+              t.priority,
+              t.deadline,
+              t.tags,
+              t.created_at,
+              tg.name as group_name,
+              tg.color as group_color,
+              CASE
+                WHEN t.deadline < CURRENT_TIMESTAMP AND t.status != 'done' THEN true
+                ELSE false
+              END as is_overdue,
+              EXTRACT(DAY FROM (t.deadline - CURRENT_TIMESTAMP))::INTEGER as days_until_deadline,
+              ARRAY_AGG(DISTINCT jsonb_build_object(
+                'id', ua.id,
+                'name', ua.name
+              )) FILTER (WHERE ua.id IS NOT NULL) as assigned_users,
+              COUNT(DISTINCT tn.id) as note_count
+            FROM tasks t
+            LEFT JOIN task_groups tg ON tg.id = t.task_group_id
+            LEFT JOIN task_assignments ta ON ta.task_id = t.id
+            LEFT JOIN user_accounts ua ON ua.id = ta.user_id
+            LEFT JOIN task_notes tn ON tn.task_id = t.id
+            WHERE t.project_id = ${project_id}
+              AND t.deleted_at IS NULL
+              ${assignmentCondition}
+              ${status ? db`AND t.status = ${status}` : db``}
+              ${priority ? db`AND t.priority = ${priority}` : db``}
+              ${filter === 'overdue' ? db`AND t.deadline < CURRENT_TIMESTAMP AND t.status != 'done'` : db``}
+              ${filter === 'today' ? db`AND DATE(t.deadline) = CURRENT_DATE` : db``}
+              ${filter === 'this-week' ? db`AND t.deadline BETWEEN CURRENT_TIMESTAMP AND CURRENT_TIMESTAMP + INTERVAL '7 days'` : db``}
+              ${filter === 'no-deadline' ? db`AND t.deadline IS NULL` : db``}
+            GROUP BY t.id, tg.name, tg.color
+            ORDER BY
+              CASE WHEN t.deadline IS NOT NULL AND t.deadline < CURRENT_TIMESTAMP THEN 0 ELSE 1 END,
+              t.deadline ASC NULLS LAST,
+              CASE t.priority
+                WHEN 'urgent' THEN 0
+                WHEN 'high' THEN 1
+                WHEN 'normal' THEN 2
+                WHEN 'low' THEN 3
+              END,
+              t.created_at DESC
+            LIMIT ${limit}
+          `;
+
+          // Get team members for context
+          const teamMembers = await db`
+            SELECT ua.id, ua.name
+            FROM project_members pm
+            JOIN user_accounts ua ON ua.id = pm.user_id
+            WHERE pm.project_id = ${project_id}
+            ORDER BY ua.name
+          `;
+
+          return {
+            success: true,
+            project: {
+              id: project_id,
+              name: projectAccess[0].name
+            },
+            assignment_filter: assignment_filter,
+            filter: filter,
+            count: tasks.length,
+            team_members: teamMembers.map(m => ({ id: m.id, name: m.name })),
+            tasks: tasks.map(t => ({
+              id: t.id,
+              title: t.title,
+              description: t.description,
+              status: t.status,
+              priority: t.priority,
+              deadline: t.deadline,
+              tags: t.tags || [],
+              is_overdue: t.is_overdue,
+              days_until_deadline: t.days_until_deadline,
+              group_name: t.group_name,
+              group_color: t.group_color,
+              assigned_users: t.assigned_users || [],
+              note_count: parseInt(t.note_count) || 0,
+              created_at: t.created_at
+            }))
+          };
+        } catch (error) {
+          console.error('Error listing project tasks:', error);
+          return {
+            success: false,
+            error: 'Failed to retrieve project tasks',
+            details: error instanceof Error ? error.message : 'Unknown error'
+          };
+        }
+      }
+    }),
+
+    /**
      * Create a new task from natural language
      */
     createTask: tool({

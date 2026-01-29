@@ -390,6 +390,10 @@ async function executeStage4(
         communal: { percentage: data.pve.percentages.communal.percentage, m2: data.pve.percentages.communal.m2 },
         offices: { percentage: data.pve.percentages.offices.percentage, m2: data.pve.percentages.offices.m2 },
       },
+      // Include FSI data if available
+      fsi: data.pve.fsi,
+      // Include housing categories if available
+      housingCategories: data.pve.housingCategories,
     } : {
       totalM2: 10000,
       percentages: {

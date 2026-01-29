@@ -4,6 +4,7 @@
  */
 
 import { logger } from '@/shared/utils/logger';
+import type { HousingCategoryPercentages, FSICategory } from '../../utils/fsiCalculations';
 
 export interface PVEAllocations {
   apartments: number;
@@ -14,12 +15,30 @@ export interface PVEAllocations {
   offices: number;
 }
 
+/**
+ * FSI (Floor Space Index) configuration
+ */
+export interface FSIConfig {
+  /** Automatically calculated FSI from address density */
+  calculatedFSI: number;
+  /** User-overridden FSI value (null = use calculated) */
+  overriddenFSI: number | null;
+  /** Source address density from CBS (per km²) */
+  addressDensity: number;
+  /** FSI category (low, medium, high) */
+  category: FSICategory;
+}
+
 export interface PVECachedConfig {
   totalM2: number;
   percentages: PVEAllocations;
   disabledCategories: string[];
   lockedCategories: string[];
   timestamp: number;
+  /** FSI configuration */
+  fsi?: FSIConfig;
+  /** Housing category percentages (social, affordable, luxury) */
+  housingCategories?: HousingCategoryPercentages;
 }
 
 export interface PVEFinalState {
@@ -28,6 +47,10 @@ export interface PVEFinalState {
   timestamp: number;
   /** Custom scenario persona IDs (saved with snapshots) */
   customScenarioIds?: string[];
+  /** FSI configuration */
+  fsi?: FSIConfig;
+  /** Housing category percentages (social, affordable, luxury) */
+  housingCategories?: HousingCategoryPercentages;
 }
 
 const CACHE_KEY = 'grooshub_pve_custom_config';
@@ -199,3 +222,6 @@ class PVEConfigCache {
 
 // Export singleton instance
 export const pveConfigCache = new PVEConfigCache();
+
+// Re-export types from fsiCalculations for convenience
+export type { HousingCategoryPercentages, FSICategory } from '../../utils/fsiCalculations';
