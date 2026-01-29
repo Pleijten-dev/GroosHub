@@ -87,7 +87,8 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
     return () => window.removeEventListener('resize', updateDimensions);
   }, [propCols]);
 
-  const convertImageToASCII = useCallback((img: HTMLImageElement, targetCols: number): string[] => {
+  // Convert image to ASCII, scaling to fill the target dimensions
+  const convertImageToASCII = useCallback((img: HTMLImageElement, targetCols: number, targetRows: number): string[] => {
     // Create canvas if not exists
     if (!canvasRef.current) {
       canvasRef.current = document.createElement('canvas');
@@ -96,30 +97,24 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return [];
 
-    // Set canvas size to image size
-    canvas.width = img.width;
-    canvas.height = img.height;
+    // Scale the image to fill the entire target area
+    // Calculate the canvas size needed based on target ASCII dimensions
+    const canvasWidth = targetCols;
+    const canvasHeight = targetRows;
 
-    // Draw image
-    ctx.drawImage(img, 0, 0);
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
 
-    // Calculate cell dimensions
-    // ASCII characters are roughly 2:1 height:width ratio
-    const cellWidth = img.width / targetCols;
-    const cellHeight = cellWidth * 2;
-    const rows = Math.floor(img.height / cellHeight);
+    // Draw image scaled to fill the entire canvas
+    ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
 
     const lines: string[] = [];
 
-    for (let y = 0; y < rows; y++) {
+    for (let y = 0; y < targetRows; y++) {
       let line = '';
       for (let x = 0; x < targetCols; x++) {
-        // Sample pixel at center of cell
-        const sampleX = Math.floor(x * cellWidth + cellWidth / 2);
-        const sampleY = Math.floor(y * cellHeight + cellHeight / 2);
-
-        // Get pixel data
-        const pixel = ctx.getImageData(sampleX, sampleY, 1, 1).data;
+        // Get pixel data at each position
+        const pixel = ctx.getImageData(x, y, 1, 1).data;
 
         // Check if pixel is transparent (no data)
         if (pixel[3] < 128) {
@@ -137,49 +132,16 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
     return lines;
   }, []);
 
-  // Tile the ASCII art to fill the required dimensions
-  const tileASCII = useCallback((baseLines: string[], targetCols: number, targetRows: number): string[] => {
-    if (baseLines.length === 0) return [];
-
-    const baseCols = baseLines[0]?.length || targetCols;
-    const baseRows = baseLines.length;
-
-    // Calculate how many tiles we need
-    const tilesX = Math.ceil(targetCols / baseCols) + 1;
-    const tilesY = Math.ceil(targetRows / baseRows) + 1;
-
-    const tiledLines: string[] = [];
-
-    for (let ty = 0; ty < tilesY; ty++) {
-      for (let row = 0; row < baseRows; row++) {
-        if (tiledLines.length >= targetRows) break;
-
-        let line = '';
-        for (let tx = 0; tx < tilesX; tx++) {
-          line += baseLines[row] || ' '.repeat(baseCols);
-        }
-        // Trim to target cols
-        tiledLines.push(line.substring(0, targetCols));
-      }
-    }
-
-    return tiledLines.slice(0, targetRows);
-  }, []);
-
   useEffect(() => {
     const fetchAndConvert = async () => {
       setIsLoading(true);
       setError(null);
 
-      // Use a base size for fetching, then tile to fill screen
-      const baseCols = 150;
-
       try {
-        // Build WMS URL for Rotterdam
-        const wmsUrl = buildWMSUrl(ROTTERDAM_BBOX, 512, 512);
+        // Build WMS URL for Rotterdam - fetch at higher resolution for better quality
+        const wmsUrl = buildWMSUrl(ROTTERDAM_BBOX, 1024, 1024);
 
         // Fetch image via our proxy to avoid CORS issues
-        // We'll use a data URL approach with fetch
         const response = await fetch(`/api/proxy-wms?url=${encodeURIComponent(wmsUrl)}`);
 
         if (!response.ok) {
@@ -189,9 +151,9 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
 
           await new Promise<void>((resolve, reject) => {
             img.onload = () => {
-              const baseAscii = convertImageToASCII(img, baseCols);
-              const tiledAscii = tileASCII(baseAscii, dimensions.cols, dimensions.rows);
-              setAsciiLines(tiledAscii);
+              // Scale image to fill entire screen
+              const ascii = convertImageToASCII(img, dimensions.cols, dimensions.rows);
+              setAsciiLines(ascii);
               resolve();
             };
             img.onerror = () => reject(new Error('Failed to load WMS image'));
@@ -203,9 +165,9 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
 
           await new Promise<void>((resolve, reject) => {
             img.onload = () => {
-              const baseAscii = convertImageToASCII(img, baseCols);
-              const tiledAscii = tileASCII(baseAscii, dimensions.cols, dimensions.rows);
-              setAsciiLines(tiledAscii);
+              // Scale image to fill entire screen
+              const ascii = convertImageToASCII(img, dimensions.cols, dimensions.rows);
+              setAsciiLines(ascii);
               URL.revokeObjectURL(img.src);
               resolve();
             };
@@ -236,7 +198,7 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
     };
 
     fetchAndConvert();
-  }, [dimensions, convertImageToASCII, tileASCII]);
+  }, [dimensions, convertImageToASCII]);
 
   return (
     <div
