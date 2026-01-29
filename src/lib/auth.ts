@@ -118,34 +118,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  callbacks: {
-    async jwt({ token, user }) {
-      // Add user info to token on sign in
-      if (user) {
-        return {
-          ...token,
-          id: user.id,
-          role: user.role,
-          org_id: user.org_id,
-          must_change_password: user.must_change_password,
-        };
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      // Add user info to session
-      return {
-        ...session,
-        user: {
-          ...session.user,
-          id: token.id as number,
-          role: token.role as string,
-          org_id: token.org_id as string,
-          must_change_password: token.must_change_password as boolean,
-        },
-      };
-    },
-  },
   session: {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 days - users will stay logged in
