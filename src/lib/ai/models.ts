@@ -8,9 +8,10 @@
 
 import { openai } from '@ai-sdk/openai';
 import { anthropic } from '@ai-sdk/anthropic';
-import { google } from '@ai-sdk/google';
-import { mistral } from '@ai-sdk/mistral';
-import { xai } from '@ai-sdk/xai';
+// Commented out - API keys not configured for these providers
+// import { google } from '@ai-sdk/google';
+// import { mistral } from '@ai-sdk/mistral';
+// import { xai } from '@ai-sdk/xai';
 
 /**
  * Model capabilities interface
@@ -44,19 +45,20 @@ export type ModelId =
   | 'claude-sonnet-4.5'
   | 'claude-sonnet-3.7'
   | 'claude-haiku-3.5'
-  | 'claude-opus-3.5'
-  // Google models
-  | 'gemini-2.0-flash'
-  | 'gemini-1.5-pro'
-  | 'gemini-1.5-flash'
-  // Mistral models
-  | 'mistral-large'
-  | 'mistral-small'
-  | 'mistral-nemo'
-  // xAI models
-  | 'grok-2-latest'
-  | 'grok-2-vision'
-  | 'grok-beta';
+  | 'claude-opus-3.5';
+  // Commented out - API keys not configured for these providers
+  // // Google models
+  // | 'gemini-2.0-flash'
+  // | 'gemini-1.5-pro'
+  // | 'gemini-1.5-flash'
+  // // Mistral models
+  // | 'mistral-large'
+  // | 'mistral-small'
+  // | 'mistral-nemo'
+  // // xAI models
+  // | 'grok-2-latest'
+  // | 'grok-2-vision'
+  // | 'grok-beta';
 
 /**
  * Model registry
@@ -75,20 +77,21 @@ export const MODELS = {
   'claude-haiku-3.5': anthropic('claude-3-5-haiku-20241022'),
   'claude-opus-3.5': anthropic('claude-3-5-opus-20240229'),
 
-  // Google models
-  'gemini-2.0-flash': google('gemini-2.0-flash-exp'),
-  'gemini-1.5-pro': google('gemini-1.5-pro-latest'),
-  'gemini-1.5-flash': google('gemini-1.5-flash-latest'),
+  // Commented out - API keys not configured for these providers
+  // // Google models
+  // 'gemini-2.0-flash': google('gemini-2.0-flash-exp'),
+  // 'gemini-1.5-pro': google('gemini-1.5-pro-latest'),
+  // 'gemini-1.5-flash': google('gemini-1.5-flash-latest'),
 
-  // Mistral models
-  'mistral-large': mistral('mistral-large-latest'),
-  'mistral-small': mistral('mistral-small-latest'),
-  'mistral-nemo': mistral('open-mistral-nemo'),
+  // // Mistral models
+  // 'mistral-large': mistral('mistral-large-latest'),
+  // 'mistral-small': mistral('mistral-small-latest'),
+  // 'mistral-nemo': mistral('open-mistral-nemo'),
 
-  // xAI models
-  'grok-2-latest': xai('grok-2-latest'),
-  'grok-2-vision': xai('grok-2-vision-1212'),
-  'grok-beta': xai('grok-beta'),
+  // // xAI models
+  // 'grok-2-latest': xai('grok-2-latest'),
+  // 'grok-2-vision': xai('grok-2-vision-1212'),
+  // 'grok-beta': xai('grok-beta'),
 } as const;
 
 /**
@@ -181,101 +184,102 @@ export const MODEL_CAPABILITIES: Record<ModelId, ModelCapabilities> = {
     costPer1kTokens: { input: 0.015, output: 0.075 },
   },
 
-  // Google models
-  'gemini-2.0-flash': {
-    supportsVision: true,
-    supportsTools: true,
-    supportsImageGeneration: false,
-    maxTokens: 8192,
-    contextWindow: 1000000,
-    streamingSupported: true,
-    providers: ['google'],
-    costPer1kTokens: { input: 0, output: 0 }, // Free tier
-  },
-  'gemini-1.5-pro': {
-    supportsVision: true,
-    supportsTools: true,
-    supportsImageGeneration: false,
-    maxTokens: 8192,
-    contextWindow: 2000000,
-    streamingSupported: true,
-    providers: ['google'],
-    costPer1kTokens: { input: 0.00125, output: 0.005 },
-  },
-  'gemini-1.5-flash': {
-    supportsVision: true,
-    supportsTools: true,
-    supportsImageGeneration: false,
-    maxTokens: 8192,
-    contextWindow: 1000000,
-    streamingSupported: true,
-    providers: ['google'],
-    costPer1kTokens: { input: 0.000075, output: 0.0003 },
-  },
+  // Commented out - API keys not configured for these providers
+  // // Google models
+  // 'gemini-2.0-flash': {
+  //   supportsVision: true,
+  //   supportsTools: true,
+  //   supportsImageGeneration: false,
+  //   maxTokens: 8192,
+  //   contextWindow: 1000000,
+  //   streamingSupported: true,
+  //   providers: ['google'],
+  //   costPer1kTokens: { input: 0, output: 0 }, // Free tier
+  // },
+  // 'gemini-1.5-pro': {
+  //   supportsVision: true,
+  //   supportsTools: true,
+  //   supportsImageGeneration: false,
+  //   maxTokens: 8192,
+  //   contextWindow: 2000000,
+  //   streamingSupported: true,
+  //   providers: ['google'],
+  //   costPer1kTokens: { input: 0.00125, output: 0.005 },
+  // },
+  // 'gemini-1.5-flash': {
+  //   supportsVision: true,
+  //   supportsTools: true,
+  //   supportsImageGeneration: false,
+  //   maxTokens: 8192,
+  //   contextWindow: 1000000,
+  //   streamingSupported: true,
+  //   providers: ['google'],
+  //   costPer1kTokens: { input: 0.000075, output: 0.0003 },
+  // },
 
-  // Mistral models
-  'mistral-large': {
-    supportsVision: false,
-    supportsTools: true,
-    supportsImageGeneration: false,
-    maxTokens: 8192,
-    contextWindow: 128000,
-    streamingSupported: true,
-    providers: ['mistral'],
-    costPer1kTokens: { input: 0.002, output: 0.006 },
-  },
-  'mistral-small': {
-    supportsVision: false,
-    supportsTools: true,
-    supportsImageGeneration: false,
-    maxTokens: 8192,
-    contextWindow: 128000,
-    streamingSupported: true,
-    providers: ['mistral'],
-    costPer1kTokens: { input: 0.0002, output: 0.0006 },
-  },
-  'mistral-nemo': {
-    supportsVision: false,
-    supportsTools: true,
-    supportsImageGeneration: false,
-    maxTokens: 8192,
-    contextWindow: 128000,
-    streamingSupported: true,
-    providers: ['mistral'],
-    costPer1kTokens: { input: 0.00015, output: 0.00015 },
-  },
+  // // Mistral models
+  // 'mistral-large': {
+  //   supportsVision: false,
+  //   supportsTools: true,
+  //   supportsImageGeneration: false,
+  //   maxTokens: 8192,
+  //   contextWindow: 128000,
+  //   streamingSupported: true,
+  //   providers: ['mistral'],
+  //   costPer1kTokens: { input: 0.002, output: 0.006 },
+  // },
+  // 'mistral-small': {
+  //   supportsVision: false,
+  //   supportsTools: true,
+  //   supportsImageGeneration: false,
+  //   maxTokens: 8192,
+  //   contextWindow: 128000,
+  //   streamingSupported: true,
+  //   providers: ['mistral'],
+  //   costPer1kTokens: { input: 0.0002, output: 0.0006 },
+  // },
+  // 'mistral-nemo': {
+  //   supportsVision: false,
+  //   supportsTools: true,
+  //   supportsImageGeneration: false,
+  //   maxTokens: 8192,
+  //   contextWindow: 128000,
+  //   streamingSupported: true,
+  //   providers: ['mistral'],
+  //   costPer1kTokens: { input: 0.00015, output: 0.00015 },
+  // },
 
-  // xAI models
-  'grok-2-latest': {
-    supportsVision: false,
-    supportsTools: true,
-    supportsImageGeneration: false,
-    maxTokens: 8192,
-    contextWindow: 128000,
-    streamingSupported: true,
-    providers: ['xai'],
-    costPer1kTokens: { input: 0.002, output: 0.01 },
-  },
-  'grok-2-vision': {
-    supportsVision: true,
-    supportsTools: true,
-    supportsImageGeneration: false,
-    maxTokens: 8192,
-    contextWindow: 128000,
-    streamingSupported: true,
-    providers: ['xai'],
-    costPer1kTokens: { input: 0.002, output: 0.01 },
-  },
-  'grok-beta': {
-    supportsVision: false,
-    supportsTools: true,
-    supportsImageGeneration: false,
-    maxTokens: 8192,
-    contextWindow: 128000,
-    streamingSupported: true,
-    providers: ['xai'],
-    costPer1kTokens: { input: 0.005, output: 0.015 },
-  },
+  // // xAI models
+  // 'grok-2-latest': {
+  //   supportsVision: false,
+  //   supportsTools: true,
+  //   supportsImageGeneration: false,
+  //   maxTokens: 8192,
+  //   contextWindow: 128000,
+  //   streamingSupported: true,
+  //   providers: ['xai'],
+  //   costPer1kTokens: { input: 0.002, output: 0.01 },
+  // },
+  // 'grok-2-vision': {
+  //   supportsVision: true,
+  //   supportsTools: true,
+  //   supportsImageGeneration: false,
+  //   maxTokens: 8192,
+  //   contextWindow: 128000,
+  //   streamingSupported: true,
+  //   providers: ['xai'],
+  //   costPer1kTokens: { input: 0.002, output: 0.01 },
+  // },
+  // 'grok-beta': {
+  //   supportsVision: false,
+  //   supportsTools: true,
+  //   supportsImageGeneration: false,
+  //   maxTokens: 8192,
+  //   contextWindow: 128000,
+  //   streamingSupported: true,
+  //   providers: ['xai'],
+  //   costPer1kTokens: { input: 0.005, output: 0.015 },
+  // },
 };
 
 /**
@@ -383,8 +387,8 @@ export const DEFAULT_VISION_MODEL: ModelId = 'gpt-4o';
 export const CHEAP_MODELS: ModelId[] = [
   'gpt-4o-mini',
   'claude-haiku-3.5',
-  'gemini-1.5-flash',
-  'mistral-nemo'
+  // 'gemini-1.5-flash', // Commented out - API key not configured
+  // 'mistral-nemo'      // Commented out - API key not configured
 ];
 
 /**
@@ -393,6 +397,6 @@ export const CHEAP_MODELS: ModelId[] = [
 export const PREMIUM_MODELS: ModelId[] = [
   'claude-sonnet-4.5',
   'gpt-4o',
-  'gemini-1.5-pro',
-  'mistral-large'
+  // 'gemini-1.5-pro', // Commented out - API key not configured
+  // 'mistral-large'   // Commented out - API key not configured
 ];
