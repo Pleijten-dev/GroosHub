@@ -201,8 +201,8 @@ const FeatureCardComponent: React.FC<FeatureCardComponentProps> = ({ card, local
         boxShadow: isHovered && isActive
           ? 'inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 20px 40px rgba(0, 0, 0, 0.08)'
           : 'inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 4px 16px rgba(0, 0, 0, 0.03)',
-        backdropFilter: 'blur(2px)',
-        WebkitBackdropFilter: 'blur(2px)',
+        backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)',
         border: '1px solid rgba(255, 255, 255, 0.1)',
       }}
       onMouseEnter={() => setIsHovered(true)}
