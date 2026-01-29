@@ -2,14 +2,16 @@
  * RAG Table Formatter
  *
  * Transforms raw machine-readable table data from RAG chunks
- * into human-readable markdown tables.
+ * into human-readable formats.
  *
  * Input formats handled:
  * 1. "--- Tabel Details ---" sections with pipe-separated tables
  * 2. "--- Tabel Samenvatting (Semantisch Verrijkt) ---" sections
  * 3. Raw table data with embedded column structures
  *
- * Output: Clean markdown with properly formatted tables and summaries
+ * Output:
+ * - HTML tables for UI display (formatRAGSourceText)
+ * - Markdown for LLM context (formatRAGTableContent)
  */
 
 export interface FormattedRAGContent {
@@ -18,81 +20,15 @@ export interface FormattedRAGContent {
   tableSummaries: string[];
 }
 
-/**
- * Main function to format RAG chunk text for human readability
- */
-export function formatRAGTableContent(rawText: string): FormattedRAGContent {
-  if (!rawText || typeof rawText !== 'string') {
-    return { formattedText: rawText || '', hasTable: false, tableSummaries: [] };
-  }
-
-  let formattedText = rawText;
-  const tableSummaries: string[] = [];
-  let hasTable = false;
-
-  // 1. Extract and format "Tabel Samenvatting" (semantic summaries)
-  const summaryMatch = formattedText.match(
-    /---\s*Tabel Samenvatting\s*\(Semantisch Verrijkt\)\s*---\s*([\s\S]*?)(?=---|$)/i
-  );
-
-  if (summaryMatch) {
-    hasTable = true;
-    const summarySection = summaryMatch[1];
-
-    // Extract quoted sentences
-    const sentences = summarySection
-      .split('\n')
-      .map(line => line.trim())
-      .filter(line => line.startsWith('"') && line.endsWith('"'))
-      .map(line => line.slice(1, -1)); // Remove quotes
-
-    tableSummaries.push(...sentences);
-
-    // Format the summary section nicely
-    if (sentences.length > 0) {
-      const formattedSummary = `\n\n**Samenvatting van tabel:**\n${sentences.map(s => `- ${s}`).join('\n')}\n`;
-      formattedText = formattedText.replace(summaryMatch[0], formattedSummary);
-    }
-  }
-
-  // 2. Extract and format "Tabel Details" sections
-  const tableDetailsMatch = formattedText.match(
-    /---\s*Tabel Details\s*---\s*([\s\S]*?)(?=---\s*Tabel Samenvatting|---|$)/i
-  );
-
-  if (tableDetailsMatch) {
-    hasTable = true;
-    const tableSection = tableDetailsMatch[1];
-    const formattedTable = formatPipeTable(tableSection);
-
-    if (formattedTable) {
-      formattedText = formattedText.replace(
-        tableDetailsMatch[0],
-        `\n\n**Tabel:**\n${formattedTable}\n`
-      );
-    }
-  }
-
-  // 3. Handle inline raw tables (pipe-separated without markers)
-  formattedText = formatInlinePipeTables(formattedText);
-
-  // 4. Clean up date/version artifacts that often appear in raw data
-  formattedText = cleanupArtifacts(formattedText);
-
-  // 5. Format any remaining raw table structures
-  formattedText = formatRawTableStructures(formattedText);
-
-  return {
-    formattedText: formattedText.trim(),
-    hasTable,
-    tableSummaries,
-  };
+export interface ParsedTable {
+  headers: string[];
+  rows: string[][];
 }
 
 /**
- * Format pipe-separated table content into proper markdown
+ * Parse pipe-separated table content into structured data
  */
-function formatPipeTable(tableContent: string): string | null {
+function parsePipeTable(tableContent: string): ParsedTable | null {
   const lines = tableContent.split('\n').filter(line => line.trim());
 
   if (lines.length === 0) return null;
@@ -103,9 +39,12 @@ function formatPipeTable(tableContent: string): string | null {
   if (tableLines.length === 0) return null;
 
   // Normalize the table structure
-  const rows: string[][] = [];
+  const allRows: string[][] = [];
 
   for (const line of tableLines) {
+    // Skip separator lines (only dashes and pipes)
+    if (/^[\s|:-]+$/.test(line)) continue;
+
     // Split by pipe and clean up cells
     const cells = line
       .split('|')
@@ -117,68 +56,170 @@ function formatPipeTable(tableContent: string): string | null {
         return true;
       });
 
-    if (cells.length > 0) {
-      rows.push(cells);
+    if (cells.length > 0 && cells.some(c => c.length > 0)) {
+      allRows.push(cells);
     }
   }
 
-  if (rows.length === 0) return null;
+  if (allRows.length === 0) return null;
 
   // Determine max columns
-  const maxCols = Math.max(...rows.map(row => row.length));
+  const maxCols = Math.max(...allRows.map(row => row.length));
 
   // Normalize all rows to have same number of columns
-  const normalizedRows = rows.map(row => {
+  const normalizedRows = allRows.map(row => {
     while (row.length < maxCols) {
       row.push('');
     }
     return row;
   });
 
-  // Calculate column widths
-  const colWidths = Array(maxCols).fill(0);
-  for (const row of normalizedRows) {
-    for (let i = 0; i < row.length; i++) {
-      colWidths[i] = Math.max(colWidths[i], row[i].length, 3);
+  // First row is headers, rest are data
+  return {
+    headers: normalizedRows[0] || [],
+    rows: normalizedRows.slice(1),
+  };
+}
+
+/**
+ * Convert parsed table to HTML table element with inline styles
+ */
+function tableToHTML(table: ParsedTable): string {
+  const escapeHTML = (str: string) =>
+    str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+
+  // Table styles
+  const tableStyle = 'width: 100%; border-collapse: collapse; font-size: 0.875rem; margin: 0.5rem 0;';
+  const thStyle = 'background-color: #f3f4f6; padding: 0.5rem; text-align: left; font-weight: 600; border: 1px solid #d1d5db;';
+  const tdStyle = 'padding: 0.5rem; border: 1px solid #e5e7eb;';
+  const trHoverStyle = 'background-color: #f9fafb;';
+
+  let html = `<table style="${tableStyle}">\n`;
+
+  // Header row
+  if (table.headers.length > 0) {
+    html += '  <thead>\n    <tr>\n';
+    for (const header of table.headers) {
+      html += `      <th style="${thStyle}">${escapeHTML(header)}</th>\n`;
     }
+    html += '    </tr>\n  </thead>\n';
   }
 
-  // Build markdown table
+  // Data rows
+  if (table.rows.length > 0) {
+    html += '  <tbody>\n';
+    for (let i = 0; i < table.rows.length; i++) {
+      const row = table.rows[i];
+      const rowBg = i % 2 === 1 ? ' background-color: #fafafa;' : '';
+      html += `    <tr style="${rowBg}">\n`;
+      for (const cell of row) {
+        html += `      <td style="${tdStyle}">${escapeHTML(cell)}</td>\n`;
+      }
+      html += '    </tr>\n';
+    }
+    html += '  </tbody>\n';
+  }
+
+  html += '</table>';
+  return html;
+}
+
+/**
+ * Convert parsed table to markdown
+ */
+function tableToMarkdown(table: ParsedTable): string {
+  const allRows = [table.headers, ...table.rows];
+
+  // Calculate column widths
+  const colWidths = table.headers.map((_, colIndex) => {
+    return Math.max(
+      3,
+      ...allRows.map(row => (row[colIndex] || '').length)
+    );
+  });
+
   const formatRow = (row: string[]) =>
-    '| ' + row.map((cell, i) => cell.padEnd(colWidths[i])).join(' | ') + ' |';
+    '| ' + row.map((cell, i) => (cell || '').padEnd(colWidths[i] || 3)).join(' | ') + ' |';
 
   const headerSeparator =
     '| ' + colWidths.map(w => '-'.repeat(w)).join(' | ') + ' |';
 
   const result: string[] = [];
+  result.push(formatRow(table.headers));
+  result.push(headerSeparator);
 
-  // First row as header
-  if (normalizedRows.length > 0) {
-    result.push(formatRow(normalizedRows[0]));
-    result.push(headerSeparator);
-
-    // Remaining rows as data
-    for (let i = 1; i < normalizedRows.length; i++) {
-      result.push(formatRow(normalizedRows[i]));
-    }
+  for (const row of table.rows) {
+    result.push(formatRow(row));
   }
 
   return result.join('\n');
 }
 
 /**
- * Find and format inline pipe tables that aren't wrapped in markers
+ * Extract semantic summaries from text
  */
-function formatInlinePipeTables(text: string): string {
-  // Look for sequences of lines that look like table rows
+function extractSummaries(text: string): { summaries: string[]; cleanedText: string } {
+  const summaries: string[] = [];
+  let cleanedText = text;
+
+  const summaryMatch = text.match(
+    /---\s*Tabel Samenvatting\s*\(Semantisch Verrijkt\)\s*---\s*([\s\S]*?)(?=---|$)/i
+  );
+
+  if (summaryMatch) {
+    const summarySection = summaryMatch[1];
+
+    // Extract quoted sentences
+    const sentences = summarySection
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.startsWith('"') && line.endsWith('"'))
+      .map(line => line.slice(1, -1));
+
+    summaries.push(...sentences);
+    cleanedText = cleanedText.replace(summaryMatch[0], '');
+  }
+
+  return { summaries, cleanedText };
+}
+
+/**
+ * Extract table details section
+ */
+function extractTableDetails(text: string): { table: ParsedTable | null; cleanedText: string } {
+  let cleanedText = text;
+
+  const tableDetailsMatch = text.match(
+    /---\s*Tabel Details\s*---\s*([\s\S]*?)(?=---\s*Tabel Samenvatting|---|$)/i
+  );
+
+  if (tableDetailsMatch) {
+    const tableSection = tableDetailsMatch[1];
+    const table = parsePipeTable(tableSection);
+    cleanedText = cleanedText.replace(tableDetailsMatch[0], '');
+    return { table, cleanedText };
+  }
+
+  return { table: null, cleanedText };
+}
+
+/**
+ * Find inline pipe tables in text
+ */
+function extractInlineTables(text: string): { tables: ParsedTable[]; cleanedText: string } {
   const lines = text.split('\n');
   const result: string[] = [];
+  const tables: ParsedTable[] = [];
   let tableBuffer: string[] = [];
   let inTable = false;
 
   for (const line of lines) {
     const trimmedLine = line.trim();
-    const isPipeRow = trimmedLine.includes('|') && !trimmedLine.startsWith('**');
+    const isPipeRow = trimmedLine.includes('|') && !trimmedLine.startsWith('**') && !trimmedLine.startsWith('<');
 
     if (isPipeRow) {
       if (!inTable) {
@@ -187,17 +228,14 @@ function formatInlinePipeTables(text: string): string {
       tableBuffer.push(trimmedLine);
     } else {
       if (inTable && tableBuffer.length >= 2) {
-        // We have a table to format
-        const formattedTable = formatPipeTable(tableBuffer.join('\n'));
-        if (formattedTable) {
-          result.push('');
-          result.push(formattedTable);
-          result.push('');
+        const table = parsePipeTable(tableBuffer.join('\n'));
+        if (table) {
+          tables.push(table);
+          result.push('{{TABLE_PLACEHOLDER}}');
         } else {
           result.push(...tableBuffer);
         }
       } else if (inTable) {
-        // Not enough rows for a table, add as-is
         result.push(...tableBuffer);
       }
       tableBuffer = [];
@@ -208,10 +246,10 @@ function formatInlinePipeTables(text: string): string {
 
   // Handle remaining table buffer
   if (tableBuffer.length >= 2) {
-    const formattedTable = formatPipeTable(tableBuffer.join('\n'));
-    if (formattedTable) {
-      result.push('');
-      result.push(formattedTable);
+    const table = parsePipeTable(tableBuffer.join('\n'));
+    if (table) {
+      tables.push(table);
+      result.push('{{TABLE_PLACEHOLDER}}');
     } else {
       result.push(...tableBuffer);
     }
@@ -219,7 +257,7 @@ function formatInlinePipeTables(text: string): string {
     result.push(...tableBuffer);
   }
 
-  return result.join('\n');
+  return { tables, cleanedText: result.join('\n') };
 }
 
 /**
@@ -227,7 +265,6 @@ function formatInlinePipeTables(text: string): string {
  */
 function cleanupArtifacts(text: string): string {
   // Remove date/version artifact sequences like "2018 291 31-08-2018 03-07-2018"
-  // These often appear at the end of legal document tables
   let cleaned = text.replace(
     /\d{4}\s+\d+\s+\d{2}-\d{2}-\d{4}\s+\d{2}-\d{2}-\d{4}(?:\s+\d{2}-\d{2}-\d{4})?/g,
     ''
@@ -249,14 +286,10 @@ function cleanupArtifacts(text: string): string {
 }
 
 /**
- * Format raw table structures that appear as space-separated columns
+ * Format article headers and table references
  */
-function formatRawTableStructures(text: string): string {
-  // Detect patterns like "gebruiksfunctie leden van toepassing waarden"
-  // followed by data rows
-
+function formatStructuralElements(text: string): string {
   // Look for the article/table header pattern
-  // Using [\s\S] instead of . with /s flag for compatibility
   const articleMatch = text.match(
     /Artikel\s+(\d+\.\d+)\s*\([^)]+\)\s*(?:\d\s+)?([\s\S]+?)(?=Tabel|$)/
   );
@@ -264,39 +297,156 @@ function formatRawTableStructures(text: string): string {
   if (articleMatch) {
     const articleNum = articleMatch[1];
     const articleText = articleMatch[2].trim();
-
-    // Format the article header nicely
     text = text.replace(
       articleMatch[0],
-      `\n**Artikel ${articleNum}**\n${articleText}\n`
+      `\n<strong>Artikel ${articleNum}</strong>\n${articleText}\n`
     );
   }
 
-  // Look for "Tabel X.XXX" references and format them
-  text = text.replace(/Tabel\s+(\d+\.\d+)/g, '**Tabel $1**');
+  // Format table references
+  text = text.replace(/Tabel\s+(\d+\.\d+)/g, '<strong>Tabel $1</strong>');
 
   return text;
 }
 
 /**
- * Format RAG content specifically for display in MessageSources
- * This is a simpler version that preserves more structure
+ * Main function to format RAG chunk text for LLM context (markdown output)
  */
-export function formatRAGSourceText(rawText: string): string {
-  const { formattedText, tableSummaries } = formatRAGTableContent(rawText);
-
-  // If we have summaries, prioritize showing those first
-  if (tableSummaries.length > 0) {
-    const summaryText = tableSummaries.map(s => `• ${s}`).join('\n');
-    return `${summaryText}\n\n---\n\n${formattedText}`;
+export function formatRAGTableContent(rawText: string): FormattedRAGContent {
+  if (!rawText || typeof rawText !== 'string') {
+    return { formattedText: rawText || '', hasTable: false, tableSummaries: [] };
   }
 
-  return formattedText;
+  let text = rawText;
+  const tableSummaries: string[] = [];
+  let hasTable = false;
+
+  // 1. Extract summaries
+  const { summaries, cleanedText: textAfterSummary } = extractSummaries(text);
+  tableSummaries.push(...summaries);
+  text = textAfterSummary;
+
+  // 2. Extract table details
+  const { table: detailsTable, cleanedText: textAfterDetails } = extractTableDetails(text);
+  if (detailsTable) hasTable = true;
+  text = textAfterDetails;
+
+  // 3. Extract inline tables
+  const { tables: inlineTables, cleanedText: textAfterInline } = extractInlineTables(text);
+  if (inlineTables.length > 0) hasTable = true;
+  text = textAfterInline;
+
+  // 4. Clean up artifacts
+  text = cleanupArtifacts(text);
+
+  // 5. Build output with markdown tables
+  let result = '';
+
+  if (summaries.length > 0) {
+    result += '**Samenvatting:**\n';
+    result += summaries.map(s => `- ${s}`).join('\n');
+    result += '\n\n';
+  }
+
+  if (detailsTable) {
+    result += '**Tabel:**\n';
+    result += tableToMarkdown(detailsTable);
+    result += '\n\n';
+  }
+
+  // Replace placeholders with inline tables
+  let tableIndex = 0;
+  text = text.replace(/\{\{TABLE_PLACEHOLDER\}\}/g, () => {
+    const table = inlineTables[tableIndex++];
+    if (table) {
+      return '\n' + tableToMarkdown(table) + '\n';
+    }
+    return '';
+  });
+
+  result += text.trim();
+
+  return {
+    formattedText: result.trim(),
+    hasTable,
+    tableSummaries,
+  };
+}
+
+/**
+ * Format RAG content for UI display with HTML tables
+ * Used by MessageSources component
+ */
+export function formatRAGSourceText(rawText: string): string {
+  if (!rawText || typeof rawText !== 'string') {
+    return rawText || '';
+  }
+
+  let text = rawText;
+  const allTables: ParsedTable[] = [];
+
+  // 1. Extract summaries
+  const { summaries, cleanedText: textAfterSummary } = extractSummaries(text);
+  text = textAfterSummary;
+
+  // 2. Extract table details
+  const { table: detailsTable, cleanedText: textAfterDetails } = extractTableDetails(text);
+  if (detailsTable) allTables.push(detailsTable);
+  text = textAfterDetails;
+
+  // 3. Extract inline tables
+  const { tables: inlineTables, cleanedText: textAfterInline } = extractInlineTables(text);
+  text = textAfterInline;
+
+  // 4. Clean up artifacts
+  text = cleanupArtifacts(text);
+
+  // 5. Format structural elements
+  text = formatStructuralElements(text);
+
+  // 6. Build HTML output
+  let result = '';
+
+  // Summaries as styled list
+  if (summaries.length > 0) {
+    result += '<div style="background-color: #ecfdf5; border-left: 4px solid #10b981; padding: 0.75rem; margin-bottom: 1rem; border-radius: 0.25rem;">\n';
+    result += '<strong style="color: #065f46;">Samenvatting:</strong>\n';
+    result += '<ul style="margin: 0.5rem 0 0 0; padding-left: 1.25rem;">\n';
+    for (const s of summaries) {
+      result += `<li style="margin-bottom: 0.25rem; color: #064e3b;">${s}</li>\n`;
+    }
+    result += '</ul>\n</div>\n\n';
+  }
+
+  // Main table from details section
+  if (detailsTable) {
+    result += '<div class="rag-table-wrapper">\n';
+    result += tableToHTML(detailsTable);
+    result += '\n</div>\n\n';
+  }
+
+  // Replace placeholders with inline HTML tables
+  let tableIndex = 0;
+  text = text.replace(/\{\{TABLE_PLACEHOLDER\}\}/g, () => {
+    const table = inlineTables[tableIndex++];
+    if (table) {
+      return '\n<div class="rag-table-wrapper">\n' + tableToHTML(table) + '\n</div>\n';
+    }
+    return '';
+  });
+
+  // Add remaining text (preserve line breaks)
+  const remainingText = text.trim();
+  if (remainingText) {
+    result += remainingText;
+  }
+
+  return result.trim();
 }
 
 /**
  * Format multiple RAG sources for system prompt injection
- * Combines and deduplicates table summaries
+ * Combines and deduplicates table summaries (markdown output for LLM)
  */
 export function formatRAGContextForPrompt(
   sources: Array<{ text: string; file?: string }>
@@ -312,7 +462,6 @@ export function formatRAGContextForPrompt(
     allSummaries.push(...tableSummaries);
   }
 
-  // If we have summaries, add a combined summary section at the top
   let result = '';
 
   if (allSummaries.length > 0) {
