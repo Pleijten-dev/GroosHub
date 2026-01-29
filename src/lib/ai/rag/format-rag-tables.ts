@@ -172,6 +172,60 @@ function parseMultiLineTable(content: string): ParsedTable | null {
 }
 
 /**
+ * Condense sparse table rows into the expected column structure
+ * For Bouwbesluit-style tables with many empty cells, combines
+ * non-empty cells intelligently into the header columns
+ */
+function condenseTableRows(table: ParsedTable): ParsedTable {
+  const headerCount = table.headers.length;
+  const dataColCount = table.rows.length > 0 ? table.rows[0].length : 0;
+
+  // If data rows have same column count as headers, no condensing needed
+  if (dataColCount <= headerCount) {
+    return table;
+  }
+
+  // Data has more columns than headers - need to condense
+  // Strategy: For each row, gather non-empty cells and map to header columns
+  // - First N-1 non-empty cells go into first column (joined with space)
+  // - Last non-empty cell goes into last column
+  // - Middle columns stay empty
+
+  const condensedRows = table.rows.map(row => {
+    const nonEmptyCells = row.filter(cell => cell && cell.trim().length > 0);
+
+    if (nonEmptyCells.length === 0) {
+      // Empty row
+      return new Array(headerCount).fill('');
+    }
+
+    if (nonEmptyCells.length === 1) {
+      // Single value - put in first column
+      const result = new Array(headerCount).fill('');
+      result[0] = nonEmptyCells[0];
+      return result;
+    }
+
+    // Multiple values:
+    // - Combine all but last into first column
+    // - Put last into last column
+    const result = new Array(headerCount).fill('');
+    const firstParts = nonEmptyCells.slice(0, -1);
+    const lastValue = nonEmptyCells[nonEmptyCells.length - 1];
+
+    result[0] = firstParts.join(' ');
+    result[headerCount - 1] = lastValue;
+
+    return result;
+  });
+
+  return {
+    headers: table.headers,
+    rows: condensedRows,
+  };
+}
+
+/**
  * Filter out completely empty columns from a table
  */
 function filterEmptyColumns(table: ParsedTable): ParsedTable {
@@ -203,8 +257,9 @@ function filterEmptyColumns(table: ParsedTable): ParsedTable {
  * Convert parsed table to HTML table element with inline styles
  */
 function tableToHTML(table: ParsedTable): string {
-  // First filter out empty columns
-  const filteredTable = filterEmptyColumns(table);
+  // First condense sparse rows, then filter empty columns
+  const condensedTable = condenseTableRows(table);
+  const filteredTable = filterEmptyColumns(condensedTable);
 
   const escapeHTML = (str: string) =>
     str
