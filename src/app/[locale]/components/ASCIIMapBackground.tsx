@@ -6,21 +6,29 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 // ASCII characters from dark to light
 const ASCII_CHARS = '@%#*+=-:. ';
 
-// Dutch cities with their bounding boxes for 6 adjacent tiles
+// Dutch cities with center coordinates and tile configuration
+// centerLon is the city center longitude - tiles will be centered around it
+const TILE_WIDTH = 0.12; // Longitude width per tile
+const NUM_TILES = 6;
+
 const CITIES = [
-  { name: 'Rotterdam', south: 51.88, north: 51.98, westStart: 4.20, tileWidth: 0.12 },
-  { name: 'Amsterdam', south: 52.34, north: 52.44, westStart: 4.75, tileWidth: 0.12 },
-  { name: 'Den Haag', south: 52.03, north: 52.13, westStart: 4.15, tileWidth: 0.12 },
-  { name: 'Utrecht', south: 52.04, north: 52.14, westStart: 5.00, tileWidth: 0.12 },
-  { name: 'Eindhoven', south: 51.40, north: 51.50, westStart: 5.35, tileWidth: 0.12 },
-  { name: 'Groningen', south: 53.18, north: 53.28, westStart: 6.45, tileWidth: 0.12 },
+  { name: 'Rotterdam', south: 51.88, north: 51.98, centerLon: 4.48 },
+  { name: 'Amsterdam', south: 52.34, north: 52.44, centerLon: 4.90 },
+  { name: 'Den Haag', south: 52.03, north: 52.13, centerLon: 4.30 },
+  { name: 'Utrecht', south: 52.04, north: 52.14, centerLon: 5.12 },
+  { name: 'Eindhoven', south: 51.40, north: 51.50, centerLon: 5.47 },
+  { name: 'Groningen', south: 53.18, north: 53.28, centerLon: 6.57 },
 ];
 
-// Generate 6 adjacent tiles for a city
+// Generate 6 adjacent tiles centered on the city
 function generateTiles(city: typeof CITIES[0]) {
-  return Array.from({ length: 6 }, (_, i) => ({
+  // Calculate westStart so city center is in the middle of 6 tiles
+  // With 6 tiles, center is between tile 3 and 4, so offset by 3 tile widths
+  const westStart = city.centerLon - (NUM_TILES / 2) * TILE_WIDTH;
+
+  return Array.from({ length: NUM_TILES }, (_, i) => ({
     name: `${city.name}-${i + 1}`,
-    bbox: `${city.south},${city.westStart + i * city.tileWidth},${city.north},${city.westStart + (i + 1) * city.tileWidth}`,
+    bbox: `${city.south},${westStart + i * TILE_WIDTH},${city.north},${westStart + (i + 1) * TILE_WIDTH}`,
   }));
 }
 
