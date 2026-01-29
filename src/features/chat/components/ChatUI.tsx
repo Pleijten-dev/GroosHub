@@ -232,6 +232,16 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
       pendingInitialMessageRef.current = initialMessage;
       console.log('[ChatUI] Queuing initial message:', initialMessage.substring(0, 50) + '...');
       setInput(initialMessage);
+
+      // Clean up URL to prevent re-sending on page reload
+      // Remove 'message' and 'fileIds' query parameters while preserving others
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('message');
+        url.searchParams.delete('fileIds');
+        window.history.replaceState({}, '', url.toString());
+        console.log('[ChatUI] Cleaned URL to prevent re-send on reload');
+      }
     }
   }, [initialMessage, isLoadingChat, isLoading]);
 
