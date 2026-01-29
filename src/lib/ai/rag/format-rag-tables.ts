@@ -100,9 +100,40 @@ function parsePipeTable(tableContent: string): ParsedTable | null {
 }
 
 /**
+ * Filter out completely empty columns from a table
+ */
+function filterEmptyColumns(table: ParsedTable): ParsedTable {
+  const allRows = [table.headers, ...table.rows];
+  const numCols = table.headers.length;
+
+  // Find columns that have at least one non-empty cell
+  const nonEmptyColIndices: number[] = [];
+  for (let col = 0; col < numCols; col++) {
+    const hasContent = allRows.some(row => row[col] && row[col].trim().length > 0);
+    if (hasContent) {
+      nonEmptyColIndices.push(col);
+    }
+  }
+
+  // If no columns were filtered, return as-is
+  if (nonEmptyColIndices.length === numCols) {
+    return table;
+  }
+
+  // Filter columns
+  return {
+    headers: nonEmptyColIndices.map(i => table.headers[i] || ''),
+    rows: table.rows.map(row => nonEmptyColIndices.map(i => row[i] || '')),
+  };
+}
+
+/**
  * Convert parsed table to HTML table element with inline styles
  */
 function tableToHTML(table: ParsedTable): string {
+  // First filter out empty columns
+  const filteredTable = filterEmptyColumns(table);
+
   const escapeHTML = (str: string) =>
     str
       .replace(/&/g, '&amp;')
@@ -114,24 +145,23 @@ function tableToHTML(table: ParsedTable): string {
   const tableStyle = 'width: 100%; border-collapse: collapse; font-size: 0.875rem; margin: 0.5rem 0;';
   const thStyle = 'background-color: #f3f4f6; padding: 0.5rem; text-align: left; font-weight: 600; border: 1px solid #d1d5db;';
   const tdStyle = 'padding: 0.5rem; border: 1px solid #e5e7eb;';
-  const trHoverStyle = 'background-color: #f9fafb;';
 
   let html = `<table style="${tableStyle}">\n`;
 
   // Header row
-  if (table.headers.length > 0) {
+  if (filteredTable.headers.length > 0) {
     html += '  <thead>\n    <tr>\n';
-    for (const header of table.headers) {
+    for (const header of filteredTable.headers) {
       html += `      <th style="${thStyle}">${escapeHTML(header)}</th>\n`;
     }
     html += '    </tr>\n  </thead>\n';
   }
 
   // Data rows
-  if (table.rows.length > 0) {
+  if (filteredTable.rows.length > 0) {
     html += '  <tbody>\n';
-    for (let i = 0; i < table.rows.length; i++) {
-      const row = table.rows[i];
+    for (let i = 0; i < filteredTable.rows.length; i++) {
+      const row = filteredTable.rows[i];
       const rowBg = i % 2 === 1 ? ' background-color: #fafafa;' : '';
       html += `    <tr style="${rowBg}">\n`;
       for (const cell of row) {
@@ -424,35 +454,14 @@ export function formatRAGSourceText(rawText: string): string {
   const { tables: inlineTables, cleanedText: textAfterInline } = extractInlineTables(text);
   text = textAfterInline;
 
-  // 4. Clean up artifacts
+  // 4. Clean up artifacts (date sequences, etc.)
   text = cleanupArtifacts(text);
 
-  // 5. If we have a structured table, aggressively clean the raw text
-  // The raw text often contains flattened table data that's redundant
-  if (detailsTable || inlineTables.length > 0) {
-    // Remove inline table-like content from the text (rows of numbers, pipe patterns)
-    text = text
-      // Remove sequences that look like flattened table rows (numbers separated by spaces)
-      .replace(/\b(\d+\s+){4,}\d+\b/g, '')
-      // Remove "Tabel X.XXX" followed by column headers run together
-      .replace(/Tabel\s+\d+\.\d+[a-zA-Z]\s+[^.]+?(?=\d{4}\s|\n|$)/g, '')
-      // Clean up resulting whitespace
-      .replace(/\s{2,}/g, ' ')
-      .replace(/\n{2,}/g, '\n\n');
-  }
-
-  // 6. Format structural elements (article headers)
+  // 5. Format structural elements (article headers)
   text = formatStructuralElements(text);
 
-  // 7. Build HTML output - TABLE FIRST, then text, then summary at the end
+  // 6. Build HTML output - Text first, then table, then summary at the end
   let result = '';
-
-  // Main table from details section (at the top)
-  if (detailsTable) {
-    result += '<div class="rag-table-wrapper" style="margin-bottom: 0.75rem;">\n';
-    result += tableToHTML(detailsTable);
-    result += '\n</div>\n';
-  }
 
   // Replace placeholders with inline HTML tables
   let tableIndex = 0;
@@ -464,15 +473,21 @@ export function formatRAGSourceText(rawText: string): string {
     return '';
   });
 
-  // Add remaining text (if substantial)
+  // Add remaining text (the article content)
   const remainingText = text.trim();
-  if (remainingText && remainingText.length > 20) {
-    // Only show the article intro, not the raw table data
-    // Find the first sentence or two
-    const articleIntro = extractArticleIntro(remainingText);
-    if (articleIntro) {
-      result += `<div style="margin-bottom: 0.75rem;">${articleIntro}</div>\n`;
-    }
+  if (remainingText) {
+    // Convert newlines to <br> for HTML display
+    const htmlText = remainingText
+      .replace(/\n\n/g, '</p><p style="margin: 0.5rem 0;">')
+      .replace(/\n/g, '<br>');
+    result += `<p style="margin: 0 0 0.75rem 0;">${htmlText}</p>\n`;
+  }
+
+  // Main table from details section
+  if (detailsTable) {
+    result += '<div class="rag-table-wrapper" style="margin: 0.75rem 0;">\n';
+    result += tableToHTML(detailsTable);
+    result += '\n</div>\n';
   }
 
   // Summaries at the BOTTOM with simple white/gray styling
@@ -487,40 +502,6 @@ export function formatRAGSourceText(rawText: string): string {
   }
 
   return result.trim();
-}
-
-/**
- * Extract clean article intro text, stopping before raw table data
- */
-function extractArticleIntro(text: string): string {
-  // Look for article pattern
-  const articleMatch = text.match(/(<strong>)?Artikel\s+\d+\.\d+(<\/strong>)?\s*([^]*?)(?=Tabel\s+\d+\.\d+|gebruiksfunctie|leden van toepassing|\d{4}\s+\d{3}|$)/i);
-
-  if (articleMatch) {
-    let intro = articleMatch[0].trim();
-    // Limit length and clean up
-    if (intro.length > 300) {
-      // Find a good breaking point (end of sentence)
-      const breakPoint = intro.substring(0, 300).lastIndexOf('.');
-      if (breakPoint > 100) {
-        intro = intro.substring(0, breakPoint + 1);
-      } else {
-        intro = intro.substring(0, 300) + '...';
-      }
-    }
-    return intro;
-  }
-
-  // If no article pattern, just return first 200 chars if it looks like prose
-  if (text.length > 20 && !text.match(/^\s*\|/)) {
-    const firstPart = text.substring(0, 200);
-    const breakPoint = firstPart.lastIndexOf('.');
-    if (breakPoint > 50) {
-      return firstPart.substring(0, breakPoint + 1);
-    }
-  }
-
-  return '';
 }
 
 /**
