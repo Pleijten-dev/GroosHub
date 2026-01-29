@@ -88,11 +88,12 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
   const currentCity = shuffledCities[cityIndex];
   const tiles = useMemo(() => generateTiles(currentCity), [currentCity]);
 
-  // Calculate screen dimensions in characters
+  // Calculate screen dimensions in characters (with generous buffer)
   useEffect(() => {
     const updateDimensions = () => {
-      setScreenCols(Math.ceil(window.innerWidth / 4.8) + 5);
-      setScreenRows(Math.ceil(window.innerHeight / 8) + 5);
+      // Add extra buffer to ensure full coverage
+      setScreenCols(Math.ceil(window.innerWidth / 4.8) + 20);
+      setScreenRows(Math.ceil(window.innerHeight / 8) + 10);
     };
     updateDimensions();
     window.addEventListener('resize', updateDimensions);
@@ -267,13 +268,19 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
       style={{ opacity: isFading ? 0 : opacity, zIndex: 0, transition: 'opacity 1s ease-in-out' }}
     >
       <pre
-        className="font-mono text-[8px] leading-[8px] text-gray-700 whitespace-pre select-none"
-        style={{ position: 'absolute', top: 0, left: 0 }}
+        className="font-mono text-[8px] leading-[8px] text-gray-700 whitespace-pre select-none m-0 p-0"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          margin: 0,
+          padding: 0,
+        }}
       >
         {isLoading ? (
           <div className="text-gray-400">Loading...</div>
         ) : (
-          visibleLines.map((line, i) => <div key={i}>{line}</div>)
+          visibleLines.map((line, i) => <div key={i} style={{ margin: 0, padding: 0 }}>{line}</div>)
         )}
       </pre>
     </div>
