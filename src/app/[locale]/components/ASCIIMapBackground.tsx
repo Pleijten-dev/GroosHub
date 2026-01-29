@@ -3,8 +3,35 @@
 
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 
-// ASCII characters from sparse to dense (cold to hot)
-const ASCII_CHARS = ' .:-=+*#%@';
+// ASCII characters grouped by heat level (multiple options per level for variety)
+// Each group corresponds to a heat range, randomly selected for visual diversity
+const ASCII_CHAR_GROUPS = [
+  // 0.0 - 0.15: Very cold (dark blue) - very sparse
+  [' ', ' ', ' ', '.', '.', '`', '·', ' ', ' ', ' '],
+  // 0.15 - 0.30: Cold (light blue/cyan) - sparse
+  [':', ';', ',', "'", '`', '.', ':', ';', ',', '.'],
+  // 0.30 - 0.45: Cool - light
+  ['-', '~', '"', '^', '-', '~', '=', '-', '~', '^'],
+  // 0.45 - 0.60: Medium (yellow-ish) - medium
+  ['=', '+', 'i', 'l', '!', '|', '/', '\\', 'r', 'c'],
+  // 0.60 - 0.75: Warm - medium dense
+  ['*', 'x', 'o', 'n', 'v', 'z', 's', 'a', 'e', 'u'],
+  // 0.75 - 0.85: Hot (orange) - dense
+  ['#', 'X', 'k', 'd', 'b', 'p', 'q', 'w', 'm', 'K'],
+  // 0.85 - 1.0: Very hot (red/dark red) - very dense
+  ['%', '@', 'W', 'M', 'N', 'B', 'Q', '&', '$', '#'],
+];
+
+// Get ASCII character for heat value with random selection from appropriate group
+function heatToASCII(heat: number): string {
+  const groupIndex = Math.min(
+    Math.floor(heat * ASCII_CHAR_GROUPS.length),
+    ASCII_CHAR_GROUPS.length - 1
+  );
+  const group = ASCII_CHAR_GROUPS[groupIndex];
+  // Random selection from the group for visual variety
+  return group[Math.floor(Math.random() * group.length)];
+}
 
 // Color gradient for heat values (cold to hot)
 // f8eee4 (cream) -> 8a976b (sage) -> 477638 (green) -> 48806a (teal) -> 0c211a (dark)
@@ -80,11 +107,6 @@ function colorToHeat(r: number, g: number, b: number): number {
   const blueHeat = b / total;
   const heat = (redHeat - blueHeat + 1) / 2;
   return Math.max(0, Math.min(1, heat));
-}
-
-function heatToASCII(heat: number): string {
-  const index = Math.floor(heat * (ASCII_CHARS.length - 1));
-  return ASCII_CHARS[Math.min(index, ASCII_CHARS.length - 1)];
 }
 
 interface ASCIIMapBackgroundProps {
