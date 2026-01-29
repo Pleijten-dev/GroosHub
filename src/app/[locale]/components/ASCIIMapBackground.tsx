@@ -3,25 +3,22 @@
 
 import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 
-// ASCII characters grouped by heat level (multiple options per level for variety)
-const ASCII_CHAR_GROUPS = [
-  [' ', ' ', ' ', '.', '.', '`', '·', ' ', ' ', ' '],
-  [':', ';', ',', "'", '`', '.', ':', ';', ',', '.'],
-  ['-', '~', '"', '^', '-', '~', '=', '-', '~', '^'],
-  ['=', '+', 'i', 'l', '!', '|', '/', '\\', 'r', 'c'],
-  ['*', 'x', 'o', 'n', 'v', 'z', 's', 'a', 'e', 'u'],
-  ['#', 'X', 'k', 'd', 'b', 'p', 'q', 'w', 'm', 'K'],
-  ['%', '@', 'W', 'M', 'N', 'B', 'Q', '&', '$', '#'],
-];
+// ASCII characters ordered by visual density (sparse to dense)
+// Characters are ordered within each group for smooth transitions
+const ASCII_CHARS = ' .`·:;,\'-~"^=+il!|/\\rc*xonvzsaeu#Xkdbpqwm%@WMNBQ&$';
 
-// Get ASCII character for heat value with random selection
-function heatToASCII(heat: number): string {
-  const groupIndex = Math.min(
-    Math.floor(heat * ASCII_CHAR_GROUPS.length),
-    ASCII_CHAR_GROUPS.length - 1
-  );
-  const group = ASCII_CHAR_GROUPS[groupIndex];
-  return group[Math.floor(Math.random() * group.length)];
+// Get ASCII character for heat value (0-1) with optional time-based variation
+function heatToASCII(heat: number, timeNoise: number = 0): string {
+  // Add subtle time-based noise for morphing effect (-0.05 to +0.05)
+  const noisyHeat = Math.max(0, Math.min(1, heat + timeNoise * 0.1));
+  const index = Math.floor(noisyHeat * (ASCII_CHARS.length - 1));
+  return ASCII_CHARS[index];
+}
+
+// Simple seeded pseudo-random for consistent noise per position
+function seededRandom(x: number, y: number, seed: number): number {
+  const n = Math.sin(x * 12.9898 + y * 78.233 + seed * 43758.5453) * 43758.5453;
+  return n - Math.floor(n);
 }
 
 // Color gradient for heat values
@@ -111,7 +108,8 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
   const processingCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationRef = useRef<number | null>(null);
   const cityIndexRef = useRef(0);
-  const combinedDataRef = useRef<{ char: string; heat: number }[][]>([]);
+  // Store only heat values - characters are computed at render time
+  const heatMapRef = useRef<number[][]>([]);
   const isLoadingRef = useRef(true);
   const isFadingRef = useRef(false);
   const startTimeRef = useRef<number | null>(null);
@@ -150,7 +148,7 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
     canvas.width = tileSize;
     canvas.height = tileSize;
 
-    const allTileData: { char: string; heat: number }[][][] = [];
+    const allTileHeat: number[][][] = [];
 
     for (const tile of tiles) {
       try {
@@ -173,46 +171,46 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
         ctx.clearRect(0, 0, tileSize, tileSize);
         ctx.drawImage(img, 0, 0, tileSize, tileSize);
 
-        const lines: { char: string; heat: number }[][] = [];
+        // Store only heat values - characters computed at render time
+        const lines: number[][] = [];
         for (let y = 0; y < tileSize; y++) {
-          const row: { char: string; heat: number }[] = [];
+          const row: number[] = [];
           for (let x = 0; x < tileSize; x++) {
             const pixel = ctx.getImageData(x, y, 1, 1).data;
             if (pixel[3] < 128) {
-              row.push({ char: ' ', heat: 0 });
+              row.push(0); // Transparent = no heat
             } else {
-              const heat = colorToHeat(pixel[0], pixel[1], pixel[2]);
-              row.push({ char: heatToASCII(heat), heat });
+              row.push(colorToHeat(pixel[0], pixel[1], pixel[2]));
             }
           }
           lines.push(row);
         }
-        allTileData.push(lines);
+        allTileHeat.push(lines);
         URL.revokeObjectURL(blobUrl);
       } catch (err) {
         console.error(`Failed to load tile ${tile.name}:`, err);
-        const lines: { char: string; heat: number }[][] = [];
+        const lines: number[][] = [];
         for (let y = 0; y < tileSize; y++) {
-          lines.push(Array(tileSize).fill({ char: ' ', heat: 0 }));
+          lines.push(Array(tileSize).fill(0));
         }
-        allTileData.push(lines);
+        allTileHeat.push(lines);
       }
     }
 
     // Combine all tiles horizontally
-    const combined: { char: string; heat: number }[][] = [];
-    if (allTileData.length > 0) {
-      const height = allTileData[0].length;
+    const combined: number[][] = [];
+    if (allTileHeat.length > 0) {
+      const height = allTileHeat[0].length;
       for (let y = 0; y < height; y++) {
-        const row: { char: string; heat: number }[] = [];
-        for (const tile of allTileData) {
+        const row: number[] = [];
+        for (const tile of allTileHeat) {
           row.push(...(tile[y] || []));
         }
         combined.push(row);
       }
     }
 
-    combinedDataRef.current = combined;
+    heatMapRef.current = combined;
     isLoadingRef.current = false;
     startTimeRef.current = null;
     forceUpdate(n => n + 1);
@@ -225,23 +223,28 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
     }
   }, [loadTiles, screenDimensions.rows]);
 
-  // Render function using Canvas 2D
-  const renderFrame = useCallback((progress: number) => {
+  // Render function using Canvas 2D with smooth interpolation
+  const renderFrame = useCallback((progress: number, time: number) => {
     const displayCanvas = displayCanvasRef.current;
     if (!displayCanvas) return;
 
     const ctx = displayCanvas.getContext('2d');
     if (!ctx) return;
 
-    const combinedData = combinedDataRef.current;
-    if (combinedData.length === 0) return;
+    const heatMap = heatMapRef.current;
+    if (heatMap.length === 0) return;
 
     const { cols: screenCols, rows: screenRows } = screenDimensions;
-    const totalWidth = combinedData[0].length;
+    const totalWidth = heatMap[0].length;
     const maxPanOffset = Math.max(0, totalWidth - screenCols);
 
-    // Use smooth progress for pan offset (no floor for smoother animation)
-    const panOffset = Math.floor(progress * maxPanOffset);
+    // Use fractional pan offset for smooth sub-character interpolation
+    const panOffsetFloat = progress * maxPanOffset;
+    const panOffsetInt = Math.floor(panOffsetFloat);
+    const panFraction = panOffsetFloat - panOffsetInt;
+
+    // Time seed for morphing effect (changes slowly)
+    const timeSeed = time * 0.001; // Slow time variation
 
     // Clear canvas
     ctx.fillStyle = 'white';
@@ -251,17 +254,30 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
     ctx.font = '16px monospace';
     ctx.textBaseline = 'top';
 
-    // Render visible characters
-    for (let y = 0; y < Math.min(screenRows, combinedData.length); y++) {
-      const row = combinedData[y];
+    // Render visible characters with interpolation
+    for (let y = 0; y < Math.min(screenRows, heatMap.length); y++) {
+      const row = heatMap[y];
       for (let x = 0; x < screenCols; x++) {
-        const dataX = panOffset + x;
-        if (dataX < row.length) {
-          const cell = row[dataX];
-          if (cell.char !== ' ') {
-            const color = heatToColorRGB(cell.heat);
+        const dataX = panOffsetInt + x;
+
+        if (dataX >= 0 && dataX < row.length - 1) {
+          // Get heat values from current and next column
+          const heat1 = row[dataX];
+          const heat2 = row[dataX + 1];
+
+          // Interpolate heat based on fractional pan position
+          const interpolatedHeat = heat1 + (heat2 - heat1) * panFraction;
+
+          // Add time-based noise for morphing effect
+          // Noise is position-dependent and slowly changes over time
+          const noise = (seededRandom(x, y, Math.floor(timeSeed)) - 0.5) *
+                       Math.sin(timeSeed * 2 + x * 0.3 + y * 0.2);
+
+          if (interpolatedHeat > 0.01) { // Skip near-zero heat (transparent areas)
+            const char = heatToASCII(interpolatedHeat, noise);
+            const color = heatToColorRGB(interpolatedHeat);
             ctx.fillStyle = `rgb(${color.r},${color.g},${color.b})`;
-            ctx.fillText(cell.char, x * CHAR_WIDTH, y * CHAR_HEIGHT);
+            ctx.fillText(char, x * CHAR_WIDTH, y * CHAR_HEIGHT);
           }
         }
       }
@@ -292,8 +308,8 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
       const elapsed = time - startTimeRef.current;
       const progress = Math.min(elapsed / duration, 1);
 
-      // Render current frame
-      renderFrame(progress);
+      // Render current frame with time for morphing effect
+      renderFrame(progress, time);
 
       if (progress >= 1) {
         // Start fade and transition to next city
