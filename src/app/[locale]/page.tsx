@@ -295,8 +295,13 @@ const HomePage: React.FC = () => {
 
       {/* Content container */}
       <div className="relative min-h-screen flex flex-col p-6">
+        {/* Logo - top left */}
+        <div className="absolute top-4 left-6 z-10">
+          <span className="text-2xl font-bold text-gray-800">GroosHub</span>
+        </div>
+
         {/* Language switcher - top right */}
-        <div className="absolute top-4 right-4 flex items-center gap-2 text-sm z-10">
+        <div className="absolute top-4 right-6 flex items-center gap-2 text-sm z-10">
           <button
             onClick={() => router.push(`/nl`)}
             className={`px-3 py-1.5 rounded-lg transition-colors ${
