@@ -49,8 +49,8 @@ function heatToColorRGB(heat: number): { r: number; g: number; b: number } {
 // Dutch cities with center coordinates
 const TILE_WIDTH = 0.12;
 const NUM_TILES = 6;
-const CHAR_HEIGHT = 16;
-const CHAR_WIDTH = 9.6;
+const CHAR_HEIGHT = 8;
+const CHAR_WIDTH = 4.8;
 
 const CITIES = [
   { name: 'Rotterdam', south: 51.88, north: 51.98, centerLon: 4.48 },
@@ -250,7 +250,7 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
     ctx.clearRect(0, 0, displayCanvas.width, displayCanvas.height);
 
     // Set font for ASCII rendering
-    ctx.font = '16px monospace';
+    ctx.font = '8px monospace';
     ctx.textBaseline = 'top';
 
     // Render visible characters with interpolation
