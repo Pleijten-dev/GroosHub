@@ -320,7 +320,7 @@ export const SaveLocationToProject: React.FC<SaveLocationToProjectProps> = ({
                 }
               }}
               placeholder={locale === 'nl' ? 'Projectnaam' : 'Project name'}
-              className="w-full px-sm py-xs text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              className="w-full box-border px-sm py-xs text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               disabled={isCreatingProject}
             />
             <Button
@@ -445,7 +445,7 @@ export const SaveLocationToProject: React.FC<SaveLocationToProjectProps> = ({
                   }
                 }}
                 placeholder={locale === 'nl' ? 'Projectnaam' : 'Project name'}
-                className="flex-1 px-sm py-xs text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="flex-1 min-w-0 box-border px-sm py-xs text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 disabled={isCreatingProject}
                 autoFocus
               />
