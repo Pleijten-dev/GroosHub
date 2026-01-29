@@ -184,7 +184,7 @@ When an admin creates a new user or resets a user's password:
 
 1. `must_change_password` is set to `true` in the database
 2. On login, the JWT includes `must_change_password: true`
-3. Middleware checks this flag on every request
+3. Page layouts (server components) check this flag via `auth()` call
 4. User is redirected to `/change-password` if flag is true
 5. User cannot access any other page until password is changed
 6. After successful password change:
@@ -195,6 +195,8 @@ When an admin creates a new user or resets a user's password:
 **Why sign out after password change?**
 - Ensures the JWT is refreshed with `must_change_password: false`
 - Confirms user remembers their new password
+
+**Note:** The `must_change_password` check is handled in page layouts (server-side), not in the proxy. This allows for proper server-side auth checks with database access.
 
 ### Password Change API
 
@@ -217,16 +219,26 @@ When an admin creates a new user or resets a user's password:
 
 ## Authorization & Access Control
 
-### Middleware Protection
+### Route Protection (Proxy)
 
-The `authorized()` callback in `auth.config.ts` controls route access:
+Route protection is handled by `src/proxy.ts` (Next.js 16's proxy, formerly middleware):
 
 | Route Type | Access Rule |
 |------------|-------------|
-| `/login` | Public (redirects to home if logged in) |
-| `/change-password` | Requires auth + `must_change_password: true` |
-| `/api/auth/change-password` | Requires authentication |
-| All other routes | Requires authentication |
+| `/api/*` | Skipped by proxy (API routes handle their own auth) |
+| `/nl/login`, `/en/login` | Public routes |
+| `/nl/change-password`, `/en/change-password` | Public routes |
+| All other page routes | Requires session cookie |
+
+**How it works:**
+1. Proxy checks for `authjs.session-token` cookie (or `__Secure-authjs.session-token` on HTTPS)
+2. If no cookie, redirects to `/{locale}/login` with `callbackUrl`
+3. If cookie exists, allows request through
+4. Advanced checks (like `must_change_password`) are done server-side in page layouts
+
+**Important:** The proxy only checks cookie existence, not validity. Full session validation happens server-side via `auth()` calls.
+
+See `docs/NEXTJS-ROUTING-AND-API.md` for detailed proxy configuration.
 
 ### API Endpoint Protection
 
@@ -392,18 +404,26 @@ Protected endpoints:
 
 | Component | File Path |
 |-----------|-----------|
+| **Route Protection** | |
+| Proxy (route protection) | `src/proxy.ts` |
+| Next.js config (API rewrites) | `next.config.ts` |
+| **Authentication** | |
 | Auth configuration | `src/lib/auth.config.ts` |
 | Auth implementation | `src/lib/auth.ts` |
 | Auth provider (client) | `src/lib/AuthProvider.tsx` |
 | NextAuth route handler | `src/app/api/auth/[...nextauth]/route.ts` |
+| **Password Management** | |
 | Change password API | `src/app/api/auth/change-password/route.ts` |
 | Change password page | `src/app/[locale]/change-password/page.tsx` |
 | Change password form | `src/app/[locale]/change-password/ChangePasswordForm.tsx` |
+| **Login** | |
 | Login page | `src/app/[locale]/login/page.tsx` |
 | Login form | `src/app/[locale]/login/LoginForm.tsx` |
+| **Admin & User Management** | |
 | Admin users API | `src/app/api/admin/users/route.ts` |
 | Admin panel | `src/app/[locale]/admin/AdminPanel.tsx` |
 | User database queries | `src/lib/db/queries/users.ts` |
+| **Security Utilities** | |
 | Audit logger | `src/lib/audit/auditLogger.ts` |
 | Rate limiting | `src/lib/middleware/rateLimit.ts` |
 | Encryption utilities | `src/lib/encryption/index.ts` |

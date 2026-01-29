@@ -22,12 +22,12 @@ const updateNoteSchema = z.object({
 });
 
 /**
- * GET /api/projects/[projectId]/notes
+ * GET /api/projects/[id]/notes
  * List all notes for a project
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ projectId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -35,7 +35,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { projectId } = await params;
+    const { id: projectId } = await params;
     const userId = session.user.id;
     const db = getDbConnection();
 
@@ -100,12 +100,12 @@ export async function GET(
 }
 
 /**
- * POST /api/projects/[projectId]/notes
+ * POST /api/projects/[id]/notes
  * Create a new note
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ projectId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -113,7 +113,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { projectId } = await params;
+    const { id: projectId } = await params;
     const userId = session.user.id;
     const db = getDbConnection();
 
@@ -182,12 +182,12 @@ export async function POST(
 }
 
 /**
- * PATCH /api/projects/[projectId]/notes
+ * PATCH /api/projects/[id]/notes
  * Update a note (expects noteId in body)
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ projectId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -195,7 +195,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { projectId } = await params;
+    const { id: projectId } = await params;
     const userId = session.user.id;
     const db = getDbConnection();
 
@@ -242,17 +242,8 @@ export async function PATCH(
 
     // Build update query
     const { content, is_pinned } = validation.data;
-    const updates: string[] = [];
-    const values: Record<string, unknown> = {};
 
-    if (content !== undefined) {
-      values.content = content;
-    }
-    if (is_pinned !== undefined) {
-      values.is_pinned = is_pinned;
-    }
-
-    if (Object.keys(values).length === 0) {
+    if (content === undefined && is_pinned === undefined) {
       return NextResponse.json(
         { error: 'No fields to update' },
         { status: 400 }
@@ -292,12 +283,12 @@ export async function PATCH(
 }
 
 /**
- * DELETE /api/projects/[projectId]/notes
+ * DELETE /api/projects/[id]/notes
  * Soft delete a note (expects noteId in body)
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ projectId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -305,7 +296,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { projectId } = await params;
+    const { id: projectId } = await params;
     const userId = session.user.id;
     const db = getDbConnection();
 
