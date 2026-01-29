@@ -1,4 +1,5 @@
 import NextAuth from 'next-auth';
+import { NextResponse } from 'next/server';
 import { authConfig } from './lib/auth.config';
 
 const { auth } = NextAuth(authConfig);
@@ -10,8 +11,17 @@ const { auth } = NextAuth(authConfig);
  * Using the auth function directly as NextAuth v5 middleware wrapper
  */
 export const proxy = auth((req) => {
+  const { pathname } = req.nextUrl;
+  const method = req.method;
+
   // Log all requests passing through the proxy
-  console.log(`🔄 [Proxy] ${req.method} ${req.nextUrl.pathname} - auth: ${req.auth?.user?.email || 'none'}`);
+  console.log(`🔄 [Proxy] ${method} ${pathname} - auth: ${req.auth?.user?.email || 'none'}`);
+
+  // Handle OPTIONS requests (CORS preflight) - let them through
+  if (method === 'OPTIONS') {
+    console.log(`🔄 [Proxy] OPTIONS request - allowing through`);
+    return NextResponse.next();
+  }
 
   // Return undefined to let the authorized callback handle the response
   // The authorized callback in auth.config.ts will handle redirects
