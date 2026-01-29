@@ -63,6 +63,10 @@ function heatToColor(heat: number): string {
 const TILE_WIDTH = 0.12; // Longitude width per tile
 const NUM_TILES = 6;
 
+// Character size constants (16px font = 2x the original 8px)
+const CHAR_HEIGHT = 16;
+const CHAR_WIDTH = 9.6; // Approximate width for monospace at 16px
+
 const CITIES = [
   { name: 'Rotterdam', south: 51.88, north: 51.98, centerLon: 4.48 },
   { name: 'Amsterdam', south: 52.34, north: 52.44, centerLon: 4.90 },
@@ -140,8 +144,8 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
   useEffect(() => {
     const updateDimensions = () => {
       // Add extra buffer to ensure full coverage
-      setScreenCols(Math.ceil(window.innerWidth / 4.8) + 20);
-      setScreenRows(Math.ceil(window.innerHeight / 8) + 10);
+      setScreenCols(Math.ceil(window.innerWidth / CHAR_WIDTH) + 20);
+      setScreenRows(Math.ceil(window.innerHeight / CHAR_HEIGHT) + 10);
     };
     updateDimensions();
     window.addEventListener('resize', updateDimensions);
@@ -298,7 +302,7 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
 
   // Debug mode
   if (debugShowImage && tileImages.length > 0) {
-    const panPx = panOffset * 4.8;
+    const panPx = panOffset * CHAR_WIDTH;
     return (
       <div
         className={`fixed inset-0 overflow-hidden pointer-events-none ${className}`}
@@ -322,7 +326,7 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
       style={{ opacity: isFading ? 0 : opacity, zIndex: 0, transition: 'opacity 1s ease-in-out' }}
     >
       <pre
-        className="font-mono text-[8px] leading-[8px] whitespace-pre select-none m-0 p-0"
+        className="font-mono text-[16px] leading-[16px] whitespace-pre select-none m-0 p-0"
         style={{
           position: 'absolute',
           top: 0,
