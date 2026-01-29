@@ -41,6 +41,7 @@ import { getChunkCountByProjectId } from '@/lib/db/queries/project-doc-chunks';
 import { formatRAGTableContent } from '@/lib/ai/rag/format-rag-tables';
 import { createTaskTools } from '@/features/chat/tools/taskTools';
 import { createCBSLocationTools } from '@/features/chat/tools/cbsLocationTools';
+import { createNotesTools } from '@/features/chat/tools/notesTools';
 
 // Request schema validation
 const chatRequestSchema = z.object({
@@ -1486,11 +1487,15 @@ export async function POST(request: NextRequest) {
     // Create CBS location search tools (uses free public APIs)
     const cbsTools = createCBSLocationTools();
 
-    // Combine location, task, and CBS tools for the AI agent
+    // Create project notes tools with userId injected
+    const notesTools = createNotesTools(userId);
+
+    // Combine all tools for the AI agent
     const allTools = {
       ...locationTools,
       ...taskTools,
       ...cbsTools,
+      ...notesTools,
     };
 
     // Stream the response with location agent tools
