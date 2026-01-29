@@ -13,6 +13,11 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 
+-- Migration: Add must_change_password column to user_accounts
+-- This flag is set to true when admin creates a user or resets their password
+-- The user will be prompted to change their password on first login
+ALTER TABLE user_accounts ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT false;
+
 -- Google Places API Usage Tracking Table
 -- Tracks all API calls for centralized quota management across all users
 
