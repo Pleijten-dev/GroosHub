@@ -27,9 +27,27 @@ export interface ParsedTable {
 
 /**
  * Parse pipe-separated table content into structured data
+ * Handles both multi-line tables and flattened single-line tables
  */
 function parsePipeTable(tableContent: string): ParsedTable | null {
-  const lines = tableContent.split('\n').filter(line => line.trim());
+  let content = tableContent;
+
+  // Detect if this is a flattened single-line table
+  // Pattern: "| col1 | col2 | | val1 | val2 |" where "| |" indicates row boundary
+  // Also handle: "| --- | --- | |" separator pattern
+  if (!content.includes('\n') || content.split('\n').filter(l => l.trim()).length <= 1) {
+    // Try to unflatten by detecting row boundaries
+    // Row boundary pattern: "| |" or "| | ---" (end of row, start of separator or next row)
+    content = content
+      // First, normalize separator rows: "| --- | --- |" should stay together
+      .replace(/\|\s*---\s*\|/g, '|---|')
+      // Split on "| |" pattern (row boundaries)
+      .replace(/\|\s*\|/g, '|\n|')
+      // Restore separator formatting
+      .replace(/\|---\|/g, '| --- |');
+  }
+
+  const lines = content.split('\n').filter(line => line.trim());
 
   if (lines.length === 0) return null;
 
@@ -161,6 +179,7 @@ function tableToMarkdown(table: ParsedTable): string {
 
 /**
  * Extract semantic summaries from text
+ * Handles both multi-line format and single-line format
  */
 function extractSummaries(text: string): { summaries: string[]; cleanedText: string } {
   const summaries: string[] = [];
@@ -173,12 +192,21 @@ function extractSummaries(text: string): { summaries: string[]; cleanedText: str
   if (summaryMatch) {
     const summarySection = summaryMatch[1];
 
-    // Extract quoted sentences
-    const sentences = summarySection
+    // Try multi-line format first: each quoted sentence on its own line
+    let sentences = summarySection
       .split('\n')
       .map(line => line.trim())
       .filter(line => line.startsWith('"') && line.endsWith('"'))
       .map(line => line.slice(1, -1));
+
+    // If no sentences found, try single-line format: "sentence1" "sentence2" "sentence3"
+    if (sentences.length === 0) {
+      // Match all quoted strings in the section
+      const quotedMatches = summarySection.match(/"[^"]+"/g);
+      if (quotedMatches) {
+        sentences = quotedMatches.map(s => s.slice(1, -1));
+      }
+    }
 
     summaries.push(...sentences);
     cleanedText = cleanedText.replace(summaryMatch[0], '');
