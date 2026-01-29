@@ -1,6 +1,6 @@
 # Issue: AI Panel Not Receiving Location Data
 
-**Status:** Open
+**Status:** Fixed
 **Priority:** High
 **Date:** 2026-01-26
 **Branch:** claude/review-ai-assistant-6IBuE (merged)
@@ -93,6 +93,27 @@ The user suspects this might have been fixed in a different branch. Check for re
 - `/src/features/ai-assistant/utils/aiToolsPayloadBuilder.ts`
 - `/src/features/location/utils/jsonExportCompact.ts`
 - Location page component (parent of AIPanel)
+
+## Solution (Fixed 2026-01-29)
+
+### Root Cause
+The `AIContextSync` component was defined **inline** inside the `LocationPage` component. When a component function is defined inline, React treats it as a new component type on each parent re-render. This causes:
+1. The component to potentially unmount/remount on each render
+2. Hook instability - `useMemo` and `useEffect` may not properly track dependencies
+3. Data loss during the sync process
+
+### Fix Applied
+Moved the `AIContextSync` component definition **outside** of `LocationPage`:
+- The component is now defined at module scope with an explicit props interface
+- Props (`locationExport`, `currentAddress`, `hasData`, `activeTab`) are passed explicitly
+- This ensures React maintains stable component identity across re-renders
+
+### Code Changes
+File: `src/app/[locale]/location/page.tsx`
+- Moved `AIContextSync` component definition outside `LocationPage` (lines 40-73)
+- Added `AIContextSyncProps` interface for type safety
+- Updated the JSX to pass props explicitly to `AIContextSync`
+- Moved `locationExport` memoization to `LocationPage` level and passed as prop
 
 ## Test Verification
 

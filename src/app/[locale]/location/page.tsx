@@ -35,7 +35,42 @@ import { useWMSGrading } from '../../../features/location/hooks/useWMSGrading';
 import { pveConfigCache } from '../../../features/location/data/cache/pveConfigCache';
 import type { WMSGradingData } from '../../../features/location/types/wms-grading';
 import { AIAssistantProvider, useAIAssistantOptional } from '../../../features/ai-assistant/hooks/useAIAssistant';
-import { exportCompactForLLM } from '../../../features/location/utils/jsonExportCompact';
+import { exportCompactForLLM, type CompactLocationExport } from '../../../features/location/utils/jsonExportCompact';
+
+// ============================================
+// AI Context Sync Component
+// ============================================
+// IMPORTANT: This component is defined OUTSIDE LocationPage to ensure stable React
+// component identity. Defining components inline causes React to treat them as new
+// component types on each parent re-render, which breaks hook stability.
+
+interface AIContextSyncProps {
+  locationExport: CompactLocationExport | undefined;
+  currentAddress: string | null;
+  hasData: boolean;
+  activeTab: string;
+}
+
+function AIContextSync({ locationExport, currentAddress, hasData, activeTab }: AIContextSyncProps) {
+  const ai = useAIAssistantOptional();
+
+  React.useEffect(() => {
+    if (ai) {
+      ai.setContext({
+        locationExport,
+        currentView: {
+          location: {
+            address: currentAddress || undefined,
+            hasCompletedAnalysis: hasData,
+            activeTab,
+          },
+        },
+      });
+    }
+  }, [ai, activeTab, currentAddress, hasData, locationExport]);
+
+  return null;
+}
 
 // Main sections configuration with dual language support
 const MAIN_SECTIONS = [
@@ -912,45 +947,25 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
     );
   };
 
-  // Component to sync activeTab and location data to AI context
-  const AIContextSync = () => {
-    const ai = useAIAssistantOptional();
-
-    // Build compact export for AI tools (memoized to avoid rebuilding on every render)
-    const locationExport = React.useMemo(() => {
-      if (!data || !calculatedScores) return undefined;
-      try {
-        return exportCompactForLLM(
-          data,
-          calculatedScores.sortedPersonas,
-          calculatedScores.scenarios,
-          locale,
-          [], // customScenarioPersonaIds
-          amenities || null,
-          wmsGrading.gradingData || null
-        );
-      } catch (error) {
-        console.error('[AIContextSync] Failed to build compact export:', error);
-        return undefined;
-      }
-    }, [data, calculatedScores, locale, amenities, wmsGrading.gradingData]);
-
-    React.useEffect(() => {
-      if (ai) {
-        ai.setContext({
-          locationExport,
-          currentView: {
-            location: {
-              address: currentAddress || undefined,
-              hasCompletedAnalysis: !!data,
-              activeTab,
-            },
-          },
-        });
-      }
-    }, [ai, activeTab, currentAddress, data, locationExport]);
-    return null;
-  };
+  // Build compact export for AI tools (memoized to avoid rebuilding on every render)
+  // This data is passed to the AIContextSync component which syncs it to the AI assistant context
+  const locationExport = React.useMemo(() => {
+    if (!data || !calculatedScores) return undefined;
+    try {
+      return exportCompactForLLM(
+        data,
+        calculatedScores.sortedPersonas,
+        calculatedScores.scenarios,
+        locale,
+        [], // customScenarioPersonaIds
+        amenities || null,
+        wmsGrading.gradingData || null
+      );
+    } catch (error) {
+      console.error('[LocationPage] Failed to build compact export:', error);
+      return undefined;
+    }
+  }, [data, calculatedScores, locale, amenities, wmsGrading.gradingData]);
 
   return (
     <AIAssistantProvider
@@ -966,8 +981,13 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         },
       }}
     >
-      {/* Sync active tab to AI context */}
-      <AIContextSync />
+      {/* Sync location data to AI context - component is defined outside LocationPage for stable identity */}
+      <AIContextSync
+        locationExport={locationExport}
+        currentAddress={currentAddress}
+        hasData={!!data}
+        activeTab={activeTab}
+      />
 
       <MainLayout
         isCollapsed={isCollapsed}
