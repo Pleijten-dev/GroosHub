@@ -6,6 +6,32 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 // ASCII characters from sparse to dense (cold to hot)
 const ASCII_CHARS = ' .:-=+*#%@';
 
+// Color gradient for heat values (cold to hot)
+// f8eee4 (cream) -> 8a976b (sage) -> 477638 (green) -> 48806a (teal) -> 0c211a (dark)
+const GRADIENT_COLORS = [
+  { r: 0xf8, g: 0xee, b: 0xe4 }, // #f8eee4 - cream (cold)
+  { r: 0x8a, g: 0x97, b: 0x6b }, // #8a976b - sage
+  { r: 0x47, g: 0x76, b: 0x38 }, // #477638 - green
+  { r: 0x48, g: 0x80, b: 0x6a }, // #48806a - teal
+  { r: 0x0c, g: 0x21, b: 0x1a }, // #0c211a - dark (hot)
+];
+
+// Interpolate color from gradient based on heat (0-1)
+function heatToColor(heat: number): string {
+  const segments = GRADIENT_COLORS.length - 1;
+  const segment = Math.min(Math.floor(heat * segments), segments - 1);
+  const t = (heat * segments) - segment;
+
+  const c1 = GRADIENT_COLORS[segment];
+  const c2 = GRADIENT_COLORS[segment + 1];
+
+  const r = Math.round(c1.r + (c2.r - c1.r) * t);
+  const g = Math.round(c1.g + (c2.g - c1.g) * t);
+  const b = Math.round(c1.b + (c2.b - c1.b) * t);
+
+  return `rgb(${r},${g},${b})`;
+}
+
 // Dutch cities with center coordinates and tile configuration
 const TILE_WIDTH = 0.12; // Longitude width per tile
 const NUM_TILES = 6;
@@ -75,7 +101,7 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
   const shuffledCities = useMemo(() => shuffleArray(CITIES), []);
 
   const [cityIndex, setCityIndex] = useState(0);
-  const [combinedAscii, setCombinedAscii] = useState<string[]>([]);
+  const [combinedData, setCombinedData] = useState<{ char: string; heat: number }[][]>([]);
   const [tileImages, setTileImages] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFading, setIsFading] = useState(false);
@@ -116,7 +142,7 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
       canvas.width = tileSize;
       canvas.height = tileSize;
 
-      const allTileAscii: string[][] = [];
+      const allTileData: { char: string; heat: number }[][][] = [];
       const allImages: string[] = [];
 
       for (const tile of tiles) {
@@ -144,49 +170,50 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
           ctx.clearRect(0, 0, tileSize, tileSize);
           ctx.drawImage(img, 0, 0, tileSize, tileSize);
 
-          const lines: string[] = [];
+          const lines: { char: string; heat: number }[][] = [];
           for (let y = 0; y < tileSize; y++) {
-            let line = '';
+            const row: { char: string; heat: number }[] = [];
             for (let x = 0; x < tileSize; x++) {
               const pixel = ctx.getImageData(x, y, 1, 1).data;
               if (pixel[3] < 128) {
-                line += ' ';
+                row.push({ char: ' ', heat: 0 });
               } else {
                 const heat = colorToHeat(pixel[0], pixel[1], pixel[2]);
-                line += heatToASCII(heat);
+                row.push({ char: heatToASCII(heat), heat });
               }
             }
-            lines.push(line);
+            lines.push(row);
           }
-          allTileAscii.push(lines);
+          allTileData.push(lines);
 
           if (!debugShowImage) {
             URL.revokeObjectURL(blobUrl);
           }
         } catch (err) {
           console.error(`Failed to load tile ${tile.name}:`, err);
-          const lines: string[] = [];
+          const lines: { char: string; heat: number }[][] = [];
           for (let y = 0; y < tileSize; y++) {
-            lines.push(' '.repeat(tileSize));
+            const row = Array(tileSize).fill({ char: ' ', heat: 0 });
+            lines.push(row);
           }
-          allTileAscii.push(lines);
+          allTileData.push(lines);
         }
       }
 
       // Combine all tiles horizontally
-      const combined: string[] = [];
-      if (allTileAscii.length > 0) {
-        const height = allTileAscii[0].length;
+      const combined: { char: string; heat: number }[][] = [];
+      if (allTileData.length > 0) {
+        const height = allTileData[0].length;
         for (let y = 0; y < height; y++) {
-          let line = '';
-          for (const tile of allTileAscii) {
-            line += tile[y] || '';
+          const row: { char: string; heat: number }[] = [];
+          for (const tile of allTileData) {
+            row.push(...(tile[y] || []));
           }
-          combined.push(line);
+          combined.push(row);
         }
       }
 
-      setCombinedAscii(combined);
+      setCombinedData(combined);
       setTileImages(allImages);
       setIsLoading(false);
     };
@@ -197,7 +224,7 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
   }, [screenRows, tiles, debugShowImage]);
 
   // Calculate max pan offset
-  const totalWidth = combinedAscii.length > 0 ? combinedAscii[0].length : 0;
+  const totalWidth = combinedData.length > 0 ? combinedData[0].length : 0;
   const maxPanOffset = Math.max(0, totalWidth - screenCols);
 
   // Animation: update pan offset over time
@@ -234,13 +261,18 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
     };
   }, [isLoading, totalWidth, maxPanOffset, isFading, shuffledCities.length]);
 
-  // Get visible ASCII slice based on pan offset (fixed grid, changing characters)
-  const visibleLines = useMemo(() => {
-    if (combinedAscii.length === 0) return [];
-    return combinedAscii.map(line =>
-      line.slice(panOffset, panOffset + screenCols).padEnd(screenCols, ' ')
-    );
-  }, [combinedAscii, panOffset, screenCols]);
+  // Get visible data slice based on pan offset (fixed grid, changing characters)
+  const visibleData = useMemo(() => {
+    if (combinedData.length === 0) return [];
+    return combinedData.map(row => {
+      const slice = row.slice(panOffset, panOffset + screenCols);
+      // Pad with empty cells if needed
+      while (slice.length < screenCols) {
+        slice.push({ char: ' ', heat: 0 });
+      }
+      return slice;
+    });
+  }, [combinedData, panOffset, screenCols]);
 
   // Debug mode
   if (debugShowImage && tileImages.length > 0) {
@@ -268,7 +300,7 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
       style={{ opacity: isFading ? 0 : opacity, zIndex: 0, transition: 'opacity 1s ease-in-out' }}
     >
       <pre
-        className="font-mono text-[8px] leading-[8px] text-gray-700 whitespace-pre select-none m-0 p-0"
+        className="font-mono text-[8px] leading-[8px] whitespace-pre select-none m-0 p-0"
         style={{
           position: 'absolute',
           top: 0,
@@ -280,7 +312,13 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
         {isLoading ? (
           <div className="text-gray-400">Loading...</div>
         ) : (
-          visibleLines.map((line, i) => <div key={i} style={{ margin: 0, padding: 0 }}>{line}</div>)
+          visibleData.map((row, y) => (
+            <div key={y} style={{ margin: 0, padding: 0 }}>
+              {row.map((cell, x) => (
+                <span key={x} style={{ color: heatToColor(cell.heat) }}>{cell.char}</span>
+              ))}
+            </div>
+          ))
         )}
       </pre>
     </div>
