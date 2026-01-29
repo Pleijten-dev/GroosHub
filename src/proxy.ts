@@ -1,11 +1,18 @@
 import NextAuth from 'next-auth';
 import { authConfig } from './lib/auth.config';
 
-export default NextAuth(authConfig).auth;
+const { auth } = NextAuth(authConfig);
+
+/**
+ * Next.js 16 Proxy (formerly middleware) for NextAuth v5
+ * Handles CSRF token management and the authorized callback
+ */
+export const proxy = auth;
 
 export const config = {
-  // Match all paths except static files, api routes, _next, and auth API
+  // Match all paths except static files, _next, and public assets
+  // Note: /api/auth/* routes are included so NextAuth can handle CSRF tokens
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
