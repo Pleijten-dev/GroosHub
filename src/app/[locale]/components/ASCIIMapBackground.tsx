@@ -6,13 +6,21 @@ import React, { useEffect, useState, useRef } from 'react';
 // ASCII characters from dark to light
 const ASCII_CHARS = '@%#*+=-:. ';
 
-// 4 Dutch city tiles to pan across
-const TILES = [
-  { name: 'Rotterdam', bbox: '51.85,4.35,51.95,4.55' },
-  { name: 'Den Haag', bbox: '52.03,4.25,52.13,4.45' },
-  { name: 'Amsterdam', bbox: '52.32,4.82,52.42,5.02' },
-  { name: 'Utrecht', bbox: '52.05,5.05,52.15,5.25' },
-];
+// Rotterdam area - 4 adjacent tiles spanning west to east
+// Each tile is 0.1° lat x 0.1° lon (square-ish at this latitude)
+const CITY = {
+  name: 'Rotterdam',
+  south: 51.88,
+  north: 51.98,
+  westStart: 4.35, // Starting longitude
+  tileWidth: 0.12, // Longitude width per tile
+};
+
+// Generate 4 adjacent tiles
+const TILES = Array.from({ length: 4 }, (_, i) => ({
+  name: `${CITY.name}-${i + 1}`,
+  bbox: `${CITY.south},${CITY.westStart + i * CITY.tileWidth},${CITY.north},${CITY.westStart + (i + 1) * CITY.tileWidth}`,
+}));
 
 // WMS configuration
 const WMS_BASE = 'https://data.rivm.nl/geo/ank/wms';
@@ -150,26 +158,23 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
     }
   }, [rows, debugShowImage]);
 
-  // Smooth panning animation
+  // Smooth panning animation - pan left to right, then reset
   useEffect(() => {
     if (isLoading || asciiTiles.length === 0) return;
 
     const totalWidth = asciiTiles.length * rows * 4.8; // 4 tiles * tileSize * char width
     const screenWidth = window.innerWidth;
-    const maxPan = totalWidth - screenWidth;
+    const maxPan = Math.max(0, totalWidth - screenWidth);
 
-    const duration = 60000; // 60 seconds for full pan
+    const duration = 45000; // 45 seconds to pan across
     let startTime: number | null = null;
 
     const animate = (time: number) => {
       if (!startTime) startTime = time;
       const elapsed = time - startTime;
-      const progress = (elapsed % (duration * 2)) / duration; // 0 to 2
+      const progress = (elapsed % duration) / duration; // 0 to 1, then resets
 
-      // Ping-pong: 0->1 then 1->0
-      const easedProgress = progress <= 1 ? progress : 2 - progress;
-
-      setPanX(easedProgress * maxPan);
+      setPanX(progress * maxPan);
       animationRef.current = requestAnimationFrame(animate);
     };
 
