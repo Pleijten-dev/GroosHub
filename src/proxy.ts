@@ -15,17 +15,9 @@ import type { NextRequest } from 'next/server';
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Rewrite locale-prefixed API routes to /api/*
-  // This handles /nl/api/* and /en/api/* -> /api/*
-  const localeApiMatch = pathname.match(/^\/(nl|en)\/api\/(.*)/);
-  if (localeApiMatch) {
-    const url = request.nextUrl.clone();
-    url.pathname = `/api/${localeApiMatch[2]}`;
-    return NextResponse.rewrite(url);
-  }
-
-  // Skip non-prefixed API routes
-  if (pathname.startsWith('/api/')) {
+  // Skip all API routes - locale-prefixed ones are rewritten in next.config.ts
+  // via beforeFiles rewrites: /nl/api/* -> /api/*, /en/api/* -> /api/*
+  if (pathname.includes('/api/')) {
     return NextResponse.next();
   }
 
@@ -70,9 +62,9 @@ export function proxy(request: NextRequest) {
 export default proxy;
 
 export const config = {
-  // Match all paths except direct /api/* routes, static files, and assets
-  // Note: Locale-prefixed API routes like /nl/api/* DO match (not excluded)
-  // because they need to be rewritten to /api/* by the proxy function above
+  // Match all paths except /api/* routes, static files, and assets
+  // Note: Locale-prefixed API routes like /nl/api/* are handled by
+  // next.config.ts beforeFiles rewrites, not this proxy
   matcher: [
     '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
