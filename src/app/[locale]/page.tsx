@@ -185,9 +185,8 @@ const FeatureCardComponent: React.FC<FeatureCardComponentProps> = ({ card, local
     }
   };
 
-  // Glass effect for inactive cards, solid color for active
+  // Glass effect for all cards
   const isActive = !card.comingSoon;
-  const useGlass = card.comingSoon;
 
   return (
     <div
@@ -197,18 +196,14 @@ const FeatureCardComponent: React.FC<FeatureCardComponentProps> = ({ card, local
         ${card.comingSoon ? 'cursor-not-allowed' : 'cursor-pointer'}
       `}
       style={{
-        backgroundColor: useGlass
-          ? 'rgba(255, 255, 255, 0.15)'
-          : (isHovered ? card.hoverColor : card.color),
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
         transform: isHovered && isActive ? 'scale(1.02)' : 'scale(1)',
-        boxShadow: useGlass
-          ? 'inset 0 0 0 1px rgba(255, 255, 255, 0.2), 0 8px 32px rgba(0, 0, 0, 0.1)'
-          : (isHovered && isActive
-            ? '0 20px 40px -12px rgba(0, 0, 0, 0.35)'
-            : '0 4px 20px -4px rgba(0, 0, 0, 0.1)'),
-        backdropFilter: useGlass ? 'blur(12px) saturate(180%)' : 'none',
-        WebkitBackdropFilter: useGlass ? 'blur(12px) saturate(180%)' : 'none',
-        border: useGlass ? '1px solid rgba(255, 255, 255, 0.25)' : 'none',
+        boxShadow: isHovered && isActive
+          ? 'inset 0 0 0 1px rgba(255, 255, 255, 0.3), 0 20px 40px rgba(0, 0, 0, 0.2)'
+          : 'inset 0 0 0 1px rgba(255, 255, 255, 0.2), 0 8px 32px rgba(0, 0, 0, 0.1)',
+        backdropFilter: 'blur(12px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(12px) saturate(180%)',
+        border: '1px solid rgba(255, 255, 255, 0.25)',
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -218,7 +213,7 @@ const FeatureCardComponent: React.FC<FeatureCardComponentProps> = ({ card, local
         {/* Icon */}
         <div
           className="mb-4"
-          style={{ color: useGlass ? '#6b7280' : card.textColor }}
+          style={{ color: card.comingSoon ? '#6b7280' : '#374151' }}
         >
           {card.icon}
         </div>
@@ -226,7 +221,7 @@ const FeatureCardComponent: React.FC<FeatureCardComponentProps> = ({ card, local
         {/* Title */}
         <h2
           className={`font-bold mb-2 ${card.large ? 'text-3xl' : 'text-xl'}`}
-          style={{ color: useGlass ? '#374151' : card.textColor }}
+          style={{ color: '#374151' }}
         >
           {title}
         </h2>
@@ -253,7 +248,7 @@ const FeatureCardComponent: React.FC<FeatureCardComponentProps> = ({ card, local
         >
           <p
             className={`${card.large ? 'text-base' : 'text-sm'} leading-relaxed`}
-            style={{ color: useGlass ? '#6b7280' : card.textColor, opacity: 0.9 }}
+            style={{ color: '#6b7280', opacity: 0.9 }}
           >
             {description}
           </p>
@@ -266,7 +261,7 @@ const FeatureCardComponent: React.FC<FeatureCardComponentProps> = ({ card, local
               absolute bottom-4 right-4 transition-all duration-300 ease-out
               ${isHovered ? 'translate-x-0 opacity-100' : '-translate-x-2 opacity-0'}
             `}
-            style={{ color: card.textColor }}
+            style={{ color: '#374151' }}
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
@@ -299,43 +294,9 @@ const HomePage: React.FC = () => {
       <ASCIIMapBackground opacity={0.25} />
 
       {/* Content container */}
-      <div className="relative min-h-screen flex flex-col">
-        {/* Header */}
-        <header className="pt-6 pb-4 px-8">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            {/* Logo */}
-            <div className="flex items-center gap-2">
-              <span className="text-2xl font-bold text-gray-900">GROOSHUB</span>
-            </div>
-
-            {/* Language switcher */}
-            <div className="flex items-center gap-2 text-sm">
-              <button
-                onClick={() => router.push(`/nl`)}
-                className={`px-3 py-1.5 rounded-lg transition-colors ${
-                  locale === 'nl'
-                    ? 'bg-gray-900 text-white'
-                    : 'bg-white/50 backdrop-blur-sm text-gray-600 hover:bg-white/70'
-                }`}
-              >
-                NL
-              </button>
-              <button
-                onClick={() => router.push(`/en`)}
-                className={`px-3 py-1.5 rounded-lg transition-colors ${
-                  locale === 'en'
-                    ? 'bg-gray-900 text-white'
-                    : 'bg-white/50 backdrop-blur-sm text-gray-600 hover:bg-white/70'
-                }`}
-              >
-                EN
-              </button>
-            </div>
-          </div>
-        </header>
-
-        {/* Bento Grid - fills remaining space */}
-        <main className="flex-1 px-8 pb-6 flex flex-col">
+      <div className="relative min-h-screen flex flex-col p-6">
+        {/* Bento Grid - fills screen */}
+        <main className="flex-1 flex flex-col">
           <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col">
             <div
               className="grid grid-cols-4 gap-4 flex-1"
@@ -379,11 +340,6 @@ const HomePage: React.FC = () => {
             </div>
           </div>
         </main>
-
-        {/* Footer */}
-        <footer className="py-4 px-8 text-center text-sm text-gray-500">
-          <p>&copy; {new Date().getFullYear()} GroosHub. {locale === 'nl' ? 'Alle rechten voorbehouden.' : 'All rights reserved.'}</p>
-        </footer>
       </div>
     </div>
   );
