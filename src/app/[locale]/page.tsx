@@ -87,19 +87,19 @@ const FEATURE_CARDS: FeatureCard[] = [
       en: 'LCA Calculator',
     },
     descriptionKey: {
-      nl: 'Life Cycle Assessment tool voor woningbouwprojecten. Bereken MPG scores volgens Nederlandse regelgeving en analyseer materiaal impact.',
-      en: 'Life Cycle Assessment tool for residential projects. Calculate MPG scores according to Dutch regulations and analyze material impact.',
+      nl: 'Binnenkort beschikbaar...',
+      en: 'Coming soon...',
     },
     href: '/lca',
-    color: PVE_COLORS.commercial,
-    hoverColor: '#677a4e',
-    textColor: '#ffffff',
+    color: '#9ca3af',
+    hoverColor: '#9ca3af',
+    textColor: '#6b7280',
     icon: (
       <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25V13.5zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25V18zm2.498-6.75h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007V13.5zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007V18zm2.504-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V13.5zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V18zm2.498-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V13.5zM8.25 6h7.5v2.25h-7.5V6zM12 2.25c-1.892 0-3.758.11-5.593.322C5.307 2.7 4.5 3.65 4.5 4.757V19.5a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25V4.757c0-1.108-.806-2.057-1.907-2.185A48.507 48.507 0 0012 2.25z" />
       </svg>
     ),
-    comingSoon: false,
+    comingSoon: true,
   },
   {
     id: 'project-analysis',
