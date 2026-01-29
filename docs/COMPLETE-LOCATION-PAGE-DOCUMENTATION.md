@@ -1,7 +1,7 @@
 # Location Page - Complete Technical Documentation
 
-> **Last Updated**: 2026-01-27
-> **Version**: 2.6.0 (Final Review - Self-Contained)
+> **Last Updated**: 2026-01-29
+> **Version**: 2.7.0 (4-Stage Pipeline + Writing Guidelines)
 > **Status**: Definitive Reference - Verified Against Codebase
 > **Supersedes**: All previous location-related documentation files
 
@@ -1415,27 +1415,53 @@ production/projects/proj-123/reports/1706359200000-amsterdam-centrum-rapport-202
 **Files**:
 - `src/app/api/generate-building-program/route.ts` - Main endpoint
 - `src/app/api/generate-building-program/stage1/route.ts` - Location analysis
-- `src/app/api/generate-building-program/stage2/route.ts` - Persona analysis
-- `src/app/api/generate-building-program/stage3/route.ts` - PVE generation
+- `src/app/api/generate-building-program/stage2/route.ts` - Persona/scenario analysis
+- `src/app/api/generate-building-program/stage3-constraints/route.ts` - Building constraints
+- `src/app/api/generate-building-program/stage4/route.ts` - PVE allocation
 - `src/features/location/utils/stagedGenerationOrchestrator.ts` - Client orchestrator
 
-**3-Stage Pipeline**:
+**4-Stage Pipeline**:
 
 ```
 Stage 1: Location Analysis
-├── Input: CompactLocationExport
-├── Prompt: Analyze location characteristics
+├── Input: CompactLocationExport (demographics, amenities, environment, safety, health)
 ├── Output: LocationSummary, SWOT, KeyInsights
+├── Purpose: Synthesize raw data into actionable location insights
 
-Stage 2: Persona Analysis
-├── Input: Stage 1 output + Persona scores
-├── Prompt: Analyze persona fit for location
-├── Output: PersonaRecommendations, ScenarioDescriptions
+Stage 2: Persona/Scenario Analysis
+├── Input: Stage 1 output + Persona scores + Scenarios
+├── Output: ScenarioDescriptions, PersonaFit, ResidentialStrategy
+├── Purpose: Evaluate which target groups fit this location
 
-Stage 3: PVE Generation
-├── Input: Stage 1 + Stage 2 + PVE config
-├── Prompt: Generate building program recommendations
-├── Output: BuildingProgram, UnitMix, Specifications
+Stage 3: Building Constraints
+├── Input: Stage 1 output (environmental data: noise, air quality, heat stress)
+├── Output: Constraints, DesignRecommendations, AmenityOpportunities
+├── Purpose: Translate environmental factors into building requirements
+
+Stage 4: PVE Allocation
+├── Input: Stage 1 + Stage 2 + Stage 3 + PVE config + Typologies
+├── Output: UnitMix, Amenities, CommercialSpaces, DesignNotes
+├── Purpose: Generate detailed building program per scenario
+```
+
+**Writing Style Guidelines**:
+
+All LLM prompts enforce consistent, professional output:
+
+| Guideline | Description |
+|-----------|-------------|
+| **Wij-perspective** | Write from architecture firm's viewpoint ("Wij adviseren..." not "Ik denk...") |
+| **Anti-vagueness** | Every sentence must make a concrete point with data |
+| **Banned words** | No AI-speak: "cruciaal", "essentieel", "bovendien", "faciliteren", etc. |
+| **Concrete numbers** | "45% alleenstaanden, inkomen €38k" not "diverse doelgroepen" |
+| **1-sentence rationale** | "Fitness op BG - geen sportschool binnen 1km, starters verwachten dit" |
+
+**Bad vs Good Examples**:
+```
+✗ "De buurt heeft diverse kenmerken" (says nothing)
+✗ "Er zijn verschillende factoren" (which ones?)
+✓ "Inbraakcijfer 4.2 per 1000 - 40% onder gemeentegemiddelde. Veilige buurt."
+✓ "Wij kiezen 60% 2-kamers (45m²) - past bij 45% alleenstaanden"
 ```
 
 **Streaming Response**:
@@ -1809,8 +1835,9 @@ const coordinates = useMemo<[number, number]>(() => {
 |----------|--------|---------|
 | `/api/generate-building-program` | POST | Generate LLM building program |
 | `/api/generate-building-program/stage1` | POST | Location analysis |
-| `/api/generate-building-program/stage2` | POST | Persona analysis |
-| `/api/generate-building-program/stage3` | POST | PVE generation |
+| `/api/generate-building-program/stage2` | POST | Persona/scenario analysis |
+| `/api/generate-building-program/stage3-constraints` | POST | Building constraints |
+| `/api/generate-building-program/stage4` | POST | PVE allocation |
 | `/api/rapport/upload-pdf` | POST | Upload PDF to R2 |
 | `/api/rapport-snapshots` | GET/POST | List/save snapshots |
 | `/api/rapport-snapshots/[id]` | GET/PATCH/DELETE | Get/update/delete snapshot |
