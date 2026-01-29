@@ -10,12 +10,14 @@ interface ChangePasswordFormProps {
   translations: {
     title: string;
     description: string;
+    passwordHint: string;
     newPassword: string;
     confirmPassword: string;
     submit: string;
     success: string;
     passwordMismatch: string;
     passwordTooShort: string;
+    passwordRequirements: string;
     error: string;
   };
   locale: string;
@@ -36,6 +38,16 @@ export function ChangePasswordForm({ translations, locale }: ChangePasswordFormP
     // Validate password length
     if (newPassword.length < 8) {
       setError(translations.passwordTooShort);
+      return;
+    }
+
+    // Validate password complexity (uppercase, lowercase, number)
+    const hasUppercase = /[A-Z]/.test(newPassword);
+    const hasLowercase = /[a-z]/.test(newPassword);
+    const hasNumber = /[0-9]/.test(newPassword);
+
+    if (!hasUppercase || !hasLowercase || !hasNumber) {
+      setError(translations.passwordRequirements);
       return;
     }
 
@@ -84,6 +96,9 @@ export function ChangePasswordForm({ translations, locale }: ChangePasswordFormP
             </h1>
             <p className="mt-2 text-text-muted">
               {translations.description}
+            </p>
+            <p className="mt-1 text-sm text-text-muted">
+              {translations.passwordHint}
             </p>
           </div>
 

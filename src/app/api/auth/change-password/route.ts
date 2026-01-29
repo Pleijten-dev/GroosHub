@@ -38,6 +38,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate password complexity (uppercase, lowercase, number)
+    const hasUppercase = /[A-Z]/.test(newPassword);
+    const hasLowercase = /[a-z]/.test(newPassword);
+    const hasNumber = /[0-9]/.test(newPassword);
+
+    if (!hasUppercase || !hasLowercase || !hasNumber) {
+      return NextResponse.json(
+        { error: 'Password must contain an uppercase letter, lowercase letter, and number' },
+        { status: 400 }
+      );
+    }
+
     const db = getDbConnection();
 
     // Hash the new password
