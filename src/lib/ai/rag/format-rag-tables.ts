@@ -61,9 +61,9 @@ function parsePipeTable(tableContent: string): ParsedTable | null {
 }
 
 /**
- * Parse a flattened single-line table knowing the column count
+ * Parse a flattened single-line table knowing the header column count
  */
-function parseFlattenedTableWithColumnCount(content: string, colCount: number): ParsedTable | null {
+function parseFlattenedTableWithColumnCount(content: string, headerColCount: number): ParsedTable | null {
   // Split by | and filter out empty strings from start/end
   const allCells = content.split('|').map(c => c.trim());
 
@@ -75,9 +75,9 @@ function parseFlattenedTableWithColumnCount(content: string, colCount: number): 
   let separatorIndex = -1;
   for (let i = 0; i < allCells.length; i++) {
     if (allCells[i].match(/^-+$/)) {
-      // Check if this starts a separator row (next colCount-1 cells are also ---)
+      // Check if this starts a separator row (next headerColCount-1 cells are also ---)
       let isSeparator = true;
-      for (let j = 0; j < colCount - 1 && i + j + 1 < allCells.length; j++) {
+      for (let j = 0; j < headerColCount - 1 && i + j + 1 < allCells.length; j++) {
         if (!allCells[i + j + 1].match(/^-+$/)) {
           isSeparator = false;
           break;
@@ -90,29 +90,74 @@ function parseFlattenedTableWithColumnCount(content: string, colCount: number): 
     }
   }
 
-  if (separatorIndex === -1 || separatorIndex < colCount) {
+  if (separatorIndex === -1 || separatorIndex < headerColCount) {
     // No valid separator found, can't parse
     return parseMultiLineTable(content);
   }
 
   // Header is cells before separator
-  const headers = allCells.slice(separatorIndex - colCount, separatorIndex);
+  const headers = allCells.slice(separatorIndex - headerColCount, separatorIndex);
 
   // Data cells are after separator
-  const dataCells = allCells.slice(separatorIndex + colCount);
+  const dataCells = allCells.slice(separatorIndex + headerColCount);
 
-  // Group data cells into rows
+  if (dataCells.length === 0) {
+    return { headers, rows: [] };
+  }
+
+  // Detect actual row length from data
+  // Try to find the best divisor that's >= headerColCount
+  const actualRowLength = detectRowLength(dataCells, headerColCount);
+
+  // Group data cells into rows using detected row length
   const rows: string[][] = [];
-  for (let i = 0; i < dataCells.length; i += colCount) {
-    const row = dataCells.slice(i, i + colCount);
-    if (row.length === colCount && row.some(c => c.length > 0)) {
+  for (let i = 0; i < dataCells.length; i += actualRowLength) {
+    const row = dataCells.slice(i, i + actualRowLength);
+    // Pad row if needed
+    while (row.length < actualRowLength) {
+      row.push('');
+    }
+    if (row.some(c => c.length > 0)) {
       rows.push(row);
     }
   }
 
   if (headers.length === 0) return null;
 
+  // If actual row length differs from header, normalize the table
+  if (actualRowLength !== headerColCount) {
+    // Extend headers to match data columns
+    const extendedHeaders = [...headers];
+    while (extendedHeaders.length < actualRowLength) {
+      extendedHeaders.push('');
+    }
+    return { headers: extendedHeaders, rows };
+  }
+
   return { headers, rows };
+}
+
+/**
+ * Detect the actual row length in flattened table data
+ * by finding the best divisor of the cell count
+ */
+function detectRowLength(dataCells: string[], minLength: number): number {
+  const totalCells = dataCells.length;
+
+  // Try divisors from largest to smallest that are >= minLength
+  // and result in at least 2 rows (to detect patterns)
+  for (let rowLen = Math.floor(totalCells / 2); rowLen >= minLength; rowLen--) {
+    if (totalCells % rowLen === 0) {
+      // Check if this creates sensible rows (similar structure)
+      const numRows = totalCells / rowLen;
+      if (numRows >= 2) {
+        return rowLen;
+      }
+    }
+  }
+
+  // Fallback to minimum length
+  return minLength;
 }
 
 /**
@@ -172,60 +217,6 @@ function parseMultiLineTable(content: string): ParsedTable | null {
 }
 
 /**
- * Condense sparse table rows into the expected column structure
- * For Bouwbesluit-style tables with many empty cells, combines
- * non-empty cells intelligently into the header columns
- */
-function condenseTableRows(table: ParsedTable): ParsedTable {
-  const headerCount = table.headers.length;
-  const dataColCount = table.rows.length > 0 ? table.rows[0].length : 0;
-
-  // If data rows have same column count as headers, no condensing needed
-  if (dataColCount <= headerCount) {
-    return table;
-  }
-
-  // Data has more columns than headers - need to condense
-  // Strategy: For each row, gather non-empty cells and map to header columns
-  // - First N-1 non-empty cells go into first column (joined with space)
-  // - Last non-empty cell goes into last column
-  // - Middle columns stay empty
-
-  const condensedRows = table.rows.map(row => {
-    const nonEmptyCells = row.filter(cell => cell && cell.trim().length > 0);
-
-    if (nonEmptyCells.length === 0) {
-      // Empty row
-      return new Array(headerCount).fill('');
-    }
-
-    if (nonEmptyCells.length === 1) {
-      // Single value - put in first column
-      const result = new Array(headerCount).fill('');
-      result[0] = nonEmptyCells[0];
-      return result;
-    }
-
-    // Multiple values:
-    // - Combine all but last into first column
-    // - Put last into last column
-    const result = new Array(headerCount).fill('');
-    const firstParts = nonEmptyCells.slice(0, -1);
-    const lastValue = nonEmptyCells[nonEmptyCells.length - 1];
-
-    result[0] = firstParts.join(' ');
-    result[headerCount - 1] = lastValue;
-
-    return result;
-  });
-
-  return {
-    headers: table.headers,
-    rows: condensedRows,
-  };
-}
-
-/**
  * Filter out completely empty columns from a table
  */
 function filterEmptyColumns(table: ParsedTable): ParsedTable {
@@ -257,9 +248,8 @@ function filterEmptyColumns(table: ParsedTable): ParsedTable {
  * Convert parsed table to HTML table element with inline styles
  */
 function tableToHTML(table: ParsedTable): string {
-  // First condense sparse rows, then filter empty columns
-  const condensedTable = condenseTableRows(table);
-  const filteredTable = filterEmptyColumns(condensedTable);
+  // Filter out completely empty columns
+  const filteredTable = filterEmptyColumns(table);
 
   const escapeHTML = (str: string) =>
     str
