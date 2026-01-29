@@ -563,32 +563,42 @@ export function formatRAGSourceText(rawText: string): string {
   const { summaries, cleanedText: textAfterSummary } = extractSummaries(text);
   text = textAfterSummary;
 
-  // 2. Extract table details
+  // 2. Extract table details section
   const { table: detailsTable, cleanedText: textAfterDetails } = extractTableDetails(text);
   text = textAfterDetails;
 
-  // 3. Extract inline tables from remaining text
-  const { tables: inlineTables, cleanedText: textAfterInline } = extractInlineTables(text);
-  text = textAfterInline;
+  // 3. Only extract inline tables if we DON'T have a details table
+  // (to avoid creating duplicate tables from the same data)
+  let inlineTables: ParsedTable[] = [];
+  if (!detailsTable) {
+    const inlineResult = extractInlineTables(text);
+    inlineTables = inlineResult.tables;
+    text = inlineResult.cleanedText;
+  }
 
   // 4. Clean up artifacts (date sequences, etc.)
   text = cleanupArtifacts(text);
 
-  // 5. Format structural elements (article headers)
+  // 5. Remove excessive whitespace
+  text = text.replace(/\n{3,}/g, '\n\n').trim();
+
+  // 6. Format structural elements (article headers)
   text = formatStructuralElements(text);
 
-  // 6. Build HTML output - Text first, then table, then summary at the end
+  // 7. Build HTML output - Text first, then table, then summary at the end
   let result = '';
 
-  // Replace placeholders with inline HTML tables
-  let tableIndex = 0;
-  text = text.replace(/\{\{TABLE_PLACEHOLDER\}\}/g, () => {
-    const table = inlineTables[tableIndex++];
-    if (table) {
-      return '\n<div class="rag-table-wrapper" style="margin: 0.75rem 0;">\n' + tableToHTML(table) + '\n</div>\n';
-    }
-    return '';
-  });
+  // Replace placeholders with inline HTML tables (only if no details table)
+  if (inlineTables.length > 0) {
+    let tableIndex = 0;
+    text = text.replace(/\{\{TABLE_PLACEHOLDER\}\}/g, () => {
+      const table = inlineTables[tableIndex++];
+      if (table) {
+        return '\n<div class="rag-table-wrapper" style="margin: 0.75rem 0;">\n' + tableToHTML(table) + '\n</div>\n';
+      }
+      return '';
+    });
+  }
 
   // Add remaining text (the article content)
   const remainingText = text.trim();
