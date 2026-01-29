@@ -158,13 +158,31 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
     }
   }, [rows, debugShowImage]);
 
+  // Combine tiles into single ASCII block
+  const combinedLines: string[] = [];
+  if (asciiTiles.length > 0) {
+    const tileHeight = asciiTiles[0].length;
+    for (let y = 0; y < tileHeight; y++) {
+      let line = '';
+      for (const tile of asciiTiles) {
+        line += tile[y] || '';
+      }
+      combinedLines.push(line);
+    }
+  }
+
+  // Get actual content width in pixels
+  const contentWidthChars = combinedLines.length > 0 ? combinedLines[0].length : 0;
+  const contentWidthPx = contentWidthChars * 4.8;
+
   // Smooth panning animation - pan left to right, then reset
   useEffect(() => {
-    if (isLoading || asciiTiles.length === 0) return;
+    if (isLoading || contentWidthPx === 0) return;
 
-    const totalWidth = asciiTiles.length * rows * 4.8; // 4 tiles * tileSize * char width
     const screenWidth = window.innerWidth;
-    const maxPan = Math.max(0, totalWidth - screenWidth);
+    const maxPan = Math.max(0, contentWidthPx - screenWidth);
+
+    if (maxPan === 0) return; // Nothing to pan
 
     const duration = 45000; // 45 seconds to pan across
     let startTime: number | null = null;
@@ -182,20 +200,7 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
     return () => {
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
-  }, [isLoading, asciiTiles, rows]);
-
-  // Combine tiles into single ASCII block
-  const combinedLines: string[] = [];
-  if (asciiTiles.length > 0) {
-    const tileHeight = asciiTiles[0].length;
-    for (let y = 0; y < tileHeight; y++) {
-      let line = '';
-      for (const tile of asciiTiles) {
-        line += tile[y] || '';
-      }
-      combinedLines.push(line);
-    }
-  }
+  }, [isLoading, contentWidthPx]);
 
   // Debug mode: show actual images
   if (debugShowImage && tileImages.length > 0) {
@@ -207,7 +212,7 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
           ))}
         </div>
         <div className="absolute top-2 left-2 text-xs text-gray-700 bg-white/80 px-2 py-1 rounded z-10">
-          Pan: {Math.round(panX)}px | Tiles: {tileImages.length}
+          Pan: {Math.round(panX)}px | Width: {Math.round(contentWidthPx)}px | MaxPan: {Math.round(Math.max(0, contentWidthPx - window.innerWidth))}px
         </div>
       </div>
     );
