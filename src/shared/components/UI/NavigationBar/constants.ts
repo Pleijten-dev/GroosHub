@@ -6,7 +6,6 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     id: 'ai-assistant',
     labelKey: 'nav.aiAssistant',
     href: '/ai-assistant',
-    disabled: true,
   },
   {
     id: 'urban-analysis',
