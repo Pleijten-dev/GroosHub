@@ -1,11 +1,11 @@
 /**
- * Stage 3: PVE & Spaces Allocation
+ * Stage 4: PVE & Spaces Allocation (Constraint-Aware)
  *
- * Input: Stage 1+2 outputs + PVE + communalSpaces + publicSpaces + typologies
- * Output: Detailed building program for each scenario
+ * Input: Stage 1+2+3 outputs + PVE + communalSpaces + publicSpaces + typologies
+ * Output: Detailed building program for each scenario with design notes
  *
- * Token usage: ~25KB input + 4KB summaries → ~15KB output
- * Purpose: Generate the detailed PVE allocations using filtered, relevant data
+ * Token usage: ~30KB input + 4KB summaries → ~18KB output
+ * Purpose: Generate detailed PVE allocations informed by building constraints from Stage 3
  */
 
 import { anthropic } from '@ai-sdk/anthropic';
@@ -196,9 +196,15 @@ const ScenarioPVESchema = z.object({
     total_m2: z.number(),
     concept: z.string(),
   }),
+  // Design notes based on building constraints from Stage 3
+  design_notes: z.object({
+    noise_mitigation: z.string().describe('How the design addresses noise constraints'),
+    climate_adaptation: z.string().describe('How the design addresses climate/heat stress'),
+    green_integration: z.string().describe('How greenery is integrated to compensate for environmental gaps'),
+  }).describe('Design considerations based on building constraints'),
 });
 
-const Stage3OutputSchema = z.object({
+const Stage4OutputSchema = z.object({
   scenarios: z.array(ScenarioPVESchema),
   generalized_pve: z.object({
     communal_categories: z.record(z.string(), z.object({
@@ -215,7 +221,7 @@ const Stage3OutputSchema = z.object({
   comparative_analysis: z.string().describe('Comparison of scenarios and recommendations'),
 });
 
-export type Stage3Output = z.infer<typeof Stage3OutputSchema>;
+export type Stage4Output = z.infer<typeof Stage4OutputSchema>;
 
 // ============================================================================
 // INPUT TYPE
@@ -252,9 +258,37 @@ interface PVEData {
   housingCategories?: HousingCategoriesData;
 }
 
-interface Stage3Input {
+// Building constraints from Stage 3
+interface BuildingConstraints {
+  constraints: Array<{
+    category: string;
+    severity: string;
+    constraint: string;
+    designImplication: string;
+    affectedAreas: string[];
+  }>;
+  designRecommendations: {
+    facade: string[];
+    ventilation: string[];
+    acoustics: string[];
+    outdoor_spaces: string[];
+    green_integration: string[];
+    climate_adaptation: string[];
+  };
+  amenityOpportunities: Array<{
+    type: string;
+    rationale: string;
+    priority: string;
+    suggestedSize: string;
+  }>;
+  constraintsSummary: string;
+  opportunitiesSummary: string;
+}
+
+interface Stage4Input {
   stage1Output: Stage1Output;
   stage2Output: Stage2Output;
+  buildingConstraints?: BuildingConstraints; // From Stage 3
   pve: PVEData;
   scenarios: Array<{
     name: string;
@@ -297,14 +331,14 @@ ${fsi.housingRecommendation}
 **IMPORTANT FOR HOUSING TYPOLOGY:**
 - LOW FSI (< 0.8): Use ONLY ground-bound housing (single-family homes, row houses, semi-detached). No apartments or high-rise.
 - MEDIUM FSI (0.8 - 2.0): Mix of ground-bound housing (60-70%) and low-rise apartments (30-40%, max 4 floors).
-- HIGH FSI (> 2.0): Use ONLY stacked construction (apartments). High-rise where urbanistically appropriate.
+- HIGH FSI (> 2.0): Use ONLY stacked housing (apartments). High-rise where urbanistically appropriate.
 
-When composing the unit_mix, you must adhere to these FSI guidelines.
+When composing the unit_mix, you must take this FSI guideline into account.
 `;
   }
 }
 
-// Helper to build housing categories guidance section
+// Helper to build housing categories section for the prompt
 function buildHousingCategoriesSection(housingCategories: HousingCategoriesData | undefined, locale: 'nl' | 'en'): string {
   if (!housingCategories) return '';
 
@@ -360,7 +394,7 @@ Example compliance notes:
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { stageData, locale = 'nl' } = body as { stageData: Stage3Input; locale: 'nl' | 'en' };
+    const { stageData, locale = 'nl' } = body as { stageData: Stage4Input; locale: 'nl' | 'en' };
 
     if (!stageData || !stageData.stage1Output || !stageData.stage2Output || !stageData.pve) {
       return new Response(
@@ -382,7 +416,7 @@ export async function POST(request: Request) {
     const simplifiedPublicSpaces = simplifySpaces(rawPublicSpaces, locale);
 
     // Get all persona names from scenarios
-    const allPersonaNames = stageData.scenarios.flatMap(s => s.personaNames);
+    const allPersonaNames = stageData.scenarios.flatMap((s: Stage4Input['scenarios'][number]) => s.personaNames);
 
     // Filter spaces by target groups
     const filteredCommunalSpaces = filterSpacesByTargetGroups(simplifiedCommunalSpaces, allPersonaNames);
@@ -396,17 +430,132 @@ export async function POST(request: Request) {
     const fsiSection = buildFSIGuidanceSection(stageData.pve.fsi, locale);
     const housingCategoriesSection = buildHousingCategoriesSection(stageData.pve.housingCategories, locale);
 
+    // Extract valid IDs for explicit constraints
+    const validTypologyIds = simplifiedTypologies.map(t => t.id);
+    const validAmenityIds = simplifiedAmenities.map(a => a.id);
+    const validCommunalSpaceIds = filteredCommunalSpaces.map(s => s.id);
+    const validPublicSpaceIds = filteredPublicSpaces.map(s => s.id);
+
+    // Build building constraints section from Stage 3
+    const constraintsSection = stageData.buildingConstraints ? `
+# BOUWKUNDIGE BEPERKINGEN (uit Stage 3 analyse)
+## Samenvatting
+${stageData.buildingConstraints.constraintsSummary}
+
+## Kansen
+${stageData.buildingConstraints.opportunitiesSummary}
+
+## Kritieke beperkingen
+${stageData.buildingConstraints.constraints
+  .filter((c: BuildingConstraints['constraints'][number]) => c.severity === 'critical')
+  .map((c: BuildingConstraints['constraints'][number]) => `- [${c.category}] ${c.constraint} → ${c.designImplication}`)
+  .join('\n') || 'Geen kritieke beperkingen'}
+
+## Belangrijke beperkingen
+${stageData.buildingConstraints.constraints
+  .filter((c: BuildingConstraints['constraints'][number]) => c.severity === 'important')
+  .map((c: BuildingConstraints['constraints'][number]) => `- [${c.category}] ${c.constraint} → ${c.designImplication}`)
+  .join('\n') || 'Geen belangrijke beperkingen'}
+
+## Ontwerpaanbevelingen
+- Gevel: ${stageData.buildingConstraints.designRecommendations.facade.join('; ') || 'Geen specifieke aanbevelingen'}
+- Ventilatie: ${stageData.buildingConstraints.designRecommendations.ventilation.join('; ') || 'Geen specifieke aanbevelingen'}
+- Akoestiek: ${stageData.buildingConstraints.designRecommendations.acoustics.join('; ') || 'Geen specifieke aanbevelingen'}
+- Groenintegratie: ${stageData.buildingConstraints.designRecommendations.green_integration.join('; ') || 'Geen specifieke aanbevelingen'}
+- Klimaatadaptatie: ${stageData.buildingConstraints.designRecommendations.climate_adaptation.join('; ') || 'Geen specifieke aanbevelingen'}
+
+## Voorzieningen kansen (gebouw kan lokale gaps vullen)
+${stageData.buildingConstraints.amenityOpportunities
+  .map((a: BuildingConstraints['amenityOpportunities'][number]) => `- [${a.priority}] ${a.type}: ${a.rationale} (${a.suggestedSize})`)
+  .join('\n') || 'Geen specifieke kansen geïdentificeerd'}
+` : '';
+
+    const constraintsSectionEN = stageData.buildingConstraints ? `
+# BUILDING CONSTRAINTS (from Stage 3 analysis)
+## Summary
+${stageData.buildingConstraints.constraintsSummary}
+
+## Opportunities
+${stageData.buildingConstraints.opportunitiesSummary}
+
+## Critical constraints
+${stageData.buildingConstraints.constraints
+  .filter((c: BuildingConstraints['constraints'][number]) => c.severity === 'critical')
+  .map((c: BuildingConstraints['constraints'][number]) => `- [${c.category}] ${c.constraint} → ${c.designImplication}`)
+  .join('\n') || 'No critical constraints'}
+
+## Important constraints
+${stageData.buildingConstraints.constraints
+  .filter((c: BuildingConstraints['constraints'][number]) => c.severity === 'important')
+  .map((c: BuildingConstraints['constraints'][number]) => `- [${c.category}] ${c.constraint} → ${c.designImplication}`)
+  .join('\n') || 'No important constraints'}
+
+## Design recommendations
+- Facade: ${stageData.buildingConstraints.designRecommendations.facade.join('; ') || 'No specific recommendations'}
+- Ventilation: ${stageData.buildingConstraints.designRecommendations.ventilation.join('; ') || 'No specific recommendations'}
+- Acoustics: ${stageData.buildingConstraints.designRecommendations.acoustics.join('; ') || 'No specific recommendations'}
+- Green integration: ${stageData.buildingConstraints.designRecommendations.green_integration.join('; ') || 'No specific recommendations'}
+- Climate adaptation: ${stageData.buildingConstraints.designRecommendations.climate_adaptation.join('; ') || 'No specific recommendations'}
+
+## Amenity opportunities (building can fill local gaps)
+${stageData.buildingConstraints.amenityOpportunities
+  .map((a: BuildingConstraints['amenityOpportunities'][number]) => `- [${a.priority}] ${a.type}: ${a.rationale} (${a.suggestedSize})`)
+  .join('\n') || 'No specific opportunities identified'}
+` : '';
+
     const prompt = locale === 'nl' ? `
-Je bent een expert in vastgoedontwikkeling. Maak een gedetailleerd bouwprogramma voor elk scenario.
+Je bent een programma-adviseur die het bouwprogramma uitwerkt voor een projectteam.
+
+# SCHRIJFSTIJL
+Schrijf praktisch en concreet. Dit is een werkdocument, geen essay. Schrijf vanuit het bureau (wij-perspectief).
+
+VERBODEN WOORDEN:
+- "Cruciaal", "essentieel", "optimaal", "ideaal"
+- "Bovendien", "daarnaast", "tevens"
+- "Een rijke mix", "divers aanbod", "breed scala"
+- "Faciliteren", "realiseren", "implementeren"
+
+GEWENST:
+- Directe taal: "25 appartementen van 55m², geschikt voor starters" niet "een substantieel aanbod van compacte wooneenheden"
+- Getallen: "8 2-kamerwoningen (45m²), 12 3-kamerwoningen (65m²)" niet "diverse woningtypes"
+- Onderbouwing in 1 zin: "Fitness op BG omdat OV goed bereikbaar is en starters dit verwachten"
+- Wij-perspectief: "Wij kiezen voor..." of "Wij adviseren..." niet passieve constructies
+
+ANTI-VAAGHEID REGEL:
+Elke keuze moet onderbouwd zijn. Geen losse beweringen.
+✗ "De woningmix past bij de doelgroep" (waarom? welke woningen? welke doelgroep?)
+✗ "Er is ruimte voor gemeenschappelijke voorzieningen" (hoeveel m², welke voorzieningen?)
+✗ "Het programma sluit aan bij de buurt" (hoe dan?)
+✓ "Wij kiezen 60% 2-kamers (45m²) - past bij 45% alleenstaanden in de buurt en inkomen €38k"
+✓ "200m² fitness op BG. Reden: geen sportschool binnen 1km, 35% doelgroep is starter die dit verwacht"
+✓ "Wij adviseren dove gevel aan noordzijde - geluid 62dB vraagt om GA 35dB"
+
+## KRITIEKE REGELS - ID BEPERKINGEN
+Je MOET UITSLUITEND kiezen uit de hieronder opgegeven lijsten. MAAK GEEN eigen items of IDs.
+- Gebruik ALLEEN typology_id's uit de WONINGTYPOLOGIEËN lijst
+- Gebruik ALLEEN amenity_id's uit de GEBOUWVOORZIENINGEN, GEMEENSCHAPPELIJKE of PUBLIEKE RUIMTES lijsten
+- Als een item niet in de lijst staat, MAG je het NIET gebruiken
+
+GELDIGE TYPOLOGY IDs (kies ALLEEN hieruit):
+${validTypologyIds.join(', ')}
+
+GELDIGE AMENITY IDs voor gebouwvoorzieningen (kies ALLEEN hieruit):
+${validAmenityIds.join(', ')}
+
+GELDIGE IDs voor gemeenschappelijke ruimtes (kies ALLEEN hieruit):
+${validCommunalSpaceIds.join(', ')}
+
+GELDIGE IDs voor publieke/commerciële ruimtes (kies ALLEEN hieruit):
+${validPublicSpaceIds.join(', ')}
 
 # LOCATIESAMENVATTING (uit eerdere analyse)
 ${stageData.stage1Output.location_summary}
 
 Kernpunten:
-${stageData.stage1Output.key_location_insights.map((i, idx) => `${idx + 1}. ${i}`).join('\n')}
+${stageData.stage1Output.key_location_insights.map((i: string, idx: number) => `${idx + 1}. ${i}`).join('\n')}
 
 # SCENARIO ANALYSES (uit eerdere analyse)
-${stageData.stage2Output.scenarios.map(s => `
+${stageData.stage2Output.scenarios.map((s: Stage2Output['scenarios'][number]) => `
 ## ${s.scenario_name}: ${s.scenario_simple_name}
 Doelgroepen: ${s.target_personas.join(', ')}
 
@@ -417,6 +566,8 @@ Woonstrategie: ${s.residential_strategy}
 Demografische overwegingen: ${s.demographics_considerations}
 `).join('\n---\n')}
 
+${constraintsSection}
+
 # PROGRAM VAN EISEN (PVE)
 Totaal: ${stageData.pve.totalM2} m²
 - Woningen: ${stageData.pve.percentages.apartments.percentage}% (${stageData.pve.percentages.apartments.m2} m²)
@@ -426,51 +577,97 @@ Totaal: ${stageData.pve.totalM2} m²
 - Gemeenschappelijk: ${stageData.pve.percentages.communal.percentage}% (${stageData.pve.percentages.communal.m2} m²)
 - Kantoren: ${stageData.pve.percentages.offices.percentage}% (${stageData.pve.percentages.offices.m2} m²)
 ${fsiSection}${housingCategoriesSection}
-
-# BESCHIKBARE WONINGTYPOLOGIEËN
+# WONINGTYPOLOGIEËN (EXCLUSIEVE LIJST - gebruik ALLEEN deze)
 ${JSON.stringify(simplifiedTypologies, null, 2)}
 
 # MAPPING PERSONA WONINGTYPEN → TYPOLOGIEËN
 ${mapping.note}
 ${JSON.stringify(mapping.mappings, null, 2)}
 
-# BESCHIKBARE GEBOUWVOORZIENINGEN
+# GEBOUWVOORZIENINGEN (EXCLUSIEVE LIJST - gebruik ALLEEN deze)
 ${JSON.stringify(simplifiedAmenities, null, 2)}
 
-# BESCHIKBARE GEMEENSCHAPPELIJKE RUIMTES (gefilterd op relevantie)
+# GEMEENSCHAPPELIJKE RUIMTES (EXCLUSIEVE LIJST - gebruik ALLEEN deze)
 ${JSON.stringify(filteredCommunalSpaces, null, 2)}
 
-# BESCHIKBARE PUBLIEKE/COMMERCIËLE RUIMTES (gefilterd op relevantie)
+# PUBLIEKE/COMMERCIËLE RUIMTES (EXCLUSIEVE LIJST - gebruik ALLEEN deze)
 ${JSON.stringify(filteredPublicSpaces, null, 2)}
 
 # OPDRACHT
 Maak voor ELK scenario een gedetailleerd bouwprogramma:
 
-1. WONINGEN: Unit mix met typology_id, aantal, m², en onderbouwing per type
+1. WONINGEN: Unit mix met typology_id (MOET uit bovenstaande lijst komen), aantal, m², en onderbouwing per type
 2. COMMERCIEEL: Winkel/retail concepten met m² en onderbouwing
 3. HORECA: Concept beschrijving
 4. SOCIAAL: Sociale faciliteiten met m² en onderbouwing
-5. GEMEENSCHAPPELIJK: Gebouwvoorzieningen met amenity_id, m², onderbouwing
-6. GEMEENSCHAPPELIJKE RUIMTES: Selecteer uit de gefilterde lijst, groepeer per category
-7. PUBLIEKE RUIMTES: Selecteer uit de gefilterde lijst, groepeer per category
+5. GEMEENSCHAPPELIJK: Gebouwvoorzieningen met amenity_id (MOET uit bovenstaande lijst komen), m², onderbouwing
+6. GEMEENSCHAPPELIJKE RUIMTES: Selecteer ALLEEN uit de gefilterde lijst hierboven, groepeer per category
+7. PUBLIEKE RUIMTES: Selecteer ALLEEN uit de gefilterde lijst hierboven, groepeer per category
 8. KANTOREN: Concept beschrijving
+9. ONTWERP NOTITIES: Gebaseerd op de bouwkundige beperkingen:
+   - noise_mitigation: Hoe het ontwerp geluidsproblemen aanpakt
+   - climate_adaptation: Hoe het ontwerp hittestress/klimaat aanpakt
+   - green_integration: Hoe groen wordt geïntegreerd ter compensatie
 
 Maak ook:
 - Een generalized_pve met totaal m² per categorie over alle scenarios
 - Een vergelijkende analyse met aanbevelingen
 
-Gebruik de scenario-analyses als basis en wees specifiek in je onderbouwing.
+Gebruik de scenario-analyses EN bouwkundige beperkingen als basis. Wees specifiek in je onderbouwing.
+REMINDER: Use ONLY the provided IDs. DO NOT invent new items.
 ` : `
-You are a real estate development expert. Create a detailed building program for each scenario.
+You are a program advisor working out the building program for a project team.
+
+# WRITING STYLE
+Write practically and concretely. This is a working document, not an essay. Write from the firm's perspective (we-perspective).
+
+BANNED WORDS:
+- "Crucial", "essential", "optimal", "ideal"
+- "Furthermore", "moreover", "additionally"
+- "Rich mix", "diverse offering", "wide range"
+- "Facilitate", "realize", "implement"
+
+DESIRED:
+- Direct language: "25 apartments of 55m², suitable for starters" not "a substantial offering of compact residential units"
+- Numbers: "8 2-bed units (45m²), 12 3-bed units (65m²)" not "various unit types"
+- Rationale in 1 sentence: "Fitness on GF because transit is nearby and starters expect this"
+- We-perspective: "We choose..." or "We recommend..." not passive constructions
+
+ANTI-VAGUENESS RULE:
+Every choice must be substantiated. No loose statements.
+✗ "The housing mix suits the target group" (why? which homes? which target group?)
+✗ "There is space for communal facilities" (how many m², which facilities?)
+✗ "The program fits the neighborhood" (how so?)
+✓ "We choose 60% 2-beds (45m²) - fits 45% singles in area and income €38k"
+✓ "200m² fitness on GF. Reason: no gym within 1km, 35% of target is starters who expect this"
+✓ "We recommend deaf facade on north side - noise 62dB requires GA 35dB"
+
+## CRITICAL RULES - ID CONSTRAINTS
+You MUST ONLY choose from the lists provided below. DO NOT create your own items or IDs.
+- Use ONLY typology_id's from the HOUSING TYPOLOGIES list
+- Use ONLY amenity_id's from the BUILDING AMENITIES, COMMUNAL or PUBLIC SPACES lists
+- If an item is not in the list, you MAY NOT use it
+
+VALID TYPOLOGY IDs (choose ONLY from these):
+${validTypologyIds.join(', ')}
+
+VALID AMENITY IDs for building amenities (choose ONLY from these):
+${validAmenityIds.join(', ')}
+
+VALID IDs for communal spaces (choose ONLY from these):
+${validCommunalSpaceIds.join(', ')}
+
+VALID IDs for public/commercial spaces (choose ONLY from these):
+${validPublicSpaceIds.join(', ')}
 
 # LOCATION SUMMARY (from previous analysis)
 ${stageData.stage1Output.location_summary}
 
 Key insights:
-${stageData.stage1Output.key_location_insights.map((i, idx) => `${idx + 1}. ${i}`).join('\n')}
+${stageData.stage1Output.key_location_insights.map((i: string, idx: number) => `${idx + 1}. ${i}`).join('\n')}
 
 # SCENARIO ANALYSES (from previous analysis)
-${stageData.stage2Output.scenarios.map(s => `
+${stageData.stage2Output.scenarios.map((s: Stage2Output['scenarios'][number]) => `
 ## ${s.scenario_name}: ${s.scenario_simple_name}
 Target groups: ${s.target_personas.join(', ')}
 
@@ -481,6 +678,8 @@ Residential strategy: ${s.residential_strategy}
 Demographic considerations: ${s.demographics_considerations}
 `).join('\n---\n')}
 
+${constraintsSectionEN}
+
 # PROGRAM OF REQUIREMENTS (PVE)
 Total: ${stageData.pve.totalM2} m²
 - Residential: ${stageData.pve.percentages.apartments.percentage}% (${stageData.pve.percentages.apartments.m2} m²)
@@ -490,46 +689,50 @@ Total: ${stageData.pve.totalM2} m²
 - Communal: ${stageData.pve.percentages.communal.percentage}% (${stageData.pve.percentages.communal.m2} m²)
 - Offices: ${stageData.pve.percentages.offices.percentage}% (${stageData.pve.percentages.offices.m2} m²)
 ${fsiSection}${housingCategoriesSection}
-
-# AVAILABLE HOUSING TYPOLOGIES
+# HOUSING TYPOLOGIES (EXCLUSIVE LIST - use ONLY these)
 ${JSON.stringify(simplifiedTypologies, null, 2)}
 
 # MAPPING PERSONA HOUSING TYPES → TYPOLOGIES
 ${mapping.note}
 ${JSON.stringify(mapping.mappings, null, 2)}
 
-# AVAILABLE BUILDING AMENITIES
+# BUILDING AMENITIES (EXCLUSIVE LIST - use ONLY these)
 ${JSON.stringify(simplifiedAmenities, null, 2)}
 
-# AVAILABLE COMMUNAL SPACES (filtered for relevance)
+# COMMUNAL SPACES (EXCLUSIVE LIST - use ONLY these)
 ${JSON.stringify(filteredCommunalSpaces, null, 2)}
 
-# AVAILABLE PUBLIC/COMMERCIAL SPACES (filtered for relevance)
+# PUBLIC/COMMERCIAL SPACES (EXCLUSIVE LIST - use ONLY these)
 ${JSON.stringify(filteredPublicSpaces, null, 2)}
 
 # TASK
 Create a detailed building program for EACH scenario:
 
-1. RESIDENTIAL: Unit mix with typology_id, quantity, m², and rationale per type
+1. RESIDENTIAL: Unit mix with typology_id (MUST be from the list above), quantity, m², and rationale per type
 2. COMMERCIAL: Retail/shop concepts with m² and rationale
 3. HOSPITALITY: Concept description
 4. SOCIAL: Social facilities with m² and rationale
-5. COMMUNAL: Building amenities with amenity_id, m², rationale
-6. COMMUNAL SPACES: Select from filtered list, group by category
-7. PUBLIC SPACES: Select from filtered list, group by category
+5. COMMUNAL: Building amenities with amenity_id (MUST be from the list above), m², rationale
+6. COMMUNAL SPACES: Select ONLY from the filtered list above, group by category
+7. PUBLIC SPACES: Select ONLY from the filtered list above, group by category
 8. OFFICES: Concept description
+9. DESIGN NOTES: Based on building constraints:
+   - noise_mitigation: How the design addresses noise issues
+   - climate_adaptation: How the design addresses heat stress/climate
+   - green_integration: How greenery is integrated for compensation
 
 Also create:
 - A generalized_pve with total m² per category across all scenarios
 - A comparative analysis with recommendations
 
-Use the scenario analyses as foundation and be specific in your rationale.
+Use the scenario analyses AND building constraints as foundation. Be specific in your rationale.
+REMINDER: Use ONLY the provided IDs. DO NOT invent new items.
 `;
 
     const result = await streamObject({
       model: anthropic('claude-sonnet-4-20250514'),
-      schema: Stage3OutputSchema,
-      schemaName: 'Stage3PVEAllocation',
+      schema: Stage4OutputSchema,
+      schemaName: 'Stage4PVEAllocation',
       schemaDescription: locale === 'nl'
         ? 'Gedetailleerde PVE-allocatie voor vastgoedontwikkeling'
         : 'Detailed PVE allocation for real estate development',

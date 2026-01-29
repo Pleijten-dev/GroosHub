@@ -1,11 +1,11 @@
 /**
- * Stage 2: Persona & Scenario Analysis
+ * Stage 2: Persona & Scenario Analysis (Enhanced)
  *
- * Input: Stage 1 output + demographics + personas + housing market
- * Output: scenario recommendations, target personas, residential strategy
+ * Input: Stage 1 output + demographics + personas + housing market + amenity analysis + environmental summary
+ * Output: scenario recommendations, target personas, residential strategy, persona-amenity fit, environmental fit
  *
- * Token usage: ~8KB input + 500 token summary → ~2KB output
- * Purpose: Generate persona-specific analysis and scenario text
+ * Token usage: ~12KB input → ~3KB output
+ * Purpose: Generate persona-specific analysis with amenity matching and environmental fit
  */
 
 import { anthropic } from '@ai-sdk/anthropic';
@@ -13,9 +13,9 @@ import { streamObject } from 'ai';
 import { z } from 'zod';
 import type { Stage1Output } from '../stage1/route';
 
-export const maxDuration = 120; // Stage 2 needs more time for multiple scenarios
+export const maxDuration = 150; // Increased for persona-amenity matching
 
-// Input type for Stage 2
+// Input type for Stage 2 (Enhanced)
 interface Stage2Input {
   locationSummary: Stage1Output;
   demographics: {
@@ -48,17 +48,70 @@ interface Stage2Input {
     typeDistribution: Array<{ type: string; percentage: number }>;
     priceDistribution: Array<{ range: string; percentage: number }>;
   };
+  // NEW: Amenity analysis for persona-amenity matching
+  amenityAnalysis: {
+    summary: string;
+    availableAmenities: Array<{
+      name: string;
+      count: number;
+      closestDistance: number | null;
+    }>;
+    missingAmenities: string[];
+    amenityGaps: string[];
+  };
+  // NEW: Environmental summary for persona fit
+  environmentalSummary?: {
+    airQuality: string;
+    noise: string;
+    greenSpace: string;
+    climate: string;
+    overall: string;
+  };
 }
 
-// Output schema for Stage 2
+// Persona-amenity fit schema (enhanced descriptions)
+const PersonaAmenityFitSchema = z.object({
+  personaName: z.string().describe('Exact name of the persona from the input list'),
+  fitScore: z.enum(['excellent', 'good', 'moderate', 'poor']).describe(
+    'Score based on amenity match: excellent=all required + most preferred; good=all required + some preferred; ' +
+    'moderate=most required present; poor=critical required amenities missing'
+  ),
+  availableRequired: z.array(z.string()).describe('List required amenities that ARE available (<1km). E.g., for families: "basisschool (350m)", "supermarkt (200m)"'),
+  missingRequired: z.array(z.string()).describe('List required amenities MISSING or far (>1km). Critical gaps. E.g., "huisarts (1.5km - te ver)"'),
+  availablePreferred: z.array(z.string()).describe('List preferred (nice-to-have) amenities available. E.g., "sportschool (400m)", "park (250m)"'),
+  missingPreferred: z.array(z.string()).describe('List preferred amenities missing - opportunities for building to provide'),
+  summary: z.string().describe('1-2 sentences: overall fit assessment with key strength and main gap. E.g., "Good fit for families with excellent school access, but missing playground is a gap the building could fill"'),
+});
+
+// Output schema for Stage 2 (Enhanced with detailed descriptions)
 const ScenarioAnalysisSchema = z.object({
-  scenario_name: z.string().describe('Name of the scenario (Scenario 1, Scenario 2, etc.)'),
-  scenario_simple_name: z.string().describe('Short, catchy name based on target personas (e.g., "Young Starters Hub", "Family Focus")'),
-  target_personas: z.array(z.string()).describe('List of persona names this scenario targets'),
-  summary: z.string().describe('High-level strategy summary explaining the vision for this scenario (2-3 paragraphs)'),
-  residential_strategy: z.string().describe('Strategy for residential units: what types of housing, what sizes, what price ranges based on the target personas'),
-  demographics_considerations: z.string().describe('How local demographics (age distribution, family types, income levels) influence the housing choices'),
-  key_insights: z.array(z.string()).describe('3-5 key insights about how the location data influenced this scenario'),
+  scenario_name: z.string().describe('Format: "Scenario 1", "Scenario 2", etc.'),
+  scenario_simple_name: z.string().describe(
+    'Creative 2-4 word name capturing the essence. Examples: "Young Urban Hub", "Family Comfort", "Active Seniors Haven", "Starter Mix". ' +
+    'Should be memorable and reflect the primary target groups.'
+  ),
+  target_personas: z.array(z.string()).describe('Exact persona names from input. Order by primary → secondary importance.'),
+  summary: z.string().describe(
+    '2-3 paragraph vision statement. Paragraph 1: Who lives here and why. Paragraph 2: What makes this scenario work for them. ' +
+    'Paragraph 3: How location strengths support and what gaps need addressing. Be specific about the location.'
+  ),
+  residential_strategy: z.string().describe(
+    'Specific housing strategy: "60% 1-2 bedroom apartments (45-65m²) for starters, 30% family units (85-110m²), 10% senior-accessible (55m²)". ' +
+    'Include size ranges, approximate counts, and price positioning (affordable/mid-market/premium) based on local market context.'
+  ),
+  demographics_considerations: z.string().describe(
+    'Connect local demographics to choices: "23% single-person households supports studio/1-bed focus. Above-average income (€45k vs €38k municipal) ' +
+    'allows mid-market positioning. Growing 25-35 age group validates young professional target."'
+  ),
+  key_insights: z.array(z.string()).describe(
+    '3-5 data-backed insights. Format: "[Data point] → [Design decision]". ' +
+    'Example: "Transit station at 200m → reduce parking ratio to 0.6, add bike storage". Each insight should drive a concrete decision.'
+  ),
+  persona_amenity_fit: z.array(PersonaAmenityFitSchema).describe('One entry per persona in this scenario. Analyze amenity fit for each.'),
+  environmental_fit: z.string().describe(
+    '2-3 sentences on how environment suits target personas. Address noise (seniors need quiet), air quality (families with children sensitive), ' +
+    'green space (important for families/seniors), heat stress. End with mitigation needs: "62dB noise requires enhanced insulation for senior units".'
+  ),
 });
 
 const Stage2OutputSchema = z.object({
@@ -79,8 +132,86 @@ export async function POST(request: Request) {
       );
     }
 
+    // Build amenity analysis section
+    const amenitySection = stageData.amenityAnalysis ? `
+# VOORZIENINGEN ANALYSE
+${stageData.amenityAnalysis.summary}
+
+## Beschikbare voorzieningen:
+${stageData.amenityAnalysis.availableAmenities.map(a =>
+  `- ${a.name}: ${a.count} aanwezig${a.closestDistance ? ` (dichtstbij ${a.closestDistance}m)` : ''}`
+).join('\n')}
+
+## Ontbrekende voorzieningen:
+${stageData.amenityAnalysis.missingAmenities.length > 0 ? stageData.amenityAnalysis.missingAmenities.join(', ') : 'Geen'}
+
+## Belangrijke knelpunten:
+${stageData.amenityAnalysis.amenityGaps.length > 0 ? stageData.amenityAnalysis.amenityGaps.join('\n') : 'Geen significante knelpunten'}
+
+## VOORZIENINGEN BEHOEFTEN PER DOELGROEP
+- Gezinnen: basisscholen, kinderdagverblijven, parken, supermarkt, huisarts (VEREIST), sportfaciliteiten (GEWENST)
+- Senioren: huisarts, apotheek, supermarkt (VEREIST), openbaar vervoer, parken, culturele voorzieningen (GEWENST)
+- Starters: openbaar vervoer, supermarkt (VEREIST), restaurants, cafés, sportfaciliteiten (GEWENST)
+- Studenten: openbaar vervoer (VEREIST), supermarkt, cafés, bibliotheken (GEWENST)
+- Professionals: openbaar vervoer, supermarkt (VEREIST), restaurants, sportfaciliteiten (GEWENST)
+` : '';
+
+    // Build environmental summary section
+    const envSection = stageData.environmentalSummary ? `
+# OMGEVINGSFACTOREN
+- Luchtkwaliteit: ${stageData.environmentalSummary.airQuality}
+- Geluid: ${stageData.environmentalSummary.noise}
+- Groen: ${stageData.environmentalSummary.greenSpace}
+- Klimaat: ${stageData.environmentalSummary.climate}
+- Algemeen: ${stageData.environmentalSummary.overall}
+
+## OMGEVING EN DOELGROEPEN
+- Gezinnen: gevoelig voor luchtkwaliteit (kinderen), hebben groen nodig voor spelen
+- Senioren: gevoelig voor hittestress, hebben rustige omgeving nodig (laag geluid)
+- Starters: minder gevoelig voor omgevingsfactoren, prioriteit is bereikbaarheid
+- Studenten: minder gevoelig voor omgevingsfactoren
+` : '';
+
     const prompt = locale === 'nl' ? `
-Je bent een expert in vastgoedontwikkeling en doelgroepanalyse. Op basis van de locatieanalyse en demografische gegevens, ontwikkel je gedetailleerde scenario's voor een nieuw woongebouw.
+Je bent een ontwikkelingsadviseur die scenario's uitwerkt voor een nieuw woonproject. Schrijf alsof je in een brainstormsessie zit met het projectteam.
+
+# SCHRIJFSTIJL - KRITISCH
+Schrijf menselijk en direct. Vermijd typisch AI-taalgebruik:
+
+VERBODEN WOORDEN (gebruik deze NOOIT):
+- "Cruciaal", "essentieel", "van vitaal belang"
+- "Bovendien", "daarnaast", "tevens"
+- "Een rijke mix", "een bruisend", "divers palet"
+- "Optimaal", "ideaal", "perfect"
+- "Faciliteren", "implementeren", "realiseren"
+- "In het kader van...", "met het oog op..."
+
+GEWENSTE STIJL:
+- Schrijf alsof je het uitlegt aan een collega
+- Wees concreet: "40% van de woningen 45-60 m²" i.p.v. "een substantieel deel compacte woningen"
+- Schrijf vanuit het bureau (wij-perspectief): "Wij zien dit scenario als kansrijk omdat..." of "Aandachtspunt: de huisarts is ver"
+- Varieer zinslengte. Korte zinnen voor impact. Langere voor uitleg.
+- Elke zin moet ergens toe leiden. Geen filler, geen vage inleidingen.
+
+ANTI-VAAGHEID REGEL:
+Elke zin moet een punt maken of informatie toevoegen. Schrap alles dat je kunt missen.
+✗ "Dit scenario kent diverse mogelijkheden" (welke dan?)
+✗ "Er zijn meerdere overwegingen bij deze doelgroep" (noem ze)
+✗ "De mix van functies biedt kansen" (welke mix, welke kansen?)
+✓ "60% starters, 40% jonge gezinnen. De starters vullen doordeweeks, gezinnen in het weekend." (concreet, logisch)
+
+VOORBEELDEN:
+✓ "Starters Hub - gericht op 25-35 jaar. OV op 200m is een plus, huisarts op 800m minder. Focus: compacte 2-kamers, gedeelde werkplekken."
+✓ "De hoge NO2 maakt dit minder geschikt voor gezinnen met jonge kinderen. Senioren zijn ook gevoelig."
+✓ "Wij adviseren hier 70% compact. Reden: 45% alleenstaanden in de buurt, bovengemiddeld inkomen, OV dichtbij."
+✗ "Dit scenario faciliteert een optimale woonbeleving voor diverse doelgroepen."
+✗ "De locatie biedt een rijk palet aan mogelijkheden die de leefbaarheid essentieel versterken."
+✗ "Er zijn verschillende aspecten die dit scenario kenmerken."
+
+ANALYSEER voor elke doelgroep:
+1. Of de VEREISTE voorzieningen aanwezig zijn (en op welke afstand)
+2. Welke GEWENSTE voorzieningen beschikbaar zijn
+3. Hoe de omgevingsfactoren (geluid, lucht, groen) passen bij de doelgroep
 
 # LOCATIEANALYSE (uit eerdere analyse)
 ${stageData.locationSummary.location_summary}
@@ -96,6 +227,19 @@ ${stageData.locationSummary.safety_highlights}
 
 ## Leefbaarheid
 ${stageData.locationSummary.livability_highlights}
+
+## Omgeving
+${stageData.locationSummary.environmental_highlights || 'Geen omgevingsdata beschikbaar'}
+
+## Voorzieningen
+${stageData.locationSummary.amenity_analysis || 'Geen voorzieningenanalyse beschikbaar'}
+
+## Cross-correlaties
+${stageData.locationSummary.cross_correlations?.join('\n') || 'Geen cross-correlaties beschikbaar'}
+
+${amenitySection}
+
+${envSection}
 
 # DEMOGRAFISCHE GEGEVENS
 ${stageData.demographics.description}
@@ -140,10 +284,64 @@ Voor ELK scenario, ontwikkel:
 3. Een woonstrategie: welke woningtypen, groottes, prijsklassen passen bij de doelgroepen
 4. Demografische overwegingen: hoe beïnvloeden lokale demografie de keuzes
 5. 3-5 kernpunten over hoe de locatiegegevens dit scenario beïnvloeden
+6. Persona-voorzieningen fit: voor ELKE persona in het scenario, analyseer:
+   - Welke vereiste voorzieningen aanwezig zijn (en op welke afstand)
+   - Welke vereiste voorzieningen ontbreken
+   - Welke gewenste voorzieningen aanwezig zijn
+   - Een fit score: excellent/good/moderate/poor
+7. Omgevingsfit: hoe passen de omgevingsfactoren (lucht, geluid, groen, klimaat) bij deze doelgroepen
 
-Wees specifiek en data-gedreven. Verwijs naar de locatieanalyse en persona-kenmerken.
+## VOORBEELD KEY INSIGHT (formaat om te volgen):
+- "OV-halte op 200m + 45% alleenstaanden → focus op compacte woningen, verminder parkeerratio naar 0.6"
+- "Gemiddeld inkomen €42k (↑ gemeente) → mid-market positionering mogelijk"
+
+## KWALITEITSCRITERIA
+✓ Woonstrategie bevat specifieke percentages en m² ranges
+✓ Elke persona heeft een amenity-fit analyse met afstanden
+✓ Key insights verbinden data aan concrete ontwerpbeslissingen
+✓ Omgevingsfit noemt specifieke waarden (dB, µg/m³, %)
+
+Be specific and data-driven. Reference the location analysis and persona characteristics.
 ` : `
-You are an expert in real estate development and target group analysis. Based on the location analysis and demographic data, develop detailed scenarios for a new residential building.
+You are a development advisor working out scenarios for a new residential project. Write as if you're in a brainstorming session with the project team.
+
+# WRITING STYLE - CRITICAL
+Write naturally and directly. Avoid typical AI language:
+
+BANNED WORDS (NEVER use these):
+- "Crucial", "essential", "vital", "paramount"
+- "Furthermore", "moreover", "additionally"
+- "Rich mix", "vibrant", "diverse palette"
+- "Optimal", "ideal", "perfect"
+- "Facilitate", "implement", "leverage"
+- "In the context of...", "with a view to..."
+
+DESIRED STYLE:
+- Write as if explaining to a colleague
+- Be concrete: "40% of units 45-60 m²" not "a substantial portion of compact units"
+- Write from the firm's perspective (we-perspective): "We see this scenario as promising because..." or "Watch out: GP is far"
+- Vary sentence length. Short for impact. Longer for explanation.
+- Every sentence must lead somewhere. No filler, no vague introductions.
+
+ANTI-VAGUENESS RULE:
+Every sentence must make a point or add information. Delete anything you can do without.
+✗ "This scenario has various possibilities" (which ones?)
+✗ "There are multiple considerations for this target group" (name them)
+✗ "The mix of functions offers opportunities" (which mix, which opportunities?)
+✓ "60% starters, 40% young families. Starters fill weekdays, families fill weekends." (concrete, logical)
+
+EXAMPLES:
+✓ "Starter Hub - targeting 25-35 year olds. Transit at 200m is a plus, GP at 800m less so. Focus: compact 2-beds, shared workspaces."
+✓ "High NO2 makes this less suitable for families with young children. Seniors are also sensitive."
+✓ "We recommend 70% compact here. Reason: 45% singles in the area, above-average income, transit nearby."
+✗ "This scenario facilitates an optimal living experience for diverse target groups."
+✗ "The location offers a rich palette of opportunities that essentially enhance livability."
+✗ "There are various aspects that characterize this scenario."
+
+ANALYZE for each target group:
+1. Whether REQUIRED amenities are present (and at what distance)
+2. Which PREFERRED amenities are available
+3. How environmental factors (noise, air, green) suit the target group
 
 # LOCATION ANALYSIS (from previous analysis)
 ${stageData.locationSummary.location_summary}
@@ -159,6 +357,19 @@ ${stageData.locationSummary.safety_highlights}
 
 ## Livability
 ${stageData.locationSummary.livability_highlights}
+
+## Environment
+${stageData.locationSummary.environmental_highlights || 'No environmental data available'}
+
+## Amenities
+${stageData.locationSummary.amenity_analysis || 'No amenity analysis available'}
+
+## Cross-correlations
+${stageData.locationSummary.cross_correlations?.join('\n') || 'No cross-correlations available'}
+
+${amenitySection}
+
+${envSection}
 
 # DEMOGRAPHIC DATA
 ${stageData.demographics.description}
@@ -203,6 +414,22 @@ For EACH scenario, develop:
 3. A residential strategy: what housing types, sizes, price ranges fit the target groups
 4. Demographic considerations: how local demographics influence choices
 5. 3-5 key insights about how location data influences this scenario
+6. Persona-amenity fit: for EACH persona in the scenario, analyze:
+   - Which required amenities are available (and at what distance)
+   - Which required amenities are missing
+   - Which preferred amenities are available
+   - A fit score: excellent/good/moderate/poor
+7. Environmental fit: how do environmental factors (air, noise, green, climate) suit these target groups
+
+## EXAMPLE KEY INSIGHT (format to follow):
+- "Transit stop at 200m + 45% single households → focus on compact units, reduce parking ratio to 0.6"
+- "Average income €42k (↑ municipality) → mid-market positioning possible"
+
+## QUALITY CRITERIA
+✓ Residential strategy includes specific percentages and m² ranges
+✓ Each persona has amenity-fit analysis with distances
+✓ Key insights connect data to concrete design decisions
+✓ Environmental fit mentions specific values (dB, µg/m³, %)
 
 Be specific and data-driven. Reference the location analysis and persona characteristics.
 `;
