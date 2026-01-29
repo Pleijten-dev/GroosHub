@@ -5,6 +5,7 @@ import type { NextAuthConfig } from 'next-auth';
  * This is separated to avoid importing server-side dependencies in middleware
  */
 export const authConfig: NextAuthConfig = {
+  trustHost: true,
   pages: {
     signIn: '/nl/login',
   },
