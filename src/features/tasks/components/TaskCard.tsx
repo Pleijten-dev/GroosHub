@@ -110,8 +110,8 @@ export function TaskCard({
           </div>
         )}
 
-        {/* Deadline */}
-        {task.deadline && (
+        {/* Deadline - hidden for completed tasks */}
+        {task.deadline && task.status !== 'done' && (
           <div className={`text-xs ${task.is_overdue ? 'text-red-600 font-semibold' : 'text-gray-600'}`}>
             {formatDeadline(task.deadline)}
           </div>
