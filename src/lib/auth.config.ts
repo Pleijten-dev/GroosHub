@@ -41,6 +41,12 @@ export const authConfig: NextAuthConfig = {
       const pathname = nextUrl.pathname;
       const locale = pathname.startsWith('/en') ? 'en' : 'nl';
 
+      // API routes handle their own authentication - let them through
+      // This prevents redirecting API calls to HTML pages
+      if (pathname.startsWith('/api/')) {
+        return true;
+      }
+
       // Public routes that don't require authentication
       const publicRoutes = ['/nl/login', '/en/login'];
       const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
@@ -48,9 +54,6 @@ export const authConfig: NextAuthConfig = {
       // Change password routes - accessible only when logged in
       const changePasswordRoutes = ['/nl/change-password', '/en/change-password'];
       const isChangePasswordRoute = changePasswordRoutes.some((route) => pathname.startsWith(route));
-
-      // API routes for password change should be accessible
-      const isChangePasswordApi = pathname.startsWith('/api/auth/change-password');
 
       // Allow access to public routes
       if (isPublicRoute) {
@@ -73,9 +76,10 @@ export const authConfig: NextAuthConfig = {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const mustChangePassword = (auth?.user as any)?.must_change_password;
 
-      // If user must change password, only allow access to change-password page and API
+      // If user must change password, only allow access to change-password page
+      // (API routes are already allowed through above)
       if (mustChangePassword) {
-        if (isChangePasswordRoute || isChangePasswordApi) {
+        if (isChangePasswordRoute) {
           return true;
         }
         // Redirect to change password page
