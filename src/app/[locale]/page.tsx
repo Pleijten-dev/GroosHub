@@ -284,8 +284,8 @@ const HomePage: React.FC = () => {
       className="fixed inset-0 bg-gradient-to-br from-gray-50 to-gray-100 overflow-auto"
       style={{ zIndex: 10000 }}
     >
-      {/* ASCII Map Background */}
-      <ASCIIMapBackground opacity={0.08} cols={150} />
+      {/* ASCII Map Background - full screen adaptive */}
+      <ASCIIMapBackground opacity={0.18} />
 
       {/* Content container */}
       <div className="relative min-h-screen flex flex-col">

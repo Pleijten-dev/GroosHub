@@ -23,10 +23,14 @@ const WMS_CONFIG = {
   crs: 'EPSG:4326',
 };
 
+// Character dimensions for monospace font at 8px
+const CHAR_WIDTH = 4.8; // Approximate width of a monospace character at 8px
+const CHAR_HEIGHT = 8; // Line height
+
 interface ASCIIMapBackgroundProps {
   className?: string;
   opacity?: number;
-  cols?: number; // Number of ASCII columns
+  cols?: number; // Number of ASCII columns (if not set, auto-calculated from viewport)
 }
 
 function buildWMSUrl(bbox: typeof ROTTERDAM_BBOX, width: number, height: number): string {
@@ -55,13 +59,33 @@ function brightnessToASCII(brightness: number): string {
 
 export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
   className = '',
-  opacity = 0.06,
-  cols = 120,
+  opacity = 0.15, // Increased default opacity for better visibility
+  cols: propCols,
 }) => {
   const [asciiLines, setAsciiLines] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dimensions, setDimensions] = useState({ cols: propCols || 200, rows: 100 });
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Calculate dimensions based on viewport
+  useEffect(() => {
+    const updateDimensions = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      // Calculate cols and rows to fill the entire viewport
+      const calculatedCols = propCols || Math.ceil(width / CHAR_WIDTH) + 20; // Extra buffer
+      const calculatedRows = Math.ceil(height / CHAR_HEIGHT) + 20; // Extra buffer
+
+      setDimensions({ cols: calculatedCols, rows: calculatedRows });
+    };
+
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+    return () => window.removeEventListener('resize', updateDimensions);
+  }, [propCols]);
 
   const convertImageToASCII = useCallback((img: HTMLImageElement, targetCols: number): string[] => {
     // Create canvas if not exists
@@ -113,10 +137,42 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
     return lines;
   }, []);
 
+  // Tile the ASCII art to fill the required dimensions
+  const tileASCII = useCallback((baseLines: string[], targetCols: number, targetRows: number): string[] => {
+    if (baseLines.length === 0) return [];
+
+    const baseCols = baseLines[0]?.length || targetCols;
+    const baseRows = baseLines.length;
+
+    // Calculate how many tiles we need
+    const tilesX = Math.ceil(targetCols / baseCols) + 1;
+    const tilesY = Math.ceil(targetRows / baseRows) + 1;
+
+    const tiledLines: string[] = [];
+
+    for (let ty = 0; ty < tilesY; ty++) {
+      for (let row = 0; row < baseRows; row++) {
+        if (tiledLines.length >= targetRows) break;
+
+        let line = '';
+        for (let tx = 0; tx < tilesX; tx++) {
+          line += baseLines[row] || ' '.repeat(baseCols);
+        }
+        // Trim to target cols
+        tiledLines.push(line.substring(0, targetCols));
+      }
+    }
+
+    return tiledLines.slice(0, targetRows);
+  }, []);
+
   useEffect(() => {
     const fetchAndConvert = async () => {
       setIsLoading(true);
       setError(null);
+
+      // Use a base size for fetching, then tile to fill screen
+      const baseCols = 150;
 
       try {
         // Build WMS URL for Rotterdam
@@ -133,8 +189,9 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
 
           await new Promise<void>((resolve, reject) => {
             img.onload = () => {
-              const ascii = convertImageToASCII(img, cols);
-              setAsciiLines(ascii);
+              const baseAscii = convertImageToASCII(img, baseCols);
+              const tiledAscii = tileASCII(baseAscii, dimensions.cols, dimensions.rows);
+              setAsciiLines(tiledAscii);
               resolve();
             };
             img.onerror = () => reject(new Error('Failed to load WMS image'));
@@ -146,8 +203,9 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
 
           await new Promise<void>((resolve, reject) => {
             img.onload = () => {
-              const ascii = convertImageToASCII(img, cols);
-              setAsciiLines(ascii);
+              const baseAscii = convertImageToASCII(img, baseCols);
+              const tiledAscii = tileASCII(baseAscii, dimensions.cols, dimensions.rows);
+              setAsciiLines(tiledAscii);
               URL.revokeObjectURL(img.src);
               resolve();
             };
@@ -161,9 +219,9 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
 
         // Generate placeholder ASCII art as fallback
         const placeholderLines: string[] = [];
-        for (let i = 0; i < 40; i++) {
+        for (let i = 0; i < dimensions.rows; i++) {
           let line = '';
-          for (let j = 0; j < cols; j++) {
+          for (let j = 0; j < dimensions.cols; j++) {
             // Create a simple wave pattern as placeholder
             const val = Math.sin(i * 0.3 + j * 0.1) * 0.5 + 0.5;
             const idx = Math.floor(val * (ASCII_CHARS.length - 1));
@@ -178,24 +236,31 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
     };
 
     fetchAndConvert();
-  }, [cols, convertImageToASCII]);
+  }, [dimensions, convertImageToASCII, tileASCII]);
 
   return (
     <div
-      className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}
-      style={{ opacity }}
+      ref={containerRef}
+      className={`fixed inset-0 overflow-hidden pointer-events-none ${className}`}
+      style={{ opacity, zIndex: 0 }}
     >
       <pre
-        className="font-mono text-[8px] leading-[8px] text-gray-900 whitespace-pre select-none"
+        className="font-mono text-[8px] leading-[8px] text-gray-700 whitespace-pre select-none"
         style={{
           fontFamily: 'monospace',
           letterSpacing: '0px',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          overflow: 'hidden',
         }}
       >
         {isLoading ? (
-          // Loading placeholder
-          Array(40).fill(0).map((_, i) => (
-            <div key={i}>{'. '.repeat(cols / 2)}</div>
+          // Loading placeholder that fills the screen
+          Array(dimensions.rows).fill(0).map((_, i) => (
+            <div key={i}>{'. '.repeat(Math.ceil(dimensions.cols / 2))}</div>
           ))
         ) : (
           asciiLines.map((line, i) => (
