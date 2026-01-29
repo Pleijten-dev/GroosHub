@@ -411,46 +411,47 @@ export function formatRAGSourceText(rawText: string): string {
   }
 
   let text = rawText;
-  const allTables: ParsedTable[] = [];
 
-  // 1. Extract summaries
+  // 1. Extract summaries (will be placed at the end)
   const { summaries, cleanedText: textAfterSummary } = extractSummaries(text);
   text = textAfterSummary;
 
   // 2. Extract table details
   const { table: detailsTable, cleanedText: textAfterDetails } = extractTableDetails(text);
-  if (detailsTable) allTables.push(detailsTable);
   text = textAfterDetails;
 
-  // 3. Extract inline tables
+  // 3. Extract inline tables from remaining text
   const { tables: inlineTables, cleanedText: textAfterInline } = extractInlineTables(text);
   text = textAfterInline;
 
   // 4. Clean up artifacts
   text = cleanupArtifacts(text);
 
-  // 5. Format structural elements
-  text = formatStructuralElements(text);
-
-  // 6. Build HTML output
-  let result = '';
-
-  // Summaries as styled list
-  if (summaries.length > 0) {
-    result += '<div style="background-color: #ecfdf5; border-left: 4px solid #10b981; padding: 0.75rem; margin-bottom: 1rem; border-radius: 0.25rem;">\n';
-    result += '<strong style="color: #065f46;">Samenvatting:</strong>\n';
-    result += '<ul style="margin: 0.5rem 0 0 0; padding-left: 1.25rem;">\n';
-    for (const s of summaries) {
-      result += `<li style="margin-bottom: 0.25rem; color: #064e3b;">${s}</li>\n`;
-    }
-    result += '</ul>\n</div>\n\n';
+  // 5. If we have a structured table, aggressively clean the raw text
+  // The raw text often contains flattened table data that's redundant
+  if (detailsTable || inlineTables.length > 0) {
+    // Remove inline table-like content from the text (rows of numbers, pipe patterns)
+    text = text
+      // Remove sequences that look like flattened table rows (numbers separated by spaces)
+      .replace(/\b(\d+\s+){4,}\d+\b/g, '')
+      // Remove "Tabel X.XXX" followed by column headers run together
+      .replace(/Tabel\s+\d+\.\d+[a-zA-Z]\s+[^.]+?(?=\d{4}\s|\n|$)/g, '')
+      // Clean up resulting whitespace
+      .replace(/\s{2,}/g, ' ')
+      .replace(/\n{2,}/g, '\n\n');
   }
 
-  // Main table from details section
+  // 6. Format structural elements (article headers)
+  text = formatStructuralElements(text);
+
+  // 7. Build HTML output - TABLE FIRST, then text, then summary at the end
+  let result = '';
+
+  // Main table from details section (at the top)
   if (detailsTable) {
-    result += '<div class="rag-table-wrapper">\n';
+    result += '<div class="rag-table-wrapper" style="margin-bottom: 0.75rem;">\n';
     result += tableToHTML(detailsTable);
-    result += '\n</div>\n\n';
+    result += '\n</div>\n';
   }
 
   // Replace placeholders with inline HTML tables
@@ -458,18 +459,68 @@ export function formatRAGSourceText(rawText: string): string {
   text = text.replace(/\{\{TABLE_PLACEHOLDER\}\}/g, () => {
     const table = inlineTables[tableIndex++];
     if (table) {
-      return '\n<div class="rag-table-wrapper">\n' + tableToHTML(table) + '\n</div>\n';
+      return '\n<div class="rag-table-wrapper" style="margin: 0.75rem 0;">\n' + tableToHTML(table) + '\n</div>\n';
     }
     return '';
   });
 
-  // Add remaining text (preserve line breaks)
+  // Add remaining text (if substantial)
   const remainingText = text.trim();
-  if (remainingText) {
-    result += remainingText;
+  if (remainingText && remainingText.length > 20) {
+    // Only show the article intro, not the raw table data
+    // Find the first sentence or two
+    const articleIntro = extractArticleIntro(remainingText);
+    if (articleIntro) {
+      result += `<div style="margin-bottom: 0.75rem;">${articleIntro}</div>\n`;
+    }
+  }
+
+  // Summaries at the BOTTOM with simple white/gray styling
+  if (summaries.length > 0) {
+    result += '<div style="background-color: #f9fafb; padding: 0.75rem; margin-top: 0.75rem; border-radius: 0.5rem; border: 1px solid #e5e7eb;">\n';
+    result += '<strong style="color: #374151; font-size: 0.875rem;">Samenvatting:</strong>\n';
+    result += '<ul style="margin: 0.5rem 0 0 0; padding-left: 1.25rem; font-size: 0.875rem;">\n';
+    for (const s of summaries) {
+      result += `<li style="margin-bottom: 0.25rem; color: #4b5563;">${s}</li>\n`;
+    }
+    result += '</ul>\n</div>\n';
   }
 
   return result.trim();
+}
+
+/**
+ * Extract clean article intro text, stopping before raw table data
+ */
+function extractArticleIntro(text: string): string {
+  // Look for article pattern
+  const articleMatch = text.match(/(<strong>)?Artikel\s+\d+\.\d+(<\/strong>)?\s*([^]*?)(?=Tabel\s+\d+\.\d+|gebruiksfunctie|leden van toepassing|\d{4}\s+\d{3}|$)/i);
+
+  if (articleMatch) {
+    let intro = articleMatch[0].trim();
+    // Limit length and clean up
+    if (intro.length > 300) {
+      // Find a good breaking point (end of sentence)
+      const breakPoint = intro.substring(0, 300).lastIndexOf('.');
+      if (breakPoint > 100) {
+        intro = intro.substring(0, breakPoint + 1);
+      } else {
+        intro = intro.substring(0, 300) + '...';
+      }
+    }
+    return intro;
+  }
+
+  // If no article pattern, just return first 200 chars if it looks like prose
+  if (text.length > 20 && !text.match(/^\s*\|/)) {
+    const firstPart = text.substring(0, 200);
+    const breakPoint = firstPart.lastIndexOf('.');
+    if (breakPoint > 50) {
+      return firstPart.substring(0, breakPoint + 1);
+    }
+  }
+
+  return '';
 }
 
 /**
