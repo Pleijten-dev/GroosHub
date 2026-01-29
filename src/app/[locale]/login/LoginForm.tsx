@@ -35,12 +35,19 @@ export function LoginForm({ translations, locale }: LoginFormProps) {
     setLoading(true);
 
     try {
-      const result = await signIn('credentials', {
+      // Add timeout to prevent infinite loading
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Login timeout')), 30000);
+      });
+
+      const signInPromise = signIn('credentials', {
         email,
         password,
         redirect: false,
         callbackUrl,
       });
+
+      const result = await Promise.race([signInPromise, timeoutPromise]);
 
       if (result?.error) {
         setError(translations.invalidCredentials);
@@ -53,7 +60,8 @@ export function LoginForm({ translations, locale }: LoginFormProps) {
         setError(translations.error);
         setLoading(false);
       }
-    } catch {
+    } catch (err) {
+      console.error('Login error:', err);
       setError(translations.error);
       setLoading(false);
     }
