@@ -1,8 +1,19 @@
+console.log('[auth.ts] Starting module initialization...');
+
 import NextAuth, { type DefaultSession } from 'next-auth';
+console.log('[auth.ts] NextAuth imported');
+
 import Credentials from 'next-auth/providers/credentials';
+console.log('[auth.ts] Credentials imported');
+
 import bcrypt from 'bcryptjs';
+console.log('[auth.ts] bcrypt imported');
+
 import { authConfig } from './auth.config';
+console.log('[auth.ts] authConfig imported');
+
 import { getDbConnection } from './db/connection';
+console.log('[auth.ts] getDbConnection imported');
 
 /**
  * User type matching the database schema (user_accounts table)
@@ -38,6 +49,8 @@ declare module 'next-auth' {
     must_change_password: boolean;
   }
 }
+
+console.log('[auth.ts] About to call NextAuth()...');
 
 /**
  * NextAuth configuration with Credentials provider
@@ -106,3 +119,5 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
 });
+
+console.log('[auth.ts] NextAuth() completed, module initialized');
