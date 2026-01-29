@@ -195,17 +195,20 @@ const FeatureCardComponent: React.FC<FeatureCardComponentProps> = ({ card, local
         relative overflow-hidden rounded-2xl transition-all duration-300 ease-out
         ${card.large ? 'col-span-2 row-span-2' : ''}
         ${card.comingSoon ? 'cursor-not-allowed' : 'cursor-pointer'}
-        ${useGlass ? 'backdrop-blur-md' : ''}
       `}
       style={{
         backgroundColor: useGlass
-          ? 'rgba(255, 255, 255, 0.25)'
+          ? 'rgba(255, 255, 255, 0.15)'
           : (isHovered ? card.hoverColor : card.color),
         transform: isHovered && isActive ? 'scale(1.02)' : 'scale(1)',
-        boxShadow: isHovered && isActive
-          ? '0 20px 40px -12px rgba(0, 0, 0, 0.35)'
-          : '0 4px 20px -4px rgba(0, 0, 0, 0.1)',
-        border: useGlass ? '1px solid rgba(255, 255, 255, 0.3)' : 'none',
+        boxShadow: useGlass
+          ? 'inset 0 0 0 1px rgba(255, 255, 255, 0.2), 0 8px 32px rgba(0, 0, 0, 0.1)'
+          : (isHovered && isActive
+            ? '0 20px 40px -12px rgba(0, 0, 0, 0.35)'
+            : '0 4px 20px -4px rgba(0, 0, 0, 0.1)'),
+        backdropFilter: useGlass ? 'blur(12px) saturate(180%)' : 'none',
+        WebkitBackdropFilter: useGlass ? 'blur(12px) saturate(180%)' : 'none',
+        border: useGlass ? '1px solid rgba(255, 255, 255, 0.25)' : 'none',
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}

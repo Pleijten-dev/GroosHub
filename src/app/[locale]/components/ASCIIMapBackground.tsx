@@ -246,9 +246,8 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
     // Time seed for morphing effect (changes slowly)
     const timeSeed = time * 0.001; // Slow time variation
 
-    // Clear canvas
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, displayCanvas.width, displayCanvas.height);
+    // Clear canvas with transparent background
+    ctx.clearRect(0, 0, displayCanvas.width, displayCanvas.height);
 
     // Set font for ASCII rendering
     ctx.font = '16px monospace';
