@@ -315,15 +315,12 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
         isFadingRef.current = true;
         forceUpdate(n => n + 1);
 
-        setTimeout(() => {
-          cityIndexRef.current = (cityIndexRef.current + 1) % shuffledCities.length;
-          loadTiles().then(() => {
-            setTimeout(() => {
-              isFadingRef.current = false;
-              forceUpdate(n => n + 1);
-            }, 100);
-          });
-        }, 1000);
+        // Immediately start loading next city
+        cityIndexRef.current = (cityIndexRef.current + 1) % shuffledCities.length;
+        loadTiles().then(() => {
+          isFadingRef.current = false;
+          forceUpdate(n => n + 1);
+        });
       } else {
         animationRef.current = requestAnimationFrame(animate);
       }
@@ -357,7 +354,7 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
       style={{
         opacity: isFadingRef.current ? 0 : opacity,
         zIndex: 0,
-        transition: 'opacity 1s ease-in-out',
+        transition: 'opacity 0.3s ease-in-out',
       }}
     >
       <canvas
