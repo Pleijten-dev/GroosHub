@@ -1,40 +1,57 @@
-import NextAuth from 'next-auth';
 import { NextResponse } from 'next/server';
-import { authConfig } from './lib/auth.config';
-
-const { auth } = NextAuth(authConfig);
+import type { NextRequest } from 'next/server';
 
 /**
- * Next.js 16 Proxy (formerly middleware) for NextAuth v5
- * Handles CSRF token management and the authorized callback
+ * Next.js 16 Proxy for route protection
  *
- * Using the auth function directly as NextAuth v5 middleware wrapper
+ * Simple middleware that checks for session cookie and redirects
+ * to login if not present. Does NOT use NextAuth to avoid
+ * dual-instance CSRF token issues.
  */
-export const proxy = auth((req) => {
-  const { pathname } = req.nextUrl;
-  const method = req.method;
+export function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const method = request.method;
 
-  // Log all requests passing through the proxy
-  console.log(`🔄 [Proxy] ${method} ${pathname} - auth: ${req.auth?.user?.email || 'none'}`);
+  console.log(`🔄 [Proxy] ${method} ${pathname}`);
 
-  // Handle non-GET/POST requests (OPTIONS, HEAD, etc.) - let them through
-  // These don't need auth redirects and can cause 400 errors if processed
-  if (method !== 'GET' && method !== 'POST') {
+  // Handle non-GET requests - let them through
+  if (method !== 'GET') {
     console.log(`🔄 [Proxy] ${method} request - allowing through`);
     return NextResponse.next();
   }
 
-  // Return undefined to let the authorized callback handle the response
-  // The authorized callback in auth.config.ts will handle redirects
-  return undefined;
-});
+  // Determine locale from path
+  const locale = pathname.startsWith('/en') ? 'en' : 'nl';
 
-// Also export as default for compatibility
+  // Public routes that don't require authentication
+  const publicRoutes = ['/nl/login', '/en/login', '/nl/change-password', '/en/change-password'];
+  const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
+
+  if (isPublicRoute) {
+    console.log(`🔄 [Proxy] Public route - allowing: ${pathname}`);
+    return NextResponse.next();
+  }
+
+  // Check for session cookie (NextAuth v5 uses authjs.session-token)
+  const sessionToken = request.cookies.get('authjs.session-token')?.value
+    || request.cookies.get('__Secure-authjs.session-token')?.value;
+
+  if (!sessionToken) {
+    console.log(`🔄 [Proxy] No session - redirecting to login`);
+    const loginUrl = new URL(`/${locale}/login`, request.url);
+    loginUrl.searchParams.set('callbackUrl', pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  console.log(`🔄 [Proxy] Session found - allowing: ${pathname}`);
+  return NextResponse.next();
+}
+
+// Export as both named and default for Next.js 16 compatibility
 export default proxy;
 
 export const config = {
   // Match all paths except API routes, static files, _next, and public assets
-  // API routes handle their own auth and should NOT go through the proxy
   matcher: [
     '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
