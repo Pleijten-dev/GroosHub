@@ -12,7 +12,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useChat, type UIMessage } from '@ai-sdk/react';
 import { cn } from '@/shared/utils/cn';
 import {
@@ -28,6 +28,7 @@ import { ImageLightbox } from './ImageLightbox';
 import { MarkdownMessage } from './MarkdownMessage';
 import { ChartVisualization, type ChartVisualizationProps } from './ChartVisualization';
 import { MessageSources, type RAGSource } from './MessageSources';
+import { formatRAGSourceText } from '@/lib/ai/rag/format-rag-tables';
 
 interface UploadedFile {
   id: string;
@@ -155,10 +156,13 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
   } = useChat();
 
   // Set initial messages after loading from API
+  // Also clear any browser-restored input to prevent accidental re-submission
   useEffect(() => {
     if (initialMessages.length > 0 && messages.length === 0) {
       console.log(`[ChatUI] Setting ${initialMessages.length} initial messages`);
       setMessages(initialMessages);
+      // Clear input to prevent browser form restoration from causing duplicate submissions
+      setInput('');
     }
   }, [initialMessages, setMessages]);
 
@@ -229,6 +233,16 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
       pendingInitialMessageRef.current = initialMessage;
       console.log('[ChatUI] Queuing initial message:', initialMessage.substring(0, 50) + '...');
       setInput(initialMessage);
+
+      // Clean up URL to prevent re-sending on page reload
+      // Remove 'message' and 'fileIds' query parameters while preserving others
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('message');
+        url.searchParams.delete('fileIds');
+        window.history.replaceState({}, '', url.toString());
+        console.log('[ChatUI] Cleaned URL to prevent re-send on reload');
+      }
     }
   }, [initialMessage, isLoadingChat, isLoading]);
 
@@ -297,6 +311,22 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
     if (!input.trim() || isLoading || isRagLoading) return;
 
     const queryText = input;
+
+    // Prevent duplicate submissions (e.g., from browser form restoration on page reload)
+    // Check if the last user message already contains this exact text
+    const lastUserMessage = [...messages].reverse().find(m => m.role === 'user');
+    if (lastUserMessage) {
+      const lastUserText = lastUserMessage.parts
+        .filter(p => p.type === 'text')
+        .map(p => ('text' in p ? p.text : ''))
+        .join('');
+      if (lastUserText === queryText.trim()) {
+        console.log('[ChatUI] ⚠️ Duplicate message detected, ignoring submission');
+        setInput(''); // Clear the duplicate input
+        return;
+      }
+    }
+
     setInput(''); // Clear input immediately
     const currentFiles = [...uploadedFiles];
 
@@ -818,9 +848,10 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
                                     <svg className="w-4 h-4 text-[#8a976b] flex-shrink-0 mt-0.5 opacity-50" viewBox="0 0 24 24" fill="currentColor">
                                       <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/>
                                     </svg>
-                                    <p className="text-sm text-gray-700 italic leading-relaxed flex-1">
-                                      {source.chunkText}
-                                    </p>
+                                    <div
+                                      className="text-sm text-gray-700 leading-relaxed flex-1 rag-content"
+                                      dangerouslySetInnerHTML={{ __html: formatRAGSourceText(source.chunkText) }}
+                                    />
                                   </div>
 
                                   {/* Source Info */}
@@ -998,6 +1029,7 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={t.inputPlaceholder}
                 disabled={isLoading}
+                autoComplete="off"
                 className={cn(
                   'flex-1 px-base py-sm bg-white border border-gray-300 rounded-lg',
                   'text-sm focus:outline-none focus:ring-2 focus:ring-blue-500',
