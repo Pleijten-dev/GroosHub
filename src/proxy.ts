@@ -15,13 +15,22 @@ import type { NextRequest } from 'next/server';
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Only process GET requests - other methods pass through
-  if (request.method !== 'GET') {
+  // Rewrite locale-prefixed API routes to /api/*
+  // This handles /nl/api/* and /en/api/* -> /api/*
+  const localeApiMatch = pathname.match(/^\/(nl|en)\/api\/(.*)/);
+  if (localeApiMatch) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/api/${localeApiMatch[2]}`;
+    return NextResponse.rewrite(url);
+  }
+
+  // Skip non-prefixed API routes
+  if (pathname.startsWith('/api/')) {
     return NextResponse.next();
   }
 
-  // Skip API routes (including locale-prefixed ones like /nl/api/...)
-  if (pathname.includes('/api/')) {
+  // Only process GET requests for page routes - other methods pass through
+  if (request.method !== 'GET') {
     return NextResponse.next();
   }
 
@@ -61,7 +70,9 @@ export function proxy(request: NextRequest) {
 export default proxy;
 
 export const config = {
-  // Match all paths except API routes, static files, and assets
+  // Match all paths except direct /api/* routes, static files, and assets
+  // Note: Locale-prefixed API routes like /nl/api/* DO match (not excluded)
+  // because they need to be rewritten to /api/* by the proxy function above
   matcher: [
     '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
