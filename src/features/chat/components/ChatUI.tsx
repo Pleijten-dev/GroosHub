@@ -12,7 +12,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useChat, type UIMessage } from '@ai-sdk/react';
 import { cn } from '@/shared/utils/cn';
 import {
@@ -28,6 +28,7 @@ import { ImageLightbox } from './ImageLightbox';
 import { MarkdownMessage } from './MarkdownMessage';
 import { ChartVisualization, type ChartVisualizationProps } from './ChartVisualization';
 import { MessageSources, type RAGSource } from './MessageSources';
+import { formatRAGSourceText } from '@/lib/ai/rag/format-rag-tables';
 
 interface UploadedFile {
   id: string;
@@ -847,9 +848,10 @@ export function ChatUI({ locale, chatId, projectId, initialMessage, initialFileI
                                     <svg className="w-4 h-4 text-[#8a976b] flex-shrink-0 mt-0.5 opacity-50" viewBox="0 0 24 24" fill="currentColor">
                                       <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/>
                                     </svg>
-                                    <p className="text-sm text-gray-700 italic leading-relaxed flex-1">
-                                      {source.chunkText}
-                                    </p>
+                                    <div
+                                      className="text-sm text-gray-700 leading-relaxed flex-1 rag-content"
+                                      dangerouslySetInnerHTML={{ __html: formatRAGSourceText(source.chunkText) }}
+                                    />
                                   </div>
 
                                   {/* Source Info */}
