@@ -162,6 +162,7 @@ function detectRowLength(dataCells: string[], minLength: number): number {
 
 /**
  * Parse standard multi-line table
+ * Detects if table starts with separator (no headers) and returns empty headers in that case
  */
 function parseMultiLineTable(content: string): ParsedTable | null {
   const lines = content.split('\n').filter(line => line.trim());
@@ -172,6 +173,10 @@ function parseMultiLineTable(content: string): ParsedTable | null {
   const tableLines = lines.filter(line => line.includes('|'));
 
   if (tableLines.length === 0) return null;
+
+  // Check if the first line is a separator row (starts with separator)
+  const firstLine = tableLines[0].trim();
+  const startsWithSeparator = /^[\s|:-]+$/.test(firstLine);
 
   // Normalize the table structure
   const allRows: string[][] = [];
@@ -209,7 +214,16 @@ function parseMultiLineTable(content: string): ParsedTable | null {
     return row;
   });
 
-  // First row is headers, rest are data
+  // If table started with separator, ALL rows are data (empty headers)
+  if (startsWithSeparator) {
+    const emptyHeaders = new Array(maxCols).fill('');
+    return {
+      headers: emptyHeaders,
+      rows: normalizedRows,
+    };
+  }
+
+  // Otherwise, first row is headers, rest are data
   return {
     headers: normalizedRows[0] || [],
     rows: normalizedRows.slice(1),
@@ -326,29 +340,28 @@ function tableToMarkdown(table: ParsedTable): string {
 
 /**
  * Extract semantic summaries from text
- * Handles both multi-line format and single-line format
+ * Handles multiple formats:
+ * 1. Full marker: "--- Tabel Samenvatting (Semantisch Verrijkt) ---"
+ * 2. Simple marker: "Samenvatting:" followed by sentences
  */
 function extractSummaries(text: string): { summaries: string[]; cleanedText: string } {
   const summaries: string[] = [];
   let cleanedText = text;
 
-  const summaryMatch = text.match(
+  // Try full marker format first
+  const fullMarkerMatch = text.match(
     /---\s*Tabel Samenvatting\s*\(Semantisch Verrijkt\)\s*---\s*([\s\S]*?)(?=---|$)/i
   );
 
-  if (summaryMatch) {
-    const summarySection = summaryMatch[1];
-
-    // Try multi-line format first: each quoted sentence on its own line
+  if (fullMarkerMatch) {
+    const summarySection = fullMarkerMatch[1];
     let sentences = summarySection
       .split('\n')
       .map(line => line.trim())
       .filter(line => line.startsWith('"') && line.endsWith('"'))
       .map(line => line.slice(1, -1));
 
-    // If no sentences found, try single-line format: "sentence1" "sentence2" "sentence3"
     if (sentences.length === 0) {
-      // Match all quoted strings in the section
       const quotedMatches = summarySection.match(/"[^"]+"/g);
       if (quotedMatches) {
         sentences = quotedMatches.map(s => s.slice(1, -1));
@@ -356,7 +369,25 @@ function extractSummaries(text: string): { summaries: string[]; cleanedText: str
     }
 
     summaries.push(...sentences);
-    cleanedText = cleanedText.replace(summaryMatch[0], '');
+    cleanedText = cleanedText.replace(fullMarkerMatch[0], '');
+    return { summaries, cleanedText };
+  }
+
+  // Try simple "Samenvatting:" format
+  const simpleMarkerMatch = text.match(
+    /Samenvatting:\s*\n([\s\S]*?)$/i
+  );
+
+  if (simpleMarkerMatch) {
+    const summarySection = simpleMarkerMatch[1];
+    // Each line that starts with "Voor" or similar is a summary sentence
+    const sentences = summarySection
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 20); // Filter out short/empty lines
+
+    summaries.push(...sentences);
+    cleanedText = cleanedText.replace(simpleMarkerMatch[0], '');
   }
 
   return { summaries, cleanedText };
@@ -383,9 +414,36 @@ function extractTableDetails(text: string): { table: ParsedTable | null; cleaned
 }
 
 /**
- * Find inline pipe tables in text
+ * Extract tab-separated header line (like "col1\tcol2\tcol3")
  */
-function extractInlineTables(text: string): { tables: ParsedTable[]; cleanedText: string } {
+function extractTabSeparatedHeaders(text: string): { headers: string[] | null; cleanedText: string } {
+  const lines = text.split('\n');
+  const result: string[] = [];
+  let foundHeaders: string[] | null = null;
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    // Check if line contains tabs and looks like headers (no pipes, multiple tab-separated words)
+    if (trimmedLine.includes('\t') && !trimmedLine.includes('|')) {
+      const parts = trimmedLine.split('\t').map(p => p.trim()).filter(p => p.length > 0);
+      // If we have 2-5 tab-separated parts that look like headers, extract them
+      if (parts.length >= 2 && parts.length <= 5 && parts.every(p => p.length < 50)) {
+        foundHeaders = parts;
+        // Don't add this line to result (remove it)
+        continue;
+      }
+    }
+    result.push(line);
+  }
+
+  return { headers: foundHeaders, cleanedText: result.join('\n') };
+}
+
+/**
+ * Find inline pipe tables in text
+ * Also handles tables that start with separator row (no inline headers)
+ */
+function extractInlineTables(text: string, externalHeaders?: string[]): { tables: ParsedTable[]; cleanedText: string } {
   const lines = text.split('\n');
   const result: string[] = [];
   const tables: ParsedTable[] = [];
@@ -403,7 +461,7 @@ function extractInlineTables(text: string): { tables: ParsedTable[]; cleanedText
       tableBuffer.push(trimmedLine);
     } else {
       if (inTable && tableBuffer.length >= 2) {
-        const table = parsePipeTable(tableBuffer.join('\n'));
+        const table = parsePipeTableWithExternalHeaders(tableBuffer.join('\n'), externalHeaders);
         if (table) {
           tables.push(table);
           result.push('{{TABLE_PLACEHOLDER}}');
@@ -421,7 +479,7 @@ function extractInlineTables(text: string): { tables: ParsedTable[]; cleanedText
 
   // Handle remaining table buffer
   if (tableBuffer.length >= 2) {
-    const table = parsePipeTable(tableBuffer.join('\n'));
+    const table = parsePipeTableWithExternalHeaders(tableBuffer.join('\n'), externalHeaders);
     if (table) {
       tables.push(table);
       result.push('{{TABLE_PLACEHOLDER}}');
@@ -433,6 +491,40 @@ function extractInlineTables(text: string): { tables: ParsedTable[]; cleanedText
   }
 
   return { tables, cleanedText: result.join('\n') };
+}
+
+/**
+ * Parse pipe table, using external headers if the table starts with separator
+ */
+function parsePipeTableWithExternalHeaders(content: string, externalHeaders?: string[]): ParsedTable | null {
+  const table = parsePipeTable(content);
+  if (!table) return null;
+
+  // Check if the table has no real headers (first row was separator or all empty)
+  const hasEmptyHeaders = table.headers.every(h => !h || h.match(/^-+$/));
+
+  if (hasEmptyHeaders && externalHeaders && externalHeaders.length > 0) {
+    // Use external headers
+    // Normalize column count
+    const maxCols = Math.max(externalHeaders.length, ...table.rows.map(r => r.length));
+    const normalizedHeaders = [...externalHeaders];
+    while (normalizedHeaders.length < maxCols) {
+      normalizedHeaders.push('');
+    }
+
+    return {
+      headers: normalizedHeaders,
+      rows: table.rows.map(row => {
+        const normalizedRow = [...row];
+        while (normalizedRow.length < maxCols) {
+          normalizedRow.push('');
+        }
+        return normalizedRow;
+      })
+    };
+  }
+
+  return table;
 }
 
 /**
@@ -567,25 +659,30 @@ export function formatRAGSourceText(rawText: string): string {
   const { table: detailsTable, cleanedText: textAfterDetails } = extractTableDetails(text);
   text = textAfterDetails;
 
-  // 3. Only extract inline tables if we DON'T have a details table
+  // 3. Extract tab-separated headers (these may be the headers for a separator-first table)
+  const { headers: tabHeaders, cleanedText: textAfterTabHeaders } = extractTabSeparatedHeaders(text);
+  text = textAfterTabHeaders;
+
+  // 4. Only extract inline tables if we DON'T have a details table
   // (to avoid creating duplicate tables from the same data)
+  // Pass tab headers for tables that start with separator
   let inlineTables: ParsedTable[] = [];
   if (!detailsTable) {
-    const inlineResult = extractInlineTables(text);
+    const inlineResult = extractInlineTables(text, tabHeaders || undefined);
     inlineTables = inlineResult.tables;
     text = inlineResult.cleanedText;
   }
 
-  // 4. Clean up artifacts (date sequences, etc.)
+  // 5. Clean up artifacts (date sequences, etc.)
   text = cleanupArtifacts(text);
 
-  // 5. Remove excessive whitespace
+  // 6. Remove excessive whitespace
   text = text.replace(/\n{3,}/g, '\n\n').trim();
 
-  // 6. Format structural elements (article headers)
+  // 7. Format structural elements (article headers)
   text = formatStructuralElements(text);
 
-  // 7. Build HTML output - Text first, then table, then summary at the end
+  // 8. Build HTML output - Text first, then table, then summary at the end
   let result = '';
 
   // Replace placeholders with inline HTML tables (only if no details table)
