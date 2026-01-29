@@ -31,6 +31,7 @@ interface ASCIIMapBackgroundProps {
   className?: string;
   opacity?: number;
   cols?: number; // Number of ASCII columns (if not set, auto-calculated from viewport)
+  debugShowImage?: boolean; // Show raw WMS image instead of ASCII for debugging
 }
 
 function buildWMSUrl(bbox: typeof ROTTERDAM_BBOX, width: number, height: number): string {
@@ -61,11 +62,13 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
   className = '',
   opacity = 0.15, // Increased default opacity for better visibility
   cols: propCols,
+  debugShowImage = false, // Set to true to see raw WMS image
 }) => {
   const [asciiLines, setAsciiLines] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dimensions, setDimensions] = useState({ cols: propCols || 200, rows: 100 });
+  const [imageUrl, setImageUrl] = useState<string | null>(null); // For debug mode
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -151,6 +154,10 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
 
           await new Promise<void>((resolve, reject) => {
             img.onload = () => {
+              // Store image URL for debug mode
+              if (debugShowImage) {
+                setImageUrl(wmsUrl);
+              }
               // Scale image to fill entire screen
               const ascii = convertImageToASCII(img, dimensions.cols, dimensions.rows);
               setAsciiLines(ascii);
@@ -161,18 +168,24 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
           });
         } else {
           const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
           const img = new Image();
 
           await new Promise<void>((resolve, reject) => {
             img.onload = () => {
+              // Store image URL for debug mode
+              if (debugShowImage) {
+                setImageUrl(blobUrl);
+              } else {
+                URL.revokeObjectURL(blobUrl);
+              }
               // Scale image to fill entire screen
               const ascii = convertImageToASCII(img, dimensions.cols, dimensions.rows);
               setAsciiLines(ascii);
-              URL.revokeObjectURL(img.src);
               resolve();
             };
             img.onerror = () => reject(new Error('Failed to load WMS image'));
-            img.src = URL.createObjectURL(blob);
+            img.src = blobUrl;
           });
         }
       } catch (err) {
@@ -198,7 +211,43 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
     };
 
     fetchAndConvert();
-  }, [dimensions, convertImageToASCII]);
+  }, [dimensions, convertImageToASCII, debugShowImage]);
+
+  // Debug mode: show raw WMS image
+  if (debugShowImage) {
+    return (
+      <div
+        ref={containerRef}
+        className={`fixed inset-0 overflow-hidden pointer-events-none ${className}`}
+        style={{ opacity: 0.5, zIndex: 0 }}
+      >
+        {imageUrl && (
+          <img
+            src={imageUrl}
+            alt="WMS Debug"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              objectFit: 'cover',
+            }}
+          />
+        )}
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center text-gray-500">
+            Loading WMS image...
+          </div>
+        )}
+        {error && (
+          <div className="absolute bottom-2 left-2 text-xs text-red-500 bg-white/80 px-2 py-1 rounded">
+            {error}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div

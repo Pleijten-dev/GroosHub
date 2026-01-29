@@ -285,7 +285,7 @@ const HomePage: React.FC = () => {
       style={{ zIndex: 10000 }}
     >
       {/* ASCII Map Background - full screen adaptive */}
-      <ASCIIMapBackground opacity={0.18} />
+      <ASCIIMapBackground opacity={0.18} debugShowImage={true} />
 
       {/* Content container */}
       <div className="relative min-h-screen flex flex-col">
