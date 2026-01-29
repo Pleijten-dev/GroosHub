@@ -185,19 +185,27 @@ const FeatureCardComponent: React.FC<FeatureCardComponentProps> = ({ card, local
     }
   };
 
+  // Glass effect for inactive cards, solid color for active
+  const isActive = !card.comingSoon;
+  const useGlass = card.comingSoon;
+
   return (
     <div
       className={`
         relative overflow-hidden rounded-2xl transition-all duration-300 ease-out
         ${card.large ? 'col-span-2 row-span-2' : ''}
-        ${card.comingSoon ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}
+        ${card.comingSoon ? 'cursor-not-allowed' : 'cursor-pointer'}
+        ${useGlass ? 'backdrop-blur-md' : ''}
       `}
       style={{
-        backgroundColor: isHovered && !card.comingSoon ? card.hoverColor : card.color,
-        transform: isHovered && !card.comingSoon ? 'scale(1.02)' : 'scale(1)',
-        boxShadow: isHovered && !card.comingSoon
+        backgroundColor: useGlass
+          ? 'rgba(255, 255, 255, 0.25)'
+          : (isHovered ? card.hoverColor : card.color),
+        transform: isHovered && isActive ? 'scale(1.02)' : 'scale(1)',
+        boxShadow: isHovered && isActive
           ? '0 20px 40px -12px rgba(0, 0, 0, 0.35)'
-          : '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+          : '0 4px 20px -4px rgba(0, 0, 0, 0.1)',
+        border: useGlass ? '1px solid rgba(255, 255, 255, 0.3)' : 'none',
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -207,7 +215,7 @@ const FeatureCardComponent: React.FC<FeatureCardComponentProps> = ({ card, local
         {/* Icon */}
         <div
           className="mb-4"
-          style={{ color: card.textColor }}
+          style={{ color: useGlass ? '#6b7280' : card.textColor }}
         >
           {card.icon}
         </div>
@@ -215,7 +223,7 @@ const FeatureCardComponent: React.FC<FeatureCardComponentProps> = ({ card, local
         {/* Title */}
         <h2
           className={`font-bold mb-2 ${card.large ? 'text-3xl' : 'text-xl'}`}
-          style={{ color: card.textColor }}
+          style={{ color: useGlass ? '#374151' : card.textColor }}
         >
           {title}
         </h2>
@@ -225,8 +233,8 @@ const FeatureCardComponent: React.FC<FeatureCardComponentProps> = ({ card, local
           <span
             className="inline-block px-3 py-1 text-sm font-medium rounded-full mb-3 w-fit"
             style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.2)',
-              color: card.textColor
+              backgroundColor: 'rgba(71, 118, 56, 0.15)',
+              color: '#477638'
             }}
           >
             {locale === 'nl' ? 'Binnenkort' : 'Coming Soon'}
@@ -242,14 +250,14 @@ const FeatureCardComponent: React.FC<FeatureCardComponentProps> = ({ card, local
         >
           <p
             className={`${card.large ? 'text-base' : 'text-sm'} leading-relaxed`}
-            style={{ color: card.textColor, opacity: 0.9 }}
+            style={{ color: useGlass ? '#6b7280' : card.textColor, opacity: 0.9 }}
           >
             {description}
           </p>
         </div>
 
         {/* Arrow indicator for active cards */}
-        {!card.comingSoon && (
+        {isActive && (
           <div
             className={`
               absolute bottom-4 right-4 transition-all duration-300 ease-out
@@ -281,26 +289,20 @@ const HomePage: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 bg-gradient-to-br from-gray-50 to-gray-100 overflow-auto"
+      className="fixed inset-0 overflow-auto"
       style={{ zIndex: 10000 }}
     >
       {/* ASCII Map Background - full screen adaptive */}
-      <ASCIIMapBackground opacity={0.18} />
+      <ASCIIMapBackground opacity={0.25} />
 
       {/* Content container */}
       <div className="relative min-h-screen flex flex-col">
         {/* Header */}
-        <header className="pt-8 pb-4 px-8">
+        <header className="pt-6 pb-4 px-8">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             {/* Logo */}
-            <div className="flex items-center gap-3">
-              <div
-                className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-xl"
-                style={{ backgroundColor: PVE_COLORS.social }}
-              >
-                G
-              </div>
-              <span className="text-2xl font-bold text-gray-900">GroosHub</span>
+            <div className="flex items-center gap-2">
+              <span className="text-2xl font-bold text-gray-900">GROOSHUB</span>
             </div>
 
             {/* Language switcher */}
@@ -310,7 +312,7 @@ const HomePage: React.FC = () => {
                 className={`px-3 py-1.5 rounded-lg transition-colors ${
                   locale === 'nl'
                     ? 'bg-gray-900 text-white'
-                    : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                    : 'bg-white/50 backdrop-blur-sm text-gray-600 hover:bg-white/70'
                 }`}
               >
                 NL
@@ -320,7 +322,7 @@ const HomePage: React.FC = () => {
                 className={`px-3 py-1.5 rounded-lg transition-colors ${
                   locale === 'en'
                     ? 'bg-gray-900 text-white'
-                    : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                    : 'bg-white/50 backdrop-blur-sm text-gray-600 hover:bg-white/70'
                 }`}
               >
                 EN
@@ -329,28 +331,13 @@ const HomePage: React.FC = () => {
           </div>
         </header>
 
-        {/* Welcome text */}
-        <div className="px-8 py-4">
-          <div className="max-w-7xl mx-auto">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">
-              {locale === 'nl' ? 'Welkom bij GroosHub' : 'Welcome to GroosHub'}
-            </h1>
-            <p className="text-lg text-gray-600">
-              {locale === 'nl'
-                ? 'Kies een module om te beginnen'
-                : 'Choose a module to get started'}
-            </p>
-          </div>
-        </div>
-
-        {/* Bento Grid */}
-        <main className="flex-1 px-8 pb-8">
-          <div className="max-w-7xl mx-auto h-full">
+        {/* Bento Grid - fills remaining space */}
+        <main className="flex-1 px-8 pb-6 flex flex-col">
+          <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col">
             <div
-              className="grid grid-cols-4 gap-4 auto-rows-fr"
+              className="grid grid-cols-4 gap-4 flex-1"
               style={{
-                minHeight: 'calc(100vh - 240px)',
-                gridTemplateRows: 'repeat(2, minmax(200px, 1fr))'
+                gridTemplateRows: 'repeat(3, 1fr)',
               }}
             >
               {/* Row 1: AI Assistant | Doelgroepen (large, spans 2 cols) | LCA */}
