@@ -485,7 +485,7 @@ const RadialChart: React.FC<RadialChartProps> = ({
         .attr('class', 'bar')
         .attr('d', arc)
         .style('fill', (d: RadialChartData) => d.color === INSUFFICIENT_DATA_COLOR ? INSUFFICIENT_DATA_COLOR : '#fff')
-        .style('opacity', (d: RadialChartData) => d.color === INSUFFICIENT_DATA_COLOR ? 0.6 : 0.98)
+        .style('opacity', (d: RadialChartData) => d.color === INSUFFICIENT_DATA_COLOR ? '0.6' : '0.98')
         .style('filter', (d: RadialChartData) => d.color === INSUFFICIENT_DATA_COLOR ? 'none' : `url(#noise-heat-${slug(d.name)})`);
 
       // Add labels if enabled
