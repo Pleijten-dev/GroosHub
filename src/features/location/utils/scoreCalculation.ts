@@ -717,12 +717,12 @@ export function calculateLocationScores(
 
 /**
  * Get formatted chart data for RadialChart display
- * Categories with insufficient data are shown with a minimal value (1) and gray color
+ * Categories with insufficient data are shown with average height (5.5) and gray color
  */
 export function getScoreChartData(
   scores: LocationScores,
   locale: 'nl' | 'en'
-): Array<{ name: string; value: number; color: string }> {
+): Array<{ name: string; value: number; color: string; insufficientData?: boolean }> {
   const categories = [
     scores.betaalbaarheid,
     scores.veiligheid,
@@ -733,9 +733,11 @@ export function getScoreChartData(
 
   return categories.map(cat => ({
     name: locale === 'nl' ? cat.nameNl : cat.nameEn,
-    // Show minimal value for insufficient data so it's visible but clearly different
-    value: cat.insufficientData ? 1 : cat.grade,
+    // Show average height for insufficient data so the bar is visible
+    value: cat.insufficientData ? 5.5 : cat.grade,
     // Use gray color for insufficient data categories
     color: cat.insufficientData ? '#9ca3af' : cat.color,
+    // Flag for insufficient data (used by RadialChart to show "-" label)
+    insufficientData: cat.insufficientData,
   }));
 }

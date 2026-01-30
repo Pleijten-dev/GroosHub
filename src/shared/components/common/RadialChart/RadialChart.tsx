@@ -6,6 +6,7 @@ interface RadialChartData {
   name: string;
   value: number;
   color: string;
+  insufficientData?: boolean;  // Flag to show "-" instead of value
 }
 
 interface RadialChartProps {
@@ -501,7 +502,7 @@ const RadialChart: React.FC<RadialChartProps> = ({
             return `translate(${x}, ${y})`;
           });
 
-        // Value labels
+        // Value labels - show "-" for insufficient data
         labelGroups
           .append("text")
           .attr("class", "value-label")
@@ -510,12 +511,14 @@ const RadialChart: React.FC<RadialChartProps> = ({
           .attr("y", isDenseChart ? -2 : -3)
           .style("font-size", isDenseChart ? "9px" : "12px")
           .style("font-weight", "bold")
-          .style("fill", "#ffffff")
-          .style("text-shadow", "0 0 4px rgba(0,0,0,0.8), 1px 1px 2px rgba(0,0,0,0.6)")
+          .style("fill", (d: RadialChartData) => d.insufficientData ? "#6b7280" : "#ffffff")
+          .style("text-shadow", (d: RadialChartData) => d.insufficientData
+            ? "0 0 2px rgba(255,255,255,0.8)"
+            : "0 0 4px rgba(0,0,0,0.8), 1px 1px 2px rgba(0,0,0,0.6)")
           .style("pointer-events", "none")
-          .text((d: RadialChartData) => d.value);
+          .text((d: RadialChartData) => d.insufficientData ? "-" : d.value);
 
-        // Category labels
+        // Category labels - grey out for insufficient data
         labelGroups
           .append("text")
           .attr("class", "label")
@@ -524,8 +527,10 @@ const RadialChart: React.FC<RadialChartProps> = ({
           .attr("y", isDenseChart ? 4 : 6)
           .style("font-size", isDenseChart ? "4px" : "5.5px")
           .style("font-weight", "500")
-          .style("fill", "#ffffff")
-          .style("text-shadow", "0 0 3px rgba(0,0,0,0.8), 1px 1px 1px rgba(0,0,0,0.6)")
+          .style("fill", (d: RadialChartData) => d.insufficientData ? "#6b7280" : "#ffffff")
+          .style("text-shadow", (d: RadialChartData) => d.insufficientData
+            ? "0 0 2px rgba(255,255,255,0.8)"
+            : "0 0 3px rgba(0,0,0,0.8), 1px 1px 1px rgba(0,0,0,0.6)")
           .style("pointer-events", "none")
           .text((d: RadialChartData) => {
             if (isDenseChart && d.name.length > 8) {
