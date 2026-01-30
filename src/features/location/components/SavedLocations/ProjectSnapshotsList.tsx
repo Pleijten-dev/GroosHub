@@ -202,12 +202,50 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
         ? parseFloat(snapshotData.longitude)
         : Number(snapshotData.longitude) || 0;
 
+      // Helper function to extract geographic code from data rows (for backwards compatibility)
+      // Data rows contain geographicCode field we can use when explicit codes are missing
+      const extractGeographicCode = (
+        level: 'neighborhood' | 'district' | 'municipality',
+        ...dataSources: (Array<{ geographicCode?: string; geographicLevel?: string }> | undefined)[]
+      ): string | null => {
+        for (const source of dataSources) {
+          if (Array.isArray(source) && source.length > 0) {
+            const row = source.find(r => r.geographicLevel === level && r.geographicCode);
+            if (row?.geographicCode) {
+              return row.geographicCode;
+            }
+          }
+        }
+        return null;
+      };
+
+      // Get geographic codes - prefer explicit codes, fall back to extracting from data rows
+      const neighborhoodCode = snapshotData.neighborhood_code || extractGeographicCode(
+        'neighborhood',
+        snapshotData.demographics_data?.neighborhood,
+        snapshotData.health_data?.neighborhood,
+        snapshotData.safety_data?.neighborhood
+      );
+      const districtCode = snapshotData.district_code || extractGeographicCode(
+        'district',
+        snapshotData.demographics_data?.district,
+        snapshotData.health_data?.district,
+        snapshotData.safety_data?.district
+      );
+      const municipalityCode = snapshotData.municipality_code || extractGeographicCode(
+        'municipality',
+        snapshotData.demographics_data?.municipality,
+        snapshotData.health_data?.municipality,
+        snapshotData.safety_data?.municipality,
+        snapshotData.livability_data?.municipality
+      );
+
       // Convert amenities data
       const amenitiesDataRaw = snapshotData.amenities_data || null;
       const amenitiesRows = amenitiesDataRaw
         ? convertAmenitiesToRows(
             amenitiesDataRaw,
-            snapshotData.municipality_code || '',
+            municipalityCode || '',
             snapshotData.address || ''
           )
         : [];
@@ -225,9 +263,9 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
               wgs84: { latitude, longitude },
               rd: { x: 0, y: 0 }
             },
-            neighborhood: snapshotData.neighborhood_code ? { statcode: snapshotData.neighborhood_code } : null,
-            district: snapshotData.district_code ? { statcode: snapshotData.district_code } : null,
-            municipality: snapshotData.municipality_code ? { statcode: snapshotData.municipality_code } : null,
+            neighborhood: neighborhoodCode ? { statcode: neighborhoodCode } : null,
+            district: districtCode ? { statcode: districtCode } : null,
+            municipality: municipalityCode ? { statcode: municipalityCode } : null,
           },
           demographics: snapshotData.demographics_data || {},
           health: snapshotData.health_data || {},
