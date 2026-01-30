@@ -295,9 +295,26 @@ const HomePage: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 overflow-auto bg-white"
-      style={{ zIndex: 10000 }}
+      className="fixed inset-0 overflow-auto"
+      style={{
+        zIndex: 10000,
+        backgroundColor: 'var(--color-white)',
+      }}
     >
+      {/* Gradient blob background - same as content-main */}
+      <div
+        className="fixed inset-0 pointer-events-none"
+        style={{
+          background: `
+            radial-gradient(circle at 20% 30%, var(--blob-1-color) 0%, transparent 40%),
+            radial-gradient(circle at 80% 70%, var(--blob-2-color) 0%, transparent 40%),
+            radial-gradient(circle at 40% 80%, var(--blob-3-color) 0%, transparent 40%),
+            radial-gradient(circle at 70% 20%, var(--blob-4-color) 0%, transparent 40%)
+          `,
+          zIndex: 0,
+        }}
+      />
+
       {/* ASCII Map Background - full screen adaptive */}
       <ASCIIMapBackground opacity={0.25} />
 
