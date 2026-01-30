@@ -39,6 +39,31 @@ export interface LocationSnapshot {
 }
 
 /**
+ * Lightweight snapshot summary for list views (excludes large JSON data blobs)
+ */
+export interface LocationSnapshotSummary {
+  id: string;
+  project_id: string;
+  user_id: number;
+  address: string;
+  latitude: number;
+  longitude: number;
+  neighborhood_code: string | null;
+  district_code: string | null;
+  municipality_code: string | null;
+  snapshot_date: Date;
+  version_number: number;
+  is_active: boolean;
+  scoring_algorithm_version?: string;
+  overall_score: number | null;
+  category_scores: Record<string, unknown>;
+  notes: string | null;
+  tags: string[] | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+/**
  * Get active location snapshot for a project
  */
 export async function getActiveLocationSnapshot(
@@ -67,6 +92,7 @@ export async function getActiveLocationSnapshot(
 
 /**
  * Get all location snapshots for a project (including historical)
+ * Note: This fetches all data - use getProjectLocationSnapshotsSummary for list views
  */
 export async function getProjectLocationSnapshots(
   projectId: string
@@ -89,6 +115,31 @@ export async function getProjectLocationSnapshots(
   `;
 
   return result as LocationSnapshot[];
+}
+
+/**
+ * Get lightweight snapshot summaries for a project (for list views)
+ * Excludes large JSON data blobs (demographics, health, safety, livability, amenities, housing, etc.)
+ * Use getLocationSnapshotById to fetch full data when loading a specific snapshot
+ */
+export async function getProjectLocationSnapshotsSummary(
+  projectId: string
+): Promise<LocationSnapshotSummary[]> {
+  const db = getDbConnection();
+
+  const result = await db`
+    SELECT
+      id, project_id, user_id, address, latitude, longitude,
+      neighborhood_code, district_code, municipality_code,
+      snapshot_date, version_number, is_active,
+      scoring_algorithm_version, overall_score, category_scores,
+      notes, tags, created_at, updated_at
+    FROM location_snapshots
+    WHERE project_id = ${projectId}
+    ORDER BY version_number DESC
+  `;
+
+  return result as LocationSnapshotSummary[];
 }
 
 /**
@@ -315,7 +366,8 @@ export async function updateLocationSnapshotWmsGrading(
 }
 
 /**
- * Get location snapshots by user ID
+ * Get location snapshots by user ID (full data)
+ * Note: Use getUserLocationSnapshotsSummary for list views
  */
 export async function getUserLocationSnapshots(userId: number): Promise<LocationSnapshot[]> {
   const db = getDbConnection();
@@ -336,6 +388,27 @@ export async function getUserLocationSnapshots(userId: number): Promise<Location
   `;
 
   return result as LocationSnapshot[];
+}
+
+/**
+ * Get lightweight snapshot summaries by user ID (for list views)
+ */
+export async function getUserLocationSnapshotsSummary(userId: number): Promise<LocationSnapshotSummary[]> {
+  const db = getDbConnection();
+
+  const result = await db`
+    SELECT
+      id, project_id, user_id, address, latitude, longitude,
+      neighborhood_code, district_code, municipality_code,
+      snapshot_date, version_number, is_active,
+      scoring_algorithm_version, overall_score, category_scores,
+      notes, tags, created_at, updated_at
+    FROM location_snapshots
+    WHERE user_id = ${userId}
+    ORDER BY created_at DESC
+  `;
+
+  return result as LocationSnapshotSummary[];
 }
 
 /**

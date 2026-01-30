@@ -8,7 +8,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import {
   getProjectLocationSnapshots,
+  getProjectLocationSnapshotsSummary,
   getUserLocationSnapshots,
+  getUserLocationSnapshotsSummary,
   createLocationSnapshot,
 } from '@/lib/db/queries/locations';
 import { isProjectMember } from '@/lib/db/queries/projects';
@@ -16,6 +18,11 @@ import { isProjectMember } from '@/lib/db/queries/projects';
 /**
  * GET /api/location/snapshots
  * Get location snapshots (filtered by project_id or user_id)
+ *
+ * Query params:
+ * - project_id: Filter by project
+ * - user_id: Filter by user
+ * - full: If "true", returns full data including JSON blobs. Default returns summary only.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -28,6 +35,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('project_id');
     const userId = searchParams.get('user_id');
+    const fullData = searchParams.get('full') === 'true';
 
     if (projectId) {
       // Check if user is member of project
@@ -40,7 +48,10 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      const snapshots = await getProjectLocationSnapshots(projectId);
+      // Use summary by default for better performance, full data only when requested
+      const snapshots = fullData
+        ? await getProjectLocationSnapshots(projectId)
+        : await getProjectLocationSnapshotsSummary(projectId);
 
       return NextResponse.json({
         success: true,
@@ -52,7 +63,10 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
 
-      const snapshots = await getUserLocationSnapshots(session.user.id);
+      // Use summary by default for better performance, full data only when requested
+      const snapshots = fullData
+        ? await getUserLocationSnapshots(session.user.id)
+        : await getUserLocationSnapshotsSummary(session.user.id);
 
       return NextResponse.json({
         success: true,
