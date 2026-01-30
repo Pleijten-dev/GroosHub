@@ -491,7 +491,7 @@ function calculateCategoryScore(
         const safetyData = getBestAvailableData(
           data.safety.neighborhood,
           data.safety.district,
-          null // Don't fall back to municipality for local data
+          [] // Don't fall back to municipality for local data
         );
         // Use municipality as comparison baseline (instead of national)
         // If only municipality data available, fall back to national
