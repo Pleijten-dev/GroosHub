@@ -295,7 +295,7 @@ const HomePage: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 overflow-auto"
+      className="fixed inset-0 overflow-auto bg-white"
       style={{ zIndex: 10000 }}
     >
       {/* ASCII Map Background - full screen adaptive */}
