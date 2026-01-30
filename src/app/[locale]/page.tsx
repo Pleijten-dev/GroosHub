@@ -301,17 +301,16 @@ const HomePage: React.FC = () => {
         backgroundColor: 'var(--color-white)',
       }}
     >
-      {/* Gradient blob background - subtle version for landing page */}
+      {/* Gradient blob background - more visible version for landing page */}
       <div
         className="fixed inset-0 pointer-events-none"
         style={{
           background: `
-            radial-gradient(circle at 20% 30%, var(--blob-1-color) 0%, transparent 40%),
-            radial-gradient(circle at 80% 70%, var(--blob-2-color) 0%, transparent 40%),
-            radial-gradient(circle at 40% 80%, var(--blob-3-color) 0%, transparent 40%),
-            radial-gradient(circle at 70% 20%, var(--blob-4-color) 0%, transparent 40%)
+            radial-gradient(circle at 20% 30%, rgba(12, 33, 26, 0.12) 0%, transparent 50%),
+            radial-gradient(circle at 80% 70%, rgba(72, 128, 106, 0.15) 0%, transparent 50%),
+            radial-gradient(circle at 40% 80%, rgba(71, 118, 56, 0.12) 0%, transparent 50%),
+            radial-gradient(circle at 70% 20%, rgba(138, 151, 107, 0.15) 0%, transparent 50%)
           `,
-          opacity: 0.3,
           zIndex: 0,
         }}
       />
