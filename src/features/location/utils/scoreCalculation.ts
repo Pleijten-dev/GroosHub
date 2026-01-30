@@ -47,6 +47,22 @@ export interface CategoryScore {
   metricsUsed: number;  // Number of metrics with data
   metricsTotal: number; // Total metrics configured
   color: string;
+  breakdown: MetricBreakdown[]; // Detailed breakdown of each metric
+}
+
+export interface MetricBreakdown {
+  key: string;
+  nameNl: string;
+  nameEn: string;
+  localValue: number | null;      // Actual local value (e.g., 45.2%)
+  comparisonValue: number | null; // National/comparison value (e.g., 50.0%)
+  rawScore: number | null;        // -1 to 1, null if no data
+  grade: number | null;           // 1-10, null if no data
+  weight: number;                 // Configured weight (e.g., 0.15)
+  weightPercent: number;          // Weight as percentage (e.g., 15)
+  direction: 'positive' | 'negative';
+  contribution: number;           // Actual contribution to final score
+  hasData: boolean;
 }
 
 export interface LocationScores {
@@ -203,6 +219,94 @@ export const VOORZIENINGEN_WEIGHTS: Record<string, number> = {
 };
 
 // ============================================================================
+// METRIC NAME MAPPINGS
+// ============================================================================
+
+const METRIC_NAMES: Record<string, { nl: string; en: string }> = {
+  // Betaalbaarheid - Residential
+  'transactieprijs_laag': { nl: 'Woningen lage prijsklasse', en: 'Low price housing' },
+  'transactieprijs_midden': { nl: 'Woningen midden prijsklasse', en: 'Mid price housing' },
+  'transactieprijs_hoog': { nl: 'Woningen hoge prijsklasse', en: 'High price housing' },
+  'woonoppervlak_klein': { nl: 'Kleine woningen beschikbaar', en: 'Small homes available' },
+  'woonoppervlak_midden': { nl: 'Middelgrote woningen', en: 'Medium homes available' },
+  // Betaalbaarheid - Demographics
+  'GemiddeldInkomenPerInwoner_72': { nl: 'Gemiddeld inkomen', en: 'Average income' },
+  'HuishoudensMetEenLaagInkomen_78': { nl: 'Huishoudens laag inkomen', en: 'Low income households' },
+
+  // Veiligheid - Crime
+  'Crime_1.4.5': { nl: 'Mishandeling', en: 'Assault' },
+  'Crime_1.4.4': { nl: 'Bedreiging', en: 'Threats' },
+  'Crime_1.4.6': { nl: 'Straatroof', en: 'Street robbery' },
+  'Crime_1.4.3': { nl: 'Openlijk geweld', en: 'Public violence' },
+  'Crime_1.1.1': { nl: 'Woninginbraak', en: 'Home burglary' },
+  'Crime_1.2.1': { nl: 'Diefstal uit voertuig', en: 'Theft from vehicle' },
+  'Crime_1.2.2': { nl: 'Voertuigdiefstal', en: 'Vehicle theft' },
+  'Crime_2.2.1': { nl: 'Vernieling', en: 'Vandalism' },
+  'Crime_1.3.1': { nl: 'Verkeersongevallen', en: 'Traffic accidents' },
+  'Crime_2.1.1': { nl: 'Drugsoverlast', en: 'Drug nuisance' },
+  // Veiligheid - Perception
+  'VoeltZichVaakOnveilig_44': { nl: 'Voelt zich vaak onveilig', en: 'Often feels unsafe' },
+  'SAvondsOpStraatInBuurtOnveilig_52': { nl: 'Onveilig op straat (avond)', en: 'Unsafe on street (evening)' },
+
+  // Gezondheid
+  'ErvarenGezondheidGoedZeerGoed_4': { nl: 'Goede gezondheid', en: 'Good health' },
+  'Overgewicht_9': { nl: 'Overgewicht', en: 'Overweight' },
+  'ErnstigOvergewicht_10': { nl: 'Ernstig overgewicht', en: 'Severe overweight' },
+  'BeperktVanwegeGezondheid_17': { nl: 'Beperkt door gezondheid', en: 'Health limited' },
+  'VoldoetAanBeweegrichtlijn_5': { nl: 'Voldoende beweging', en: 'Sufficient exercise' },
+  'Roker_11': { nl: 'Rokers', en: 'Smokers' },
+  'ZwareDrinker_14': { nl: 'Zware drinkers', en: 'Heavy drinkers' },
+  'HoogRisicoOpAngstOfDepressie_25': { nl: 'Risico angst/depressie', en: 'Risk anxiety/depression' },
+  'ErnstigZeerErnstigEenzaam_28': { nl: 'Ernstig eenzaam', en: 'Severely lonely' },
+  'PsychischeKlachten_20': { nl: 'Psychische klachten', en: 'Mental health issues' },
+  'ZeerHogeVeerkracht_22': { nl: 'Hoge veerkracht', en: 'High resilience' },
+  'Vrijwilligerswerk_32': { nl: 'Vrijwilligerswerk', en: 'Volunteer work' },
+
+  // Leefbaarheid
+  'RapportcijferLeefbaarheidWoonbuurt_18': { nl: 'Leefbaarheid cijfer', en: 'Livability grade' },
+  'FysiekeVoorzieningenSchaalscore_6': { nl: 'Fysieke voorzieningen', en: 'Physical facilities' },
+  'OnderhoudStoepenStratenEnPleintjes_1': { nl: 'Onderhoud straten', en: 'Street maintenance' },
+  'Straatverlichting_3': { nl: 'Straatverlichting', en: 'Street lighting' },
+  'SocialeCohesieSchaalscore_15': { nl: 'Sociale cohesie', en: 'Social cohesion' },
+  'GezelligeBuurtWaarMenElkaarHelpt_9': { nl: 'Behulpzame buurt', en: 'Helpful neighborhood' },
+  'VoelMijThuisBijMensenInDezeBuurt_10': { nl: 'Thuisgevoel', en: 'Feel at home' },
+  'MensenGaanPrettigMetElkaarOm_8': { nl: 'Prettige omgang', en: 'Pleasant interaction' },
+  'EenOfMeerVormenFysiekeVerloedering_26': { nl: 'Fysieke verloedering', en: 'Physical deterioration' },
+  'EenOfMeerVormenVanSocialeOverlast_34': { nl: 'Sociale overlast', en: 'Social nuisance' },
+  'EenOfMeerVormenVanMilieuoverlast_42': { nl: 'Milieuoverlast', en: 'Environmental nuisance' },
+  'EenOfMeerVormenVanVerkeersoverlast_38': { nl: 'Verkeersoverlast', en: 'Traffic nuisance' },
+  'VooruitGegaan_16': { nl: 'Buurt vooruitgegaan', en: 'Neighborhood improved' },
+  'AchteruitGegaan_17': { nl: 'Buurt achteruitgegaan', en: 'Neighborhood declined' },
+
+  // Voorzieningen (amenities)
+  'zorg_primair': { nl: 'Huisarts & Apotheek', en: 'GP & Pharmacy' },
+  'openbaar_vervoer': { nl: 'Openbaar vervoer', en: 'Public transport' },
+  'winkels_dagelijks': { nl: 'Supermarkt & Dagelijks', en: 'Supermarket & Daily' },
+  'onderwijs_basisschool': { nl: 'Basisschool', en: 'Primary school' },
+  'kinderopvang': { nl: 'Kinderopvang', en: 'Childcare' },
+  'onderwijs_voortgezet': { nl: 'Middelbare school', en: 'Secondary school' },
+  'zorg_paramedisch': { nl: 'Paramedische zorg', en: 'Paramedical care' },
+  'restaurants_budget': { nl: 'Budget restaurants', en: 'Budget restaurants' },
+  'restaurants_midrange': { nl: 'Mid-range restaurants', en: 'Mid-range restaurants' },
+  'restaurants_upscale': { nl: 'Upscale restaurants', en: 'Upscale restaurants' },
+  'sport_faciliteiten': { nl: 'Sportfaciliteiten', en: 'Sports facilities' },
+  'sportschool': { nl: 'Sportschool', en: 'Gym' },
+  'groen_recreatie': { nl: 'Groen & Recreatie', en: 'Green & Recreation' },
+  'cultuur_entertainment': { nl: 'Cultuur & Entertainment', en: 'Culture & Entertainment' },
+  'winkels_overig': { nl: 'Overige winkels', en: 'Other retail' },
+  'mobiliteit_parkeren': { nl: 'Parkeren & Mobiliteit', en: 'Parking & Mobility' },
+  'zakelijke_diensten': { nl: 'Zakelijke diensten', en: 'Business services' },
+};
+
+function getMetricName(key: string, locale: 'nl' | 'en'): string {
+  const names = METRIC_NAMES[key];
+  if (names) {
+    return locale === 'nl' ? names.nl : names.en;
+  }
+  return key;
+}
+
+// ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
 
@@ -240,15 +344,34 @@ function getBestAvailableData(
   return [];
 }
 
+interface MetricResult {
+  score: number | null;
+  localValue: number | null;
+  comparisonValue: number | null;
+  found: boolean;
+}
+
 /**
  * Find a metric value in data rows by key
  */
-function findMetricValue(rows: UnifiedDataRow[], key: string): { score: number | null; found: boolean } {
+function findMetricValue(
+  rows: UnifiedDataRow[],
+  nationalRows: UnifiedDataRow[],
+  key: string
+): MetricResult {
   const row = rows.find(r => r.key === key);
+  const nationalRow = nationalRows.find(r => r.key === key);
+
   if (!row || row.calculatedScore === undefined || row.calculatedScore === null) {
-    return { score: null, found: false };
+    return { score: null, localValue: null, comparisonValue: null, found: false };
   }
-  return { score: row.calculatedScore, found: true };
+
+  return {
+    score: row.calculatedScore,
+    localValue: row.relative ?? row.absolute ?? null,
+    comparisonValue: nationalRow?.relative ?? nationalRow?.absolute ?? null,
+    found: true,
+  };
 }
 
 /**
@@ -257,12 +380,19 @@ function findMetricValue(rows: UnifiedDataRow[], key: string): { score: number |
 function findResidentialMetricValue(
   residentialRows: UnifiedDataRow[],
   key: string
-): { score: number | null; found: boolean } {
+): MetricResult {
   const row = residentialRows.find(r => r.key === key);
+
   if (!row || row.calculatedScore === undefined || row.calculatedScore === null) {
-    return { score: null, found: false };
+    return { score: null, localValue: null, comparisonValue: null, found: false };
   }
-  return { score: row.calculatedScore, found: true };
+
+  return {
+    score: row.calculatedScore,
+    localValue: row.relative ?? row.absolute ?? null,
+    comparisonValue: null, // Residential doesn't have national comparison in the same way
+    found: true,
+  };
 }
 
 // ============================================================================
@@ -279,6 +409,7 @@ function calculateCategoryScore(
   let weightedSum = 0;
   let totalWeight = 0;
   let metricsUsed = 0;
+  const breakdown: MetricBreakdown[] = [];
 
   // Get residential rows if needed
   const residentialRows = data.residential?.hasData
@@ -286,7 +417,7 @@ function calculateCategoryScore(
     : [];
 
   for (const metric of config.metrics) {
-    let result: { score: number | null; found: boolean };
+    let result: MetricResult;
 
     // Get data based on source
     switch (metric.source) {
@@ -296,7 +427,7 @@ function calculateCategoryScore(
           data.demographics.district,
           data.demographics.municipality
         );
-        result = findMetricValue(demographicsData, metric.key);
+        result = findMetricValue(demographicsData, data.demographics.national, metric.key);
         break;
       }
       case 'health': {
@@ -305,12 +436,12 @@ function calculateCategoryScore(
           data.health.district,
           data.health.municipality
         );
-        result = findMetricValue(healthData, metric.key);
+        result = findMetricValue(healthData, data.health.national, metric.key);
         break;
       }
       case 'livability': {
         // Livability only has municipality level
-        result = findMetricValue(data.livability.municipality, metric.key);
+        result = findMetricValue(data.livability.municipality, data.livability.national, metric.key);
         break;
       }
       case 'safety': {
@@ -319,7 +450,7 @@ function calculateCategoryScore(
           data.safety.district,
           data.safety.municipality
         );
-        result = findMetricValue(safetyData, metric.key);
+        result = findMetricValue(safetyData, data.safety.national, metric.key);
         break;
       }
       case 'residential': {
@@ -327,16 +458,37 @@ function calculateCategoryScore(
         break;
       }
       default:
-        result = { score: null, found: false };
+        result = { score: null, localValue: null, comparisonValue: null, found: false };
     }
 
-    if (result.found && result.score !== null) {
+    const hasData = result.found && result.score !== null;
+    let contribution = 0;
+
+    if (hasData && result.score !== null) {
       // Apply direction (negative metrics should be inverted)
       const adjustedScore = metric.direction === 'negative' ? -result.score : result.score;
-      weightedSum += adjustedScore * metric.weight;
+      contribution = adjustedScore * metric.weight;
+      weightedSum += contribution;
       totalWeight += metric.weight;
       metricsUsed++;
     }
+
+    // Add to breakdown
+    const names = METRIC_NAMES[metric.key];
+    breakdown.push({
+      key: metric.key,
+      nameNl: names?.nl || metric.key,
+      nameEn: names?.en || metric.key,
+      localValue: result.localValue,
+      comparisonValue: result.comparisonValue,
+      rawScore: result.score,
+      grade: result.score !== null ? rawScoreToGrade(metric.direction === 'negative' ? -result.score : result.score) : null,
+      weight: metric.weight,
+      weightPercent: Math.round(metric.weight * 100),
+      direction: metric.direction,
+      contribution,
+      hasData,
+    });
   }
 
   // Calculate raw score (normalize by actual weights used)
@@ -351,6 +503,7 @@ function calculateCategoryScore(
     metricsUsed,
     metricsTotal: config.metrics.length,
     color: config.color,
+    breakdown,
   };
 }
 
@@ -360,7 +513,28 @@ function calculateCategoryScore(
 function calculateVoorzieningenScore(
   amenityScores: AmenityScore[] | null
 ): CategoryScore {
+  const breakdown: MetricBreakdown[] = [];
+
   if (!amenityScores || amenityScores.length === 0) {
+    // Add empty breakdown for all categories
+    for (const [categoryId, weight] of Object.entries(VOORZIENINGEN_WEIGHTS)) {
+      const names = METRIC_NAMES[categoryId];
+      breakdown.push({
+        key: categoryId,
+        nameNl: names?.nl || categoryId,
+        nameEn: names?.en || categoryId,
+        localValue: null,
+        comparisonValue: null,
+        rawScore: null,
+        grade: null,
+        weight,
+        weightPercent: Math.round(weight * 100),
+        direction: 'positive',
+        contribution: 0,
+        hasData: false,
+      });
+    }
+
     return {
       id: 'voorzieningen',
       nameNl: 'Voorzieningen',
@@ -370,6 +544,7 @@ function calculateVoorzieningenScore(
       metricsUsed: 0,
       metricsTotal: Object.keys(VOORZIENINGEN_WEIGHTS).length,
       color: '#48806a',
+      breakdown,
     };
   }
 
@@ -377,18 +552,58 @@ function calculateVoorzieningenScore(
   let totalWeight = 0;
   let metricsUsed = 0;
 
+  // Create a map of amenity scores by category ID
+  const amenityScoreMap = new Map<string, AmenityScore>();
   for (const score of amenityScores) {
-    const weight = VOORZIENINGEN_WEIGHTS[score.categoryId];
-    if (weight) {
+    amenityScoreMap.set(score.categoryId, score);
+  }
+
+  // Process all configured categories
+  for (const [categoryId, weight] of Object.entries(VOORZIENINGEN_WEIGHTS)) {
+    const score = amenityScoreMap.get(categoryId);
+    const names = METRIC_NAMES[categoryId];
+
+    if (score) {
       // Combine count score (70%) and proximity bonus (30%)
       // countScore is already -1 to 1, proximityBonus is 0 or 1
       // Convert proximityBonus to -1 to 1 scale: (0 → -1, 1 → 1)
       const normalizedProximity = score.proximityBonus * 2 - 1;
       const combinedScore = (score.countScore * 0.7) + (normalizedProximity * 0.3);
+      const contribution = combinedScore * weight;
 
-      weightedSum += combinedScore * weight;
+      weightedSum += contribution;
       totalWeight += weight;
       metricsUsed++;
+
+      breakdown.push({
+        key: categoryId,
+        nameNl: names?.nl || categoryId,
+        nameEn: names?.en || categoryId,
+        localValue: score.totalCount, // Number of amenities found
+        comparisonValue: null, // No national comparison for amenities
+        rawScore: combinedScore,
+        grade: rawScoreToGrade(combinedScore),
+        weight,
+        weightPercent: Math.round(weight * 100),
+        direction: 'positive',
+        contribution,
+        hasData: true,
+      });
+    } else {
+      breakdown.push({
+        key: categoryId,
+        nameNl: names?.nl || categoryId,
+        nameEn: names?.en || categoryId,
+        localValue: null,
+        comparisonValue: null,
+        rawScore: null,
+        grade: null,
+        weight,
+        weightPercent: Math.round(weight * 100),
+        direction: 'positive',
+        contribution: 0,
+        hasData: false,
+      });
     }
   }
 
@@ -403,6 +618,7 @@ function calculateVoorzieningenScore(
     metricsUsed,
     metricsTotal: Object.keys(VOORZIENINGEN_WEIGHTS).length,
     color: '#48806a',
+    breakdown,
   };
 }
 
