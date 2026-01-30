@@ -189,30 +189,35 @@ export const LivabilityPage: React.FC<LivabilityPageProps> = ({ data, locale }) 
   /**
    * Get data rows for a specific level and source
    * Note: livability only has national and municipality levels
+   * Returns empty array if data is not available for the level
    */
   const getDataForLevel = (level: GeographicLevel, source: 'livability' | 'health'): UnifiedDataRow[] => {
     if (source === 'livability') {
       // Livability only has national and municipality
       switch (level) {
         case 'national':
-          return data.livability.national;
+          return data.livability?.national ?? [];
         case 'municipality':
         case 'district':
         case 'neighborhood':
           // Fall back to municipality for district/neighborhood
-          return data.livability.municipality;
+          return data.livability?.municipality ?? [];
+        default:
+          return [];
       }
     } else {
       // Health has all levels
       switch (level) {
         case 'national':
-          return data.health.national;
+          return data.health?.national ?? [];
         case 'municipality':
-          return data.health.municipality;
+          return data.health?.municipality ?? [];
         case 'district':
-          return data.health.district;
+          return data.health?.district ?? [];
         case 'neighborhood':
-          return data.health.neighborhood;
+          return data.health?.neighborhood ?? [];
+        default:
+          return [];
       }
     }
   };

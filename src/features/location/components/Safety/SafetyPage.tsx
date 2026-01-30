@@ -127,28 +127,33 @@ export const SafetyPage: React.FC<SafetyPageProps> = ({ data, locale }) => {
 
   /**
    * Get data rows for a specific level and source
+   * Returns empty array if data is not available for the level
    */
   const getDataForLevel = (level: GeographicLevel, source: 'safety' | 'livability'): UnifiedDataRow[] => {
     if (source === 'safety') {
       switch (level) {
         case 'national':
-          return data.safety.national;
+          return data.safety?.national ?? [];
         case 'municipality':
-          return data.safety.municipality;
+          return data.safety?.municipality ?? [];
         case 'district':
-          return data.safety.district;
+          return data.safety?.district ?? [];
         case 'neighborhood':
-          return data.safety.neighborhood;
+          return data.safety?.neighborhood ?? [];
+        default:
+          return [];
       }
     } else {
       // Livability only has national and municipality levels
       switch (level) {
         case 'national':
-          return data.livability.national;
+          return data.livability?.national ?? [];
         case 'municipality':
         case 'district':
         case 'neighborhood':
-          return data.livability.municipality;
+          return data.livability?.municipality ?? [];
+        default:
+          return [];
       }
     }
   };

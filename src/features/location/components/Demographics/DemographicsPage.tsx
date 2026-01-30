@@ -157,17 +157,20 @@ export const DemographicsPage: React.FC<DemographicsPageProps> = ({ data, locale
 
   /**
    * Get data rows for a specific level
+   * Returns empty array if data is not available for the level
    */
   const getDataForLevel = (level: GeographicLevel): UnifiedDataRow[] => {
     switch (level) {
       case 'national':
-        return data.demographics.national;
+        return data.demographics?.national ?? [];
       case 'municipality':
-        return data.demographics.municipality;
+        return data.demographics?.municipality ?? [];
       case 'district':
-        return data.demographics.district;
+        return data.demographics?.district ?? [];
       case 'neighborhood':
-        return data.demographics.neighborhood;
+        return data.demographics?.neighborhood ?? [];
+      default:
+        return [];
     }
   };
 
@@ -247,9 +250,10 @@ export const DemographicsPage: React.FC<DemographicsPageProps> = ({ data, locale
                   : createChartData(section.fields, comparisonData);
 
                 // Calculate combined max Y value for consistent scale across both charts
-                const maxYValue = Math.max(
-                  ...[...chartData, ...comparisonChartData].map(d => d.y)
-                );
+                // Guard against empty arrays to prevent Math.max() returning -Infinity
+                const maxYValue = chartData.length > 0 || comparisonChartData.length > 0
+                  ? Math.max(...[...chartData, ...comparisonChartData].map(d => d.y))
+                  : 100;
 
                 return (
                   <div

@@ -172,17 +172,20 @@ export const HealthPage: React.FC<HealthPageProps> = ({ data, locale }) => {
 
   /**
    * Get data rows for a specific level
+   * Returns empty array if data is not available for the level
    */
   const getDataForLevel = (level: GeographicLevel): UnifiedDataRow[] => {
     switch (level) {
       case 'national':
-        return data.health.national;
+        return data.health?.national ?? [];
       case 'municipality':
-        return data.health.municipality;
+        return data.health?.municipality ?? [];
       case 'district':
-        return data.health.district;
+        return data.health?.district ?? [];
       case 'neighborhood':
-        return data.health.neighborhood;
+        return data.health?.neighborhood ?? [];
+      default:
+        return [];
     }
   };
 
