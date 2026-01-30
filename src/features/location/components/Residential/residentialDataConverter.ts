@@ -37,6 +37,11 @@ function createCategoryScoreRow(
   geographicName: string,
   totalReferences: number
 ): UnifiedDataRow {
+  // Calculate percentage of total references
+  const percentage = totalReferences > 0
+    ? (categoryScore.count / totalReferences) * 100
+    : null;
+
   return {
     source: 'residential',
     geographicLevel: 'municipality',
@@ -48,10 +53,10 @@ function createCategoryScoreRow(
     titleEn: categoryScore.category,
     value: categoryScore.count,
     absolute: categoryScore.count,
-    relative: null,
+    relative: percentage,
     displayValue: categoryScore.count.toString(),
     displayAbsolute: categoryScore.count.toString(),
-    displayRelative: '-',
+    displayRelative: percentage !== null ? `${percentage.toFixed(1)}%` : '-',
     // Add scoring info
     scoring: {
       comparisonType: 'absoluut',

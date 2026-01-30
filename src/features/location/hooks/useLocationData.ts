@@ -335,6 +335,21 @@ export function useLocationData(): UseLocationDataReturn {
    */
   const loadSavedData = useCallback((locationData: UnifiedLocationData, amenitiesData?: AmenityMultiCategoryResponse | null, address?: string) => {
     logger.dataFetch('location data', 'saved', { address: address || 'unknown' });
+
+    // Debug: Log safety data structure being loaded into React state
+    console.log('📊 [loadSavedData] Safety data structure being set to React state:', {
+      hasNational: !!locationData.safety?.national?.length,
+      hasMunicipality: !!locationData.safety?.municipality?.length,
+      hasDistrict: !!locationData.safety?.district?.length,
+      hasNeighborhood: !!locationData.safety?.neighborhood?.length,
+      nationalCount: locationData.safety?.national?.length || 0,
+      municipalityCount: locationData.safety?.municipality?.length || 0,
+      districtCount: locationData.safety?.district?.length || 0,
+      neighborhoodCount: locationData.safety?.neighborhood?.length || 0,
+      safetyType: typeof locationData.safety,
+      safetyKeys: locationData.safety ? Object.keys(locationData.safety) : [],
+    });
+
     setData(locationData);
     setAmenities(amenitiesData || null);
     setFromCache(false); // This is from database, not cache

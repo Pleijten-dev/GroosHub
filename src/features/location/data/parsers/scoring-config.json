@@ -36,21 +36,33 @@
     }
   },
   "safety": {
-    "DiefstalinbraakWoning_1": {
+    "Crime_1.1.1": {
+      "direction": "negative",
+      "margin": 30
+    },
+    "Crime_1.2.1": {
+      "direction": "negative",
+      "margin": 30
+    },
+    "Crime_1.2.2": {
+      "direction": "negative",
+      "margin": 30
+    },
+    "Crime_1.3.1": {
       "direction": "negative",
       "margin": 25
     },
-    "Straat_auto_en_bromfietsdiefstal_2": {
+    "Crime_1.4.4": {
       "direction": "negative",
-      "margin": 25
+      "margin": 30
     },
-    "Vernieling_en_beschadiging": {
+    "Crime_1.4.5": {
       "direction": "negative",
-      "margin": 25
+      "margin": 30
     },
-    "Geweldsmisdrijven_4": {
+    "Crime_2.2.1": {
       "direction": "negative",
-      "margin": 20
+      "margin": 30
     }
   },
   "livability": {

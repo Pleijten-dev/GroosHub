@@ -28,6 +28,8 @@ import housingPersonasData from '../../../features/location/data/sources/housing
 import { LocationMap, MapStyle, WMSLayerControl, WMSLayerSelection, WMSFeatureInfo, WMSGradingScoreCard, WMSLayerScoreCard } from '../../../features/location/components/Maps';
 import { calculateAllAmenityScores, type AmenityScore } from '../../../features/location/data/scoring/amenityScoring';
 import { getOmgevingChartData } from '../../../features/location/utils/calculateOmgevingScores';
+import { calculateLocationScores, getScoreChartData, type CategoryScore, type LocationScores } from '../../../features/location/utils/scoreCalculation';
+import { ScoreBreakdownTooltip } from '../../../features/location/components/Score';
 import { PVEQuestionnaire } from '../../../features/location/components/PVE';
 import { MapExportButton } from '../../../features/location/components/MapExport';
 import type { AccessibleLocation } from '../../../features/location/types/saved-locations';
@@ -70,6 +72,92 @@ function AIContextSync({ locationExport, currentAddress, hasData, activeTab }: A
   }, [ai, activeTab, currentAddress, hasData, locationExport]);
 
   return null;
+}
+
+// ============================================
+// Score Tab Content Component
+// ============================================
+// IMPORTANT: This component is defined OUTSIDE LocationPage to ensure stable React
+// component identity. Defining components inline causes React to treat them as new
+// component types on each parent re-render, which breaks hook stability.
+
+interface ScoreTabContentProps {
+  locationScores: LocationScores;
+  scoreChartData: { name: string; value: number; color: string }[];
+  categoryNameToId: Record<string, string>;
+  locale: 'nl' | 'en';
+  onCategoryClick: (categoryName: string) => void;
+}
+
+function ScoreTabContent({
+  locationScores,
+  scoreChartData,
+  categoryNameToId,
+  locale,
+  onCategoryClick,
+}: ScoreTabContentProps) {
+  // Initialize with first category so panel always shows something
+  const [hoveredCategory, setHoveredCategory] = React.useState<CategoryScore | null>(
+    locationScores.categories[0] || null
+  );
+
+  // Handle slice hover - find the category data by name (don't clear on mouseout)
+  const handleSliceHover = React.useCallback((sliceName: string | null) => {
+    if (sliceName !== null) {
+      const categoryId = categoryNameToId[sliceName];
+      if (categoryId) {
+        const category = locationScores.categories.find(c => c.id === categoryId);
+        if (category) {
+          setHoveredCategory(category);
+        }
+      }
+    }
+    // Don't clear on mouseout - keep showing last hovered category
+  }, [categoryNameToId, locationScores.categories]);
+
+  return (
+    <div className="flex items-center justify-center h-full bg-gradient-to-br from-gray-50 to-gray-100 gap-8 px-8">
+      {/* Chart Section */}
+      <div className="text-center flex-shrink-0">
+        <div className="flex justify-center mb-base">
+          <RadialChart
+            data={scoreChartData}
+            width={500}
+            height={420}
+            showLabels={true}
+            isSimple={false}
+            onSliceClick={onCategoryClick}
+            onSliceHover={handleSliceHover}
+            minValue={0}
+            averageValue={5.5}
+          />
+        </div>
+        <h2 className="text-2xl font-bold text-text-primary">
+          {locale === 'nl' ? 'Score Overzicht' : 'Score Overview'}
+        </h2>
+        <p className="text-lg text-text-secondary mt-1">
+          {locale === 'nl'
+            ? `Gemiddelde score: ${locationScores.overall.toFixed(1)}`
+            : `Average score: ${locationScores.overall.toFixed(1)}`
+          }
+        </p>
+        <p className="text-sm text-text-tertiary mt-1">
+          {locale === 'nl'
+            ? '(0-10 schaal, 5.5 = Nederlands gemiddelde)'
+            : '(0-10 scale, 5.5 = Dutch average)'
+          }
+        </p>
+      </div>
+
+      {/* Score Breakdown Panel - Fixed on right side */}
+      <div className="flex-shrink-0">
+        <ScoreBreakdownTooltip
+          category={hoveredCategory}
+          locale={locale}
+        />
+      </div>
+    </div>
+  );
 }
 
 // Main sections configuration with dual language support
@@ -525,30 +613,30 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
       }
 
       // For Score tab - show Omgeving overview with clickable RadialChart
+      // Uses new weighted score calculation with 1-10 Dutch grade scale
       if (activeTab === 'score') {
-        // Calculate Voorzieningen score from amenities data
-        let voorzieningenScore = 75; // Default value if no amenities data
-
-        if (amenityScores) {
-          // Use memoized amenity scores (prevents recalculation for cached data)
-          // Sum up all countScore and proximityBonus values
-          const rawScore = amenityScores.reduce((sum: number, score: AmenityScore) => {
-            return sum + score.countScore + score.proximityBonus;
-          }, 0);
-
-          // Map from [-21, 42] range to [10, 100] range
-          // Formula: ((rawScore + 21) / 63) * 90 + 10
-          voorzieningenScore = Math.round(((rawScore + 21) / 63) * 90 + 10);
-        }
-
-        // Calculate all 5 omgeving category scores from actual data
-        // This uses the real data from health, safety, livability, and residential sources
-        const omgevingData = getOmgevingChartData(data, voorzieningenScore, locale);
+        // Calculate all 5 category scores using the new weighted calculation system
+        const locationScores = calculateLocationScores(data, amenityScores);
+        const scoreChartData = getScoreChartData(locationScores, locale);
 
         // Map category names to tab IDs
         const categoryToTab: Record<string, TabName> = {
           'Betaalbaarheid': 'woningmarkt',
           'Affordability': 'woningmarkt',
+          'Veiligheid': 'veiligheid',
+          'Safety': 'veiligheid',
+          'Gezondheid': 'gezondheid',
+          'Health': 'gezondheid',
+          'Leefbaarheid': 'leefbaarheid',
+          'Livability': 'leefbaarheid',
+          'Voorzieningen': 'voorzieningen',
+          'Amenities': 'voorzieningen'
+        };
+
+        // Map category display names to category IDs for tooltip lookup
+        const categoryNameToId: Record<string, string> = {
+          'Betaalbaarheid': 'betaalbaarheid',
+          'Affordability': 'betaalbaarheid',
           'Veiligheid': 'veiligheid',
           'Safety': 'veiligheid',
           'Gezondheid': 'gezondheid',
@@ -567,23 +655,13 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
         };
 
         return (
-          <div className="flex items-center justify-center h-full bg-gradient-to-br from-gray-50 to-gray-100">
-            <div className="text-center">
-              <div className="flex justify-center mb-base">
-                <RadialChart
-                  data={omgevingData}
-                  width={600}
-                  height={500}
-                  showLabels={true}
-                  isSimple={false}
-                  onSliceClick={handleCategoryClick}
-                />
-              </div>
-              <h2 className="text-3xl font-bold text-text-primary">
-                {locale === 'nl' ? 'Score Overzicht' : 'Score Overview'}
-              </h2>
-            </div>
-          </div>
+          <ScoreTabContent
+            locationScores={locationScores}
+            scoreChartData={scoreChartData}
+            categoryNameToId={categoryNameToId}
+            locale={locale}
+            onCategoryClick={handleCategoryClick}
+          />
         );
       }
 

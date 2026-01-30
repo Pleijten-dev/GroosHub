@@ -95,9 +95,23 @@ const SAFETY_SECTIONS: SafetySection[] = [
  * SafetyPage - Displays safety data with value comparisons
  */
 export const SafetyPage: React.FC<SafetyPageProps> = ({ data, locale }) => {
+  // Default to neighborhood vs municipality comparison (NL is too safe for meaningful national comparison)
   const [selectedLevel, setSelectedLevel] = useState<GeographicLevel>('neighborhood');
   const [comparisonLevel, setComparisonLevel] = useState<GeographicLevel>('municipality');
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // Debug: Log safety data structure received by component
+  React.useEffect(() => {
+    console.log('🔍 [SafetyPage] Received data.safety:', {
+      hasSafety: !!data.safety,
+      safetyType: typeof data.safety,
+      safetyKeys: data.safety ? Object.keys(data.safety) : [],
+      nationalCount: Array.isArray(data.safety?.national) ? data.safety.national.length : 'not array or undefined',
+      municipalityCount: Array.isArray(data.safety?.municipality) ? data.safety.municipality.length : 'not array or undefined',
+      districtCount: Array.isArray(data.safety?.district) ? data.safety.district.length : 'not array or undefined',
+      neighborhoodCount: Array.isArray(data.safety?.neighborhood) ? data.safety.neighborhood.length : 'not array or undefined',
+    });
+  }, [data.safety]);
 
   /**
    * Get available geographic levels based on location data

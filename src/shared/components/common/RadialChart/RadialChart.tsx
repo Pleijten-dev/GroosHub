@@ -6,6 +6,7 @@ interface RadialChartData {
   name: string;
   value: number;
   color: string;
+  insufficientData?: boolean;  // Flag to show "-" instead of value
 }
 
 interface RadialChartProps {
@@ -17,6 +18,10 @@ interface RadialChartProps {
   className?: string;
   onSliceHover?: (sliceName: string | null) => void;
   onSliceClick?: (sliceName: string) => void;
+  /** Custom average value for the reference circle. If not provided, uses maxValue/2 */
+  averageValue?: number;
+  /** Minimum value for the scale. Defaults to 0 */
+  minValue?: number;
 }
 
 // D3 type declarations
@@ -87,7 +92,9 @@ const RadialChart: React.FC<RadialChartProps> = ({
   showLabels = true,
   className = '',
   onSliceHover,
-  onSliceClick
+  onSliceClick,
+  averageValue,
+  minValue = 0
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -279,7 +286,7 @@ const RadialChart: React.FC<RadialChartProps> = ({
           .padding(paddingValue);
 
         const radiusScale = d3.scaleLinear()
-          .domain([0, maxValue])
+          .domain([minValue, maxValue])
           .range([innerRadius, maxRadius]);
 
         // Arcs
@@ -471,13 +478,16 @@ const RadialChart: React.FC<RadialChartProps> = ({
         .style('vector-effect', 'non-scaling-stroke');
 
       // Data bars — use per-slice noise/gradient filter (scales with hover)
+      // Gray slices (insufficient data) get plain gray fill without noise filter
+      const INSUFFICIENT_DATA_COLOR = '#9ca3af';
+
       sliceGroups
         .append('path')
         .attr('class', 'bar')
         .attr('d', arc)
-        .style('fill', '#fff') // ignored for final color; SourceAlpha is used for clipping
-        .style('opacity', 0.98)
-        .style('filter', (d: RadialChartData) => `url(#noise-heat-${slug(d.name)})`);
+        .style('fill', (d: RadialChartData) => d.color === INSUFFICIENT_DATA_COLOR ? INSUFFICIENT_DATA_COLOR : '#fff')
+        .style('opacity', (d: RadialChartData) => d.color === INSUFFICIENT_DATA_COLOR ? '0.6' : '0.98')
+        .style('filter', (d: RadialChartData) => d.color === INSUFFICIENT_DATA_COLOR ? 'none' : `url(#noise-heat-${slug(d.name)})`);
 
       // Add labels if enabled
       if (showLabels) {
@@ -492,7 +502,7 @@ const RadialChart: React.FC<RadialChartProps> = ({
             return `translate(${x}, ${y})`;
           });
 
-        // Value labels
+        // Value labels - show "-" for insufficient data
         labelGroups
           .append("text")
           .attr("class", "value-label")
@@ -501,12 +511,14 @@ const RadialChart: React.FC<RadialChartProps> = ({
           .attr("y", isDenseChart ? -2 : -3)
           .style("font-size", isDenseChart ? "9px" : "12px")
           .style("font-weight", "bold")
-          .style("fill", "#ffffff")
-          .style("text-shadow", "0 0 4px rgba(0,0,0,0.8), 1px 1px 2px rgba(0,0,0,0.6)")
+          .style("fill", (d: RadialChartData) => d.insufficientData ? "#6b7280" : "#ffffff")
+          .style("text-shadow", (d: RadialChartData) => d.insufficientData
+            ? "0 0 2px rgba(255,255,255,0.8)"
+            : "0 0 4px rgba(0,0,0,0.8), 1px 1px 2px rgba(0,0,0,0.6)")
           .style("pointer-events", "none")
-          .text((d: RadialChartData) => d.value);
+          .text((d: RadialChartData) => d.insufficientData ? "-" : d.value);
 
-        // Category labels
+        // Category labels - grey out for insufficient data
         labelGroups
           .append("text")
           .attr("class", "label")
@@ -515,8 +527,10 @@ const RadialChart: React.FC<RadialChartProps> = ({
           .attr("y", isDenseChart ? 4 : 6)
           .style("font-size", isDenseChart ? "4px" : "5.5px")
           .style("font-weight", "500")
-          .style("fill", "#ffffff")
-          .style("text-shadow", "0 0 3px rgba(0,0,0,0.8), 1px 1px 1px rgba(0,0,0,0.6)")
+          .style("fill", (d: RadialChartData) => d.insufficientData ? "#6b7280" : "#ffffff")
+          .style("text-shadow", (d: RadialChartData) => d.insufficientData
+            ? "0 0 2px rgba(255,255,255,0.8)"
+            : "0 0 3px rgba(0,0,0,0.8), 1px 1px 1px rgba(0,0,0,0.6)")
           .style("pointer-events", "none")
           .text((d: RadialChartData) => {
             if (isDenseChart && d.name.length > 8) {
@@ -527,7 +541,9 @@ const RadialChart: React.FC<RadialChartProps> = ({
       }
 
       // Add average circle
-      const middleRadius = radiusScale(maxValue / 2);
+      // Use custom averageValue if provided, otherwise default to midpoint
+      const avgValue = averageValue !== undefined ? averageValue : (maxValue + minValue) / 2;
+      const middleRadius = radiusScale(avgValue);
       graphArea
         .append("circle")
         .attr("class", "average-circle")
@@ -550,7 +566,7 @@ const RadialChart: React.FC<RadialChartProps> = ({
         window.d3.select(container).selectAll("*").remove();
       }
     };
-  }, [data, width, height, isSimple, showLabels, onSliceHover, onSliceClick]);
+  }, [data, width, height, isSimple, showLabels, onSliceHover, onSliceClick, averageValue, minValue]);
 
   return (
     <div

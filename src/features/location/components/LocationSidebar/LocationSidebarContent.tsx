@@ -25,7 +25,7 @@ const MAIN_SECTIONS = [
 ] as const;
 
 const OMGEVING_SUBSECTIONS = [
-  { id: 'score', nl: 'Score', en: 'Score', disabled: true },
+  { id: 'score', nl: 'Score', en: 'Score', disabled: false },
   { id: 'demografie', nl: 'Demografie', en: 'Demographics', disabled: false },
   { id: 'woningmarkt', nl: 'Woningmarkt', en: 'Housing Market', disabled: false },
   { id: 'veiligheid', nl: 'Veiligheid', en: 'Safety', disabled: false },
