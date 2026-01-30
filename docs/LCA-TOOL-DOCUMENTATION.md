@@ -804,188 +804,725 @@ Per [Nationale Milieudatabase (NMD)](https://milieudatabase.nl/en/):
 
 ---
 
-## Implementation Outline
+## Implementation Outline (Detailed)
 
-### Phase 1: Foundation Enhancement (Weeks 1-4)
+This section provides comprehensive implementation details for Phases 1-3, including deliverables, acceptance criteria, competition comparison, and development estimates.
 
-#### 1.1 Advanced Mode / Element Editor
-**Goal:** Enable custom element and layer editing for detailed LCA calculations
+---
 
-**Tasks:**
-- [ ] Create `ElementEditor` component for adding/editing building elements
-- [ ] Create `LayerEditor` component for adding material layers
-- [ ] Create `MaterialSelector` component with search and filtering
-- [ ] Update `/lca/projects/[id]` page with edit capability
-- [ ] Add API endpoints for element CRUD operations
-- [ ] Implement drag-and-drop layer reordering
+## Phase 1: Foundation Enhancement
 
-**Files to Create:**
+**Duration:** 4-6 weeks
+**Goal:** Complete the core LCA editing experience before adding integrations
+
+---
+
+### Feature 1.1: Element Editor
+
+**What it does:** Allow users to manually add, edit, and delete building elements (walls, floors, roof, etc.) with multiple material layers.
+
+**Why we need it:** Currently only Quick Start templates work. Users need to customize elements for accurate LCA.
+
+#### Competitor Comparison
+
+| Tool | Element Editing | Our Target |
+|------|-----------------|------------|
+| One Click LCA | Full element library with drag-drop | Similar capability |
+| Tally | Revit-native elements | Simpler, web-based |
+| Carbon Designer 3D | Massing-based presets | More detailed |
+
+#### Deliverables
+
+| # | Deliverable | Description |
+|---|-------------|-------------|
+| 1.1.1 | `ElementList` component | Display all elements in a project with category icons, areas, and carbon totals |
+| 1.1.2 | `ElementEditor` modal | Form to add/edit element: name, category, quantity (m²), Sfb code |
+| 1.1.3 | `LayerEditor` component | Add/edit/reorder material layers within an element |
+| 1.1.4 | `MaterialSelector` component | Searchable dropdown with category filter, GWP display, quality rating |
+| 1.1.5 | Element API routes | `POST/PUT/DELETE /api/lca/elements/[id]` |
+| 1.1.6 | Layer API routes | `POST/PUT/DELETE /api/lca/layers/[id]` |
+| 1.1.7 | Real-time recalculation | Trigger LCA recalc when elements/layers change |
+
+#### Acceptance Criteria
+
+- [ ] User can add a new element with category, name, and area
+- [ ] User can add multiple layers to an element with material, thickness, coverage
+- [ ] User can reorder layers via drag-and-drop
+- [ ] User can search materials by name (NL/EN/DE) and filter by category
+- [ ] Material selector shows GWP value and quality rating for comparison
+- [ ] Deleting an element removes all its layers
+- [ ] Changes trigger automatic recalculation of project totals
+- [ ] All CRUD operations have loading states and error handling
+
+#### Technical Specifications
+
+**Files to create:**
 ```
 src/features/lca/components/editor/
-├── ElementEditor.tsx
-├── LayerEditor.tsx
-├── MaterialSelector.tsx
-├── ElementList.tsx
+├── ElementList.tsx          # List view of all elements
+├── ElementEditor.tsx        # Add/edit element modal
+├── LayerEditor.tsx          # Layer management within element
+├── LayerRow.tsx             # Single layer row with drag handle
+├── MaterialSelector.tsx     # Material search/select dropdown
+├── MaterialCard.tsx         # Material display with GWP info
+└── index.ts
+
+src/app/api/lca/elements/
+├── route.ts                 # GET (list), POST (create)
+└── [id]/route.ts            # GET, PUT, DELETE
+
+src/app/api/lca/layers/
+├── route.ts                 # POST (create)
+└── [id]/route.ts            # PUT, DELETE
+```
+
+**Database:** No changes needed - `lca_elements` and `lca_layers` tables exist
+
+#### Development Estimate
+
+| Task | Effort |
+|------|--------|
+| ElementList + ElementEditor | 2 days |
+| LayerEditor + LayerRow + drag-drop | 2 days |
+| MaterialSelector + search | 2 days |
+| API routes (elements + layers) | 1 day |
+| Real-time recalculation | 1 day |
+| Testing + polish | 1 day |
+| **Total** | **9 days** |
+
+---
+
+### Feature 1.2: Material Benchmarking
+
+**What it does:** Show how a selected material compares to category averages and suggest lower-carbon alternatives.
+
+**Why we need it:** Users need to make informed material choices. This is a key differentiator.
+
+#### Competitor Comparison
+
+| Tool | Benchmarking | Our Target |
+|------|--------------|------------|
+| One Click LCA | Extensive benchmarks, percentile rankings | Simpler version |
+| EC3 | Category averages, product comparison | Similar |
+| Carbon Designer 3D | None (presets only) | Better |
+
+#### Deliverables
+
+| # | Deliverable | Description |
+|---|-------------|-------------|
+| 1.2.1 | Benchmark API | `GET /api/lca/materials/benchmark?category=insulation` returns min/avg/max GWP |
+| 1.2.2 | `MaterialBenchmark` component | Visual bar showing where material falls in category range |
+| 1.2.3 | Alternatives list | "Lower carbon options" showing materials with lower GWP in same category |
+| 1.2.4 | Benchmark in selector | Integrate benchmark display into MaterialSelector |
+
+#### Acceptance Criteria
+
+- [ ] API returns category statistics: min, max, average, median GWP
+- [ ] MaterialSelector shows benchmark bar for selected material
+- [ ] Green/yellow/red indicator based on position in range
+- [ ] "View alternatives" shows up to 5 lower-carbon materials in same category
+- [ ] Clicking alternative replaces current material selection
+
+#### Technical Specifications
+
+**API Response:**
+```typescript
+// GET /api/lca/materials/benchmark?category=insulation
+{
+  category: "insulation",
+  stats: {
+    min_gwp: 0.8,
+    max_gwp: 45.2,
+    avg_gwp: 12.5,
+    median_gwp: 8.3,
+    count: 156
+  },
+  alternatives: [
+    { id: "uuid", name_nl: "...", gwp_a1_a3: 2.1, quality_rating: 4 },
+    // ... up to 5
+  ]
+}
+```
+
+#### Development Estimate
+
+| Task | Effort |
+|------|--------|
+| Benchmark API endpoint | 0.5 days |
+| MaterialBenchmark component | 1 day |
+| Alternatives list + selection | 1 day |
+| Integration into MaterialSelector | 0.5 days |
+| **Total** | **3 days** |
+
+---
+
+### Feature 1.3: Project Comparison
+
+**What it does:** Compare 2-4 projects side-by-side to evaluate design variants.
+
+**Why we need it:** Early design requires comparing options. This is standard in all LCA tools.
+
+#### Competitor Comparison
+
+| Tool | Comparison | Our Target |
+|------|------------|------------|
+| One Click LCA | Up to 4 projects, detailed breakdowns | Match this |
+| Tally | Side-by-side in Revit | Web equivalent |
+| Carbon Designer 3D | Compare design options | Similar |
+
+#### Deliverables
+
+| # | Deliverable | Description |
+|---|-------------|-------------|
+| 1.3.1 | Comparison page | `/lca/compare` with project selector |
+| 1.3.2 | Project picker | Multi-select from user's projects (2-4) |
+| 1.3.3 | Summary comparison | Table: MPG score, total carbon, compliance status |
+| 1.3.4 | Phase breakdown chart | Stacked bar chart comparing A1-A3, A4, A5, B4, C, D |
+| 1.3.5 | Element comparison | Which elements differ most between projects |
+| 1.3.6 | Export comparison | Download comparison as image or data |
+
+#### Acceptance Criteria
+
+- [ ] User can select 2-4 projects to compare
+- [ ] Summary table shows key metrics for all selected projects
+- [ ] Bar chart clearly shows phase differences
+- [ ] Best performer highlighted (lowest MPG score)
+- [ ] Element breakdown shows which elements drive differences
+- [ ] Responsive design works on tablet/desktop
+
+#### Technical Specifications
+
+**Page route:** `src/app/[locale]/lca/compare/page.tsx`
+
+**Components:**
+```
+src/features/lca/components/comparison/
+├── ProjectPicker.tsx        # Multi-select project dropdown
+├── ComparisonTable.tsx      # Summary metrics table
+├── PhaseComparisonChart.tsx # Stacked bar using recharts
+├── ElementDiffTable.tsx     # Element-level differences
 └── index.ts
 ```
 
-**Database Changes:** None required (schema already supports this)
+#### Development Estimate
 
-#### 1.2 Material Benchmarking
-**Goal:** Compare materials within a category to identify lower-carbon alternatives
-
-**Tasks:**
-- [ ] Create `MaterialBenchmark` component showing category averages
-- [ ] Add API endpoint `/api/lca/materials/benchmark` for category stats
-- [ ] Display benchmark comparison in material selector
-- [ ] Add "Alternative Suggestions" feature in results view
-
-#### 1.3 Design Variant Comparison
-**Goal:** Compare multiple project configurations side-by-side
-
-**Tasks:**
-- [ ] Create `ProjectComparison` page at `/lca/compare`
-- [ ] Add project selection UI for up to 4 projects
-- [ ] Create comparison charts (stacked bar, radar)
-- [ ] Show phase-by-phase and element-by-element differences
+| Task | Effort |
+|------|--------|
+| Comparison page + picker | 1 day |
+| Summary table | 0.5 days |
+| Phase chart (recharts) | 1.5 days |
+| Element comparison | 1 day |
+| Polish + responsive | 1 day |
+| **Total** | **5 days** |
 
 ---
 
-### Phase 2: Forma Integration (Weeks 5-10)
+### Phase 1 Summary
 
-#### 2.1 Forma API Connection
-**Goal:** Connect to Autodesk Forma for building geometry import
+| Feature | Effort | Priority |
+|---------|--------|----------|
+| 1.1 Element Editor | 9 days | P0 - Must have |
+| 1.2 Material Benchmarking | 3 days | P1 - Should have |
+| 1.3 Project Comparison | 5 days | P1 - Should have |
+| **Phase 1 Total** | **17 days** | |
 
-**Tasks:**
-- [ ] Set up Forma developer account and API credentials
-- [ ] Create OAuth flow for Forma authentication
-- [ ] Implement Forma project listing
-- [ ] Create `/api/integrations/forma/` routes
+**Recommended order:** 1.1 → 1.2 → 1.3 (Editor enables everything else)
 
-**Files to Create:**
-```
-src/features/integrations/forma/
-├── types/index.ts
-├── api/FormaClient.ts
-├── hooks/useFormaProjects.ts
-├── components/FormaConnect.tsx
-└── utils/geometryParser.ts
-```
+---
 
-#### 2.2 Geometry Extraction
-**Goal:** Extract building elements and quantities from Forma models
+## Phase 2: Forma Integration
 
-**Implementation using Forma API:**
+**Duration:** 6-8 weeks
+**Goal:** Import building geometry from Autodesk Forma to populate LCA projects automatically
+
+**Why Forma:** No competitor has native Forma integration. This is our key differentiator for early-stage design.
+
+---
+
+### Forma API Overview
+
+Based on [Forma API documentation](https://aps.autodesk.com/en/docs/forma/v1/overview/getting-started):
+
+**Key API Methods:**
 ```typescript
-// Example using Forma.elements API
-const buildings = await Forma.getPathsByCategory({ category: 'buildings' });
+// Get all buildings in project
+const buildings = await Forma.geometry.getPathsByCategory({ category: 'buildings' });
+
+// Get area metrics (GFA, site area)
+const metrics = await Forma.areaMetrics.calculate({ paths: buildings });
+// Returns: { builtInMetrics: { gfa: number, site_area: number } }
+
+// Get geometry for calculations
 const footprints = await Forma.render.footprints.get({ paths: buildings });
 const triangles = await Forma.render.triangles.get({ paths: buildings });
+
+// Get element details
+const element = await Forma.elements.getByPath({ path: buildingPath });
 ```
 
-**Tasks:**
-- [ ] Implement building footprint extraction
-- [ ] Calculate floor areas from geometry
-- [ ] Estimate wall areas from perimeter × height
-- [ ] Extract roof geometry
-- [ ] Parse material assignments if available
+**What we can extract:**
+- Gross Floor Area (GFA) - directly from `areaMetrics`
+- Building footprint - from `footprints`
+- Floor heights - from element properties
+- Wall areas - calculated from perimeter × height
+- Roof area - from footprint at top floor
+- Number of floors - from floor stack
 
-#### 2.3 Material Mapping
-**Goal:** Map Forma materials to LCA database materials
+**What we cannot extract (user must provide):**
+- Construction system (timber, concrete, etc.)
+- Specific materials
+- Layer compositions
+- Window-to-wall ratio (unless modeled)
 
-**Tasks:**
-- [ ] Create `forma_material_mappings` table
-- [ ] Build fuzzy matching algorithm for material names
-- [ ] Create UI for manual mapping overrides
-- [ ] Store mapping history for future projects
+---
 
-**Database Additions:**
+### Feature 2.1: Forma Connection
+
+**What it does:** Connect GroosHub to a user's Forma account and list their projects.
+
+#### Deliverables
+
+| # | Deliverable | Description |
+|---|-------------|-------------|
+| 2.1.1 | Forma OAuth setup | Register app with Autodesk, implement OAuth 2.0 flow |
+| 2.1.2 | Connection UI | "Connect to Forma" button, authorization flow |
+| 2.1.3 | Project list | Fetch and display user's Forma projects |
+| 2.1.4 | Connection storage | Store Forma tokens securely in database |
+| 2.1.5 | Token refresh | Handle token expiration and refresh |
+
+#### Acceptance Criteria
+
+- [ ] User can click "Connect to Forma" and complete OAuth flow
+- [ ] After connecting, user sees list of their Forma projects
+- [ ] Connection persists across sessions
+- [ ] Token refresh works automatically
+- [ ] User can disconnect Forma account
+
+#### Technical Specifications
+
+**Database additions:**
 ```sql
 CREATE TABLE forma_connections (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id INTEGER REFERENCES users(id),
-  forma_project_id VARCHAR(255) NOT NULL,
-  lca_project_id UUID REFERENCES lca_projects(id),
-  last_synced_at TIMESTAMP,
-  sync_status VARCHAR(50),
+  user_id INTEGER REFERENCES users(id) NOT NULL,
+  forma_account_id VARCHAR(255),
+  access_token TEXT,
+  refresh_token TEXT,
+  token_expires_at TIMESTAMP,
   created_at TIMESTAMP DEFAULT NOW(),
-  UNIQUE(forma_project_id, lca_project_id)
+  updated_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(user_id)
 );
+```
 
-CREATE TABLE forma_material_mappings (
+**Files:**
+```
+src/features/integrations/forma/
+├── types.ts                 # Forma API types
+├── FormaClient.ts           # API wrapper
+├── components/
+│   ├── FormaConnectButton.tsx
+│   └── FormaProjectList.tsx
+└── hooks/
+    └── useFormaConnection.ts
+
+src/app/api/integrations/forma/
+├── connect/route.ts         # Initiate OAuth
+├── callback/route.ts        # OAuth callback
+├── projects/route.ts        # List Forma projects
+└── disconnect/route.ts      # Remove connection
+```
+
+#### Development Estimate
+
+| Task | Effort |
+|------|--------|
+| Autodesk app registration | 0.5 days |
+| OAuth flow implementation | 2 days |
+| Token storage + refresh | 1 day |
+| Project list UI | 1 day |
+| Connection management | 0.5 days |
+| **Total** | **5 days** |
+
+---
+
+### Feature 2.2: Geometry Extraction
+
+**What it does:** Extract building quantities from Forma massing model.
+
+#### Deliverables
+
+| # | Deliverable | Description |
+|---|-------------|-------------|
+| 2.2.1 | Building selector | Select which Forma building to import |
+| 2.2.2 | Metrics extraction | Get GFA, floors, heights from Forma |
+| 2.2.3 | Area calculations | Calculate wall areas, roof area, floor areas |
+| 2.2.4 | Preview display | Show extracted quantities before import |
+| 2.2.5 | Geometry parser | Convert Forma geometry to our element format |
+
+#### Acceptance Criteria
+
+- [ ] User can select a building from Forma project
+- [ ] System extracts: GFA, number of floors, floor-to-floor height
+- [ ] System calculates: total wall area, roof area, floor area per level
+- [ ] Preview shows all extracted quantities
+- [ ] User can adjust quantities before confirming import
+
+#### Calculation Logic
+
+```typescript
+interface FormaExtraction {
+  gfa: number;              // From Forma.areaMetrics
+  floors: number;           // From floor stack
+  floorHeight: number;      // From element properties (default: 3m)
+  footprintArea: number;    // From footprint geometry
+  perimeter: number;        // Calculated from footprint
+
+  // Calculated
+  totalWallArea: number;    // perimeter × floors × floorHeight
+  roofArea: number;         // footprintArea (flat) or calculated (pitched)
+  totalFloorArea: number;   // footprintArea × floors
+}
+```
+
+#### Development Estimate
+
+| Task | Effort |
+|------|--------|
+| Building selector UI | 1 day |
+| Forma API integration | 2 days |
+| Geometry calculations | 2 days |
+| Preview component | 1 day |
+| Edge cases + testing | 1 day |
+| **Total** | **7 days** |
+
+---
+
+### Feature 2.3: Import Workflow
+
+**What it does:** Create LCA project from Forma extraction with user-selected construction system.
+
+#### Deliverables
+
+| # | Deliverable | Description |
+|---|-------------|-------------|
+| 2.3.1 | Import wizard | Step-by-step: Select building → Review quantities → Choose construction → Confirm |
+| 2.3.2 | Construction selector | Choose: timber frame, CLT, masonry, concrete |
+| 2.3.3 | Template application | Apply construction template to extracted quantities |
+| 2.3.4 | Project creation | Create LCA project with elements and layers |
+| 2.3.5 | Forma link storage | Store connection between LCA project and Forma building |
+
+#### Acceptance Criteria
+
+- [ ] Wizard guides user through import process
+- [ ] User selects construction system (affects material templates)
+- [ ] System creates project with correct elements and areas
+- [ ] Elements have appropriate material layers based on construction type
+- [ ] LCA calculation runs automatically after import
+- [ ] Link to Forma source is stored for future re-sync
+
+#### Technical Specifications
+
+**Import wizard steps:**
+1. **Select Building** - Choose from Forma project
+2. **Review Quantities** - Verify/adjust extracted areas
+3. **Construction System** - Select timber/concrete/masonry/CLT
+4. **Additional Options** - Energy label, facade type, window ratio
+5. **Confirm & Create** - Create project and run calculation
+
+**Database additions:**
+```sql
+CREATE TABLE forma_project_links (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  organization_id INTEGER REFERENCES organizations(id),
-  forma_material_name VARCHAR(255) NOT NULL,
-  lca_material_id UUID REFERENCES lca_materials(id),
-  confidence FLOAT,
-  is_manual BOOLEAN DEFAULT FALSE,
-  created_by INTEGER REFERENCES users(id),
+  lca_project_id UUID REFERENCES lca_projects(id) ON DELETE CASCADE,
+  forma_project_id VARCHAR(255) NOT NULL,
+  forma_building_path VARCHAR(500) NOT NULL,
+  last_synced_at TIMESTAMP,
+  sync_status VARCHAR(50) DEFAULT 'synced',
+  extracted_data JSONB,  -- Store extraction for comparison
   created_at TIMESTAMP DEFAULT NOW(),
-  UNIQUE(organization_id, forma_material_name)
+  UNIQUE(lca_project_id)
 );
 ```
 
-#### 2.4 Sync Workflow
-**Goal:** Enable bidirectional sync between Forma and GroosHub
+#### Development Estimate
 
-**Tasks:**
-- [ ] Create sync UI in project editor
-- [ ] Implement "Import from Forma" flow
-- [ ] Handle sync conflicts (manual edits vs. Forma updates)
-- [ ] Add webhook support for Forma model changes (if available)
-- [ ] Create sync history/audit log
-
----
-
-### Phase 3: AI Integration (Weeks 11-14)
-
-#### 3.1 LCA Data Embedding
-**Goal:** Store LCA project data in vector database for AI queries
-
-**Tasks:**
-- [ ] Create embedding schema for LCA projects
-- [ ] Generate embeddings for project summaries
-- [ ] Store material combinations and results
-- [ ] Index by building type, construction system, MPG score
-
-**Embedding Content:**
-```
-Project: [name]
-Building Type: [type], GFA: [area] m²
-Construction: [system], [facade], [foundation], [roof]
-MPG Score: [score] kg CO₂-eq/m²/year ([compliant/non-compliant])
-Phase Breakdown: A1-A3: [value], B4: [value], C: [value], D: [value]
-Key Materials: [top 5 materials by impact]
-```
-
-#### 3.2 AI Query Capabilities
-**Goal:** Enable natural language queries about LCA data
-
-**Example Queries:**
-- "What's the biggest carbon contributor in my project?"
-- "How does my project compare to similar buildings?"
-- "What material swaps could reduce my MPG score by 10%?"
-- "Show me all projects exceeding the 2025 MPG limit"
-- "What's the average MPG score for timber frame houses?"
-
-**Tasks:**
-- [ ] Add LCA context to AI assistant system prompt
-- [ ] Create LCA-specific RAG retrieval function
-- [ ] Implement comparative analysis tools
-- [ ] Add optimization suggestion generation
-
-#### 3.3 Optimization Recommendations
-**Goal:** AI-generated suggestions for reducing environmental impact
-
-**Tasks:**
-- [ ] Analyze material contributions by phase
-- [ ] Compare against benchmarks
-- [ ] Generate actionable recommendations
-- [ ] Estimate impact of each recommendation
+| Task | Effort |
+|------|--------|
+| Import wizard UI | 3 days |
+| Construction template logic | 2 days |
+| Project creation from import | 2 days |
+| Forma link storage | 1 day |
+| Testing + edge cases | 2 days |
+| **Total** | **10 days** |
 
 ---
 
-### Phase 4: Reporting & Export (Weeks 15-18)
+### Feature 2.4: Re-sync Capability
+
+**What it does:** Update LCA project when Forma model changes.
+
+#### Deliverables
+
+| # | Deliverable | Description |
+|---|-------------|-------------|
+| 2.4.1 | Sync status indicator | Show if LCA is in sync with Forma |
+| 2.4.2 | Re-sync button | Trigger re-extraction from Forma |
+| 2.4.3 | Change detection | Compare new extraction to stored data |
+| 2.4.4 | Update preview | Show what will change before applying |
+| 2.4.5 | Selective update | User can choose which changes to apply |
+
+#### Acceptance Criteria
+
+- [ ] Projects linked to Forma show sync status
+- [ ] User can click "Re-sync from Forma"
+- [ ] System shows what changed (e.g., "Wall area: 450m² → 520m²")
+- [ ] User can accept or reject changes
+- [ ] Accepted changes update elements and trigger recalculation
+- [ ] Manual edits are preserved unless explicitly overwritten
+
+#### Development Estimate
+
+| Task | Effort |
+|------|--------|
+| Sync status UI | 1 day |
+| Re-extraction logic | 1 day |
+| Change detection | 2 days |
+| Update preview + apply | 2 days |
+| **Total** | **6 days** |
+
+---
+
+### Phase 2 Summary
+
+| Feature | Effort | Priority |
+|---------|--------|----------|
+| 2.1 Forma Connection | 5 days | P0 - Required |
+| 2.2 Geometry Extraction | 7 days | P0 - Required |
+| 2.3 Import Workflow | 10 days | P0 - Required |
+| 2.4 Re-sync Capability | 6 days | P1 - Important |
+| **Phase 2 Total** | **28 days** | |
+
+**Dependencies:** Requires Forma developer account and API access
+
+---
+
+## Phase 3: AI Integration
+
+**Duration:** 3-4 weeks
+**Goal:** Enable natural language queries about LCA data through the AI assistant
+
+---
+
+### Feature 3.1: LCA Data Embedding
+
+**What it does:** Store LCA project data in vector database for semantic search.
+
+#### Deliverables
+
+| # | Deliverable | Description |
+|---|-------------|-------------|
+| 3.1.1 | LCA embedding schema | Define what data to embed per project |
+| 3.1.2 | Embedding generator | Create embeddings when projects are calculated |
+| 3.1.3 | Vector storage | Store in existing pgvector setup |
+| 3.1.4 | Retrieval function | Fetch relevant projects for AI context |
+
+#### Embedding Content Per Project
+
+```
+Project: Residential Tower A
+Type: Appartement | GFA: 2,450 m² | Floors: 8
+Construction: CLT (Cross-laminated timber)
+Facade: Timber cladding | Foundation: Concrete piles | Roof: Green roof
+
+MPG Score: 0.42 kg CO₂-eq/m²/year (COMPLIANT - limit 0.45)
+Total Embodied Carbon: 1,850 tons CO₂-eq over 75 years
+
+Phase Breakdown:
+- A1-A3 (Production): 1,200 tons (65%)
+- A4 (Transport): 85 tons (5%)
+- A5 (Construction): 60 tons (3%)
+- B4 (Replacement): 380 tons (21%)
+- C (End of Life): 250 tons (14%)
+- D (Benefits): -125 tons (recycling credits)
+
+Top Materials by Impact:
+1. Concrete foundation: 420 tons (23%)
+2. CLT structure: 380 tons (21%)
+3. Triple glazing: 210 tons (11%)
+4. Insulation (mineral wool): 145 tons (8%)
+5. Steel connections: 98 tons (5%)
+
+Key Metrics:
+- Biogenic carbon stored: 890 tons
+- Operational carbon (B6): 15 kg/m²/year (Energy label A+)
+- Construction system: Prefab CLT panels
+```
+
+#### Acceptance Criteria
+
+- [ ] Embeddings generated for all calculated projects
+- [ ] Embeddings update when project recalculates
+- [ ] Retrieval returns relevant projects for queries
+- [ ] Metadata allows filtering (building type, compliance, etc.)
+
+#### Development Estimate
+
+| Task | Effort |
+|------|--------|
+| Embedding schema design | 0.5 days |
+| Embedding generation | 1 day |
+| Vector storage integration | 1 day |
+| Retrieval function | 1 day |
+| **Total** | **3.5 days** |
+
+---
+
+### Feature 3.2: AI Query Capabilities
+
+**What it does:** Answer natural language questions about LCA projects.
+
+#### Example Queries & Expected Responses
+
+| User Query | AI Response |
+|------------|-------------|
+| "What's the biggest carbon contributor in my project?" | "The concrete foundation accounts for 23% of your embodied carbon (420 tons). Consider reducing foundation depth or using lower-carbon concrete mixes." |
+| "How does my project compare to others?" | "Your MPG score of 0.42 is better than 78% of similar apartment buildings in our database. The average for CLT apartments is 0.51." |
+| "What if I switch from concrete to timber piles?" | "Based on similar projects, switching to timber piles could reduce foundation carbon by approximately 60%, saving around 250 tons CO₂-eq." |
+| "Show me all non-compliant projects" | "You have 2 projects exceeding the 2025 MPG limit: [Project A: 0.92] [Project B: 0.85]. Both are masonry construction." |
+
+#### Deliverables
+
+| # | Deliverable | Description |
+|---|-------------|-------------|
+| 3.2.1 | LCA system prompt | Context about LCA, MPG, phases for AI |
+| 3.2.2 | Project retrieval tool | AI can fetch user's LCA projects |
+| 3.2.3 | Comparison tool | AI can compare projects |
+| 3.2.4 | Benchmark tool | AI can access material/project benchmarks |
+| 3.2.5 | Calculation explainer | AI can explain phase breakdowns |
+
+#### Acceptance Criteria
+
+- [ ] AI can answer questions about specific projects
+- [ ] AI can compare multiple projects
+- [ ] AI provides actionable recommendations
+- [ ] AI cites specific numbers from project data
+- [ ] AI explains LCA concepts when asked
+
+#### Development Estimate
+
+| Task | Effort |
+|------|--------|
+| LCA system prompt | 1 day |
+| Project retrieval tool | 1 day |
+| Comparison tool | 1 day |
+| Benchmark integration | 1 day |
+| Testing + prompt tuning | 2 days |
+| **Total** | **6 days** |
+
+---
+
+### Feature 3.3: Optimization Recommendations
+
+**What it does:** AI suggests specific changes to reduce carbon footprint.
+
+#### Deliverables
+
+| # | Deliverable | Description |
+|---|-------------|-------------|
+| 3.3.1 | Hotspot analysis | Identify top 5 carbon contributors |
+| 3.3.2 | Alternative suggestions | For each hotspot, suggest lower-carbon options |
+| 3.3.3 | Impact estimation | Estimate savings for each suggestion |
+| 3.3.4 | Optimization report | Generate summary of all recommendations |
+
+#### Example Output
+
+```
+## Optimization Recommendations for "Residential Tower A"
+
+Current MPG: 0.42 kg CO₂-eq/m²/year
+Target: 0.35 kg CO₂-eq/m²/year (-17%)
+
+### Recommended Changes:
+
+1. **Foundation: Switch to low-carbon concrete**
+   - Current: Standard concrete (CEM I)
+   - Suggested: CEM III/B with 70% slag
+   - Estimated savings: 180 tons (-43% for foundation)
+   - New MPG: 0.38
+
+2. **Insulation: Switch to cellulose**
+   - Current: Mineral wool (12.5 kg CO₂/m³)
+   - Suggested: Cellulose insulation (2.1 kg CO₂/m³)
+   - Estimated savings: 95 tons (-66% for insulation)
+   - New MPG: 0.36
+
+3. **Windows: Reduce frame aluminum**
+   - Current: Aluminum frames
+   - Suggested: Timber-aluminum composite
+   - Estimated savings: 45 tons (-21% for windows)
+   - New MPG: 0.35 ✓ TARGET REACHED
+
+Total potential savings: 320 tons CO₂-eq (17%)
+```
+
+#### Acceptance Criteria
+
+- [ ] AI identifies top carbon contributors automatically
+- [ ] Suggestions are specific (material names, not generic advice)
+- [ ] Impact estimates based on actual material data
+- [ ] Recommendations are actionable and realistic
+
+#### Development Estimate
+
+| Task | Effort |
+|------|--------|
+| Hotspot analysis logic | 1 day |
+| Alternative suggestion logic | 2 days |
+| Impact estimation | 1 day |
+| Report generation | 1 day |
+| **Total** | **5 days** |
+
+---
+
+### Phase 3 Summary
+
+| Feature | Effort | Priority |
+|---------|--------|----------|
+| 3.1 LCA Data Embedding | 3.5 days | P0 - Required |
+| 3.2 AI Query Capabilities | 6 days | P0 - Required |
+| 3.3 Optimization Recommendations | 5 days | P1 - Important |
+| **Phase 3 Total** | **14.5 days** | |
+
+---
+
+## Overall Roadmap Summary
+
+| Phase | Features | Effort | Priority |
+|-------|----------|--------|----------|
+| **Phase 1** | Element Editor, Benchmarking, Comparison | 17 days | Foundation |
+| **Phase 2** | Forma Integration (full) | 28 days | Differentiator |
+| **Phase 3** | AI Integration | 14.5 days | Value-add |
+| **Total Phases 1-3** | | **59.5 days** | |
+
+### Recommended Timeline
+
+| Week | Focus |
+|------|-------|
+| 1-2 | Element Editor (1.1) |
+| 3 | Material Benchmarking (1.2) |
+| 4 | Project Comparison (1.3) |
+| 5-6 | Forma Connection + Geometry (2.1, 2.2) |
+| 7-8 | Import Workflow (2.3) |
+| 9 | Re-sync + Polish (2.4) |
+| 10-11 | AI Embedding + Queries (3.1, 3.2) |
+| 12 | Optimization + Polish (3.3) |
+
+---
+
+## Future Phases (Lower Priority)
+
+### Phase 4: Reporting & Export (Future)
 
 #### 4.1 PDF Report Generation
 **Goal:** Generate professional MPG-compliant reports
