@@ -177,6 +177,17 @@ export const ProjectSnapshotsList: React.FC<ProjectSnapshotsListProps> = ({
         console.warn('Loaded snapshot has validation issues:', validationResult.summary);
       }
 
+      // Debug: Log safety data structure from snapshot API
+      console.log('📥 [ProjectSnapshotsList] Safety data from snapshot API:', {
+        hasSafetyData: !!snapshotData.safety_data,
+        safetyDataType: typeof snapshotData.safety_data,
+        safetyDataKeys: snapshotData.safety_data ? Object.keys(snapshotData.safety_data) : [],
+        nationalCount: Array.isArray(snapshotData.safety_data?.national) ? snapshotData.safety_data.national.length : 'not array',
+        municipalityCount: Array.isArray(snapshotData.safety_data?.municipality) ? snapshotData.safety_data.municipality.length : 'not array',
+        districtCount: Array.isArray(snapshotData.safety_data?.district) ? snapshotData.safety_data.district.length : 'not array',
+        neighborhoodCount: Array.isArray(snapshotData.safety_data?.neighborhood) ? snapshotData.safety_data.neighborhood.length : 'not array',
+      });
+
       // Check scoring version compatibility
       const versionCheck = isVersionCompatible(snapshotData.scoring_algorithm_version);
       if (!versionCheck.compatible) {

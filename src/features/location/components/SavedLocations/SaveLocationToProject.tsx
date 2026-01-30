@@ -240,6 +240,11 @@ export const SaveLocationToProject: React.FC<SaveLocationToProjectProps> = ({
         console.warn('Snapshot data validation warnings:', validationResult.fieldResults);
       }
 
+      // Extract geographic codes from location data
+      const neighborhoodCode = locationData?.location?.neighborhood?.statcode || null;
+      const districtCode = locationData?.location?.district?.statcode || null;
+      const municipalityCode = locationData?.location?.municipality?.statcode || null;
+
       const response = await fetch('/api/location/snapshots', {
         method: 'POST',
         headers: {
@@ -250,6 +255,10 @@ export const SaveLocationToProject: React.FC<SaveLocationToProjectProps> = ({
           address,
           latitude,
           longitude,
+          // Include geographic codes so data levels are available on load
+          neighborhood_code: neighborhoodCode,
+          district_code: districtCode,
+          municipality_code: municipalityCode,
           demographics_data: locationData?.demographics || {},
           health_data: locationData?.health || {},
           safety_data: locationData?.safety || {},
