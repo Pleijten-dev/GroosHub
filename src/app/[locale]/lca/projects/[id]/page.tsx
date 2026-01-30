@@ -5,6 +5,7 @@
  * - Project metadata (name, type, floor area)
  * - MPG compliance status and score
  * - Phase breakdown visualization
+ * - Building elements with material layers (Phase 1.1)
  * - Project actions (edit, export, delete)
  *
  * @module app/[locale]/lca/projects/[id]
@@ -12,18 +13,19 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/shared/components/UI/Sidebar/Sidebar';
 import { MainLayout } from '@/shared/components/UI/MainLayout';
 import { useSidebar } from '@/shared/hooks/useSidebar';
-import { useProjects } from '@/features/lca/hooks';
+import { useProjects, useElements } from '@/features/lca/hooks';
 import { LCAProjectsSection } from '@/features/lca/components/sidebar';
 import { LCATabNavigation } from '@/features/lca/components/navigation';
 import { NewProjectModal } from '@/features/lca/components/modals';
 import { MPGScoreBadge } from '@/features/lca/components/ui';
 import { PhaseBreakdownMini } from '@/features/lca/components/charts';
-import type { LCAProject } from '@/features/lca/types';
+import { ElementList, ElementEditor, LayerEditor } from '@/features/lca/components/editor';
+import type { LCAProject, ElementWithLayers, CreateElementInput, CreateLayerInput, LayerWithMaterial } from '@/features/lca/types';
 
 // ============================================
 // TRANSLATIONS
@@ -53,6 +55,9 @@ const TRANSLATIONS = {
     export: 'Exporteren',
     delete: 'Verwijderen',
     m2: 'm²',
+    buildingElements: 'Bouwelementen',
+    materialLayers: 'Materiaallagen',
+    selectElement: 'Selecteer een element om de materiaallagen te bekijken',
   },
   en: {
     loading: 'Loading project...',
@@ -77,6 +82,9 @@ const TRANSLATIONS = {
     export: 'Export',
     delete: 'Delete',
     m2: 'm²',
+    buildingElements: 'Building Elements',
+    materialLayers: 'Material Layers',
+    selectElement: 'Select an element to view its material layers',
   },
 };
 
@@ -155,6 +163,30 @@ export default function LCAProjectPage({
   const [project, setProject] = useState<LCAProject | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Element editor state
+  const [selectedElementId, setSelectedElementId] = useState<string | undefined>();
+  const [showElementEditor, setShowElementEditor] = useState(false);
+  const [editingElement, setEditingElement] = useState<ElementWithLayers | undefined>();
+
+  // Use elements hook
+  const {
+    elements,
+    isLoading: elementsLoading,
+    createElement,
+    updateElement,
+    deleteElement,
+    addLayer,
+    updateLayer,
+    deleteLayer,
+    reorderLayers,
+    recalculate,
+  } = useElements(projectId);
+
+  // Get selected element
+  const selectedElement = selectedElementId
+    ? elements.find((el) => el.id === selectedElementId)
+    : undefined;
+
   useEffect(() => {
     if (!projectsLoading && projects.length > 0) {
       const foundProject = projects.find((p) => p.id === projectId);
@@ -164,6 +196,65 @@ export default function LCAProjectPage({
       setIsLoading(false);
     }
   }, [projectId, projects, projectsLoading]);
+
+  // Element handlers
+  const handleAddElement = useCallback(() => {
+    setEditingElement(undefined);
+    setShowElementEditor(true);
+  }, []);
+
+  const handleEditElement = useCallback((elementId: string) => {
+    const element = elements.find((el) => el.id === elementId);
+    setEditingElement(element);
+    setShowElementEditor(true);
+  }, [elements]);
+
+  const handleDeleteElement = useCallback(async (elementId: string) => {
+    try {
+      await deleteElement(elementId);
+      if (selectedElementId === elementId) {
+        setSelectedElementId(undefined);
+      }
+      recalculate();
+    } catch (error) {
+      console.error('Error deleting element:', error);
+    }
+  }, [deleteElement, selectedElementId, recalculate]);
+
+  const handleSaveElement = useCallback(async (data: CreateElementInput) => {
+    try {
+      if (editingElement) {
+        await updateElement(editingElement.id, data);
+      } else {
+        const newElement = await createElement(data);
+        setSelectedElementId(newElement.id);
+      }
+      recalculate();
+    } catch (error) {
+      console.error('Error saving element:', error);
+      throw error;
+    }
+  }, [editingElement, createElement, updateElement, recalculate]);
+
+  // Layer handlers
+  const handleAddLayer = useCallback(async (data: CreateLayerInput) => {
+    await addLayer(data);
+    recalculate();
+  }, [addLayer, recalculate]);
+
+  const handleUpdateLayer = useCallback(async (layerId: string, updates: Partial<LayerWithMaterial>) => {
+    await updateLayer(layerId, updates);
+    recalculate();
+  }, [updateLayer, recalculate]);
+
+  const handleDeleteLayer = useCallback(async (layerId: string) => {
+    await deleteLayer(layerId);
+    recalculate();
+  }, [deleteLayer, recalculate]);
+
+  const handleReorderLayers = useCallback(async (elementId: string, layerIds: string[]) => {
+    await reorderLayers(elementId, layerIds);
+  }, [reorderLayers]);
 
   // Demo phase data (fallback for projects without phase data)
   const demoPhases = {
@@ -364,6 +455,52 @@ export default function LCAProjectPage({
             </div>
           </section>
 
+          {/* Building Elements Section - Phase 1.1 */}
+          <section className="mb-8">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900">
+              {t.buildingElements}
+            </h2>
+            <div className="grid gap-6 lg:grid-cols-2">
+              {/* Element List */}
+              <ElementList
+                elements={elements}
+                selectedElementId={selectedElementId}
+                onSelectElement={setSelectedElementId}
+                onAddElement={handleAddElement}
+                onEditElement={handleEditElement}
+                onDeleteElement={handleDeleteElement}
+                isLoading={elementsLoading}
+                locale={locale}
+              />
+
+              {/* Layer Editor or Empty State */}
+              {selectedElement ? (
+                <LayerEditor
+                  element={selectedElement}
+                  onAddLayer={handleAddLayer}
+                  onUpdateLayer={handleUpdateLayer}
+                  onDeleteLayer={handleDeleteLayer}
+                  onReorderLayers={handleReorderLayers}
+                  onRecalculate={recalculate}
+                  isLoading={elementsLoading}
+                  locale={locale}
+                />
+              ) : (
+                <div className="rounded-lg bg-white shadow p-8 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="mb-4 rounded-full bg-gray-100 p-4 inline-block">
+                      <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.429 9.75L2.25 12l4.179 2.25m0-4.5l5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L21.75 12l-4.179 2.25m0 0l4.179 2.25L12 21.75 2.25 16.5l4.179-2.25m11.142 0l-5.571 3-5.571-3" />
+                      </svg>
+                    </div>
+                    <h4 className="font-medium text-gray-900 mb-1">{t.materialLayers}</h4>
+                    <p className="text-sm text-gray-500">{t.selectElement}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+
           {/* Project Details Grid */}
           <section className="mb-8">
             <h2 className="mb-4 text-xl font-semibold text-gray-900">
@@ -434,6 +571,19 @@ export default function LCAProjectPage({
       <NewProjectModal
         isOpen={showNewProjectModal}
         onClose={() => setShowNewProjectModal(false)}
+        locale={locale}
+      />
+
+      {/* Element Editor Modal */}
+      <ElementEditor
+        isOpen={showElementEditor}
+        onClose={() => {
+          setShowElementEditor(false);
+          setEditingElement(undefined);
+        }}
+        onSave={handleSaveElement}
+        projectId={projectId}
+        element={editingElement}
         locale={locale}
       />
     </>
