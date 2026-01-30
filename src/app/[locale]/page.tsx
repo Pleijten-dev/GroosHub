@@ -301,7 +301,7 @@ const HomePage: React.FC = () => {
         backgroundColor: 'var(--color-white)',
       }}
     >
-      {/* Gradient blob background - same as content-main */}
+      {/* Gradient blob background - subtle version for landing page */}
       <div
         className="fixed inset-0 pointer-events-none"
         style={{
@@ -311,6 +311,7 @@ const HomePage: React.FC = () => {
             radial-gradient(circle at 40% 80%, var(--blob-3-color) 0%, transparent 40%),
             radial-gradient(circle at 70% 20%, var(--blob-4-color) 0%, transparent 40%)
           `,
+          opacity: 0.3,
           zIndex: 0,
         }}
       />
