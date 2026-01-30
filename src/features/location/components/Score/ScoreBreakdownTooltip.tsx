@@ -6,8 +6,6 @@ import type { CategoryScore, MetricBreakdown } from '../../utils/scoreCalculatio
 interface ScoreBreakdownTooltipProps {
   category: CategoryScore | null;
   locale: 'nl' | 'en';
-  position: { x: number; y: number };
-  visible: boolean;
 }
 
 /**
@@ -40,16 +38,23 @@ function formatValue(value: number | null, isCount: boolean = false): string {
 }
 
 /**
- * ScoreBreakdownTooltip - Shows detailed metric breakdown when hovering over a chart slice
+ * ScoreBreakdownTooltip - Shows detailed metric breakdown as a fixed side panel
+ * Always visible and shows the last hovered category's information
  */
 export const ScoreBreakdownTooltip: React.FC<ScoreBreakdownTooltipProps> = ({
   category,
   locale,
-  position,
-  visible,
 }) => {
-  if (!visible || !category) {
-    return null;
+  if (!category) {
+    return (
+      <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-4 w-[400px]">
+        <div className="text-center text-gray-400 py-8">
+          {locale === 'nl'
+            ? 'Beweeg over een categorie om details te zien'
+            : 'Hover over a category to see details'}
+        </div>
+      </div>
+    );
   }
 
   const categoryName = locale === 'nl' ? category.nameNl : category.nameEn;
@@ -63,69 +68,60 @@ export const ScoreBreakdownTooltip: React.FC<ScoreBreakdownTooltipProps> = ({
   });
 
   return (
-    <div
-      className="fixed z-50 pointer-events-none"
-      style={{
-        left: position.x + 20,
-        top: position.y,
-        transform: 'translateY(-50%)',
-      }}
-    >
-      <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-4 min-w-[420px] max-w-[500px]">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200">
-          <h3 className="text-lg font-bold text-gray-900">{categoryName}</h3>
-          <div className="text-right">
-            <div className={`text-2xl font-bold ${getGradeColor(category.grade)}`}>
-              {category.grade.toFixed(1)}
-            </div>
-            <div className="text-xs text-gray-500">
-              {locale === 'nl' ? 'Eindscore' : 'Final Score'}
-            </div>
+    <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-4 w-[400px]">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200">
+        <h3 className="text-lg font-bold text-gray-900">{categoryName}</h3>
+        <div className="text-right">
+          <div className={`text-2xl font-bold ${getGradeColor(category.grade)}`}>
+            {category.grade.toFixed(1)}
+          </div>
+          <div className="text-xs text-gray-500">
+            {locale === 'nl' ? 'Eindscore' : 'Final Score'}
           </div>
         </div>
+      </div>
 
-        {/* Column headers */}
-        <div className="flex items-center text-xs text-gray-500 mb-2 px-1">
-          <div className="flex-1">{locale === 'nl' ? 'Metriek' : 'Metric'}</div>
-          <div className="w-16 text-right">{locale === 'nl' ? 'Lokaal' : 'Local'}</div>
-          <div className="w-16 text-right">{locale === 'nl' ? 'NL Gem.' : 'NL Avg.'}</div>
-          <div className="w-12 text-right">{locale === 'nl' ? 'Score' : 'Score'}</div>
-          <div className="w-12 text-right">{locale === 'nl' ? 'Gewicht' : 'Weight'}</div>
-        </div>
+      {/* Column headers */}
+      <div className="flex items-center text-xs text-gray-500 mb-2 px-1">
+        <div className="flex-1">{locale === 'nl' ? 'Metriek' : 'Metric'}</div>
+        <div className="w-14 text-right">{locale === 'nl' ? 'Lokaal' : 'Local'}</div>
+        <div className="w-14 text-right">{locale === 'nl' ? 'NL Gem.' : 'NL Avg.'}</div>
+        <div className="w-12 text-right">{locale === 'nl' ? 'Score' : 'Score'}</div>
+        <div className="w-12 text-right">{locale === 'nl' ? 'Gewicht' : 'Weight'}</div>
+      </div>
 
-        {/* Breakdown list */}
-        <div className="space-y-1 max-h-[350px] overflow-y-auto">
-          {sortedBreakdown.map((metric) => (
-            <MetricRow
-              key={metric.key}
-              metric={metric}
-              locale={locale}
-              isVoorzieningen={isVoorzieningen}
-            />
-          ))}
-        </div>
+      {/* Breakdown list - scrollable */}
+      <div className="space-y-1 max-h-[400px] overflow-y-auto pr-1">
+        {sortedBreakdown.map((metric) => (
+          <MetricRow
+            key={metric.key}
+            metric={metric}
+            locale={locale}
+            isVoorzieningen={isVoorzieningen}
+          />
+        ))}
+      </div>
 
-        {/* Footer with summary */}
-        <div className="mt-3 pt-3 border-t border-gray-200">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">
-              {locale === 'nl'
-                ? `${category.metricsUsed}/${category.metricsTotal} metrieken beschikbaar`
-                : `${category.metricsUsed}/${category.metricsTotal} metrics available`}
+      {/* Footer with summary */}
+      <div className="mt-3 pt-3 border-t border-gray-200">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-600">
+            {locale === 'nl'
+              ? `${category.metricsUsed}/${category.metricsTotal} metrieken beschikbaar`
+              : `${category.metricsUsed}/${category.metricsTotal} metrics available`}
+          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500">
+              {locale === 'nl' ? 'Eindscore:' : 'Final:'}
             </span>
-            <div className="flex items-center gap-2">
-              <span className="text-gray-500">
-                {locale === 'nl' ? 'Eindscore:' : 'Final:'}
-              </span>
-              <span className={`text-lg font-bold ${getGradeColor(category.grade)}`}>
-                {category.grade.toFixed(1)}
-              </span>
-            </div>
+            <span className={`text-lg font-bold ${getGradeColor(category.grade)}`}>
+              {category.grade.toFixed(1)}
+            </span>
           </div>
-          <div className="text-xs text-gray-400 mt-1">
-            {locale === 'nl' ? '5.5 = Nederlands gemiddelde' : '5.5 = Dutch average'}
-          </div>
+        </div>
+        <div className="text-xs text-gray-400 mt-1">
+          {locale === 'nl' ? '5.5 = Nederlands gemiddelde' : '5.5 = Dutch average'}
         </div>
       </div>
     </div>
@@ -173,7 +169,7 @@ const MetricRow: React.FC<MetricRowProps> = ({ metric, locale, isVoorzieningen }
       </div>
 
       {/* Local value */}
-      <div className={`w-16 text-right ${metric.hasData ? 'text-gray-700' : 'text-gray-300'}`}>
+      <div className={`w-14 text-right ${metric.hasData ? 'text-gray-700' : 'text-gray-300'}`}>
         {metric.hasData && metric.localValue !== null
           ? isVoorzieningen
             ? formatValue(metric.localValue, true)
@@ -182,7 +178,7 @@ const MetricRow: React.FC<MetricRowProps> = ({ metric, locale, isVoorzieningen }
       </div>
 
       {/* Comparison value (NL average) */}
-      <div className={`w-16 text-right ${metric.hasData ? 'text-gray-500' : 'text-gray-300'}`}>
+      <div className={`w-14 text-right ${metric.hasData ? 'text-gray-500' : 'text-gray-300'}`}>
         {metric.hasData && metric.comparisonValue !== null
           ? `${formatValue(metric.comparisonValue)}%`
           : isVoorzieningen ? '-' : '-'}

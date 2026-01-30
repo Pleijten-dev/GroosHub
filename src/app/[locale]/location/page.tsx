@@ -96,43 +96,34 @@ function ScoreTabContent({
   locale,
   onCategoryClick,
 }: ScoreTabContentProps) {
-  const [hoveredCategory, setHoveredCategory] = React.useState<CategoryScore | null>(null);
-  const [mousePosition, setMousePosition] = React.useState({ x: 0, y: 0 });
-  const [tooltipVisible, setTooltipVisible] = React.useState(false);
+  // Initialize with first category so panel always shows something
+  const [hoveredCategory, setHoveredCategory] = React.useState<CategoryScore | null>(
+    locationScores.categories[0] || null
+  );
 
-  // Handle mouse move for tooltip positioning
-  const handleMouseMove = React.useCallback((e: React.MouseEvent) => {
-    setMousePosition({ x: e.clientX, y: e.clientY });
-  }, []);
-
-  // Handle slice hover - find the category data by name
+  // Handle slice hover - find the category data by name (don't clear on mouseout)
   const handleSliceHover = React.useCallback((sliceName: string | null) => {
-    if (sliceName === null) {
-      setTooltipVisible(false);
-      setHoveredCategory(null);
-    } else {
+    if (sliceName !== null) {
       const categoryId = categoryNameToId[sliceName];
       if (categoryId) {
         const category = locationScores.categories.find(c => c.id === categoryId);
         if (category) {
           setHoveredCategory(category);
-          setTooltipVisible(true);
         }
       }
     }
+    // Don't clear on mouseout - keep showing last hovered category
   }, [categoryNameToId, locationScores.categories]);
 
   return (
-    <div
-      className="flex items-center justify-center h-full bg-gradient-to-br from-gray-50 to-gray-100"
-      onMouseMove={handleMouseMove}
-    >
-      <div className="text-center">
+    <div className="flex items-center justify-center h-full bg-gradient-to-br from-gray-50 to-gray-100 gap-8 px-8">
+      {/* Chart Section */}
+      <div className="text-center flex-shrink-0">
         <div className="flex justify-center mb-base">
           <RadialChart
             data={scoreChartData}
-            width={600}
-            height={500}
+            width={500}
+            height={420}
             showLabels={true}
             isSimple={false}
             onSliceClick={onCategoryClick}
@@ -141,10 +132,10 @@ function ScoreTabContent({
             averageValue={5.5}
           />
         </div>
-        <h2 className="text-3xl font-bold text-text-primary">
+        <h2 className="text-2xl font-bold text-text-primary">
           {locale === 'nl' ? 'Score Overzicht' : 'Score Overview'}
         </h2>
-        <p className="text-lg text-text-secondary mt-2">
+        <p className="text-lg text-text-secondary mt-1">
           {locale === 'nl'
             ? `Gemiddelde score: ${locationScores.overall.toFixed(1)}`
             : `Average score: ${locationScores.overall.toFixed(1)}`
@@ -152,19 +143,19 @@ function ScoreTabContent({
         </p>
         <p className="text-sm text-text-tertiary mt-1">
           {locale === 'nl'
-            ? '(1-10 schaal, 5.5 = Nederlands gemiddelde)'
-            : '(1-10 scale, 5.5 = Dutch average)'
+            ? '(0-10 schaal, 5.5 = Nederlands gemiddelde)'
+            : '(0-10 scale, 5.5 = Dutch average)'
           }
         </p>
       </div>
 
-      {/* Score Breakdown Tooltip */}
-      <ScoreBreakdownTooltip
-        category={hoveredCategory}
-        locale={locale}
-        position={mousePosition}
-        visible={tooltipVisible}
-      />
+      {/* Score Breakdown Panel - Fixed on right side */}
+      <div className="flex-shrink-0">
+        <ScoreBreakdownTooltip
+          category={hoveredCategory}
+          locale={locale}
+        />
+      </div>
     </div>
   );
 }
