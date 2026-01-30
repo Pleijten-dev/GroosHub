@@ -20,3 +20,9 @@ export type { LayerRowProps } from './LayerRow';
 
 export { MaterialSelector } from './MaterialSelector';
 export type { MaterialSelectorProps } from './MaterialSelector';
+
+export { MaterialBenchmark } from './MaterialBenchmark';
+export type { MaterialBenchmarkProps, BenchmarkStats } from './MaterialBenchmark';
+
+export { MaterialAlternatives } from './MaterialAlternatives';
+export type { MaterialAlternativesProps, AlternativeMaterial } from './MaterialAlternatives';

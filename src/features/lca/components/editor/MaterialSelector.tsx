@@ -6,7 +6,8 @@
  * - Search by name (NL/EN/DE)
  * - Filter by category
  * - Display GWP value and quality rating
- * - Show material benchmarks
+ * - Show material benchmarks with percentile ranking
+ * - Display lower-carbon alternatives
  *
  * @module features/lca/components/editor
  */
@@ -16,6 +17,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { cn } from '@/shared/utils/cn';
 import type { Material } from '@/features/lca/types';
+import { MaterialBenchmark, type BenchmarkStats } from './MaterialBenchmark';
+import { MaterialAlternatives, type AlternativeMaterial } from './MaterialAlternatives';
 
 // ============================================
 // TYPES & INTERFACES
@@ -34,8 +37,18 @@ export interface MaterialSelectorProps {
   disabled?: boolean;
   /** Locale for translations */
   locale?: 'nl' | 'en';
+  /** Show benchmark information when a material is selected */
+  showBenchmark?: boolean;
+  /** Show lower-carbon alternatives */
+  showAlternatives?: boolean;
   /** Additional CSS classes */
   className?: string;
+}
+
+interface BenchmarkData {
+  stats: BenchmarkStats;
+  alternatives: AlternativeMaterial[];
+  currentMaterialGwp: number | null;
 }
 
 interface MaterialOption {
@@ -145,6 +158,8 @@ export function MaterialSelector({
   placeholder,
   disabled = false,
   locale = 'nl',
+  showBenchmark = false,
+  showAlternatives = false,
   className,
 }: MaterialSelectorProps) {
   const t = TRANSLATIONS[locale];
@@ -161,6 +176,10 @@ export function MaterialSelector({
   const [categories, setCategories] = useState<{ category: string; count: number }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+
+  // Benchmark state
+  const [benchmarkData, setBenchmarkData] = useState<BenchmarkData | null>(null);
+  const [isBenchmarkLoading, setIsBenchmarkLoading] = useState(false);
 
   // ============================================
   // DATA FETCHING
@@ -214,6 +233,43 @@ export function MaterialSelector({
       return () => clearTimeout(timer);
     }
   }, [searchQuery, selectedCategory, isOpen, fetchMaterials]);
+
+  // Fetch benchmark data when material is selected
+  useEffect(() => {
+    if (!selectedMaterial || (!showBenchmark && !showAlternatives)) {
+      setBenchmarkData(null);
+      return;
+    }
+
+    async function fetchBenchmark() {
+      setIsBenchmarkLoading(true);
+      try {
+        const params = new URLSearchParams({
+          category: selectedMaterial!.category,
+          material_id: selectedMaterial!.id,
+          limit: '5',
+        });
+
+        const response = await fetch(`/api/lca/materials/benchmark?${params.toString()}`);
+        const data = await response.json();
+
+        if (data.success) {
+          setBenchmarkData({
+            stats: data.data.stats,
+            alternatives: data.data.alternatives,
+            currentMaterialGwp: data.data.currentMaterialGwp,
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching benchmark:', error);
+        setBenchmarkData(null);
+      } finally {
+        setIsBenchmarkLoading(false);
+      }
+    }
+
+    fetchBenchmark();
+  }, [selectedMaterial?.id, selectedMaterial?.category, showBenchmark, showAlternatives]);
 
   // ============================================
   // CLICK OUTSIDE HANDLING
@@ -437,6 +493,38 @@ export function MaterialSelector({
               </ul>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Benchmark display (when material is selected) */}
+      {selectedMaterial && showBenchmark && (
+        <div className="mt-3">
+          {isBenchmarkLoading ? (
+            <div className="flex items-center gap-2 p-3 rounded-lg border border-gray-200 bg-gray-50 text-gray-500">
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm">{t.loading}</span>
+            </div>
+          ) : benchmarkData?.stats ? (
+            <MaterialBenchmark
+              gwpValue={selectedMaterial.gwp_a1_a3}
+              stats={benchmarkData.stats}
+              categoryName={CATEGORY_TRANSLATIONS[selectedMaterial.category]?.[locale] || selectedMaterial.category}
+              locale={locale}
+            />
+          ) : null}
+        </div>
+      )}
+
+      {/* Alternatives display (when material is selected) */}
+      {selectedMaterial && showAlternatives && benchmarkData?.alternatives && (
+        <div className="mt-3">
+          <MaterialAlternatives
+            alternatives={benchmarkData.alternatives}
+            currentGwp={selectedMaterial.gwp_a1_a3}
+            onSelectAlternative={onSelectMaterial}
+            locale={locale}
+            isLoading={isBenchmarkLoading}
+          />
         </div>
       )}
     </div>

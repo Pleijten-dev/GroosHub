@@ -27,11 +27,13 @@ import { cn } from '@/shared/utils/cn';
 export interface LCATabNavigationProps {
   /** Current locale */
   locale?: 'nl' | 'en';
+  /** Active tab override (used when path detection doesn't work) */
+  activeTab?: LCATab;
   /** Additional CSS classes */
   className?: string;
 }
 
-export type LCATab = 'dashboard' | 'materials' | 'templates' | 'settings';
+export type LCATab = 'dashboard' | 'materials' | 'compare' | 'templates' | 'settings';
 
 interface TabConfig {
   id: LCATab;
@@ -55,6 +57,14 @@ const TABS: TabConfig[] = [
       en: 'Dashboard',
     },
     path: '/lca/dashboard',
+  },
+  {
+    id: 'compare',
+    label: {
+      nl: 'Vergelijken',
+      en: 'Compare',
+    },
+    path: '/lca/compare',
   },
   {
     id: 'materials',
@@ -115,6 +125,7 @@ function isTabActive(tabPath: string, pathname: string): boolean {
  */
 export function LCATabNavigation({
   locale = 'nl',
+  activeTab,
   className,
 }: LCATabNavigationProps) {
   const pathname = usePathname();
@@ -131,7 +142,8 @@ export function LCATabNavigation({
       <div className="container mx-auto px-4">
         <div className="flex space-x-8" role="tablist">
           {TABS.map((tab) => {
-            const isActive = isTabActive(tab.path, pathname);
+            // Use activeTab prop if provided, otherwise detect from pathname
+            const isActive = activeTab ? tab.id === activeTab : isTabActive(tab.path, pathname);
             const label = tab.label[locale];
 
             return (
