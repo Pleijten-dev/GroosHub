@@ -17,6 +17,10 @@ interface RadialChartProps {
   className?: string;
   onSliceHover?: (sliceName: string | null) => void;
   onSliceClick?: (sliceName: string) => void;
+  /** Custom average value for the reference circle. If not provided, uses maxValue/2 */
+  averageValue?: number;
+  /** Minimum value for the scale. Defaults to 0 */
+  minValue?: number;
 }
 
 // D3 type declarations
@@ -87,7 +91,9 @@ const RadialChart: React.FC<RadialChartProps> = ({
   showLabels = true,
   className = '',
   onSliceHover,
-  onSliceClick
+  onSliceClick,
+  averageValue,
+  minValue = 0
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -279,7 +285,7 @@ const RadialChart: React.FC<RadialChartProps> = ({
           .padding(paddingValue);
 
         const radiusScale = d3.scaleLinear()
-          .domain([0, maxValue])
+          .domain([minValue, maxValue])
           .range([innerRadius, maxRadius]);
 
         // Arcs
@@ -527,7 +533,9 @@ const RadialChart: React.FC<RadialChartProps> = ({
       }
 
       // Add average circle
-      const middleRadius = radiusScale(maxValue / 2);
+      // Use custom averageValue if provided, otherwise default to midpoint
+      const avgValue = averageValue !== undefined ? averageValue : (maxValue + minValue) / 2;
+      const middleRadius = radiusScale(avgValue);
       graphArea
         .append("circle")
         .attr("class", "average-circle")
@@ -550,7 +558,7 @@ const RadialChart: React.FC<RadialChartProps> = ({
         window.d3.select(container).selectAll("*").remove();
       }
     };
-  }, [data, width, height, isSimple, showLabels, onSliceHover, onSliceClick]);
+  }, [data, width, height, isSimple, showLabels, onSliceHover, onSliceClick, averageValue, minValue]);
 
   return (
     <div

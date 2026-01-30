@@ -28,6 +28,7 @@ import housingPersonasData from '../../../features/location/data/sources/housing
 import { LocationMap, MapStyle, WMSLayerControl, WMSLayerSelection, WMSFeatureInfo, WMSGradingScoreCard, WMSLayerScoreCard } from '../../../features/location/components/Maps';
 import { calculateAllAmenityScores, type AmenityScore } from '../../../features/location/data/scoring/amenityScoring';
 import { getOmgevingChartData } from '../../../features/location/utils/calculateOmgevingScores';
+import { calculateLocationScores, getScoreChartData } from '../../../features/location/utils/scoreCalculation';
 import { PVEQuestionnaire } from '../../../features/location/components/PVE';
 import { MapExportButton } from '../../../features/location/components/MapExport';
 import type { AccessibleLocation } from '../../../features/location/types/saved-locations';
@@ -525,25 +526,11 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
       }
 
       // For Score tab - show Omgeving overview with clickable RadialChart
+      // Uses new weighted score calculation with 1-10 Dutch grade scale
       if (activeTab === 'score') {
-        // Calculate Voorzieningen score from amenities data
-        let voorzieningenScore = 75; // Default value if no amenities data
-
-        if (amenityScores) {
-          // Use memoized amenity scores (prevents recalculation for cached data)
-          // Sum up all countScore and proximityBonus values
-          const rawScore = amenityScores.reduce((sum: number, score: AmenityScore) => {
-            return sum + score.countScore + score.proximityBonus;
-          }, 0);
-
-          // Map from [-21, 42] range to [10, 100] range
-          // Formula: ((rawScore + 21) / 63) * 90 + 10
-          voorzieningenScore = Math.round(((rawScore + 21) / 63) * 90 + 10);
-        }
-
-        // Calculate all 5 omgeving category scores from actual data
-        // This uses the real data from health, safety, livability, and residential sources
-        const omgevingData = getOmgevingChartData(data, voorzieningenScore, locale);
+        // Calculate all 5 category scores using the new weighted calculation system
+        const locationScores = calculateLocationScores(data, amenityScores);
+        const scoreChartData = getScoreChartData(locationScores, locale);
 
         // Map category names to tab IDs
         const categoryToTab: Record<string, TabName> = {
@@ -571,17 +558,31 @@ const LocationPage: React.FC<LocationPageProps> = ({ params }): JSX.Element => {
             <div className="text-center">
               <div className="flex justify-center mb-base">
                 <RadialChart
-                  data={omgevingData}
+                  data={scoreChartData}
                   width={600}
                   height={500}
                   showLabels={true}
                   isSimple={false}
                   onSliceClick={handleCategoryClick}
+                  minValue={1}
+                  averageValue={5.5}
                 />
               </div>
               <h2 className="text-3xl font-bold text-text-primary">
                 {locale === 'nl' ? 'Score Overzicht' : 'Score Overview'}
               </h2>
+              <p className="text-lg text-text-secondary mt-2">
+                {locale === 'nl'
+                  ? `Gemiddelde score: ${locationScores.overall.toFixed(1)}`
+                  : `Average score: ${locationScores.overall.toFixed(1)}`
+                }
+              </p>
+              <p className="text-sm text-text-tertiary mt-1">
+                {locale === 'nl'
+                  ? '(1-10 schaal, 5.5 = Nederlands gemiddelde)'
+                  : '(1-10 scale, 5.5 = Dutch average)'
+                }
+              </p>
             </div>
           </div>
         );
