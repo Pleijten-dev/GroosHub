@@ -59,6 +59,7 @@ export const ScoreBreakdownTooltip: React.FC<ScoreBreakdownTooltipProps> = ({
 
   const categoryName = locale === 'nl' ? category.nameNl : category.nameEn;
   const isVoorzieningen = category.id === 'voorzieningen';
+  const isResidential = category.id === 'betaalbaarheid';
 
   // Sort breakdown: metrics with data first, sorted by weight
   const sortedBreakdown = [...category.breakdown].sort((a, b) => {
@@ -69,12 +70,30 @@ export const ScoreBreakdownTooltip: React.FC<ScoreBreakdownTooltipProps> = ({
 
   return (
     <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-4 w-[400px]">
+      {/* Insufficient data warning */}
+      {category.insufficientData && (
+        <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
+          {locale === 'nl'
+            ? `⚠️ Onvoldoende data beschikbaar (${category.metricsUsed}/${category.metricsTotal} metrieken). Score is niet betrouwbaar.`
+            : `⚠️ Insufficient data available (${category.metricsUsed}/${category.metricsTotal} metrics). Score is not reliable.`}
+        </div>
+      )}
+
+      {/* Data source note */}
+      {category.dataNote === 'municipal' && (
+        <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
+          {locale === 'nl'
+            ? 'ℹ️ Data is gebaseerd op gemeentelijke gegevens, niet buurt-specifiek.'
+            : 'ℹ️ Data is based on municipal data, not neighborhood-specific.'}
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200">
         <h3 className="text-lg font-bold text-gray-900">{categoryName}</h3>
         <div className="text-right">
-          <div className={`text-2xl font-bold ${getGradeColor(category.grade)}`}>
-            {category.grade.toFixed(1)}
+          <div className={`text-2xl font-bold ${category.insufficientData ? 'text-gray-400' : getGradeColor(category.grade)}`}>
+            {category.insufficientData ? '-' : category.grade.toFixed(1)}
           </div>
           <div className="text-xs text-gray-500">
             {locale === 'nl' ? 'Eindscore' : 'Final Score'}
@@ -106,7 +125,7 @@ export const ScoreBreakdownTooltip: React.FC<ScoreBreakdownTooltipProps> = ({
       {/* Footer with summary */}
       <div className="mt-3 pt-3 border-t border-gray-200">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">
+          <span className={`${category.metricsUsed < category.metricsTotal * 0.3 ? 'text-amber-600' : 'text-gray-600'}`}>
             {locale === 'nl'
               ? `${category.metricsUsed}/${category.metricsTotal} metrieken beschikbaar`
               : `${category.metricsUsed}/${category.metricsTotal} metrics available`}
@@ -115,8 +134,8 @@ export const ScoreBreakdownTooltip: React.FC<ScoreBreakdownTooltipProps> = ({
             <span className="text-gray-500">
               {locale === 'nl' ? 'Eindscore:' : 'Final:'}
             </span>
-            <span className={`text-lg font-bold ${getGradeColor(category.grade)}`}>
-              {category.grade.toFixed(1)}
+            <span className={`text-lg font-bold ${category.insufficientData ? 'text-gray-400' : getGradeColor(category.grade)}`}>
+              {category.insufficientData ? '-' : category.grade.toFixed(1)}
             </span>
           </div>
         </div>

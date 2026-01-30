@@ -48,7 +48,12 @@ export interface CategoryScore {
   metricsTotal: number; // Total metrics configured
   color: string;
   breakdown: MetricBreakdown[]; // Detailed breakdown of each metric
+  insufficientData: boolean;    // True if less than MIN_DATA_THRESHOLD of metrics available
+  dataNote?: string;            // Optional note about data source (e.g., municipal level)
 }
+
+// Minimum percentage of metrics required to calculate a valid score
+const MIN_DATA_THRESHOLD = 0.30; // 30% of metrics must be available
 
 export interface MetricBreakdown {
   key: string;
@@ -495,16 +500,23 @@ function calculateCategoryScore(
   // Calculate raw score (normalize by actual weights used)
   const rawScore = totalWeight > 0 ? weightedSum / totalWeight : 0;
 
+  // Check if we have enough data to calculate a meaningful score
+  const dataRatio = metricsUsed / config.metrics.length;
+  const insufficientData = dataRatio < MIN_DATA_THRESHOLD;
+
   return {
     id: config.id,
     nameNl: config.nameNl,
     nameEn: config.nameEn,
-    grade: rawScoreToGrade(rawScore),
+    grade: insufficientData ? 5.5 : rawScoreToGrade(rawScore), // Default to average if insufficient data
     rawScore,
     metricsUsed,
     metricsTotal: config.metrics.length,
     color: config.color,
     breakdown,
+    insufficientData,
+    // Add data note for leefbaarheid (municipal level data)
+    dataNote: config.id === 'leefbaarheid' ? 'municipal' : undefined,
   };
 }
 
@@ -546,6 +558,7 @@ function calculateVoorzieningenScore(
       metricsTotal: Object.keys(VOORZIENINGEN_WEIGHTS).length,
       color: '#48806a',
       breakdown,
+      insufficientData: true,
     };
   }
 
@@ -609,17 +622,21 @@ function calculateVoorzieningenScore(
   }
 
   const rawScore = totalWeight > 0 ? weightedSum / totalWeight : 0;
+  const totalMetrics = Object.keys(VOORZIENINGEN_WEIGHTS).length;
+  const dataRatio = metricsUsed / totalMetrics;
+  const insufficientData = dataRatio < MIN_DATA_THRESHOLD;
 
   return {
     id: 'voorzieningen',
     nameNl: 'Voorzieningen',
     nameEn: 'Amenities',
-    grade: rawScoreToGrade(rawScore),
+    grade: insufficientData ? 5.5 : rawScoreToGrade(rawScore),
     rawScore,
     metricsUsed,
-    metricsTotal: Object.keys(VOORZIENINGEN_WEIGHTS).length,
+    metricsTotal: totalMetrics,
     color: '#48806a',
     breakdown,
+    insufficientData,
   };
 }
 
@@ -662,36 +679,25 @@ export function calculateLocationScores(
 
 /**
  * Get formatted chart data for RadialChart display
+ * Categories with insufficient data are shown with a minimal value (1) and gray color
  */
 export function getScoreChartData(
   scores: LocationScores,
   locale: 'nl' | 'en'
 ): Array<{ name: string; value: number; color: string }> {
-  return [
-    {
-      name: locale === 'nl' ? scores.betaalbaarheid.nameNl : scores.betaalbaarheid.nameEn,
-      value: scores.betaalbaarheid.grade,
-      color: scores.betaalbaarheid.color,
-    },
-    {
-      name: locale === 'nl' ? scores.veiligheid.nameNl : scores.veiligheid.nameEn,
-      value: scores.veiligheid.grade,
-      color: scores.veiligheid.color,
-    },
-    {
-      name: locale === 'nl' ? scores.gezondheid.nameNl : scores.gezondheid.nameEn,
-      value: scores.gezondheid.grade,
-      color: scores.gezondheid.color,
-    },
-    {
-      name: locale === 'nl' ? scores.leefbaarheid.nameNl : scores.leefbaarheid.nameEn,
-      value: scores.leefbaarheid.grade,
-      color: scores.leefbaarheid.color,
-    },
-    {
-      name: locale === 'nl' ? scores.voorzieningen.nameNl : scores.voorzieningen.nameEn,
-      value: scores.voorzieningen.grade,
-      color: scores.voorzieningen.color,
-    },
+  const categories = [
+    scores.betaalbaarheid,
+    scores.veiligheid,
+    scores.gezondheid,
+    scores.leefbaarheid,
+    scores.voorzieningen,
   ];
+
+  return categories.map(cat => ({
+    name: locale === 'nl' ? cat.nameNl : cat.nameEn,
+    // Show minimal value for insufficient data so it's visible but clearly different
+    value: cat.insufficientData ? 1 : cat.grade,
+    // Use gray color for insufficient data categories
+    color: cat.insufficientData ? '#9ca3af' : cat.color,
+  }));
 }
