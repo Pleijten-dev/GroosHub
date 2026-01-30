@@ -1,8 +1,19 @@
+console.log('[auth.ts] Starting module initialization...');
+
 import NextAuth, { type DefaultSession } from 'next-auth';
+console.log('[auth.ts] NextAuth imported');
+
 import Credentials from 'next-auth/providers/credentials';
+console.log('[auth.ts] Credentials imported');
+
 import bcrypt from 'bcryptjs';
+console.log('[auth.ts] bcrypt imported');
+
 import { authConfig } from './auth.config';
+console.log('[auth.ts] authConfig imported');
+
 import { getDbConnection } from './db/connection';
+console.log('[auth.ts] getDbConnection imported');
 
 /**
  * User type matching the database schema (user_accounts table)
@@ -39,6 +50,8 @@ declare module 'next-auth' {
   }
 }
 
+console.log('[auth.ts] About to call NextAuth()...');
+
 /**
  * NextAuth configuration with Credentials provider
  */
@@ -52,19 +65,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
+        console.log('[authorize] Starting authorization...');
+
         if (!credentials?.email || !credentials?.password) {
-          console.log('❌ Auth: Missing credentials');
+          console.log('[authorize] Missing email or password');
           return null;
         }
 
         try {
-          // Trim and lowercase email, trim password (matching old implementation)
+          // Trim and lowercase email, trim password
           const email = (credentials.email as string).trim().toLowerCase();
           const password = (credentials.password as string).trim();
-
-          console.log('🔍 Auth: Attempting login for:', email);
+          console.log('[authorize] Attempting login for email:', email);
 
           const db = getDbConnection();
+          console.log('[authorize] Database connection obtained');
 
           // Query user from user_accounts table with case-insensitive email match
           const result = await db`
@@ -72,35 +87,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             FROM user_accounts
             WHERE LOWER(email) = LOWER(${email})
           `;
-
-          console.log('📊 Auth: Query returned', result.length, 'user(s)');
+          console.log('[authorize] Query completed, found', result.length, 'users');
 
           if (result.length === 0) {
-            console.log('❌ Auth: No user found with email:', email);
+            console.log('[authorize] No user found with email:', email);
             return null;
           }
 
           const user = result[0];
-          console.log('👤 Auth: Found user:', user.id, user.email, user.role, 'org:', user.org_id);
+          console.log('[authorize] User found:', { id: user.id, email: user.email, is_active: user.is_active, role: user.role });
 
           // Check if user account is active
           if (!user.is_active) {
-            console.log('❌ Auth: User account is inactive:', email);
+            console.log('[authorize] User account is inactive');
             return null;
           }
 
           // Verify password using bcrypt
+          console.log('[authorize] Verifying password...');
+          console.log('[authorize] Stored hash starts with:', user.password?.substring(0, 10));
           const isPasswordValid = await bcrypt.compare(password, user.password);
-
-          console.log('🔐 Auth: Password valid:', isPasswordValid);
+          console.log('[authorize] Password valid:', isPasswordValid);
 
           if (!isPasswordValid) {
-            console.log('❌ Auth: Invalid password for user:', email);
+            console.log('[authorize] Invalid password for user:', email);
             return null;
           }
 
-          console.log('✅ Auth: Login successful for:', email);
-
+          console.log('[authorize] Login successful for user:', email);
           // Return user without password
           return {
             id: user.id,
@@ -112,17 +126,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             must_change_password: user.must_change_password ?? false,
           };
         } catch (error) {
-          console.error('❌ Auth error:', error);
+          console.error('[authorize] Auth error:', error);
           return null;
         }
       },
     }),
   ],
-  session: {
-    strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days - users will stay logged in
-  },
-  secret: process.env.NEXTAUTH_SECRET,
-  debug: true, // Enable debug mode for detailed logging
 });
 
+console.log('[auth.ts] NextAuth() completed, module initialized');

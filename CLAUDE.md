@@ -13,6 +13,7 @@ Check which documentation applies to your task:
 | `docs/AI-ASSISTANT-PAGE.md` | Working on AI assistant, chat, or LLM features |
 | `docs/COMPLETE-LOCATION-PAGE-DOCUMENTATION.md` | Working on location analysis, maps, or geographic features |
 | `docs/DATABASE-SCHEMA.md` | Any database changes, new tables, migrations, or queries |
+| `docs/NEXTJS-ROUTING-AND-API.md` | Working on API routes, routing, proxy/middleware, locale handling, or debugging 404/504 errors |
 | `docs/SECURITY-AND-USER-MANAGEMENT.md` | Working on authentication, login, passwords, user management, roles, or security features |
 
 This ensures you understand the existing architecture, data flows, and conventions before making changes.

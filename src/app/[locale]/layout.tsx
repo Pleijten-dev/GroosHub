@@ -2,8 +2,9 @@
 import { Inter } from 'next/font/google';
 import { Locale, locales, isValidLocale } from '../../lib/i18n/config';
 import { NavigationBar } from '../../shared/components/UI';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { auth } from '../../lib/auth';
+import { headers } from 'next/headers';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -23,6 +24,32 @@ export default async function LocaleLayout({
   }
 
   const session = await auth();
+
+  // Get current pathname from headers (set by proxy.ts)
+  const headersList = await headers();
+  const pathname = headersList.get('x-pathname') || headersList.get('x-invoke-path') || '';
+  console.log('[layout] Pathname from headers:', pathname);
+
+  // Handle must_change_password redirect (server-side)
+  if (session?.user) {
+    const mustChangePassword = session.user.must_change_password;
+    const isChangePasswordPage = pathname.includes('/change-password');
+    const isLoginPage = pathname.includes('/login');
+    console.log('[layout] User:', { email: session.user.email, mustChangePassword, isChangePasswordPage, isLoginPage });
+
+    // Skip redirect logic for login page (handled by login form)
+    if (!isLoginPage) {
+      if (mustChangePassword && !isChangePasswordPage) {
+        // User must change password but not on change-password page
+        redirect(`/${locale}/change-password`);
+      }
+
+      if (!mustChangePassword && isChangePasswordPage) {
+        // User doesn't need to change password but is on change-password page
+        redirect(`/${locale}`);
+      }
+    }
+  }
 
   return (
     <div className={inter.className}>
