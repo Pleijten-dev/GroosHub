@@ -30,7 +30,8 @@ export default async function LocaleLayout({
   const pathname = headersList.get('x-pathname') || headersList.get('x-invoke-path') || '';
 
   // Check if we're on the landing page (hide navbar there)
-  const isLandingPage = pathname === `/${locale}` || pathname === `/${locale}/` || pathname === '';
+  // Only match exact landing page paths, not empty strings
+  const isLandingPage = pathname === `/${locale}` || pathname === `/${locale}/`;
 
   // Handle must_change_password redirect (server-side)
   if (session?.user) {
