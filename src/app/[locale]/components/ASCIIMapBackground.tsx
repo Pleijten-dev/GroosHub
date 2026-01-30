@@ -87,11 +87,17 @@ function buildWMSUrl(bbox: string, size: number): string {
   return `${WMS_BASE}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=${WMS_LAYER}&CRS=EPSG:4326&BBOX=${bbox}&WIDTH=${size}&HEIGHT=${size}&FORMAT=image/png&TRANSPARENT=true`;
 }
 
+// Convert pixel color to heat value (0-1) and whether it has data
+// Returns -1 for grayscale/no-data pixels, otherwise 0-1 heat value
 function colorToHeat(r: number, g: number, b: number): number {
-  if (Math.abs(r - g) < 15 && Math.abs(g - b) < 15) return 0;
+  // Grayscale pixels (near-equal RGB) are treated as no data
+  if (Math.abs(r - g) < 15 && Math.abs(g - b) < 15) return -1;
+
   const total = r + g + b || 1;
   const redHeat = r / total;
   const blueHeat = b / total;
+  // Map red-to-blue spectrum to 0-1 range
+  // Blue (cold) = low heat, Red (hot) = high heat
   const heat = (redHeat - blueHeat + 1) / 2;
   return Math.max(0, Math.min(1, heat));
 }
@@ -180,7 +186,7 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
           for (let x = 0; x < tileSize; x++) {
             const pixel = ctx.getImageData(x, y, 1, 1).data;
             if (pixel[3] < 128) {
-              row.push(0); // Transparent = no heat
+              row.push(-1); // Transparent = no data
             } else {
               row.push(colorToHeat(pixel[0], pixel[1], pixel[2]));
             }
@@ -193,7 +199,7 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
         console.error(`Failed to load tile ${tile.name}:`, err);
         const lines: number[][] = [];
         for (let y = 0; y < tileSize; y++) {
-          lines.push(Array(tileSize).fill(0));
+          lines.push(Array(tileSize).fill(-1)); // No data on error
         }
         allTileHeat.push(lines);
       }
@@ -266,15 +272,25 @@ export const ASCIIMapBackground: React.FC<ASCIIMapBackgroundProps> = ({
           const heat1 = row[dataX];
           const heat2 = row[dataX + 1];
 
-          // Interpolate heat based on fractional pan position
-          const interpolatedHeat = heat1 + (heat2 - heat1) * panFraction;
+          // Handle no-data (-1) values: use the valid one, or skip if both invalid
+          let interpolatedHeat: number;
+          if (heat1 < 0 && heat2 < 0) {
+            interpolatedHeat = -1; // Both no data
+          } else if (heat1 < 0) {
+            interpolatedHeat = heat2; // Use second value
+          } else if (heat2 < 0) {
+            interpolatedHeat = heat1; // Use first value
+          } else {
+            // Both valid: interpolate based on fractional pan position
+            interpolatedHeat = heat1 + (heat2 - heat1) * panFraction;
+          }
 
           // Add time-based noise for morphing effect
           // Noise is position-dependent and slowly changes over time
           const noise = (seededRandom(x, y, Math.floor(timeSeed)) - 0.5) *
                        Math.sin(timeSeed * 2 + x * 0.3 + y * 0.2);
 
-          if (interpolatedHeat > 0.01) { // Skip near-zero heat (transparent areas)
+          if (interpolatedHeat >= 0) { // Skip -1 (no data), render all valid heat values
             const char = heatToASCII(interpolatedHeat, noise);
             const color = heatToColorRGB(interpolatedHeat);
             ctx.fillStyle = `rgb(${color.r},${color.g},${color.b})`;
