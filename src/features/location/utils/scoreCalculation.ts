@@ -358,6 +358,31 @@ interface MetricResult {
 }
 
 /**
+ * Calculate a score from relative values when no pre-calculated score exists
+ * Uses linear interpolation: score = (localValue - nationalValue) / margin
+ * Clamped to [-1, 1] range
+ */
+function calculateScoreFromRelative(
+  localValue: number | null,
+  nationalValue: number | null,
+  margin: number = 20
+): number | null {
+  if (localValue === null || nationalValue === null) {
+    return null;
+  }
+
+  // Calculate difference as percentage of national value
+  const marginValue = Math.abs(nationalValue) * (margin / 100);
+  if (marginValue === 0) return 0;
+
+  const diff = localValue - nationalValue;
+  const rawScore = diff / marginValue;
+
+  // Clamp to [-1, 1]
+  return Math.max(-1, Math.min(1, rawScore));
+}
+
+/**
  * Find a metric value in data rows by key
  */
 function findMetricValue(
@@ -368,14 +393,27 @@ function findMetricValue(
   const row = rows.find(r => r.key === key);
   const nationalRow = nationalRows.find(r => r.key === key);
 
-  if (!row || row.calculatedScore === undefined || row.calculatedScore === null) {
+  if (!row) {
     return { score: null, localValue: null, comparisonValue: null, found: false };
   }
 
+  const localValue = row.relative ?? row.absolute ?? null;
+  const comparisonValue = nationalRow?.relative ?? nationalRow?.absolute ?? null;
+
+  // Use pre-calculated score if available, otherwise calculate from relative values
+  let score = row.calculatedScore ?? null;
+  if (score === null && localValue !== null && comparisonValue !== null) {
+    score = calculateScoreFromRelative(localValue, comparisonValue);
+  }
+
+  if (score === null) {
+    return { score: null, localValue, comparisonValue, found: false };
+  }
+
   return {
-    score: row.calculatedScore,
-    localValue: row.relative ?? row.absolute ?? null,
-    comparisonValue: nationalRow?.relative ?? nationalRow?.absolute ?? null,
+    score,
+    localValue,
+    comparisonValue,
     found: true,
   };
 }
