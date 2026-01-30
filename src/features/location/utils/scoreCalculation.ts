@@ -117,22 +117,19 @@ export const VEILIGHEID_CONFIG: CategoryConfig = {
   nameEn: 'Safety',
   color: '#477638',
   metrics: [
-    // Violent Crime (35%)
-    { key: 'Crime_1.4.5', direction: 'negative', weight: 0.12, source: 'safety' },  // Assault
-    { key: 'Crime_1.4.4', direction: 'negative', weight: 0.08, source: 'safety' },  // Threats
-    { key: 'Crime_1.4.6', direction: 'negative', weight: 0.08, source: 'safety' },  // Street robbery
-    { key: 'Crime_1.4.3', direction: 'negative', weight: 0.07, source: 'safety' },  // Public violence
-    // Property Crime (30%)
-    { key: 'Crime_1.1.1', direction: 'negative', weight: 0.15, source: 'safety' },  // Home burglary
-    { key: 'Crime_1.2.1', direction: 'negative', weight: 0.05, source: 'safety' },  // Theft from vehicles
-    { key: 'Crime_1.2.2', direction: 'negative', weight: 0.05, source: 'safety' },  // Vehicle theft
-    { key: 'Crime_2.2.1', direction: 'negative', weight: 0.05, source: 'safety' },  // Vandalism
-    // Safety Perception (20%)
-    { key: 'VoeltZichVaakOnveilig_44', direction: 'negative', weight: 0.10, source: 'livability' },
-    { key: 'SAvondsOpStraatInBuurtOnveilig_52', direction: 'negative', weight: 0.10, source: 'livability' },
-    // Traffic & Other (15%)
-    { key: 'Crime_1.3.1', direction: 'negative', weight: 0.08, source: 'safety' },  // Traffic accidents
-    { key: 'Crime_2.1.1', direction: 'negative', weight: 0.07, source: 'safety' },  // Drug nuisance
+    // Violent Crime (25%) - Removed straatroof, openlijk geweld due to insufficient data
+    { key: 'Crime_1.4.5', direction: 'negative', weight: 0.15, source: 'safety' },  // Assault (mishandeling)
+    { key: 'Crime_1.4.4', direction: 'negative', weight: 0.10, source: 'safety' },  // Threats (bedreiging)
+    // Property Crime (40%)
+    { key: 'Crime_1.1.1', direction: 'negative', weight: 0.20, source: 'safety' },  // Home burglary (woninginbraak)
+    { key: 'Crime_1.2.1', direction: 'negative', weight: 0.07, source: 'safety' },  // Theft from vehicles
+    { key: 'Crime_1.2.2', direction: 'negative', weight: 0.07, source: 'safety' },  // Vehicle theft
+    { key: 'Crime_2.2.1', direction: 'negative', weight: 0.06, source: 'safety' },  // Vandalism
+    // Safety Perception (25%)
+    { key: 'VoeltZichVaakOnveilig_44', direction: 'negative', weight: 0.12, source: 'livability' },
+    { key: 'SAvondsOpStraatInBuurtOnveilig_52', direction: 'negative', weight: 0.13, source: 'livability' },
+    // Traffic (10%) - Removed drugsoverlast due to insufficient data
+    { key: 'Crime_1.3.1', direction: 'negative', weight: 0.10, source: 'safety' },  // Traffic accidents
   ],
 };
 
@@ -489,12 +486,21 @@ function calculateCategoryScore(
         break;
       }
       case 'safety': {
+        // Safety: Compare neighborhood/district against municipality (not national)
+        // NL is relatively safe, so municipal comparison is more meaningful
         const safetyData = getBestAvailableData(
           data.safety.neighborhood,
           data.safety.district,
-          data.safety.municipality
+          null // Don't fall back to municipality for local data
         );
-        result = findMetricValue(safetyData, data.safety.national, metric.key);
+        // Use municipality as comparison baseline (instead of national)
+        // If only municipality data available, fall back to national
+        if (safetyData && safetyData.length > 0) {
+          result = findMetricValue(safetyData, data.safety.municipality, metric.key);
+        } else {
+          // Fallback: compare municipality to national
+          result = findMetricValue(data.safety.municipality, data.safety.national, metric.key);
+        }
         break;
       }
       case 'residential': {
@@ -554,7 +560,8 @@ function calculateCategoryScore(
     breakdown,
     insufficientData,
     // Add data note for leefbaarheid (municipal level data)
-    dataNote: config.id === 'leefbaarheid' ? 'municipal' : undefined,
+    dataNote: config.id === 'leefbaarheid' ? 'municipal' :
+              config.id === 'veiligheid' ? 'municipal_comparison' : undefined,
   };
 }
 

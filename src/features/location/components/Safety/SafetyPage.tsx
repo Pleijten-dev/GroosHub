@@ -95,6 +95,7 @@ const SAFETY_SECTIONS: SafetySection[] = [
  * SafetyPage - Displays safety data with value comparisons
  */
 export const SafetyPage: React.FC<SafetyPageProps> = ({ data, locale }) => {
+  // Default to neighborhood vs municipality comparison (NL is too safe for meaningful national comparison)
   const [selectedLevel, setSelectedLevel] = useState<GeographicLevel>('neighborhood');
   const [comparisonLevel, setComparisonLevel] = useState<GeographicLevel>('municipality');
   const [isExpanded, setIsExpanded] = useState(false);

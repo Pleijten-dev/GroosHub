@@ -52,10 +52,6 @@
       "direction": "negative",
       "margin": 25
     },
-    "Crime_1.4.3": {
-      "direction": "negative",
-      "margin": 30
-    },
     "Crime_1.4.4": {
       "direction": "negative",
       "margin": 30
@@ -63,14 +59,6 @@
     "Crime_1.4.5": {
       "direction": "negative",
       "margin": 30
-    },
-    "Crime_1.4.6": {
-      "direction": "negative",
-      "margin": 30
-    },
-    "Crime_2.1.1": {
-      "direction": "negative",
-      "margin": 40
     },
     "Crime_2.2.1": {
       "direction": "negative",
