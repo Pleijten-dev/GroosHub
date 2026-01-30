@@ -477,13 +477,16 @@ const RadialChart: React.FC<RadialChartProps> = ({
         .style('vector-effect', 'non-scaling-stroke');
 
       // Data bars — use per-slice noise/gradient filter (scales with hover)
+      // Gray slices (insufficient data) get plain gray fill without noise filter
+      const INSUFFICIENT_DATA_COLOR = '#9ca3af';
+
       sliceGroups
         .append('path')
         .attr('class', 'bar')
         .attr('d', arc)
-        .style('fill', '#fff') // ignored for final color; SourceAlpha is used for clipping
-        .style('opacity', 0.98)
-        .style('filter', (d: RadialChartData) => `url(#noise-heat-${slug(d.name)})`);
+        .style('fill', (d: RadialChartData) => d.color === INSUFFICIENT_DATA_COLOR ? INSUFFICIENT_DATA_COLOR : '#fff')
+        .style('opacity', (d: RadialChartData) => d.color === INSUFFICIENT_DATA_COLOR ? 0.6 : 0.98)
+        .style('filter', (d: RadialChartData) => d.color === INSUFFICIENT_DATA_COLOR ? 'none' : `url(#noise-heat-${slug(d.name)})`);
 
       // Add labels if enabled
       if (showLabels) {
