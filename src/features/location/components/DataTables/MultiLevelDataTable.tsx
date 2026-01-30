@@ -75,33 +75,34 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
 
   /**
    * Get data rows for the selected level and source
+   * Uses defensive null checks to handle incomplete data from saved snapshots
    */
   const getFilteredRows = (): UnifiedDataRow[] => {
     const rows: UnifiedDataRow[] = [];
 
-    // Collect rows based on selected level
+    // Collect rows based on selected level (with null safety)
     switch (selectedLevel) {
       case 'national':
-        rows.push(...data.demographics.national);
-        rows.push(...data.health.national);
-        rows.push(...data.livability.national);
-        rows.push(...data.safety.national);
+        rows.push(...(data.demographics?.national ?? []));
+        rows.push(...(data.health?.national ?? []));
+        rows.push(...(data.livability?.national ?? []));
+        rows.push(...(data.safety?.national ?? []));
         break;
       case 'municipality':
-        rows.push(...data.demographics.municipality);
-        rows.push(...data.health.municipality);
-        rows.push(...data.livability.municipality);
-        rows.push(...data.safety.municipality);
+        rows.push(...(data.demographics?.municipality ?? []));
+        rows.push(...(data.health?.municipality ?? []));
+        rows.push(...(data.livability?.municipality ?? []));
+        rows.push(...(data.safety?.municipality ?? []));
         break;
       case 'district':
-        rows.push(...data.demographics.district);
-        rows.push(...data.health.district);
-        rows.push(...data.safety.district);
+        rows.push(...(data.demographics?.district ?? []));
+        rows.push(...(data.health?.district ?? []));
+        rows.push(...(data.safety?.district ?? []));
         break;
       case 'neighborhood':
-        rows.push(...data.demographics.neighborhood);
-        rows.push(...data.health.neighborhood);
-        rows.push(...data.safety.neighborhood);
+        rows.push(...(data.demographics?.neighborhood ?? []));
+        rows.push(...(data.health?.neighborhood ?? []));
+        rows.push(...(data.safety?.neighborhood ?? []));
         break;
     }
 
@@ -216,24 +217,28 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
               </span>
             </div>
           )}
-          <div>
-            <span className="text-text-muted">
-              {locale === 'nl' ? 'Coördinaten (WGS84)' : 'Coordinates (WGS84)'}:
-            </span>{' '}
-            <span className="font-medium">
-              {data.location.coordinates.wgs84.latitude.toFixed(6)},{' '}
-              {data.location.coordinates.wgs84.longitude.toFixed(6)}
-            </span>
-          </div>
-          <div>
-            <span className="text-text-muted">
-              {locale === 'nl' ? 'Coördinaten (RD)' : 'Coordinates (RD)'}:
-            </span>{' '}
-            <span className="font-medium">
-              {Math.round(data.location.coordinates.rd.x)},{' '}
-              {Math.round(data.location.coordinates.rd.y)}
-            </span>
-          </div>
+          {data.location?.coordinates?.wgs84 && (
+            <div>
+              <span className="text-text-muted">
+                {locale === 'nl' ? 'Coördinaten (WGS84)' : 'Coordinates (WGS84)'}:
+              </span>{' '}
+              <span className="font-medium">
+                {data.location.coordinates.wgs84.latitude?.toFixed(6) ?? '-'},{' '}
+                {data.location.coordinates.wgs84.longitude?.toFixed(6) ?? '-'}
+              </span>
+            </div>
+          )}
+          {data.location?.coordinates?.rd && (
+            <div>
+              <span className="text-text-muted">
+                {locale === 'nl' ? 'Coördinaten (RD)' : 'Coordinates (RD)'}:
+              </span>{' '}
+              <span className="font-medium">
+                {data.location.coordinates.rd.x != null ? Math.round(data.location.coordinates.rd.x) : '-'},{' '}
+                {data.location.coordinates.rd.y != null ? Math.round(data.location.coordinates.rd.y) : '-'}
+              </span>
+            </div>
+          )}
         </div>
       </PanelInner>
 
@@ -502,7 +507,11 @@ export const MultiLevelDataTable: React.FC<MultiLevelDataTableProps> = ({
         {/* Data fetch timestamp */}
         <div className="p-sm bg-gray-50 rounded text-xs text-text-muted">
           {locale === 'nl' ? 'Data opgehaald op' : 'Data fetched on'}:{' '}
-          {data.fetchedAt.toLocaleString(locale === 'nl' ? 'nl-NL' : 'en-US')}
+          {data.fetchedAt instanceof Date
+            ? data.fetchedAt.toLocaleString(locale === 'nl' ? 'nl-NL' : 'en-US')
+            : typeof data.fetchedAt === 'string'
+              ? new Date(data.fetchedAt).toLocaleString(locale === 'nl' ? 'nl-NL' : 'en-US')
+              : '-'}
         </div>
       </div>
     </div>
