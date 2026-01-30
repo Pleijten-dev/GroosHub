@@ -30,10 +30,6 @@ export default async function LocaleLayout({
   const pathname = headersList.get('x-pathname') || headersList.get('x-invoke-path') || '';
   console.log('[layout] Pathname from headers:', pathname);
 
-  // Check if we're on the landing page (hide navbar there)
-  // Only match exact landing page paths, not empty strings
-  const isLandingPage = pathname === `/${locale}` || pathname === `/${locale}/`;
-
   // Handle must_change_password redirect (server-side)
   if (session?.user) {
     const mustChangePassword = session.user.must_change_password;
@@ -57,26 +53,24 @@ export default async function LocaleLayout({
 
   return (
     <div className={inter.className}>
-      {/* Navigation Bar at the top - hidden on landing page */}
-      {!isLandingPage && (
-        <NavigationBar
-          locale={locale}
-          currentPath={`/${locale}`}
-          user={
-            session?.user
-              ? {
-                  id: session.user.id,
-                  name: session.user.name || '',
-                  email: session.user.email || '',
-                  role: session.user.role,
-                }
-              : undefined
-          }
-        />
-      )}
+      {/* Navigation Bar at the top */}
+      <NavigationBar
+        locale={locale}
+        currentPath={`/${locale}`}
+        user={
+          session?.user
+            ? {
+                id: session.user.id,
+                name: session.user.name || '',
+                email: session.user.email || '',
+                role: session.user.role,
+              }
+            : undefined
+        }
+      />
 
-      {/* Main content area with proper padding for fixed navbar (only when navbar visible) */}
-      <main className="min-h-screen bg-white" style={{ paddingTop: isLandingPage ? '0' : '64px' }}>
+      {/* Main content area with proper padding for fixed navbar */}
+      <main className="min-h-screen bg-white" style={{ paddingTop: '64px' }}>
         {children}
       </main>
     </div>
