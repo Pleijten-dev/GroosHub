@@ -139,6 +139,18 @@ export class MultiLevelAggregator {
     residential: ResidentialData | null = null,
     amenities: AmenityMultiCategoryResponse | null = null
   ): Promise<UnifiedLocationData> {
+    // Debug: Log incoming safety data from API
+    console.log('🔄 [Aggregator] Incoming safety data:', {
+      hasNational: !!safety.national,
+      hasMunicipality: !!safety.municipality,
+      hasDistrict: !!safety.district,
+      hasNeighborhood: !!safety.neighborhood,
+      nationalCrimeCount: safety.national ? Object.keys(safety.national.data).length : 0,
+      municipalityCrimeCount: safety.municipality ? Object.keys(safety.municipality.data).length : 0,
+      districtCrimeCount: safety.district ? Object.keys(safety.district.data).length : 0,
+      neighborhoodCrimeCount: safety.neighborhood ? Object.keys(safety.neighborhood.data).length : 0,
+    });
+
     // Load scoring configuration
     const scoringConfig = await this.ensureScoringConfig();
 

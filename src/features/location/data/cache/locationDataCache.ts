@@ -141,6 +141,18 @@ export class LocationDataCache {
         entry.data.fetchedAt = new Date(entry.data.fetchedAt);
       }
 
+      // Debug: Log safety data structure after reading from cache
+      console.log('📦 [Cache GET] Safety data structure:', {
+        hasNational: !!entry.data.safety?.national?.length,
+        hasMunicipality: !!entry.data.safety?.municipality?.length,
+        hasDistrict: !!entry.data.safety?.district?.length,
+        hasNeighborhood: !!entry.data.safety?.neighborhood?.length,
+        nationalCount: entry.data.safety?.national?.length || 0,
+        municipalityCount: entry.data.safety?.municipality?.length || 0,
+        districtCount: entry.data.safety?.district?.length || 0,
+        neighborhoodCount: entry.data.safety?.neighborhood?.length || 0,
+      });
+
       return {
         data: entry.data,
         amenities: entry.amenities,
@@ -169,6 +181,18 @@ export class LocationDataCache {
 
     try {
       const key = this.getCacheKey(address);
+
+      // Debug: Log safety data structure before caching
+      console.log('📦 [Cache SET] Safety data structure:', {
+        hasNational: !!data.safety?.national?.length,
+        hasMunicipality: !!data.safety?.municipality?.length,
+        hasDistrict: !!data.safety?.district?.length,
+        hasNeighborhood: !!data.safety?.neighborhood?.length,
+        nationalCount: data.safety?.national?.length || 0,
+        municipalityCount: data.safety?.municipality?.length || 0,
+        districtCount: data.safety?.district?.length || 0,
+        neighborhoodCount: data.safety?.neighborhood?.length || 0,
+      });
       const entry: CacheEntry = {
         data,
         amenities,
