@@ -5,7 +5,8 @@ import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 
 // ASCII characters ordered by visual density (sparse to dense)
 // Characters are ordered within each group for smooth transitions
-const ASCII_CHARS = ' .`·:;,\'-~"^=+il!|/\\rc*xonvzsaeu#Xkdbpqwm%@WMNBQ&$';
+// Updated: Start with more visible characters (removed space, dot, backtick, middot, colon)
+const ASCII_CHARS = ';,\'-~"^=+il!|/\\rc*xonvzsaeu#Xkdbpqwm%@WMNBQ&$';
 
 // Get ASCII character for heat value (0-1) with optional time-based variation
 function heatToASCII(heat: number, timeNoise: number = 0): string {
@@ -22,8 +23,9 @@ function seededRandom(x: number, y: number, seed: number): number {
 }
 
 // Color gradient for heat values
+// Updated: Start with light sage instead of cream for better visibility
 const GRADIENT_COLORS = [
-  { r: 0xf8, g: 0xee, b: 0xe4 }, // #f8eee4 - cream (cold)
+  { r: 0xb8, g: 0xc4, b: 0x9a }, // #b8c49a - light sage (cold) - more visible than cream
   { r: 0x8a, g: 0x97, b: 0x6b }, // #8a976b - sage
   { r: 0x47, g: 0x76, b: 0x38 }, // #477638 - green
   { r: 0x48, g: 0x80, b: 0x6a }, // #48806a - teal
