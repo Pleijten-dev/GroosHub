@@ -71,6 +71,7 @@ export interface LocationScores {
   gezondheid: CategoryScore;
   leefbaarheid: CategoryScore;
   voorzieningen: CategoryScore;
+  categories: CategoryScore[];  // Array of all categories for iteration
   overall: number;      // Weighted average grade
 }
 
@@ -654,6 +655,7 @@ export function calculateLocationScores(
     gezondheid,
     leefbaarheid,
     voorzieningen,
+    categories: [betaalbaarheid, veiligheid, gezondheid, leefbaarheid, voorzieningen],
     overall: Math.round(overallGrade * 10) / 10,
   };
 }
