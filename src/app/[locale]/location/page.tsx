@@ -137,7 +137,7 @@ function ScoreTabContent({
             isSimple={false}
             onSliceClick={onCategoryClick}
             onSliceHover={handleSliceHover}
-            minValue={1}
+            minValue={0}
             averageValue={5.5}
           />
         </div>
