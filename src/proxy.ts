@@ -26,6 +26,19 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Add x-pathname header for server components to access the current path
+  // This is needed by layout.tsx for must_change_password redirect logic
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-pathname', pathname);
+
+  // Helper function to pass through with the x-pathname header
+  const nextWithHeaders = () =>
+    NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
+
   // Determine locale from path
   const locale = pathname.startsWith('/en') ? 'en' : 'nl';
 
@@ -39,7 +52,7 @@ export function proxy(request: NextRequest) {
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
 
   if (isPublicRoute) {
-    return NextResponse.next();
+    return nextWithHeaders();
   }
 
   // Check for session cookie (NextAuth v5 uses authjs.session-token)
@@ -54,8 +67,8 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Session exists - allow through
-  return NextResponse.next();
+  // Session exists - allow through with x-pathname header
+  return nextWithHeaders();
 }
 
 // Export as both named and default for Next.js 16 compatibility

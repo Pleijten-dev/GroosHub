@@ -25,9 +25,10 @@ export default async function LocaleLayout({
 
   const session = await auth();
 
-  // Get current pathname from headers
+  // Get current pathname from headers (set by proxy.ts)
   const headersList = await headers();
   const pathname = headersList.get('x-pathname') || headersList.get('x-invoke-path') || '';
+  console.log('[layout] Pathname from headers:', pathname);
 
   // Check if we're on the landing page (hide navbar there)
   // Only match exact landing page paths, not empty strings
@@ -38,6 +39,7 @@ export default async function LocaleLayout({
     const mustChangePassword = session.user.must_change_password;
     const isChangePasswordPage = pathname.includes('/change-password');
     const isLoginPage = pathname.includes('/login');
+    console.log('[layout] User:', { email: session.user.email, mustChangePassword, isChangePasswordPage, isLoginPage });
 
     // Skip redirect logic for login page (handled by login form)
     if (!isLoginPage) {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { signIn } from 'next-auth/react';
+import { signIn, getSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Input } from '@/shared/components/UI/Input/Input';
 import { Button } from '@/shared/components/UI/Button/Button';
@@ -53,9 +53,16 @@ export function LoginForm({ translations, locale }: LoginFormProps) {
         setError(translations.invalidCredentials);
         setLoading(false);
       } else if (result?.ok) {
-        // Keep loading state during navigation
-        router.push(callbackUrl);
-        router.refresh();
+        // Get session to check must_change_password
+        const session = await getSession();
+
+        if (session?.user?.must_change_password) {
+          // User must change password - redirect to change-password page
+          window.location.href = `/${locale}/change-password`;
+        } else {
+          // Normal login - redirect to callback URL
+          window.location.href = callbackUrl;
+        }
       } else {
         setError(translations.error);
         setLoading(false);
