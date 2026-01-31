@@ -41,7 +41,7 @@ interface ApiTestResult {
   method: string;
   status: number | null;
   duration: number | null;
-  response: unknown;
+  response: Record<string, unknown> | string | null;
   error: string | null;
 }
 
