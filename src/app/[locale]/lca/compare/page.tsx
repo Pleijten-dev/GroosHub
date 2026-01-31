@@ -13,7 +13,7 @@ import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/shared/components/UI/MainLayout';
 import { Sidebar, useSidebar } from '@/shared/components/UI/Sidebar';
 import { LCATabNavigation } from '@/features/lca/components/navigation/LCATabNavigation';
-import { Button } from '@/shared/components/UI/Button';
+import { Button } from '@/shared/components/UI';
 import {
   ProjectPicker,
   ComparisonTable,

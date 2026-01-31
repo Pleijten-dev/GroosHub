@@ -16,8 +16,7 @@
 import React, { useState, use } from 'react';
 import { MainLayout } from '@/shared/components/UI/MainLayout';
 import { Sidebar, useSidebar } from '@/shared/components/UI/Sidebar';
-import { Button } from '@/shared/components/UI/Button';
-import { Input } from '@/shared/components/UI/Input';
+import { Button, Input } from '@/shared/components/UI';
 import { cn } from '@/shared/utils/cn';
 import {
   MaterialSelector,
