@@ -24,6 +24,7 @@ export interface ProjectOption {
   construction_system: string;
   gross_floor_area: number;
   total_gwp_per_m2_year: number | null;
+  mpg_reference_value: number | null;
   is_compliant: boolean | null;
   updated_at: string;
 }
@@ -303,10 +304,10 @@ export function ProjectPicker({
 
                         {/* MPG Score */}
                         <div className="flex-shrink-0">
-                          {project.total_gwp_per_m2_year !== null ? (
+                          {project.total_gwp_per_m2_year !== null && project.mpg_reference_value !== null ? (
                             <MPGScoreBadge
                               score={project.total_gwp_per_m2_year}
-                              isCompliant={project.is_compliant ?? false}
+                              limit={project.mpg_reference_value}
                               size="sm"
                             />
                           ) : (

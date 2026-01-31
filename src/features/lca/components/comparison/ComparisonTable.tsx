@@ -235,10 +235,10 @@ export function ComparisonTable({
           {renderMetricRow(
             t.mpgScore,
             (p) =>
-              p.total_gwp_per_m2_year !== null ? (
+              p.total_gwp_per_m2_year !== null && p.mpg_reference_value !== null ? (
                 <MPGScoreBadge
                   score={p.total_gwp_per_m2_year}
-                  isCompliant={p.is_compliant ?? false}
+                  limit={p.mpg_reference_value}
                   size="md"
                 />
               ) : (
