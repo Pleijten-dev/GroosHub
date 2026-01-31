@@ -321,7 +321,7 @@ export default function LCATestPage({ params }: TestPageProps) {
                     <Button
                       key={index}
                       size="sm"
-                      variant="outline"
+                      variant="secondary"
                       onClick={() => runApiTest(ep.method, ep.path)}
                     >
                       {ep.method} {ep.description}
